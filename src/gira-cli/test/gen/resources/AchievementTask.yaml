@@ -1,0 +1,9004 @@
+-
+  id: 70001
+  group_id: 1
+  order: 1
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70002
+  group_id: 1
+  order: 2
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 2
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70003
+  group_id: 1
+  order: 3
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 3
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70004
+  group_id: 1
+  order: 4
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 4
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70005
+  group_id: 1
+  order: 5
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 5
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70006
+  group_id: 1
+  order: 6
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 6
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70007
+  group_id: 1
+  order: 7
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 7
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70008
+  group_id: 1
+  order: 8
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70009
+  group_id: 1
+  order: 9
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 9
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70010
+  group_id: 1
+  order: 10
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70011
+  group_id: 1
+  order: 11
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 11
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70012
+  group_id: 1
+  order: 12
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70013
+  group_id: 1
+  order: 13
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 13
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70014
+  group_id: 1
+  order: 14
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 14
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70015
+  group_id: 1
+  order: 15
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 15
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70016
+  group_id: 1
+  order: 16
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70017
+  group_id: 1
+  order: 17
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 17
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70018
+  group_id: 1
+  order: 18
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 18
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70019
+  group_id: 1
+  order: 19
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 19
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70020
+  group_id: 1
+  order: 20
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70021
+  group_id: 1
+  order: 21
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 21
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70022
+  group_id: 1
+  order: 22
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 22
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70023
+  group_id: 1
+  order: 23
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 23
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70024
+  group_id: 1
+  order: 24
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70025
+  group_id: 1
+  order: 25
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 25
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70026
+  group_id: 1
+  order: 26
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 26
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70027
+  group_id: 1
+  order: 27
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 27
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70028
+  group_id: 1
+  order: 28
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70029
+  group_id: 1
+  order: 29
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 29
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70030
+  group_id: 1
+  order: 30
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70031
+  group_id: 1
+  order: 31
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 31
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70032
+  group_id: 1
+  order: 32
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70033
+  group_id: 1
+  order: 33
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 33
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70034
+  group_id: 1
+  order: 34
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 34
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70035
+  group_id: 1
+  order: 35
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 35
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70036
+  group_id: 1
+  order: 36
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70037
+  group_id: 1
+  order: 37
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 37
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70038
+  group_id: 1
+  order: 38
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 38
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70039
+  group_id: 1
+  order: 39
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 39
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70040
+  group_id: 1
+  order: 40
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70041
+  group_id: 1
+  order: 41
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 41
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70042
+  group_id: 1
+  order: 42
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 42
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70043
+  group_id: 1
+  order: 43
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 43
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70044
+  group_id: 1
+  order: 44
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 44
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70045
+  group_id: 1
+  order: 45
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 45
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70046
+  group_id: 1
+  order: 46
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 46
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70047
+  group_id: 1
+  order: 47
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 47
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70048
+  group_id: 1
+  order: 48
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    1
+  count: 48
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70049
+  group_id: 2
+  order: 1
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70050
+  group_id: 2
+  order: 2
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 2
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70051
+  group_id: 2
+  order: 3
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 3
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70052
+  group_id: 2
+  order: 4
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 4
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70053
+  group_id: 2
+  order: 5
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 5
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70054
+  group_id: 2
+  order: 6
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 6
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70055
+  group_id: 2
+  order: 7
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 7
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70056
+  group_id: 2
+  order: 8
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70057
+  group_id: 2
+  order: 9
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 9
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70058
+  group_id: 2
+  order: 10
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70059
+  group_id: 2
+  order: 11
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 11
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70060
+  group_id: 2
+  order: 12
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70061
+  group_id: 2
+  order: 13
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 13
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70062
+  group_id: 2
+  order: 14
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 14
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70063
+  group_id: 2
+  order: 15
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 15
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70064
+  group_id: 2
+  order: 16
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70065
+  group_id: 2
+  order: 17
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 17
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70066
+  group_id: 2
+  order: 18
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 18
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70067
+  group_id: 2
+  order: 19
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 19
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70068
+  group_id: 2
+  order: 20
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70069
+  group_id: 2
+  order: 21
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 21
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70070
+  group_id: 2
+  order: 22
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 22
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70071
+  group_id: 2
+  order: 23
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 23
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70072
+  group_id: 2
+  order: 24
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70073
+  group_id: 2
+  order: 25
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 25
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70074
+  group_id: 2
+  order: 26
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 26
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70075
+  group_id: 2
+  order: 27
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 27
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70076
+  group_id: 2
+  order: 28
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70077
+  group_id: 2
+  order: 29
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 29
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70078
+  group_id: 2
+  order: 30
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70079
+  group_id: 2
+  order: 31
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 31
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70080
+  group_id: 2
+  order: 32
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70081
+  group_id: 2
+  order: 33
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 33
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70082
+  group_id: 2
+  order: 34
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 34
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70083
+  group_id: 2
+  order: 35
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 35
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70084
+  group_id: 2
+  order: 36
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70085
+  group_id: 2
+  order: 37
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 37
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70086
+  group_id: 2
+  order: 38
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 38
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70087
+  group_id: 2
+  order: 39
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 39
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70088
+  group_id: 2
+  order: 40
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70089
+  group_id: 2
+  order: 41
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 41
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70090
+  group_id: 2
+  order: 42
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 42
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70091
+  group_id: 2
+  order: 43
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 43
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70092
+  group_id: 2
+  order: 44
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 44
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70093
+  group_id: 2
+  order: 45
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 45
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70094
+  group_id: 2
+  order: 46
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 46
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70095
+  group_id: 2
+  order: 47
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 47
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70096
+  group_id: 2
+  order: 48
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    2
+  count: 48
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70097
+  group_id: 3
+  order: 1
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70098
+  group_id: 3
+  order: 2
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 2
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70099
+  group_id: 3
+  order: 3
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 3
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70100
+  group_id: 3
+  order: 4
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 4
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70101
+  group_id: 3
+  order: 5
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 5
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70102
+  group_id: 3
+  order: 6
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 6
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70103
+  group_id: 3
+  order: 7
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 7
+  bonus: |-
+    [{"prop_id":53210008,"quantity":10}]
+-
+  id: 70104
+  group_id: 3
+  order: 8
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70105
+  group_id: 3
+  order: 9
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 9
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70106
+  group_id: 3
+  order: 10
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70107
+  group_id: 3
+  order: 11
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 11
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70108
+  group_id: 3
+  order: 12
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70109
+  group_id: 3
+  order: 13
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 13
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70110
+  group_id: 3
+  order: 14
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 14
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70111
+  group_id: 3
+  order: 15
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 15
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70112
+  group_id: 3
+  order: 16
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70113
+  group_id: 3
+  order: 17
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 17
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70114
+  group_id: 3
+  order: 18
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 18
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70115
+  group_id: 3
+  order: 19
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 19
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70116
+  group_id: 3
+  order: 20
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70117
+  group_id: 3
+  order: 21
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 21
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70118
+  group_id: 3
+  order: 22
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 22
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70119
+  group_id: 3
+  order: 23
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 23
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70120
+  group_id: 3
+  order: 24
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70121
+  group_id: 3
+  order: 25
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 25
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70122
+  group_id: 3
+  order: 26
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 26
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70123
+  group_id: 3
+  order: 27
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 27
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70124
+  group_id: 3
+  order: 28
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70125
+  group_id: 3
+  order: 29
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 29
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70126
+  group_id: 3
+  order: 30
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70127
+  group_id: 3
+  order: 31
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 31
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70128
+  group_id: 3
+  order: 32
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70129
+  group_id: 3
+  order: 33
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 33
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70130
+  group_id: 3
+  order: 34
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 34
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70131
+  group_id: 3
+  order: 35
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 35
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70132
+  group_id: 3
+  order: 36
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70133
+  group_id: 3
+  order: 37
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 37
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70134
+  group_id: 3
+  order: 38
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 38
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70135
+  group_id: 3
+  order: 39
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 39
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70136
+  group_id: 3
+  order: 40
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70137
+  group_id: 3
+  order: 41
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 41
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70138
+  group_id: 3
+  order: 42
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 42
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70139
+  group_id: 3
+  order: 43
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 43
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70140
+  group_id: 3
+  order: 44
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 44
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70141
+  group_id: 3
+  order: 45
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 45
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70142
+  group_id: 3
+  order: 46
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 46
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70143
+  group_id: 3
+  order: 47
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 47
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70144
+  group_id: 3
+  order: 48
+  hook: fight_progress
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    3
+  count: 48
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70145
+  group_id: 4
+  order: 1
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70146
+  group_id: 4
+  order: 2
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 2
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70147
+  group_id: 4
+  order: 3
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70148
+  group_id: 4
+  order: 4
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70149
+  group_id: 4
+  order: 5
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70150
+  group_id: 4
+  order: 6
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 6
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70151
+  group_id: 4
+  order: 7
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 7
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70152
+  group_id: 4
+  order: 8
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70153
+  group_id: 4
+  order: 9
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 9
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70154
+  group_id: 4
+  order: 10
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70155
+  group_id: 4
+  order: 11
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 11
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70156
+  group_id: 4
+  order: 12
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70157
+  group_id: 4
+  order: 13
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 13
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70158
+  group_id: 4
+  order: 14
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 14
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70159
+  group_id: 4
+  order: 15
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 15
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70160
+  group_id: 4
+  order: 16
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70161
+  group_id: 4
+  order: 17
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 17
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70162
+  group_id: 4
+  order: 18
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 18
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70163
+  group_id: 4
+  order: 19
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 19
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70164
+  group_id: 4
+  order: 20
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70165
+  group_id: 4
+  order: 21
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 21
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70166
+  group_id: 4
+  order: 22
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 22
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70167
+  group_id: 4
+  order: 23
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 23
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70168
+  group_id: 4
+  order: 24
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70169
+  group_id: 4
+  order: 25
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 25
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70170
+  group_id: 4
+  order: 26
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 26
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70171
+  group_id: 4
+  order: 27
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 27
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70172
+  group_id: 4
+  order: 28
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70173
+  group_id: 4
+  order: 29
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 29
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70174
+  group_id: 4
+  order: 30
+  hook: inc_hero
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70175
+  group_id: 5
+  order: 1
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 2
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70176
+  group_id: 5
+  order: 2
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70177
+  group_id: 5
+  order: 3
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 6
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70178
+  group_id: 5
+  order: 4
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70179
+  group_id: 5
+  order: 5
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70180
+  group_id: 5
+  order: 6
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70181
+  group_id: 5
+  order: 7
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 14
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70182
+  group_id: 5
+  order: 8
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70183
+  group_id: 5
+  order: 9
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 18
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70184
+  group_id: 5
+  order: 10
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70185
+  group_id: 5
+  order: 11
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 22
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70186
+  group_id: 5
+  order: 12
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70187
+  group_id: 5
+  order: 13
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 26
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70188
+  group_id: 5
+  order: 14
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70189
+  group_id: 5
+  order: 15
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70190
+  group_id: 5
+  order: 16
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70191
+  group_id: 5
+  order: 17
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 34
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70192
+  group_id: 5
+  order: 18
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70193
+  group_id: 5
+  order: 19
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 38
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70194
+  group_id: 5
+  order: 20
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70195
+  group_id: 5
+  order: 21
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 42
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70196
+  group_id: 5
+  order: 22
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 44
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70197
+  group_id: 5
+  order: 23
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 46
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70198
+  group_id: 5
+  order: 24
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 48
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70199
+  group_id: 5
+  order: 25
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70200
+  group_id: 5
+  order: 26
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 52
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70201
+  group_id: 5
+  order: 27
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 54
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70202
+  group_id: 5
+  order: 28
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 56
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70203
+  group_id: 5
+  order: 29
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 58
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70204
+  group_id: 5
+  order: 30
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 60
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70205
+  group_id: 5
+  order: 31
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 62
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70206
+  group_id: 5
+  order: 32
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 64
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70207
+  group_id: 5
+  order: 33
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 66
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70208
+  group_id: 5
+  order: 34
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 68
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70209
+  group_id: 5
+  order: 35
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 70
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70210
+  group_id: 5
+  order: 36
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 72
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70211
+  group_id: 5
+  order: 37
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 74
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70212
+  group_id: 5
+  order: 38
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 76
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70213
+  group_id: 5
+  order: 39
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 78
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70214
+  group_id: 5
+  order: 40
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 80
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70215
+  group_id: 5
+  order: 41
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 82
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70216
+  group_id: 5
+  order: 42
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 84
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70217
+  group_id: 5
+  order: 43
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 86
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70218
+  group_id: 5
+  order: 44
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 88
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70219
+  group_id: 5
+  order: 45
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 90
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70220
+  group_id: 5
+  order: 46
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 92
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70221
+  group_id: 5
+  order: 47
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 94
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70222
+  group_id: 5
+  order: 48
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 96
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70223
+  group_id: 5
+  order: 49
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 98
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70224
+  group_id: 5
+  order: 50
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70225
+  group_id: 5
+  order: 51
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 102
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70226
+  group_id: 5
+  order: 52
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 104
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70227
+  group_id: 5
+  order: 53
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 106
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70228
+  group_id: 5
+  order: 54
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 108
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70229
+  group_id: 5
+  order: 55
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 110
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70230
+  group_id: 5
+  order: 56
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 112
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70231
+  group_id: 5
+  order: 57
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 114
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70232
+  group_id: 5
+  order: 58
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 116
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70233
+  group_id: 5
+  order: 59
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 118
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70234
+  group_id: 5
+  order: 60
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 120
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70235
+  group_id: 5
+  order: 61
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 122
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70236
+  group_id: 5
+  order: 62
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 124
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70237
+  group_id: 5
+  order: 63
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 126
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70238
+  group_id: 5
+  order: 64
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 128
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70239
+  group_id: 5
+  order: 65
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 130
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70240
+  group_id: 5
+  order: 66
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 132
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70241
+  group_id: 5
+  order: 67
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 134
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70242
+  group_id: 5
+  order: 68
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 136
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70243
+  group_id: 5
+  order: 69
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 138
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70244
+  group_id: 5
+  order: 70
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 140
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70245
+  group_id: 5
+  order: 71
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 142
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70246
+  group_id: 5
+  order: 72
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 144
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70247
+  group_id: 5
+  order: 73
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 146
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70248
+  group_id: 5
+  order: 74
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 148
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70249
+  group_id: 5
+  order: 75
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 150
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70250
+  group_id: 5
+  order: 76
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 152
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70251
+  group_id: 5
+  order: 77
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 154
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70252
+  group_id: 5
+  order: 78
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 156
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70253
+  group_id: 5
+  order: 79
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 158
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70254
+  group_id: 5
+  order: 80
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 160
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70255
+  group_id: 5
+  order: 81
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 162
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70256
+  group_id: 5
+  order: 82
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 164
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70257
+  group_id: 5
+  order: 83
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 166
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70258
+  group_id: 5
+  order: 84
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 168
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70259
+  group_id: 5
+  order: 85
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 170
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70260
+  group_id: 5
+  order: 86
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 172
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70261
+  group_id: 5
+  order: 87
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 174
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70262
+  group_id: 5
+  order: 88
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 176
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70263
+  group_id: 5
+  order: 89
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 178
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70264
+  group_id: 5
+  order: 90
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 180
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70265
+  group_id: 5
+  order: 91
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 182
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70266
+  group_id: 5
+  order: 92
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 184
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70267
+  group_id: 5
+  order: 93
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 186
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70268
+  group_id: 5
+  order: 94
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 188
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70269
+  group_id: 5
+  order: 95
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 190
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70270
+  group_id: 5
+  order: 96
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 192
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70271
+  group_id: 5
+  order: 97
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 194
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70272
+  group_id: 5
+  order: 98
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 196
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70273
+  group_id: 5
+  order: 99
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 198
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70274
+  group_id: 5
+  order: 100
+  hook: level_up
+  complete_type: 2
+  arg1: 0
+  arg2: 
+  count: 200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70275
+  group_id: 6
+  order: 1
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70276
+  group_id: 6
+  order: 2
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70277
+  group_id: 6
+  order: 3
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70278
+  group_id: 6
+  order: 4
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70279
+  group_id: 6
+  order: 5
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70280
+  group_id: 6
+  order: 6
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 60
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70281
+  group_id: 6
+  order: 7
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 70
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70282
+  group_id: 6
+  order: 8
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 80
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70283
+  group_id: 6
+  order: 9
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 90
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70284
+  group_id: 6
+  order: 10
+  hook: fight
+  complete_type: 2
+  arg1: 1
+  arg2: |-
+    4
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70285
+  group_id: 7
+  order: 1
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70286
+  group_id: 7
+  order: 2
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70287
+  group_id: 7
+  order: 3
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70288
+  group_id: 7
+  order: 4
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70289
+  group_id: 7
+  order: 5
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70290
+  group_id: 7
+  order: 6
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70291
+  group_id: 7
+  order: 7
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70292
+  group_id: 7
+  order: 8
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70293
+  group_id: 7
+  order: 9
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70294
+  group_id: 7
+  order: 10
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    1
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70295
+  group_id: 8
+  order: 1
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70296
+  group_id: 8
+  order: 2
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70297
+  group_id: 8
+  order: 3
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70298
+  group_id: 8
+  order: 4
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70299
+  group_id: 8
+  order: 5
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70300
+  group_id: 8
+  order: 6
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70301
+  group_id: 8
+  order: 7
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70302
+  group_id: 8
+  order: 8
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70303
+  group_id: 8
+  order: 9
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70304
+  group_id: 8
+  order: 10
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    2
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70305
+  group_id: 9
+  order: 1
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70306
+  group_id: 9
+  order: 2
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70307
+  group_id: 9
+  order: 3
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70308
+  group_id: 9
+  order: 4
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70309
+  group_id: 9
+  order: 5
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70310
+  group_id: 9
+  order: 6
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70311
+  group_id: 9
+  order: 7
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70312
+  group_id: 9
+  order: 8
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70313
+  group_id: 9
+  order: 9
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70314
+  group_id: 9
+  order: 10
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    3
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70315
+  group_id: 10
+  order: 1
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70316
+  group_id: 10
+  order: 2
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70317
+  group_id: 10
+  order: 3
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70318
+  group_id: 10
+  order: 4
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70319
+  group_id: 10
+  order: 5
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70320
+  group_id: 10
+  order: 6
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70321
+  group_id: 10
+  order: 7
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70322
+  group_id: 10
+  order: 8
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70323
+  group_id: 10
+  order: 9
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70324
+  group_id: 10
+  order: 10
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    4
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70325
+  group_id: 11
+  order: 1
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70326
+  group_id: 11
+  order: 2
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70327
+  group_id: 11
+  order: 3
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70328
+  group_id: 11
+  order: 4
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70329
+  group_id: 11
+  order: 5
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70330
+  group_id: 11
+  order: 6
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70331
+  group_id: 11
+  order: 7
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70332
+  group_id: 11
+  order: 8
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70333
+  group_id: 11
+  order: 9
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70334
+  group_id: 11
+  order: 10
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    5
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70335
+  group_id: 12
+  order: 1
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 4
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70336
+  group_id: 12
+  order: 2
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 8
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70337
+  group_id: 12
+  order: 3
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 12
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70338
+  group_id: 12
+  order: 4
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 16
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70339
+  group_id: 12
+  order: 5
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70340
+  group_id: 12
+  order: 6
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 24
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70341
+  group_id: 12
+  order: 7
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 28
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70342
+  group_id: 12
+  order: 8
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 32
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70343
+  group_id: 12
+  order: 9
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 36
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70344
+  group_id: 12
+  order: 10
+  hook: fight
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    6
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70345
+  group_id: 13
+  order: 1
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70346
+  group_id: 13
+  order: 2
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70347
+  group_id: 13
+  order: 3
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 60
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70348
+  group_id: 13
+  order: 4
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 80
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70349
+  group_id: 13
+  order: 5
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70350
+  group_id: 13
+  order: 6
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 120
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70351
+  group_id: 13
+  order: 7
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 140
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70352
+  group_id: 13
+  order: 8
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 160
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70353
+  group_id: 13
+  order: 9
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 180
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70354
+  group_id: 13
+  order: 10
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70355
+  group_id: 13
+  order: 11
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 220
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70356
+  group_id: 13
+  order: 12
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 240
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70357
+  group_id: 13
+  order: 13
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 260
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70358
+  group_id: 13
+  order: 14
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 280
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70359
+  group_id: 13
+  order: 15
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70360
+  group_id: 13
+  order: 16
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 320
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70361
+  group_id: 13
+  order: 17
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 340
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70362
+  group_id: 13
+  order: 18
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 360
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70363
+  group_id: 13
+  order: 19
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 380
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70364
+  group_id: 13
+  order: 20
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    5
+  count: 400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70365
+  group_id: 14
+  order: 1
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70366
+  group_id: 14
+  order: 2
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70367
+  group_id: 14
+  order: 3
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 60
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70368
+  group_id: 14
+  order: 4
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 80
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70369
+  group_id: 14
+  order: 5
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70370
+  group_id: 14
+  order: 6
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 120
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70371
+  group_id: 14
+  order: 7
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 140
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70372
+  group_id: 14
+  order: 8
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 160
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70373
+  group_id: 14
+  order: 9
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 180
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70374
+  group_id: 14
+  order: 10
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70375
+  group_id: 14
+  order: 11
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 220
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70376
+  group_id: 14
+  order: 12
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 240
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70377
+  group_id: 14
+  order: 13
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 260
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70378
+  group_id: 14
+  order: 14
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 280
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70379
+  group_id: 14
+  order: 15
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70380
+  group_id: 14
+  order: 16
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 320
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70381
+  group_id: 14
+  order: 17
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 340
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70382
+  group_id: 14
+  order: 18
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 360
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70383
+  group_id: 14
+  order: 19
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 380
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70384
+  group_id: 14
+  order: 20
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    6
+  count: 400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70385
+  group_id: 15
+  order: 1
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70386
+  group_id: 15
+  order: 2
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70387
+  group_id: 15
+  order: 3
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 60
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70388
+  group_id: 15
+  order: 4
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 80
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70389
+  group_id: 15
+  order: 5
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70390
+  group_id: 15
+  order: 6
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 120
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70391
+  group_id: 15
+  order: 7
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 140
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70392
+  group_id: 15
+  order: 8
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 160
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70393
+  group_id: 15
+  order: 9
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 180
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70394
+  group_id: 15
+  order: 10
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70395
+  group_id: 15
+  order: 11
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 220
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70396
+  group_id: 15
+  order: 12
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 240
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70397
+  group_id: 15
+  order: 13
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 260
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70398
+  group_id: 15
+  order: 14
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 280
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70399
+  group_id: 15
+  order: 15
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70400
+  group_id: 15
+  order: 16
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 320
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70401
+  group_id: 15
+  order: 17
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 340
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70402
+  group_id: 15
+  order: 18
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 360
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70403
+  group_id: 15
+  order: 19
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 380
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70404
+  group_id: 15
+  order: 20
+  hook: fight_progress
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    7
+  count: 400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70405
+  group_id: 16
+  order: 1
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70406
+  group_id: 16
+  order: 2
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70407
+  group_id: 16
+  order: 3
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70408
+  group_id: 16
+  order: 4
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70409
+  group_id: 16
+  order: 5
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70410
+  group_id: 16
+  order: 6
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 60
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70411
+  group_id: 16
+  order: 7
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 70
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70412
+  group_id: 16
+  order: 8
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 80
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70413
+  group_id: 16
+  order: 9
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 90
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70414
+  group_id: 16
+  order: 10
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70415
+  group_id: 16
+  order: 11
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 110
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70416
+  group_id: 16
+  order: 12
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 120
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70417
+  group_id: 16
+  order: 13
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 130
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70418
+  group_id: 16
+  order: 14
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 140
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70419
+  group_id: 16
+  order: 15
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 150
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70420
+  group_id: 16
+  order: 16
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 160
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70421
+  group_id: 16
+  order: 17
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 170
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70422
+  group_id: 16
+  order: 18
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 180
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70423
+  group_id: 16
+  order: 19
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 190
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70424
+  group_id: 16
+  order: 20
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70425
+  group_id: 16
+  order: 21
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 210
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70426
+  group_id: 16
+  order: 22
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 220
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70427
+  group_id: 16
+  order: 23
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 230
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70428
+  group_id: 16
+  order: 24
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 240
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70429
+  group_id: 16
+  order: 25
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 250
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70430
+  group_id: 16
+  order: 26
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 260
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70431
+  group_id: 16
+  order: 27
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 270
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70432
+  group_id: 16
+  order: 28
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 280
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70433
+  group_id: 16
+  order: 29
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 290
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70434
+  group_id: 16
+  order: 30
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70435
+  group_id: 16
+  order: 31
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 310
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70436
+  group_id: 16
+  order: 32
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 320
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70437
+  group_id: 16
+  order: 33
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 330
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70438
+  group_id: 16
+  order: 34
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 340
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70439
+  group_id: 16
+  order: 35
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 350
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70440
+  group_id: 16
+  order: 36
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 360
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70441
+  group_id: 16
+  order: 37
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 370
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70442
+  group_id: 16
+  order: 38
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 380
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70443
+  group_id: 16
+  order: 39
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 390
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70444
+  group_id: 16
+  order: 40
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70445
+  group_id: 16
+  order: 41
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 410
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70446
+  group_id: 16
+  order: 42
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 420
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70447
+  group_id: 16
+  order: 43
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 430
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70448
+  group_id: 16
+  order: 44
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 440
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70449
+  group_id: 16
+  order: 45
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 450
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70450
+  group_id: 16
+  order: 46
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 460
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70451
+  group_id: 16
+  order: 47
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 470
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70452
+  group_id: 16
+  order: 48
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 480
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70453
+  group_id: 16
+  order: 49
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 490
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70454
+  group_id: 16
+  order: 50
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70455
+  group_id: 16
+  order: 51
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 510
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70456
+  group_id: 16
+  order: 52
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 520
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70457
+  group_id: 16
+  order: 53
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 530
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70458
+  group_id: 16
+  order: 54
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 540
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70459
+  group_id: 16
+  order: 55
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 550
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70460
+  group_id: 16
+  order: 56
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 560
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70461
+  group_id: 16
+  order: 57
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 570
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70462
+  group_id: 16
+  order: 58
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 580
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70463
+  group_id: 16
+  order: 59
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 590
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70464
+  group_id: 16
+  order: 60
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70465
+  group_id: 16
+  order: 61
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 610
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70466
+  group_id: 16
+  order: 62
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 620
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70467
+  group_id: 16
+  order: 63
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 630
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70468
+  group_id: 16
+  order: 64
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 640
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70469
+  group_id: 16
+  order: 65
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 650
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70470
+  group_id: 16
+  order: 66
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 660
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70471
+  group_id: 16
+  order: 67
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 670
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70472
+  group_id: 16
+  order: 68
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 680
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70473
+  group_id: 16
+  order: 69
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 690
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70474
+  group_id: 16
+  order: 70
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 700
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70475
+  group_id: 16
+  order: 71
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 710
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70476
+  group_id: 16
+  order: 72
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 720
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70477
+  group_id: 16
+  order: 73
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 730
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70478
+  group_id: 16
+  order: 74
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 740
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70479
+  group_id: 16
+  order: 75
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 750
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70480
+  group_id: 16
+  order: 76
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 760
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70481
+  group_id: 16
+  order: 77
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 770
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70482
+  group_id: 16
+  order: 78
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 780
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70483
+  group_id: 16
+  order: 79
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 790
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70484
+  group_id: 16
+  order: 80
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70485
+  group_id: 16
+  order: 81
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 810
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70486
+  group_id: 16
+  order: 82
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 820
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70487
+  group_id: 16
+  order: 83
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 830
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70488
+  group_id: 16
+  order: 84
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 840
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70489
+  group_id: 16
+  order: 85
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 850
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70490
+  group_id: 16
+  order: 86
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 860
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70491
+  group_id: 16
+  order: 87
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 870
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70492
+  group_id: 16
+  order: 88
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 880
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70493
+  group_id: 16
+  order: 89
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 890
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70494
+  group_id: 16
+  order: 90
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 900
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70495
+  group_id: 16
+  order: 91
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 910
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70496
+  group_id: 16
+  order: 92
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 920
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70497
+  group_id: 16
+  order: 93
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 930
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70498
+  group_id: 16
+  order: 94
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 940
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70499
+  group_id: 16
+  order: 95
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 950
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70500
+  group_id: 16
+  order: 96
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 960
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70501
+  group_id: 16
+  order: 97
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 970
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70502
+  group_id: 16
+  order: 98
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 980
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70503
+  group_id: 16
+  order: 99
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 990
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70504
+  group_id: 16
+  order: 100
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    7
+  count: 1000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70505
+  group_id: 17
+  order: 1
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70506
+  group_id: 17
+  order: 2
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 20
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70507
+  group_id: 17
+  order: 3
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70508
+  group_id: 17
+  order: 4
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 40
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70509
+  group_id: 17
+  order: 5
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70510
+  group_id: 17
+  order: 6
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 60
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70511
+  group_id: 17
+  order: 7
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 70
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70512
+  group_id: 17
+  order: 8
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 80
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70513
+  group_id: 17
+  order: 9
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 90
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70514
+  group_id: 17
+  order: 10
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70515
+  group_id: 17
+  order: 11
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 110
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70516
+  group_id: 17
+  order: 12
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 120
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70517
+  group_id: 17
+  order: 13
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 130
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70518
+  group_id: 17
+  order: 14
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 140
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70519
+  group_id: 17
+  order: 15
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 150
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70520
+  group_id: 17
+  order: 16
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 160
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70521
+  group_id: 17
+  order: 17
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 170
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70522
+  group_id: 17
+  order: 18
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 180
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70523
+  group_id: 17
+  order: 19
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 190
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70524
+  group_id: 17
+  order: 20
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70525
+  group_id: 17
+  order: 21
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 210
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70526
+  group_id: 17
+  order: 22
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 220
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70527
+  group_id: 17
+  order: 23
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 230
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70528
+  group_id: 17
+  order: 24
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 240
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70529
+  group_id: 17
+  order: 25
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 250
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70530
+  group_id: 17
+  order: 26
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 260
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70531
+  group_id: 17
+  order: 27
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 270
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70532
+  group_id: 17
+  order: 28
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 280
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70533
+  group_id: 17
+  order: 29
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 290
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70534
+  group_id: 17
+  order: 30
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70535
+  group_id: 17
+  order: 31
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 310
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70536
+  group_id: 17
+  order: 32
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 320
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70537
+  group_id: 17
+  order: 33
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 330
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70538
+  group_id: 17
+  order: 34
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 340
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70539
+  group_id: 17
+  order: 35
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 350
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70540
+  group_id: 17
+  order: 36
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 360
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70541
+  group_id: 17
+  order: 37
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 370
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70542
+  group_id: 17
+  order: 38
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 380
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70543
+  group_id: 17
+  order: 39
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 390
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70544
+  group_id: 17
+  order: 40
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70545
+  group_id: 17
+  order: 41
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 410
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70546
+  group_id: 17
+  order: 42
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 420
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70547
+  group_id: 17
+  order: 43
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 430
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70548
+  group_id: 17
+  order: 44
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 440
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70549
+  group_id: 17
+  order: 45
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 450
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70550
+  group_id: 17
+  order: 46
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 460
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70551
+  group_id: 17
+  order: 47
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 470
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70552
+  group_id: 17
+  order: 48
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 480
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70553
+  group_id: 17
+  order: 49
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 490
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70554
+  group_id: 17
+  order: 50
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70555
+  group_id: 17
+  order: 51
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 510
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70556
+  group_id: 17
+  order: 52
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 520
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70557
+  group_id: 17
+  order: 53
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 530
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70558
+  group_id: 17
+  order: 54
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 540
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70559
+  group_id: 17
+  order: 55
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 550
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70560
+  group_id: 17
+  order: 56
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 560
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70561
+  group_id: 17
+  order: 57
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 570
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70562
+  group_id: 17
+  order: 58
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 580
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70563
+  group_id: 17
+  order: 59
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 590
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70564
+  group_id: 17
+  order: 60
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70565
+  group_id: 17
+  order: 61
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 610
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70566
+  group_id: 17
+  order: 62
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 620
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70567
+  group_id: 17
+  order: 63
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 630
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70568
+  group_id: 17
+  order: 64
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 640
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70569
+  group_id: 17
+  order: 65
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 650
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70570
+  group_id: 17
+  order: 66
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 660
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70571
+  group_id: 17
+  order: 67
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 670
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70572
+  group_id: 17
+  order: 68
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 680
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70573
+  group_id: 17
+  order: 69
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 690
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70574
+  group_id: 17
+  order: 70
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 700
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70575
+  group_id: 17
+  order: 71
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 710
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70576
+  group_id: 17
+  order: 72
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 720
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70577
+  group_id: 17
+  order: 73
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 730
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70578
+  group_id: 17
+  order: 74
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 740
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70579
+  group_id: 17
+  order: 75
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 750
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70580
+  group_id: 17
+  order: 76
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 760
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70581
+  group_id: 17
+  order: 77
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 770
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70582
+  group_id: 17
+  order: 78
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 780
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70583
+  group_id: 17
+  order: 79
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 790
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70584
+  group_id: 17
+  order: 80
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70585
+  group_id: 17
+  order: 81
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 810
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70586
+  group_id: 17
+  order: 82
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 820
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70587
+  group_id: 17
+  order: 83
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 830
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70588
+  group_id: 17
+  order: 84
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 840
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70589
+  group_id: 17
+  order: 85
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 850
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70590
+  group_id: 17
+  order: 86
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 860
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70591
+  group_id: 17
+  order: 87
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 870
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70592
+  group_id: 17
+  order: 88
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 880
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70593
+  group_id: 17
+  order: 89
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 890
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70594
+  group_id: 17
+  order: 90
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 900
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70595
+  group_id: 17
+  order: 91
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 910
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70596
+  group_id: 17
+  order: 92
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 920
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70597
+  group_id: 17
+  order: 93
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 930
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70598
+  group_id: 17
+  order: 94
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 940
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70599
+  group_id: 17
+  order: 95
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 950
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70600
+  group_id: 17
+  order: 96
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 960
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70601
+  group_id: 17
+  order: 97
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 970
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70602
+  group_id: 17
+  order: 98
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 980
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70603
+  group_id: 17
+  order: 99
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 990
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70604
+  group_id: 17
+  order: 100
+  hook: fight_progress
+  complete_type: 2
+  arg1: 2
+  arg2: |-
+    8
+  count: 1000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70605
+  group_id: 18
+  order: 1
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70606
+  group_id: 18
+  order: 2
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70607
+  group_id: 18
+  order: 3
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70608
+  group_id: 18
+  order: 4
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70609
+  group_id: 18
+  order: 5
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70610
+  group_id: 18
+  order: 6
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70611
+  group_id: 18
+  order: 7
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70612
+  group_id: 18
+  order: 8
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70613
+  group_id: 18
+  order: 9
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70614
+  group_id: 18
+  order: 10
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 2000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70615
+  group_id: 18
+  order: 11
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 2200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70616
+  group_id: 18
+  order: 12
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 2400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70617
+  group_id: 18
+  order: 13
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 2600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70618
+  group_id: 18
+  order: 14
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 2800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70619
+  group_id: 18
+  order: 15
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70620
+  group_id: 18
+  order: 16
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70621
+  group_id: 18
+  order: 17
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70622
+  group_id: 18
+  order: 18
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70623
+  group_id: 18
+  order: 19
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70624
+  group_id: 18
+  order: 20
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 4000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70625
+  group_id: 18
+  order: 21
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 4200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70626
+  group_id: 18
+  order: 22
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 4400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70627
+  group_id: 18
+  order: 23
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 4600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70628
+  group_id: 18
+  order: 24
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 4800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70629
+  group_id: 18
+  order: 25
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70630
+  group_id: 18
+  order: 26
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70631
+  group_id: 18
+  order: 27
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70632
+  group_id: 18
+  order: 28
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70633
+  group_id: 18
+  order: 29
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70634
+  group_id: 18
+  order: 30
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 6000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70635
+  group_id: 18
+  order: 31
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 6200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70636
+  group_id: 18
+  order: 32
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 6400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70637
+  group_id: 18
+  order: 33
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 6600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70638
+  group_id: 18
+  order: 34
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 6800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70639
+  group_id: 18
+  order: 35
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 7000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70640
+  group_id: 18
+  order: 36
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 7200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70641
+  group_id: 18
+  order: 37
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 7400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70642
+  group_id: 18
+  order: 38
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 7600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70643
+  group_id: 18
+  order: 39
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 7800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70644
+  group_id: 18
+  order: 40
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 8000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70645
+  group_id: 18
+  order: 41
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 8200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70646
+  group_id: 18
+  order: 42
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 8400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70647
+  group_id: 18
+  order: 43
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 8600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70648
+  group_id: 18
+  order: 44
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 8800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70649
+  group_id: 18
+  order: 45
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 9000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70650
+  group_id: 18
+  order: 46
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 9200
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70651
+  group_id: 18
+  order: 47
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 9400
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70652
+  group_id: 18
+  order: 48
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 9600
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70653
+  group_id: 18
+  order: 49
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 9800
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70654
+  group_id: 18
+  order: 50
+  hook: monster_kill
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 10000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70655
+  group_id: 19
+  order: 1
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 100000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70656
+  group_id: 19
+  order: 2
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 300000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70657
+  group_id: 19
+  order: 3
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 500000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70658
+  group_id: 19
+  order: 4
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70659
+  group_id: 19
+  order: 5
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70660
+  group_id: 19
+  order: 6
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70661
+  group_id: 19
+  order: 7
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 10000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70662
+  group_id: 19
+  order: 8
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 30000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70663
+  group_id: 19
+  order: 9
+  hook: inc_gold
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 50000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70664
+  group_id: 20
+  order: 1
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 100000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70665
+  group_id: 20
+  order: 2
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 300000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70666
+  group_id: 20
+  order: 3
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 500000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70667
+  group_id: 20
+  order: 4
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 1000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70668
+  group_id: 20
+  order: 5
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 3000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70669
+  group_id: 20
+  order: 6
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 5000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70670
+  group_id: 20
+  order: 7
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 10000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70671
+  group_id: 20
+  order: 8
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 30000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70672
+  group_id: 20
+  order: 9
+  hook: inc_prop
+  complete_type: 0
+  arg1: 1000008
+  arg2: 
+  count: 50000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70673
+  group_id: 21
+  order: 1
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 10000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70674
+  group_id: 21
+  order: 2
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 30000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70675
+  group_id: 21
+  order: 3
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 50000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70676
+  group_id: 21
+  order: 4
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 100000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70677
+  group_id: 21
+  order: 5
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 300000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70678
+  group_id: 21
+  order: 6
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 500000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70679
+  group_id: 21
+  order: 7
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 1000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70680
+  group_id: 21
+  order: 8
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 3000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70681
+  group_id: 21
+  order: 9
+  hook: inc_prop
+  complete_type: 0
+  arg1: 2000004
+  arg2: 
+  count: 5000000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70682
+  group_id: 22
+  order: 1
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70683
+  group_id: 22
+  order: 2
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70684
+  group_id: 22
+  order: 3
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70685
+  group_id: 22
+  order: 4
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70686
+  group_id: 22
+  order: 5
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70687
+  group_id: 22
+  order: 6
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70688
+  group_id: 22
+  order: 7
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70689
+  group_id: 22
+  order: 8
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70690
+  group_id: 22
+  order: 9
+  hook: hero_level_up
+  complete_type: 1
+  arg1: 0
+  arg2: 
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70691
+  group_id: 23
+  order: 1
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70692
+  group_id: 23
+  order: 2
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70693
+  group_id: 23
+  order: 3
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70694
+  group_id: 23
+  order: 4
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70695
+  group_id: 23
+  order: 5
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70696
+  group_id: 23
+  order: 6
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70697
+  group_id: 23
+  order: 7
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 10000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70698
+  group_id: 23
+  order: 8
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 30000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70699
+  group_id: 23
+  order: 9
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 50000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70700
+  group_id: 24
+  order: 1
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70701
+  group_id: 24
+  order: 2
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70702
+  group_id: 24
+  order: 3
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70703
+  group_id: 24
+  order: 4
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 1000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70704
+  group_id: 24
+  order: 5
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 3000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70705
+  group_id: 24
+  order: 6
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 5000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70706
+  group_id: 24
+  order: 7
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 10000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70707
+  group_id: 24
+  order: 8
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 30000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70708
+  group_id: 24
+  order: 9
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 0
+  arg2: 
+  count: 50000
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70709
+  group_id: 25
+  order: 1
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70710
+  group_id: 25
+  order: 2
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70711
+  group_id: 25
+  order: 3
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70712
+  group_id: 25
+  order: 4
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70713
+  group_id: 25
+  order: 5
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70714
+  group_id: 25
+  order: 6
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70715
+  group_id: 25
+  order: 7
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70716
+  group_id: 25
+  order: 8
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70717
+  group_id: 25
+  order: 9
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 5
+  arg2: 
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70718
+  group_id: 26
+  order: 1
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70719
+  group_id: 26
+  order: 2
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70720
+  group_id: 26
+  order: 3
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70721
+  group_id: 26
+  order: 4
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 7
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70722
+  group_id: 26
+  order: 5
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70723
+  group_id: 26
+  order: 6
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70724
+  group_id: 26
+  order: 7
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70725
+  group_id: 26
+  order: 8
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 70
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70726
+  group_id: 26
+  order: 9
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 6
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70727
+  group_id: 27
+  order: 1
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70728
+  group_id: 27
+  order: 2
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70729
+  group_id: 27
+  order: 3
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70730
+  group_id: 27
+  order: 4
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 7
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70731
+  group_id: 27
+  order: 5
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70732
+  group_id: 27
+  order: 6
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70733
+  group_id: 27
+  order: 7
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70734
+  group_id: 27
+  order: 8
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 70
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70735
+  group_id: 27
+  order: 9
+  hook: fight_hero_star_up
+  complete_type: 0
+  arg1: 7
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70736
+  group_id: 28
+  order: 1
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70737
+  group_id: 28
+  order: 2
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70738
+  group_id: 28
+  order: 3
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70739
+  group_id: 28
+  order: 4
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70740
+  group_id: 28
+  order: 5
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70741
+  group_id: 28
+  order: 6
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70742
+  group_id: 28
+  order: 7
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70743
+  group_id: 28
+  order: 8
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70744
+  group_id: 28
+  order: 9
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 3
+  arg2: 
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70745
+  group_id: 29
+  order: 1
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70746
+  group_id: 29
+  order: 2
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70747
+  group_id: 29
+  order: 3
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70748
+  group_id: 29
+  order: 4
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 7
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70749
+  group_id: 29
+  order: 5
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70750
+  group_id: 29
+  order: 6
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70751
+  group_id: 29
+  order: 7
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70752
+  group_id: 29
+  order: 8
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 70
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70753
+  group_id: 29
+  order: 9
+  hook: fight_equip_star_up
+  complete_type: 0
+  arg1: 4
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70754
+  group_id: 30
+  order: 1
+  hook: fight_pass
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    [1,2,3]
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70755
+  group_id: 30
+  order: 2
+  hook: fight_pass
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    [1,2,3]
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70756
+  group_id: 30
+  order: 3
+  hook: fight_pass
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    [1,2,3]
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70757
+  group_id: 30
+  order: 4
+  hook: fight_pass
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    [1,2,3]
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70758
+  group_id: 30
+  order: 5
+  hook: fight_pass
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    [1,2,3]
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70759
+  group_id: 30
+  order: 6
+  hook: fight_pass
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    [1,2,3]
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70760
+  group_id: 30
+  order: 7
+  hook: fight_pass
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    [1,2,3]
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70761
+  group_id: 31
+  order: 1
+  hook: inc_hero
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    96
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70762
+  group_id: 31
+  order: 2
+  hook: inc_hero
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    96
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70763
+  group_id: 31
+  order: 3
+  hook: inc_hero
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    96
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70764
+  group_id: 31
+  order: 4
+  hook: inc_hero
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    96
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70765
+  group_id: 31
+  order: 5
+  hook: inc_hero
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    96
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70766
+  group_id: 31
+  order: 6
+  hook: inc_hero
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    96
+  count: 300
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70767
+  group_id: 31
+  order: 7
+  hook: inc_hero
+  complete_type: 0
+  arg1: 1
+  arg2: |-
+    96
+  count: 500
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70768
+  group_id: 32
+  order: 1
+  hook: exchange_buy
+  complete_type: 0
+  arg1: 1
+  arg2: 
+  count: 1
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70769
+  group_id: 32
+  order: 2
+  hook: exchange_buy
+  complete_type: 0
+  arg1: 1
+  arg2: 
+  count: 3
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70770
+  group_id: 32
+  order: 3
+  hook: exchange_buy
+  complete_type: 0
+  arg1: 1
+  arg2: 
+  count: 5
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70771
+  group_id: 32
+  order: 4
+  hook: exchange_buy
+  complete_type: 0
+  arg1: 1
+  arg2: 
+  count: 10
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70772
+  group_id: 32
+  order: 5
+  hook: exchange_buy
+  complete_type: 0
+  arg1: 1
+  arg2: 
+  count: 30
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70773
+  group_id: 32
+  order: 6
+  hook: exchange_buy
+  complete_type: 0
+  arg1: 1
+  arg2: 
+  count: 50
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+-
+  id: 70774
+  group_id: 32
+  order: 7
+  hook: exchange_buy
+  complete_type: 0
+  arg1: 1
+  arg2: 
+  count: 100
+  bonus: |-
+    [{"prop_id":1000001,"quantity":50}]
+
+

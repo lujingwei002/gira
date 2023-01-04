@@ -1,0 +1,12 @@
+descriptor:
+- [ErrorCode.xlsx,        ErrorCode]
+- [FlowReason.xlsx,       FlowReason]
+- [AchievementTask.xlsx,  AchievementTask]
+
+loader:
+  common:
+  - ErrorCode
+  - FlowReason
+  account:
+  - AchievementTask
+

@@ -1,0 +1,14 @@
+{
+  "configurations": {
+    "run": {
+      "adapter": "vscode-go",
+      "filetypes":["go"],
+      "configuration": {
+        "request": "launch",
+        "program": "${file}",
+        "args": ["gen", "test"],
+        "mode": "debug"
+      }
+    }
+  }
+}

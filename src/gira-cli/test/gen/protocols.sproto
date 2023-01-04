@@ -1,0 +1,15 @@
+BattleStartRequest 101 {
+    request {
+         Platform 0: string
+         Openid 1: string
+         Token 2: string
+         Version 3: string
+    }
+    response {
+         Platform 0: string
+         Openid 1: string
+         Token 2: string
+         Version 3: string
+    }
+}
+

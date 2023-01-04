@@ -1,0 +1,377 @@
+-
+  id: 0
+  key: none
+-
+  id: 65535
+  key: invalid
+-
+  id: 1
+  key: prop_sell
+-
+  id: 2
+  key: pack_cell_expand
+-
+  id: 3
+  key: gm_operation
+-
+  id: 4
+  key: buy_gold
+-
+  id: 5
+  key: unittest
+-
+  id: 6
+  key: prop_expired
+-
+  id: 7
+  key: prop_move
+-
+  id: 8
+  key: buy_vitality
+-
+  id: 9
+  key: recover_vitality
+-
+  id: 10
+  key: login_sync
+-
+  id: 11
+  key: noble_point_pay
+-
+  id: 12
+  key: blackmarket_refresh
+-
+  id: 13
+  key: blackmarket_buy
+-
+  id: 14
+  key: blackmarket_disarrange
+-
+  id: 15
+  key: mall_buy
+-
+  id: 16
+  key: exchange_refresh
+-
+  id: 17
+  key: exchange_buy
+-
+  id: 18
+  key: daily_task_refresh
+-
+  id: 19
+  key: daily_task_award
+-
+  id: 20
+  key: task_award
+-
+  id: 21
+  key: achievement_award
+-
+  id: 22
+  key: gift_mall_buy
+-
+  id: 23
+  key: equip_break
+-
+  id: 24
+  key: equip_strengthen
+-
+  id: 25
+  key: equip_open_hole
+-
+  id: 26
+  key: equip_embed
+-
+  id: 27
+  key: equip_demount
+-
+  id: 28
+  key: hero_talent_learn
+-
+  id: 29
+  key: hero_talent_reset
+-
+  id: 30
+  key: stage_cell_click
+-
+  id: 31
+  key: prop_use
+-
+  id: 32
+  key: hero_recruit
+-
+  id: 33
+  key: stage_monster
+-
+  id: 34
+  key: credit_task_award
+-
+  id: 35
+  key: credit_task_refresh
+-
+  id: 36
+  key: noble_gift_award
+-
+  id: 37
+  key: stage_hero_revival
+-
+  id: 38
+  key: stage_trap
+-
+  id: 39
+  key: stage_prop_use
+-
+  id: 40
+  key: fri_send_heart
+-
+  id: 41
+  key: fri_recv_heart
+-
+  id: 42
+  key: guide_award
+-
+  id: 43
+  key: treasure_star_up
+-
+  id: 44
+  key: treasure_upgrade
+-
+  id: 45
+  key: treasure_draw
+-
+  id: 46
+  key: init
+-
+  id: 47
+  key: rune_levelup
+-
+  id: 48
+  key: hero_illustration_award
+-
+  id: 49
+  key: daily_task_active_award
+-
+  id: 50
+  key: weekly_task_active_award
+-
+  id: 51
+  key: weekly_task_award
+-
+  id: 52
+  key: buy_diamond
+-
+  id: 53
+  key: rune_draw
+-
+  id: 54
+  key: daily_gift_buy
+-
+  id: 55
+  key: ad_box
+-
+  id: 56
+  key: buy_initial_recharge
+-
+  id: 57
+  key: buy_hero_gift
+-
+  id: 58
+  key: fairy_task_award
+-
+  id: 59
+  key: fairy_draw
+-
+  id: 60
+  key: fairy_draw_active_award
+-
+  id: 61
+  key: signin
+-
+  id: 62
+  key: mthsignin
+-
+  id: 63
+  key: mthsigninadd
+-
+  id: 64
+  key: special_offer_buy
+-
+  id: 65
+  key: growth_task_award1
+-
+  id: 66
+  key: growth_task_buy
+-
+  id: 67
+  key: ad_remove_privilege
+-
+  id: 68
+  key: noble_month_card_award
+-
+  id: 69
+  key: noble_month_card_buy
+-
+  id: 70
+  key: ad_daily_gift
+-
+  id: 71
+  key: valuable_gift_buy
+-
+  id: 72
+  key: cdkey_use
+-
+  id: 73
+  key: hangup_award
+-
+  id: 74
+  key: arena_store_buy
+-
+  id: 75
+  key: arena_level_award
+-
+  id: 76
+  key: arena_rank_award
+-
+  id: 77
+  key: arena_challenge
+-
+  id: 78
+  key: enter_stage
+-
+  id: 79
+  key: hero_level_up
+-
+  id: 80
+  key: hero_level_reset
+-
+  id: 81
+  key: hero_armor_level_up
+-
+  id: 82
+  key: hero_arms_level_up
+-
+  id: 83
+  key: hero_arms_star_up
+-
+  id: 84
+  key: hero_talent_draw
+-
+  id: 85
+  key: hero_talent_redraw
+-
+  id: 86
+  key: sys_mail_award
+-
+  id: 87
+  key: hero_star_up
+-
+  id: 88
+  key: god_token_buy
+-
+  id: 89
+  key: token_award
+-
+  id: 90
+  key: mthresignin_cost
+-
+  id: 91
+  key: mthresigninall_cost
+-
+  id: 92
+  key: token_early_next_level
+-
+  id: 93
+  key: mission_reward
+-
+  id: 94
+  key: mission_first_reward
+-
+  id: 95
+  key: progress_wipe_out
+-
+  id: 96
+  key: mall_lottery_draw
+-
+  id: 97
+  key: damage_mission_reward
+-
+  id: 98
+  key: money_not_enough
+-
+  id: 99
+  key: money_full
+-
+  id: 100
+  key: addrechargeday_award
+-
+  id: 101
+  key: addrecharge_award
+-
+  id: 102
+  key: growth_task_award2
+-
+  id: 103
+  key: first_charge_award
+-
+  id: 104
+  key: seven_task_award
+-
+  id: 105
+  key: seven_task_draw
+-
+  id: 106
+  key: tower_reward
+-
+  id: 107
+  key: tower_stage_reward
+-
+  id: 108
+  key: tower_idle_reward
+-
+  id: 109
+  key: buy_hero_growth_gift
+-
+  id: 110
+  key: hero_growth_free_reward
+-
+  id: 111
+  key: buy_place_privilege_card
+-
+  id: 112
+  key: buy_removead_drawcard_privilege_card
+-
+  id: 113
+  key: weekly_card_buy
+-
+  id: 114
+  key: mall_lottery_draw_rebate
+-
+  id: 115
+  key: boss_mission_reward
+-
+  id: 116
+  key: buy_token_level
+-
+  id: 117
+  key: tower_stage_buy_reward
+-
+  id: 118
+  key: mission_boss_everyday_first_clearance
+-
+  id: 119
+  key: main_line_task_award
+-
+  id: 120
+  key: fight_resurrection
+-
+  id: 121
+  key: fight_get_equip
+-
+  id: 122
+  key: fight_turntable_reset
+-
+  id: 123
+  key: fight_pay_resurrection
+
+
