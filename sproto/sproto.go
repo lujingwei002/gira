@@ -206,7 +206,6 @@ func (self *SprotoHandler) dispatch(ctx context.Context, receiver interface{}, r
 			err = result2.Interface().(error)
 		}
 		if !result1.IsNil() {
-			log.Println(result1)
 			push = (result1.Interface()).([]SprotoPush)
 		}
 	} else {
