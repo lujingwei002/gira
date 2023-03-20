@@ -1,9 +1,0 @@
-version: 0.0.1
-env: local
-services:
-  account:
-    http:
-      -
-        name: client
-        addr: 0.0.0.0
-        port: 8080
