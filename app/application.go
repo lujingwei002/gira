@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -147,8 +148,8 @@ func (app *Application) init() error {
 		} else {
 			return gira.ErrResourceManagerNotImplement
 		}
-
 	}
+	runtime.GOMAXPROCS(app.Config.Thread)
 	//var serviceConf ServiceConf
 	// for _, conf := range app.ProjectConf.Services {
 	// 	if conf.Name == app.Name {

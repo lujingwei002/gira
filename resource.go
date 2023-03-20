@@ -110,3 +110,51 @@ func Make2Key_int64_string[T any](arr []*T, dict map[int64]map[string]*T, key1 s
 	}
 	return nil
 }
+
+func Make2Key_int_int[T any](arr []*T, dict map[int]map[int]*T, key1 string, key2 string) error {
+	for _, v := range arr {
+		v1 := reflect.ValueOf(*v).FieldByName(key1)
+		v2 := reflect.ValueOf(*v).FieldByName(key2)
+		if !v1.IsValid() {
+			return fmt.Errorf("Make2Key_int_int error, field %s not found in %#v", key1, v)
+		}
+		if !v2.IsValid() {
+			return fmt.Errorf("Make2Key_int_int error, field %s not found in %#v", key2, v)
+		}
+		id1 := (int)(v1.Int())
+		id2 := (int)(v2.Int())
+		if _, ok := dict[id1]; !ok {
+			dict[id1] = make(map[int]*T, 0)
+		}
+		if dict1, ok := dict[id1]; !ok {
+			return fmt.Errorf("Make2Key_int_int error, create map %s fail %#v", key1, v)
+		} else {
+			dict1[id2] = v
+		}
+	}
+	return nil
+}
+
+func Make2Key_int64_int64[T any](arr []*T, dict map[int64]map[int64]*T, key1 string, key2 string) error {
+	for _, v := range arr {
+		v1 := reflect.ValueOf(*v).FieldByName(key1)
+		v2 := reflect.ValueOf(*v).FieldByName(key2)
+		if !v1.IsValid() {
+			return fmt.Errorf("Make2Key_int64_int64 error, field %s not found in %#v", key1, v)
+		}
+		if !v2.IsValid() {
+			return fmt.Errorf("Make2Key_int64_int64 error, field %s not found in %#v", key2, v)
+		}
+		id1 := (int64)(v1.Int())
+		id2 := (int64)(v2.Int())
+		if _, ok := dict[id1]; !ok {
+			dict[id1] = make(map[int64]*T, 0)
+		}
+		if dict1, ok := dict[id1]; !ok {
+			return fmt.Errorf("Make2Key_int64_int64 error, create map %s fail %#v", key1, v)
+		} else {
+			dict1[id2] = v
+		}
+	}
+	return nil
+}

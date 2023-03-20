@@ -90,6 +90,7 @@ type GrpcConfig struct {
 
 type Config struct {
 	Raw          []byte
+	Thread       int                 `yaml:"thread"`
 	Name         string              `yaml:"name"`
 	Http         *HttpConfig         `yaml:"http,omitempty"`
 	GameDb       *GameDbConfig       `yaml:"gamedb"`

@@ -48,6 +48,7 @@ const (
 	E_UPSTREAM_UNAVAILABLE           = -37
 	E_UPSTREAM_UNREACHABLE           = -38
 	E_SERVICE_UNAVAILABLE            = -39
+	E_SPROTO_PUSH_CONVERSION         = -40
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -91,6 +92,7 @@ const (
 	E_MSG_UPSTREAM_UNAVAILABLE           = "上游服务不可用"
 	E_MSG_UPSTREAM_UNREACHABLE           = "上游服务不可达"
 	E_MSG_SERVICE_UNAVAILABLE            = "服务不可用"
+	E_MSG_SPROTO_PUSH_CONVERSION         = "sproto push type conversion"
 )
 
 type Error struct {
@@ -149,6 +151,7 @@ var (
 	ErrUpstreamUnavailable         = NewError(E_UPSTREAM_UNAVAILABLE, E_MSG_UPSTREAM_UNAVAILABLE)
 	ErrUpstreamUnreachable         = NewError(E_UPSTREAM_UNREACHABLE, E_MSG_UPSTREAM_UNREACHABLE)
 	ErrServiceUnavailable          = NewError(E_SERVICE_UNAVAILABLE, E_MSG_SERVICE_UNAVAILABLE)
+	ErrSprotoPushConversion        = NewError(E_SPROTO_PUSH_CONVERSION, E_MSG_SPROTO_PUSH_CONVERSION)
 )
 
 func ErrCode(err error) int32 {

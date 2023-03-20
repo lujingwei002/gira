@@ -473,6 +473,9 @@ func (self *ClientConn) readRoutine() error {
 }
 
 func (self *ClientConn) processMessage(msg *message.Message) {
+	if self.debug {
+		gira.Infow("got message", "type", msg.Type)
+	}
 	switch msg.Type {
 	case message.Response:
 	case message.Push:
@@ -494,7 +497,7 @@ func (self *ClientConn) processMessage(msg *message.Message) {
 // 处理内部消息包
 func (self *ClientConn) processPacket(p *packet.Packet) error {
 	if self.debug {
-		log.Println("got packet", p.Type)
+		gira.Infow("got packet", "type", p.Type)
 	}
 	switch p.Type {
 	case packet.Data:
