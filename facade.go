@@ -25,6 +25,7 @@ type ApplicationFacade interface {
 	GetName() string
 	GetFullName() string
 	GetId() int32
+	GetLogDir() string
 
 	// ======= 同步接口 ===========
 	Wait() error

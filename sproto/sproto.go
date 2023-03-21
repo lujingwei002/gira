@@ -171,7 +171,7 @@ func (self *SprotoHandler) suitableHandlerMethods(typ reflect.Type) map[string]*
 		method := typ.Method(m)
 		mn := method.Name
 		if isSprotoHandlerMethod(method) {
-			gira.Infow("registr handler", "name", mn)
+			log.Infow("registr handler", "name", mn)
 			handler := &sprotoHandlerMethod{method: method}
 			if method.Type.NumOut() == 3 {
 				handler.isReturnPush = true
@@ -198,7 +198,7 @@ func (self *SprotoHandler) HasRoute(route string) bool {
 func (self *SprotoHandler) dispatch(ctx context.Context, receiver interface{}, route string, r interface{}) (resp interface{}, push []SprotoPush, err error) {
 	handler, found := self.methods[route]
 	if !found {
-		gira.Infow("sproto handler not found", "name", route)
+		log.Infow("sproto handler not found", "name", route)
 		err = gira.ErrSprotoHandlerNotImplement
 		return
 	}

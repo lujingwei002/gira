@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/lujingwei/gira/log"
+	"log"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -43,7 +43,7 @@ func (s *Scene) forver() error {
 	select {
 	case <-s.cancelCtx.Done():
 		{
-			log.Info("scene done")
+			log.Println("scene done")
 			break
 		}
 	}

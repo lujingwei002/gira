@@ -45,7 +45,9 @@ func (self *BaseFacade) SetApplication(application *Application) {
 func (self *BaseFacade) GetWorkDir() string {
 	return self.application.WorkDir
 }
-
+func (self *BaseFacade) GetLogDir() string {
+	return self.application.LogDir
+}
 func (self *BaseFacade) Wait() error {
 	return self.application.wait()
 }

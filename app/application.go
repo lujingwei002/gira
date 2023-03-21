@@ -50,6 +50,7 @@ type Application struct {
 	ConfigFilePath     string           /// 内置配置文件
 	RunConfigFilePath  string           /// 运行时的配置文件
 	WorkDir            string           /// 工作目录
+	LogDir             string           /// 日志目录
 	RunDir             string           /// 运行目录
 	Facade             gira.ApplicationFacade
 	cancelFunc         context.CancelFunc
@@ -127,6 +128,7 @@ func (app *Application) init() error {
 		}
 	}
 	app.RunConfigFilePath = filepath.Join(app.RunDir, fmt.Sprintf("%s", app.FullName))
+	app.LogDir = filepath.Join(app.RunDir, "log")
 
 	/*
 		app.ConfigFilePath = filepath.Join(app.ConfigDir, fmt.Sprintf("%sconf.yaml", app.Name))
@@ -148,6 +150,11 @@ func (app *Application) init() error {
 			}
 		} else {
 			return gira.ErrResourceManagerNotImplement
+		}
+	}
+	if app.Config.Log != nil {
+		if err := log.ConfigLog(app.Facade, *app.Config.Log); err != nil {
+			return err
 		}
 	}
 	runtime.GOMAXPROCS(app.Config.Thread)

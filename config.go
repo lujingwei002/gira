@@ -9,11 +9,18 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/lujingwei/gira/log"
+	"log"
 
 	yaml "gopkg.in/yaml.v3"
 )
 
+type LogConfig struct {
+	MaxSize    int    `yaml:"max-size"`
+	MaxBackups int    `yaml:"max-backups"`
+	MaxAge     int    `yaml:"max-age"`
+	Compress   bool   `yaml:"compress"`
+	Level      string `yaml:"level"`
+}
 type JwtConfig struct {
 	Secret            string `yaml:"secret"`
 	Expiretime        int64  `yaml:"expiretime"`
@@ -103,6 +110,7 @@ type Config struct {
 	Sdk          *SdkConfig          `yaml:"sdk"`
 	Jwt          *JwtConfig          `yaml:"jwt"`
 	Gate         *GateConfig         `yaml:"gate"`
+	Log          *LogConfig          `yaml:"log"`
 }
 
 func NewConfig() *Config {
@@ -116,7 +124,7 @@ type ConfigHandler interface {
 func (c *Config) Unmarshal(data []byte) error {
 	// 解析yaml
 	if err := yaml.Unmarshal(data, c); err != nil {
-		log.Info(string(data))
+		log.Println(string(data))
 		return err
 	}
 	c.Raw = data
@@ -200,7 +208,7 @@ func hostFieldMapFunc(facade ApplicationFacade, env map[string]interface{}, key 
 
 func otherHostFieldMapFunc(facade ApplicationFacade, name string, id int32, env map[string]interface{}, key string) interface{} {
 	appName := fmt.Sprintf("%s-%d", name, facade.GetId()+id)
-	log.Info("bb", appName, key)
+	log.Println("bb", appName, key)
 	var hostName string
 	var hostFound bool = false
 	if v, ok := env["application"]; ok {
@@ -246,7 +254,9 @@ func (c *Config) Read(facade ApplicationFacade, dir string, zone string, env str
 	if err != nil {
 		return nil, err
 	}
-
+	envData["name"] = facade.GetName()
+	envData["id"] = facade.GetId()
+	envData["fullname"] = facade.GetFullName()
 	funcMap := template.FuncMap{
 		// The name "title" is what the function will be called in the template text.
 		"application_field": func(env map[string]interface{}, key string) interface{} {
