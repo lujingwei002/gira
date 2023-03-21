@@ -18,12 +18,12 @@ package registry
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/lujingwei/gira"
+	"github.com/lujingwei/gira/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 )
@@ -83,11 +83,11 @@ func NewConfigRegistry(config *gira.EtcdConfig, facade gira.ApplicationFacade) (
 
 	// 建立连接
 	if client, err = clientv3.New(c); err != nil {
-		log.Printf("connect to etcd failed, err:%v\n", err)
+		log.Infof("connect to etcd failed, err:%v\n", err)
 		return nil, err
 	}
 	r.Client = client
-	log.Println("connect to etcd success")
+	log.Info("connect to etcd success")
 	if v, err := newConfigPeerRegistry(r); err != nil {
 		return nil, err
 	} else {

@@ -1,7 +1,7 @@
 package sdk
 
 import (
-	"log"
+	"github.com/lujingwei/gira/log"
 
 	"github.com/lujingwei/gira"
 )
@@ -24,7 +24,7 @@ func NewConfigSdk(config gira.SdkConfig) *Sdk {
 	self := &Sdk{
 		sdkDict: make(map[string]sdk_interface),
 	}
-	log.Println(config)
+	log.Info(config)
 	if config.Test != nil {
 		self.TestSdk = ConfigTestSdk(*config.Test)
 		self.sdkDict["test"] = self.TestSdk

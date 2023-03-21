@@ -12,13 +12,13 @@ package registry
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/lujingwei/gira"
+	"github.com/lujingwei/gira/log"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -54,11 +54,11 @@ func newConfigPlayerRegistry(r *Registry) (*PlayerRegistry, error) {
 		select {
 		case <-r.facade.Done():
 			{
-				log.Println("player registry recv down")
+				log.Info("player registry recv down")
 			}
 		}
 		if err := self.unregisterSelf(r); err != nil {
-			log.Println(err)
+			log.Info(err)
 		}
 		self.cancelFunc()
 		return nil
@@ -76,7 +76,7 @@ func (self *PlayerRegistry) notify(r *Registry) error {
 }
 
 func (self *PlayerRegistry) onLocalPlayerAdd(r *Registry, player *gira.LocalPlayer) error {
-	log.Printf("============ local player %s add ==================", player.MemberId)
+	log.Infof("============ local player %s add ==================", player.MemberId)
 	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerAdd(player)
 	} else {
@@ -86,7 +86,7 @@ func (self *PlayerRegistry) onLocalPlayerAdd(r *Registry, player *gira.LocalPlay
 }
 
 func (self *PlayerRegistry) onLocalPeerDelete(r *Registry, player *gira.LocalPlayer) error {
-	log.Printf("============ local player %s delete ==================", player.MemberId)
+	log.Infof("============ local player %s delete ==================", player.MemberId)
 	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerDelete(player)
 	} else {
@@ -96,7 +96,7 @@ func (self *PlayerRegistry) onLocalPeerDelete(r *Registry, player *gira.LocalPla
 }
 
 func (self *PlayerRegistry) onLocalPeerUpdate(r *Registry, player *gira.LocalPlayer) error {
-	log.Printf("============ local player %s update ==================", player.MemberId)
+	log.Infof("============ local player %s update ==================", player.MemberId)
 	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerUpdate(player)
 	} else {
@@ -108,22 +108,22 @@ func (self *PlayerRegistry) onLocalPeerUpdate(r *Registry, player *gira.LocalPla
 func (self *PlayerRegistry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
-		log.Println("player registry got a invalid player", string(kv.Key))
+		log.Info("player registry got a invalid player", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
 	memberId := pats[3]
 	value := string(kv.Value)
 	loginTime, err := strconv.Atoi(value)
 	if err != nil {
-		log.Println("player registry got a invalid player", string(kv.Value))
+		log.Info("player registry got a invalid player", string(kv.Value))
 		return err
 	}
 	if lastValue, ok := self.LocalPlayers.Load(memberId); ok {
 		lastPlayer := lastValue.(*gira.LocalPlayer)
-		log.Println("player registry add player, but already exist", memberId, "=>", value, lastPlayer.LoginTime)
+		log.Info("player registry add player, but already exist", memberId, "=>", value, lastPlayer.LoginTime)
 	} else {
 		// 新增player
-		log.Println("player registry add player", memberId, "=>", value)
+		log.Info("player registry add player", memberId, "=>", value)
 		player := &gira.LocalPlayer{
 			LoginTime: loginTime,
 			MemberId:  memberId,
@@ -137,16 +137,16 @@ func (self *PlayerRegistry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 func (self *PlayerRegistry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
-		log.Println("player registry got a invalid player", string(kv.Key))
+		log.Info("player registry got a invalid player", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
 	memberId := pats[3]
 	value := string(kv.Value)
 	if lastPlayer, ok := self.LocalPlayers.Load(memberId); ok {
-		log.Println("player registry remove player", memberId, "=>", value, lastPlayer)
+		log.Info("player registry remove player", memberId, "=>", value, lastPlayer)
 		self.LocalPlayers.Delete(memberId)
 	} else {
-		log.Println("player registry remote player, but player not found", memberId, "=>", value)
+		log.Info("player registry remote player, but player not found", memberId, "=>", value)
 	}
 	return nil
 }
@@ -155,25 +155,25 @@ func (self *PlayerRegistry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 func (self *PlayerRegistry) onKvAdd(kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
-		log.Println("player registry got a invalid player", string(kv.Key))
+		log.Info("player registry got a invalid player", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
 	memberId := pats[3]
 	value := string(kv.Value)
 	loginTime, err := strconv.Atoi(value)
 	if err != nil {
-		log.Println("player registry got a invalid player", string(kv.Value))
+		log.Info("player registry got a invalid player", string(kv.Value))
 		return err
 	}
 	if lastPlayer, ok := self.Peers[memberId]; ok {
-		log.Println("player registry add player, but already exist", memberId, lastPlayer, value)
+		log.Info("player registry add player, but already exist", memberId, lastPlayer, value)
 	} else {
 		player := &gira.LocalPlayer{
 			LoginTime: loginTime,
 			MemberId:  memberId,
 		}
 		self.LocalPlayers.Store(memberId, player)
-		log.Println("player registry add player", memberId, "=>", value)
+		log.Info("player registry add player", memberId, "=>", value)
 	}
 	return nil
 }
@@ -195,25 +195,25 @@ func (self *PlayerRegistry) watchLocalPlayers(r *Registry) error {
 	watcher := clientv3.NewWatcher(client)
 	r.facade.Go(func() error {
 		watchRespChan := watcher.Watch(self.cancelCtx, self.LocalPrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
-		log.Println("etcd watch player started", self.LocalPrefix, watchStartRevision)
+		log.Info("etcd watch player started", self.LocalPrefix, watchStartRevision)
 		for watchResp := range watchRespChan {
-			// log.Println("etcd watch got events")
+			// log.Info("etcd watch got events")
 			for _, event := range watchResp.Events {
 				switch event.Type {
 				case mvccpb.PUT:
-					// log.Println("etcd got put event")
+					// log.Info("etcd got put event")
 					if err := self.onKvPut(r, event.Kv); err != nil {
-						log.Println("player registry put event error", err)
+						log.Info("player registry put event error", err)
 					}
 				case mvccpb.DELETE:
-					// log.Println("etcd got delete event")
+					// log.Info("etcd got delete event")
 					if err := self.onKvDelete(r, event.Kv); err != nil {
-						log.Println("player registry put event error", err)
+						log.Info("player registry put event error", err)
 					}
 				}
 			}
 		}
-		log.Println("player registry watch shutdown")
+		log.Info("player registry watch shutdown")
 		return nil
 	})
 	return nil
@@ -224,7 +224,7 @@ func (self *PlayerRegistry) unregisterSelf(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(self.cancelCtx, 10*time.Second)
 	defer cancelFunc()
-	log.Println("etcd unregister self", self.LocalPrefix)
+	log.Info("etcd unregister self", self.LocalPrefix)
 
 	var txnResp *clientv3.TxnResponse
 	var err error
@@ -237,13 +237,13 @@ func (self *PlayerRegistry) unregisterSelf(r *Registry) error {
 			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(memberKey))
 
 		if txnResp, err = txn.Commit(); err != nil {
-			log.Println("txn err", err)
+			log.Info("txn err", err)
 			return true
 		}
 		if txnResp.Succeeded {
-			log.Println("local player", memberId, "delete")
+			log.Info("local player", memberId, "delete")
 		} else {
-			log.Println("local player", memberId, "delete, but not found")
+			log.Info("local player", memberId, "delete, but not found")
 		}
 		return true
 	})
@@ -264,21 +264,21 @@ func (self *PlayerRegistry) LockLocalMember(r *Registry, memberId string) (*gira
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.cancelCtx)
-	log.Println("player registry local key", localKey)
-	log.Println("player registry peer key", peerKey)
-	log.Println("player registry member key", memberKey)
+	log.Info("player registry local key", localKey)
+	log.Info("player registry peer key", peerKey)
+	log.Info("player registry member key", memberKey)
 	txn.If(clientv3.Compare(clientv3.CreateRevision(peerKey), "=", 0)).
 		Then(clientv3.OpPut(localKey, value), clientv3.OpPut(peerKey, r.FullName), clientv3.OpPut(memberKey, value)).
 		Else(clientv3.OpGet(peerKey))
 	if txnResp, err = txn.Commit(); err != nil {
-		log.Println("txn err", err)
+		log.Info("txn err", err)
 		return nil, err
 	}
 	if txnResp.Succeeded {
-		log.Println("player registry register", localKey, "=>", value, "success")
+		log.Info("player registry register", localKey, "=>", value, "success")
 		return nil, nil
 	} else {
-		log.Println("player registry register", localKey, "=>", value, "failed", "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
+		log.Info("player registry register", localKey, "=>", value, "failed", "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 		fullName := string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
 		peer := r.GetPeer(fullName)
 		if peer == nil {
@@ -298,25 +298,25 @@ func (self *PlayerRegistry) UnlockLocalMember(r *Registry, memberId string) (*gi
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.cancelCtx)
-	log.Println("player registry local key", localKey)
-	log.Println("player registry peer key", peerKey)
-	log.Println("player registry member key", memberKey)
+	log.Info("player registry local key", localKey)
+	log.Info("player registry peer key", peerKey)
+	log.Info("player registry member key", memberKey)
 	txn.If(clientv3.Compare(clientv3.Value(peerKey), "=", r.FullName), clientv3.Compare(clientv3.CreateRevision(peerKey), "!=", 0)).
 		Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(memberKey)).
 		Else(clientv3.OpGet(peerKey))
 	if txnResp, err = txn.Commit(); err != nil {
-		log.Println("txn err", err)
+		log.Info("txn err", err)
 		return nil, err
 	}
 	if txnResp.Succeeded {
-		log.Println("player registry unregister", localKey, "=>", value, "success")
+		log.Info("player registry unregister", localKey, "=>", value, "success")
 		return nil, nil
 	} else {
 		var fullName string
 		if len(txnResp.Responses) > 0 && len(txnResp.Responses[0].GetResponseRange().Kvs) > 0 {
 			fullName = string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
 		}
-		log.Println("player registry unregister", localKey, "=>", value, "failed", "lock by", fullName)
+		log.Info("player registry unregister", localKey, "=>", value, "failed", "lock by", fullName)
 		peer := r.GetPeer(fullName)
 		if peer == nil {
 			return nil, gira.ErrPeerNotFound
@@ -362,17 +362,17 @@ func (self *PlayerRegistry) registerSelf(r *Registry) error {
 			tx.Else(clientv3.OpGet(key), clientv3.OpPut(key, value))
 		}
 		if txnResp, err = txn.Commit(); err != nil {
-			log.Println("txn err", err)
+			log.Info("txn err", err)
 			return err
 		}
 		if txnResp.Succeeded {
-			log.Println("etcd register", key, "=>", value, "failed", "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
+			log.Info("etcd register", key, "=>", value, "failed", "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 			return gira.ErrRegisterServerFail
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
-				log.Println("etcd register create", key, "=>", value, "success")
+				log.Info("etcd register create", key, "=>", value, "success")
 			} else {
-				log.Println("etcd register resume", key, "=>", value, "success")
+				log.Info("etcd register resume", key, "=>", value, "success")
 			}
 		}
 	}
@@ -380,7 +380,7 @@ func (self *PlayerRegistry) registerSelf(r *Registry) error {
 		var keepRespChan <-chan *clientv3.LeaseKeepAliveResponse
 		// 自动续租
 		if keepRespChan, err = lease.KeepAlive(r.cancelCtx, leaseID); err != nil {
-			log.Println("自动续租失败", err)
+			log.Info("自动续租失败", err)
 			return err
 		}
 		//判断续约应答的协程
@@ -389,14 +389,14 @@ func (self *PlayerRegistry) registerSelf(r *Registry) error {
 				select {
 				case keepResp := <-keepRespChan:
 					if keepRespChan == nil {
-						log.Println("租约已经失效了")
+						log.Info("租约已经失效了")
 						goto END
 					} else if keepResp == nil {
-						log.Println("租约已经被取消")
+						log.Info("租约已经被取消")
 						goto END
 					} else {
 						// KeepAlive每秒会续租一次,所以就会收到一次应答
-						// log.Println("收到应答,租约ID是:", keepResp.ID)
+						// log.Info("收到应答,租约ID是:", keepResp.ID)
 					}
 				case <-r.facade.Done():
 					break

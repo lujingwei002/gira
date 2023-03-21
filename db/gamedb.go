@@ -3,8 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/lujingwei/gira"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -36,22 +37,22 @@ func (self *GameDbClient) Start(ctx context.Context, config gira.GameDbConfig) e
 	self.config = config
 	self.cancelCtx, self.cancelFunc = context.WithCancel(ctx)
 	uri := fmt.Sprintf("mongodb://%s:%s@%s:%d", config.User, config.Password, config.Host, config.Port)
-	log.Println(uri)
+	log.Info(uri)
 	clientOpts := options.Client().
 		ApplyURI(uri)
 	ctx, cancelFunc := context.WithTimeout(self.cancelCtx, 3*time.Second)
 	defer cancelFunc()
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
-		log.Fatalln("connect gamedb error", err)
+		log.Fatal("connect gamedb error", err)
 	}
 	ctx2, cancelFunc2 := context.WithTimeout(self.cancelCtx, 3*time.Second)
 	defer cancelFunc2()
 	if err = client.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Fatalln("connect gamedb error", err)
+		log.Fatal("connect gamedb error", err)
 		return err
 	}
 	self.client = client
-	log.Println("connect gamedb success")
+	log.Info("connect gamedb success")
 	return nil
 }

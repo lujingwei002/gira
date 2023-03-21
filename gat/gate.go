@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -12,6 +11,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/gorilla/websocket"
 	"github.com/lujingwei/gira"
@@ -75,12 +76,13 @@ type Gate struct {
 	middlewareArr []MiddleWareInterface
 	listener      net.Listener
 	server        *http.Server
-
-	connStat conn_stat
+	Stat          Stat
 }
 
-type conn_stat struct {
-	connectionCount int64 // 连接数量
+type Stat struct {
+	ActiveSessionCount        int64 // 当前会话数量
+	CumulativeSessionCount    int64 // 累计会话数量
+	CumulativeConnectionCount int64 // 累计连接数量
 }
 
 func newGate() *Gate {
@@ -117,7 +119,7 @@ func NewConfigGate(facade gira.ApplicationFacade, config *gira.GateConfig) (*Gat
 	if server, err = Listen(facade.Context(), config.Bind, opts...); err != nil {
 		return nil, err
 	}
-	log.Println("gate start...", config.Bind)
+	log.Info("gate start...", config.Bind)
 	go server.Serve(handler)
 	return server, nil
 }
@@ -205,7 +207,7 @@ func WithTSLConfig(certificate, key string) Option {
 func WithRSAPrivateKey(keyFile string) Option {
 	data, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 		return nil
 	}
 	return func(gate *Gate) {
@@ -299,7 +301,7 @@ func (gate *Gate) Shutdown() {
 	gate.cancelFunc()
 	var err error
 	err = gate.errGroup.Wait()
-	gira.Infow("gate shutdown", "error", err)
+	log.Infow("gate shutdown", "error", err)
 }
 
 func (gate *Gate) status() int32 {
@@ -323,7 +325,7 @@ func (gate *Gate) Kick(reason string) {
 			break
 		}
 		if time.Now().Unix()-now >= 120 {
-			log.Println(fmt.Sprintf("[gate] some session not close, count=%d", len(gate.sessions)))
+			log.Info(fmt.Sprintf("[gate] some session not close, count=%d", len(gate.sessions)))
 			break
 		}
 		time.Sleep(1 * time.Second)
@@ -340,7 +342,7 @@ func (gate *Gate) listenAndServe() error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Println(err)
+			log.Info(err)
 			return err
 		}
 		go gate.handleConn(conn)
@@ -354,10 +356,10 @@ func (gate *Gate) listenAndServeWS() error {
 		CheckOrigin:     gate.checkOrigin,
 	}
 	http.HandleFunc("/"+strings.TrimPrefix(gate.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
-		gira.Infow("gate listen and server ws")
+		log.Infow("gate listen and server ws")
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Printf("[gate] Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
+			log.Infof("[gate] Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
 			return
 		}
 		gate.serveWsConn(conn)
@@ -365,7 +367,7 @@ func (gate *Gate) listenAndServeWS() error {
 	server := &http.Server{Addr: gate.ClientAddr}
 	gate.server = server
 	if err := server.ListenAndServe(); err != nil {
-		log.Println(err)
+		log.Info(err)
 		return err
 	}
 	return nil
@@ -380,13 +382,13 @@ func (gate *Gate) listenAndServeWSTLS() error {
 	http.HandleFunc("/"+strings.TrimPrefix(gate.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Printf("[gate] Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
+			log.Infof("[gate] Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
 			return
 		}
 		gate.serveWsConn(conn)
 	})
 	if err := http.ListenAndServeTLS(gate.ClientAddr, gate.tslCertificate, gate.tslKey, nil); err != nil {
-		log.Println(err)
+		log.Info(err)
 		return err
 	}
 	return nil
@@ -401,27 +403,26 @@ func (gate *Gate) findSession(sid uint64) *Session {
 
 func (gate *Gate) handleConn(conn net.Conn) {
 	if gate.status() != gate_status_working {
-		log.Println("[gate] gate is not running")
+		log.Info("[gate] gate is not running")
 		conn.Close()
 		return
 	}
-	atomic.AddInt64(&gate.connStat.connectionCount, 1)
+	atomic.AddInt64(&gate.Stat.CumulativeConnectionCount, 1)
 	c := newConn(gate)
-	gira.Infow("accept a client", "session_id", c.session.ID(), "remote_addr", conn.RemoteAddr())
+	log.Infow("accept a client", "session_id", c.session.ID(), "remote_addr", conn.RemoteAddr())
 	err := c.serve(gate.ctx, conn)
-	gira.Infow("gate conn serve exit", "error", err)
-	atomic.AddInt64(&gate.connStat.connectionCount, -1)
+	log.Infow("gate conn serve exit", "error", err)
 }
 
 func (gate *Gate) serveWsConn(conn *websocket.Conn) {
 	if gate.status() != gate_status_working {
-		log.Println("[gate] gate is not running")
+		log.Info("[gate] gate is not running")
 		conn.Close()
 		return
 	}
 	c, err := ws.NewConn(conn)
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 		return
 	}
 	gate.errGroup.Go(func() error {

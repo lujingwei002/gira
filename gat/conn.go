@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei/gira"
+	"github.com/lujingwei/gira/log"
+
 	"github.com/lujingwei/gira/gat/crypto"
 	"github.com/lujingwei/gira/gat/message"
 	"github.com/lujingwei/gira/gat/packet"
@@ -76,7 +76,7 @@ func (a *Conn) send(data []byte) (err error) {
 
 func (self *Conn) push(route string, data []byte) error {
 	if self.gate.debug {
-		gira.Infow("gate conn push", "session_id", self.session.ID(), "route", route, "len", len(data))
+		log.Infow("gate conn push", "session_id", self.session.ID(), "route", route, "len", len(data))
 	}
 	if self.status() != conn_status_working {
 		return ErrNotWorking
@@ -87,7 +87,7 @@ func (self *Conn) push(route string, data []byte) error {
 	var err error
 	payload, err := self.serialize(data)
 	if err != nil {
-		gira.Infow("gate conn push fail", "session_id", self.session.ID(), "route", route, "error", err)
+		log.Infow("gate conn push fail", "session_id", self.session.ID(), "route", route, "error", err)
 	}
 	m := &message.Message{
 		Type:  message.Push,
@@ -97,12 +97,12 @@ func (self *Conn) push(route string, data []byte) error {
 	}
 	em, err := m.Encode()
 	if err != nil {
-		log.Println(err.Error())
+		log.Info(err.Error())
 		return err
 	}
 	p, err := packet.Encode(packet.Data, em)
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 		return err
 	}
 	return self.send(p)
@@ -110,7 +110,7 @@ func (self *Conn) push(route string, data []byte) error {
 
 func (self *Conn) response(mid uint64, data []byte) error {
 	if self.gate.debug {
-		gira.Infow("gate conn response", "session_id", self.session.ID(), "req_id", mid, "len", len(data))
+		log.Infow("gate conn response", "session_id", self.session.ID(), "req_id", mid, "len", len(data))
 	}
 	if self.lastErr != nil {
 		return self.lastErr
@@ -124,7 +124,7 @@ func (self *Conn) response(mid uint64, data []byte) error {
 	var err error
 	payload, err := self.serialize(data)
 	if err != nil {
-		gira.Infow("gate conn response fail", "session_id", self.session.ID(), "req_id", mid, "error", err)
+		log.Infow("gate conn response fail", "session_id", self.session.ID(), "req_id", mid, "error", err)
 	}
 	m := &message.Message{
 		Type:  message.Response,
@@ -157,7 +157,7 @@ func (self *Conn) close() error {
 	}
 	self.setStatus(conn_status_closed)
 	if self.gate.debug {
-		gira.Infow("close gate conn", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
+		log.Infow("close gate conn", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
 	}
 	self.cancelFunc()
 	return nil
@@ -206,7 +206,7 @@ func (self *Conn) recvHandShake(ctx context.Context) error {
 		select {
 		case <-cancelCtx.Done():
 			if cancelCtx.Err() == context.DeadlineExceeded {
-				log.Println("recv handshake timeout", cancelCtx.Err())
+				log.Info("recv handshake timeout", cancelCtx.Err())
 				self.conn.Close()
 			}
 		}
@@ -214,12 +214,12 @@ func (self *Conn) recvHandShake(ctx context.Context) error {
 	for {
 		n, err := self.conn.Read(buf)
 		if err != nil {
-			gira.Infow("conn read fail", "err", err, "session_id", self.session.ID())
+			log.Debugw("conn read fail", "err", err, "session_id", self.session.ID())
 			return err
 		}
 		packets, err := self.decoder.Decode(buf[:n])
 		if err != nil {
-			log.Println(err.Error())
+			log.Info(err.Error())
 			return err
 		}
 		if len(packets) < 1 {
@@ -265,7 +265,7 @@ func (self *Conn) recvHandShake(ctx context.Context) error {
 			return err
 		}
 		if self.gate.debug {
-			gira.Infow("handshake success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr(), "secret", self.session.getSecret())
+			log.Infow("handshake success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr(), "secret", self.session.getSecret())
 		}
 		return nil
 	}
@@ -278,7 +278,7 @@ func (self *Conn) recvHandShakeAck(ctx context.Context) ([]*packet.Packet, error
 		select {
 		case <-cancelCtx.Done():
 			if cancelCtx.Err() == context.DeadlineExceeded {
-				log.Println("recv handshake ack timeout", cancelCtx.Err())
+				log.Info("recv handshake ack timeout", cancelCtx.Err())
 				self.conn.Close()
 			}
 		}
@@ -287,12 +287,12 @@ func (self *Conn) recvHandShakeAck(ctx context.Context) ([]*packet.Packet, error
 	for {
 		n, err := self.conn.Read(buf)
 		if err != nil {
-			gira.Infow("gate conn read fail", "err", err, "session_id", self.session.ID())
+			log.Infow("gate conn read fail", "err", err, "session_id", self.session.ID())
 			return nil, err
 		}
 		packets, err := self.decoder.Decode(buf[:n])
 		if err != nil {
-			log.Println(err.Error())
+			log.Info(err.Error())
 			return nil, err
 		}
 		if len(packets) < 1 {
@@ -304,7 +304,7 @@ func (self *Conn) recvHandShakeAck(ctx context.Context) ([]*packet.Packet, error
 		}
 		self.setStatus(conn_status_working)
 		if self.gate.debug {
-			gira.Infow("recv handshake ack success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
+			log.Infow("recv handshake ack success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
 		}
 		return packets[1:], nil
 	}
@@ -316,11 +316,11 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 	self.conn = conn
 	sessionId := self.session.ID()
 	if self.gate.debug {
-		gira.Infow("session established", "session_id", sessionId)
+		log.Infow("session established", "session_id", sessionId)
 	}
 	defer func() {
 		if self.gate.debug {
-			gira.Infow("gate conn session goroutine exit", "session_id", sessionId)
+			log.Infow("gate conn session goroutine exit", "session_id", sessionId)
 		}
 		self.setStatus(conn_status_closed)
 		self.conn.Close()
@@ -354,13 +354,13 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 				self.lastErr = err
 			}
 			if self.gate.debug {
-				gira.Infow("gate conn recv goroutine exit", "sessionid", sessionId)
+				log.Infow("gate conn recv goroutine exit", "sessionid", sessionId)
 			}
 		}()
 		// 处理一些多接收到的消息
 		for i := range packets {
 			if err = self.processPacket(packets[i]); err != nil {
-				log.Println(err)
+				log.Info(err)
 				return
 			}
 		}
@@ -371,7 +371,9 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 		for {
 			n, err = self.conn.Read(buf)
 			if err != nil {
-				gira.Infow("gate conn read fail", "err", err, "session_id", self.session.ID())
+				if self.gate.debug {
+					log.Infow("gate conn read fail", "err", err, "session_id", self.session.ID())
+				}
 				return
 			}
 			if self.lastErr != nil {
@@ -379,7 +381,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 			}
 			packets, err = self.decoder.Decode(buf[:n])
 			if err != nil {
-				log.Println(err)
+				log.Info(err)
 				return err
 			}
 			if len(packets) < 1 {
@@ -387,7 +389,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 			}
 			for i := range packets {
 				if err = self.processPacket(packets[i]); err != nil {
-					log.Println(err)
+					log.Info(err)
 					return
 				}
 			}
@@ -404,7 +406,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 			// 发送完数据后，可以关闭socket了，使recv可以解除阻塞
 			self.conn.Close()
 			if self.gate.debug {
-				gira.Infow("gate conn send goroutine exit", "session_id", sessionId)
+				log.Infow("gate conn send goroutine exit", "session_id", sessionId)
 			}
 		}()
 		for {
@@ -412,7 +414,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 			case <-ticker.C:
 				deadline := time.Now().Add(-2 * self.gate.heartbeat).Unix()
 				if atomic.LoadInt64(&self.lastAt) < deadline {
-					log.Printf("gate connection heartbeat timeout, sessionid=%d, lastTime=%d, deadline=%d\n", sessionId, atomic.LoadInt64(&self.lastAt), deadline)
+					log.Infof("gate connection heartbeat timeout, sessionid=%d, lastTime=%d, deadline=%d\n", sessionId, atomic.LoadInt64(&self.lastAt), deadline)
 					err = ErrHeartbeatTimeout
 					return
 				}
@@ -424,7 +426,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 					return
 				} else {
 					if _, err = self.conn.Write(data); err != nil {
-						log.Printf("gate connection write failed, sessionid=%d, error:%s\n", sessionId, err.Error())
+						log.Infof("gate connection write failed, sessionid=%d, error:%s\n", sessionId, err.Error())
 						return
 					}
 				}
@@ -446,13 +448,16 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 					return
 				} else {
 					if _, err = self.conn.Write(data); err != nil {
-						log.Printf("gate connection write failed, sessionid=%d, error:%s\n", sessionId, err.Error())
+						log.Infof("gate connection write failed, sessionid=%d, error:%s\n", sessionId, err.Error())
 						return err
 					}
 				}
 			}
 		}
 	})
+
+	atomic.AddInt64(&self.gate.Stat.ActiveSessionCount, 1)
+	atomic.AddInt64(&self.gate.Stat.CumulativeSessionCount, 1)
 
 	self.gate.storeSession(self.session)
 	defer self.gate.sessionClosed(self.session)
@@ -475,7 +480,10 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 		self.cancelFunc()
 	}
 	err = errGroup.Wait()
-	gira.Infow("gate conn wait group exit", "last_error", self.lastErr, "error", err)
+	if self.gate.debug {
+		log.Infow("gate conn wait group exit", "last_error", self.lastErr, "error", err)
+	}
+	atomic.AddInt64(&self.gate.Stat.ActiveSessionCount, -1)
 	return err
 }
 
@@ -502,7 +510,7 @@ func (self *Conn) processPacket(p *packet.Packet) error {
 func (self *Conn) processMessage(msg *message.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Println("process message panic", e)
+			log.Info("process message panic", e)
 			err = ErrBrokenPipe
 		}
 	}()
@@ -513,7 +521,7 @@ func (self *Conn) processMessage(msg *message.Message) (err error) {
 	case message.Notify:
 		mid = 0
 	default:
-		log.Println("[gate conn] invalid message type: " + msg.Type.String())
+		log.Info("[gate conn] invalid message type: " + msg.Type.String())
 		err = ErrInvalidMessage
 		return
 	}
@@ -522,12 +530,12 @@ func (self *Conn) processMessage(msg *message.Message) (err error) {
 	if session.getSecret() != "" {
 		payload, err = crypto.DesDecrypt(payload, session.getSecret())
 		if err != nil {
-			log.Printf("[gate conn] des decrypt failed, error:%s, payload:(%v)\n", err.Error(), payload)
+			log.Infof("[gate conn] des decrypt failed, error:%s, payload:(%v)\n", err.Error(), payload)
 			return
 		}
 	}
 	if self.gate.handler == nil {
-		log.Printf("[gate conn] handler not found, route:%s\n", msg.Route)
+		log.Infof("[gate conn] handler not found, route:%s\n", msg.Route)
 		err = ErrInvalidHandler
 	}
 	r := &Request{

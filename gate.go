@@ -9,6 +9,14 @@ type GateConn interface {
 	Recv(ctx context.Context) (GateRequest, error)
 	Push(route string, data []byte) error
 	Response(mid uint64, data []byte) error
+
+	Value(key string) interface{}
+	Set(key string, value interface{})
+	Uint64(key string) uint64
+	Int32(key string) int32
+
+	SetUserData(value interface{})
+	UserData() interface{}
 }
 
 type GateClient interface {
@@ -26,6 +34,8 @@ type GateRequest interface {
 	Response(data []byte) error
 	Payload() []byte
 	ReqId() uint64
+	Session() GateConn
+	Push(route string, data []byte) error
 }
 
 const (

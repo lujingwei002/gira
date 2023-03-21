@@ -4,8 +4,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
+
+	"github.com/lujingwei/gira/log"
 )
 
 type Type byte
@@ -184,10 +185,10 @@ func SetDictionary(dict map[string]uint16) {
 		r := strings.TrimSpace(route)
 		// duplication check
 		if _, ok := routes[r]; ok {
-			log.Printf("duplicated route(route: %s, code: %d)\n", r, code)
+			log.Infof("duplicated route(route: %s, code: %d)\n", r, code)
 		}
 		if _, ok := codes[code]; ok {
-			log.Printf("duplicated route(route: %s, code: %d)\n", r, code)
+			log.Infof("duplicated route(route: %s, code: %d)\n", r, code)
 		}
 		// update map, using last value when key duplicated
 		routes[r] = code

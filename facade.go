@@ -49,7 +49,7 @@ type ApplicationFacade interface {
 
 var app ApplicationFacade
 
-func GetApp() ApplicationFacade {
+func Facade() ApplicationFacade {
 	return app
 }
 

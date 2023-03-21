@@ -33,10 +33,11 @@ package registry
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/lujingwei/gira"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
@@ -72,11 +73,11 @@ func newConfigPeerRegistry(r *Registry) (*PeerRegistry, error) {
 		select {
 		case <-r.facade.Done():
 			{
-				log.Println("peer registry recv down")
+				log.Infow("peer registry recv down")
 			}
 		}
 		if err := self.unregisterSelf(r); err != nil {
-			log.Println(err)
+			log.Errorw("unregister self fail", "error", err)
 		}
 
 		return nil
@@ -102,7 +103,7 @@ func (self *PeerRegistry) notify(r *Registry) error {
 }
 
 func (self *PeerRegistry) onPeerAdd(r *Registry, peer *gira.Peer) error {
-	log.Printf("============ peer %s add ==================", peer.FullName)
+	log.Debugw("============ peer %s add ==================", "full_name", peer.FullName)
 	if peer.FullName == r.FullName {
 		self.SelfPeer = peer
 	}
@@ -115,20 +116,20 @@ func (self *PeerRegistry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
-	log.Printf("============ peer %s delete ==================", peer.FullName)
+	log.Debugw("============ peer %s delete ==================", "full_name", peer.FullName)
 	if handler, ok := r.facade.(gira.PeerHandler); ok {
 		handler.OnPeerDelete(peer)
 	} else {
 		panic(gira.ErrPeerHandlerNotImplement)
 	}
 	if peer.FullName == r.FullName {
-		log.Println("delete myself??? quit watch goroutine", self.isNormalUnregisterSelf)
+		log.Errorw("delete myself???", "is_normal", self.isNormalUnregisterSelf)
 		if self.isNormalUnregisterSelf {
 			self.cancelFunc()
 		} else {
-			log.Println("重新注册自己")
+			log.Errorw("重新注册自己")
 			if err := self.registerSelf(r); err != nil {
-				log.Println(err)
+				log.Errorw("register self fail", "error", err)
 				return err
 			}
 		}
@@ -137,7 +138,7 @@ func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *PeerRegistry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
-	log.Printf("============ peer %s update ==================", peer.FullName)
+	log.Debugw("============ peer %s update ==================", "full_name", peer.FullName)
 	if handler, ok := r.facade.(gira.PeerHandler); ok {
 		handler.OnPeerUpdate(peer)
 	} else {
@@ -149,14 +150,14 @@ func (self *PeerRegistry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
 func (self *PeerRegistry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
-		log.Println("peer registry got a invalid peer", string(kv.Key))
+		log.Errorw("peer registry got a invalid peer", "kv", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
 	fullName := pats[2]
 	attrName := pats[3]
 	name, serverId, err := explodeServerFullName(fullName)
 	if err != nil {
-		log.Println("peer registry got a invalid peer", fullName)
+		log.Errorw("peer registry got a invalid peer", "full_name", fullName)
 		return err
 	}
 	attrValue := string(kv.Value)
@@ -166,25 +167,25 @@ func (self *PeerRegistry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			if lastPeer.GrpcAddr == "" {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
-				log.Println("etcd add peer", fullName, attrValue)
+				log.Infow("etcd add peer", "full_name", fullName, "attr_value", attrValue)
 				self.onPeerAdd(r, lastPeer)
 			} else if attrValue != lastPeer.GrpcAddr {
 				// 节点地址改变
 				lastPeer.GrpcAddr = attrValue
 				self.onPeerUpdate(r, lastPeer)
-				log.Println("etcd peer", fullName, "address change from", lastPeer.GrpcAddr, "to", attrValue)
+				log.Info("etcd peer", fullName, "address change from", lastPeer.GrpcAddr, "to", attrValue)
 			} else {
-				log.Println("etcd peer", fullName, "address not change", lastPeer.GrpcAddr)
+				log.Info("etcd peer", fullName, "address not change", lastPeer.GrpcAddr)
 			}
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
 				if lastAttrValue != attrValue {
-					log.Println("etcd peer", fullName, "attr change", attrName, lastAttrValue, "=>", attrValue)
+					log.Info("etcd peer", fullName, "attr change", attrName, lastAttrValue, "=>", attrValue)
 				} else {
-					log.Println("etcd peer", fullName, "attr not change", attrName, lastAttrValue)
+					log.Info("etcd peer", fullName, "attr not change", attrName, lastAttrValue)
 				}
 			} else {
-				log.Println("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
+				log.Info("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
 			}
 			lastPeer.Kvs[attrName] = attrValue
 		}
@@ -198,11 +199,11 @@ func (self *PeerRegistry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 		self.Peers.Store(fullName, peer)
 		if attrName == GRPC_KEY {
 			// 新增节点
-			log.Println("etcd add peer", fullName, attrValue)
+			log.Info("etcd add peer", fullName, attrValue)
 			peer.GrpcAddr = attrValue
 			self.onPeerAdd(r, peer)
 		} else {
-			log.Println("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
+			log.Info("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
 			peer.Kvs[attrName] = attrValue
 		}
 	}
@@ -212,7 +213,7 @@ func (self *PeerRegistry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 func (self *PeerRegistry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
-		log.Println("peer registry got a invalid peer", string(kv.Key))
+		log.Info("peer registry got a invalid peer", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
 	fullName := pats[2]
@@ -221,19 +222,19 @@ func (self *PeerRegistry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 		lastPeer := lastValue.(*gira.Peer)
 		if attrName == GRPC_KEY {
 			//删除节点
-			log.Println("etcd remove peer", fullName, lastPeer.GrpcAddr)
+			log.Info("etcd remove peer", fullName, lastPeer.GrpcAddr)
 			lastPeer.GrpcAddr = ""
 			self.onPeerDelete(r, lastPeer)
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
 				delete(lastPeer.Kvs, attrName)
-				log.Println("etcd peer", fullName, "remove attr", attrName, "=>", lastAttrValue)
+				log.Info("etcd peer", fullName, "remove attr", attrName, "=>", lastAttrValue)
 			} else {
-				log.Println("etcd peer", fullName, "remove attr, but attr not found!!!!!", fullName, "=>", attrName)
+				log.Info("etcd peer", fullName, "remove attr, but attr not found!!!!!", fullName, "=>", attrName)
 			}
 		}
 	} else {
-		log.Println("etcd peer", fullName, "remove attr, but peer not found!!!!!", fullName, "=>", attrName)
+		log.Info("etcd peer", fullName, "remove attr, but peer not found!!!!!", fullName, "=>", attrName)
 	}
 	return nil
 }
@@ -242,14 +243,14 @@ func (self *PeerRegistry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 func (r *PeerRegistry) onKvAdd(kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
-		log.Println("peer registry got a invalid peer", string(kv.Key))
+		log.Info("peer registry got a invalid peer", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
 	fullName := pats[2]
 	attrName := pats[3]
 	name, serverId, err := explodeServerFullName(fullName)
 	if err != nil {
-		log.Println("peer registry got a invalid peer", fullName)
+		log.Info("peer registry got a invalid peer", fullName)
 		return err
 	}
 	attrValue := string(kv.Value)
@@ -259,23 +260,23 @@ func (r *PeerRegistry) onKvAdd(kv *mvccpb.KeyValue) error {
 			if lastPeer.GrpcAddr == "" {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
-				log.Println("etcd add peer", fullName, attrValue)
+				log.Info("etcd add peer", fullName, attrValue)
 			} else if attrValue != lastPeer.GrpcAddr {
 				// 节点地址改变
 				lastPeer.GrpcAddr = attrValue
-				log.Println("etcd peer", fullName, "address change from", lastPeer.GrpcAddr, "to", attrValue)
+				log.Info("etcd peer", fullName, "address change from", lastPeer.GrpcAddr, "to", attrValue)
 			} else {
-				log.Println("etcd peer", fullName, "address not change", lastPeer.GrpcAddr)
+				log.Info("etcd peer", fullName, "address not change", lastPeer.GrpcAddr)
 			}
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
 				if lastAttrValue != attrValue {
-					log.Println("etcd peer", fullName, "attr change", attrName, lastAttrValue, "=>", attrValue)
+					log.Info("etcd peer", fullName, "attr change", attrName, lastAttrValue, "=>", attrValue)
 				} else {
-					log.Println("etcd peer", fullName, "attr not change", attrName, lastAttrValue)
+					log.Info("etcd peer", fullName, "attr not change", attrName, lastAttrValue)
 				}
 			} else {
-				log.Println("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
+				log.Info("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
 			}
 			lastPeer.Kvs[attrName] = attrValue
 		}
@@ -290,10 +291,10 @@ func (r *PeerRegistry) onKvAdd(kv *mvccpb.KeyValue) error {
 		if attrName == GRPC_KEY {
 			peer.GrpcAddr = attrValue
 			// 新增节点
-			log.Println("etcd add peer", fullName, attrValue)
+			log.Info("etcd add peer", fullName, attrValue)
 		} else {
 			peer.Kvs[attrName] = attrValue
-			log.Println("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
+			log.Info("etcd peer", fullName, "add attr", attrName, "=>", attrValue)
 		}
 	}
 	return nil
@@ -316,25 +317,25 @@ func (self *PeerRegistry) watchPeers(r *Registry) error {
 	watcher := clientv3.NewWatcher(client)
 	r.facade.Go(func() error {
 		watchRespChan := watcher.Watch(self.cancelCtx, self.Prefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
-		log.Println("etcd watch peer started", self.Prefix, watchStartRevision)
+		log.Info("etcd watch peer started", self.Prefix, watchStartRevision)
 		for watchResp := range watchRespChan {
-			// log.Println("etcd watch got events")
+			// log.Info("etcd watch got events")
 			for _, event := range watchResp.Events {
 				switch event.Type {
 				case mvccpb.PUT:
-					// log.Println("etcd got put event")
+					// log.Info("etcd got put event")
 					if err := self.onKvPut(r, event.Kv); err != nil {
-						log.Println("peer registry put event error", err)
+						log.Info("peer registry put event error", err)
 					}
 				case mvccpb.DELETE:
-					// log.Println("etcd got delete event")
+					// log.Info("etcd got delete event")
 					if err := self.onKvDelete(r, event.Kv); err != nil {
-						log.Println("peer registry put event error", err)
+						log.Info("peer registry put event error", err)
 					}
 				}
 			}
 		}
-		log.Println("peer registry watch shutdown")
+		log.Info("peer registry watch shutdown")
 
 		return nil
 	})
@@ -346,7 +347,7 @@ func (self *PeerRegistry) unregisterSelf(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(self.cancelCtx, 10*time.Second)
 	defer cancelFunc()
-	log.Println("etcd unregister self", self.SelfPrefix)
+	log.Info("etcd unregister self", self.SelfPrefix)
 	self.isNormalUnregisterSelf = true
 
 	// txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0))
@@ -362,22 +363,22 @@ func (self *PeerRegistry) unregisterSelf(r *Registry) error {
 		Else(clientv3.OpGet(key), clientv3.OpDelete(self.SelfPrefix, clientv3.WithPrefix()))
 
 	if txnResp, err = txn.Commit(); err != nil {
-		log.Println("txn err", err)
+		log.Info("txn err", err)
 		return err
 	}
 
 	if txnResp.Succeeded {
 		// key 被其他程序占用着，不用管，直接退出
-		log.Println(" key 被其他程序占用着，不用管，直接退出")
+		log.Info(" key 被其他程序占用着，不用管，直接退出")
 		self.cancelFunc()
 	} else {
 		if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
 			// key 没被任何程序占用，不用管，直接退出
-			log.Println("key 没被任何程序占用，不用管，直接退出")
+			log.Info("key 没被任何程序占用，不用管，直接退出")
 			self.cancelFunc()
 		} else {
 			// 等监听到清理完成后再退出
-			log.Println("等监听到清理完成后再退出")
+			log.Info("等监听到清理完成后再退出")
 
 		}
 	}
@@ -420,17 +421,17 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 			tx.Else(clientv3.OpGet(key), clientv3.OpPut(key, value))
 		}
 		if txnResp, err = txn.Commit(); err != nil {
-			log.Println("txn err", err)
+			log.Info("txn err", err)
 			return err
 		}
 		if txnResp.Succeeded {
-			log.Println("etcd register", key, "=>", value, "failed", "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
+			log.Info("etcd register", key, "=>", value, "failed", "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 			return gira.ErrRegisterServerFail
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
-				log.Println("etcd register create", key, "=>", value, "success")
+				log.Info("etcd register create", key, "=>", value, "success")
 			} else {
-				log.Println("etcd register resume", key, "=>", value, "success")
+				log.Info("etcd register resume", key, "=>", value, "success")
 			}
 		}
 	}
@@ -438,7 +439,7 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 		var keepRespChan <-chan *clientv3.LeaseKeepAliveResponse
 		// 自动续租
 		if keepRespChan, err = lease.KeepAlive(self.cancelCtx, leaseID); err != nil {
-			log.Println("自动续租失败", err)
+			log.Info("自动续租失败", err)
 			return err
 		}
 		//判断续约应答的协程
@@ -447,14 +448,14 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 				select {
 				case keepResp := <-keepRespChan:
 					if keepRespChan == nil {
-						log.Println("租约已经失效了")
+						log.Info("租约已经失效了")
 						goto END
 					} else if keepResp == nil {
-						log.Println("租约已经被取消")
+						log.Info("租约已经被取消")
 						goto END
 					} else {
 						// KeepAlive每秒会续租一次,所以就会收到一次应答
-						// log.Println("收到应答,租约ID是:", keepResp.ID)
+						// log.Info("收到应答,租约ID是:", keepResp.ID)
 					}
 				case <-r.facade.Done():
 					break

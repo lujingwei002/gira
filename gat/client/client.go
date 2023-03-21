@@ -8,13 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/gorilla/websocket"
 	"github.com/lujingwei/gira"
@@ -30,10 +31,6 @@ const (
 	client_status_handshake
 	client_status_working
 	client_status_closed
-)
-
-const (
-	client_write_backlog = 16
 )
 
 // Errors that could be occurred during message handling.
@@ -58,14 +55,7 @@ var (
 	ErrDialInterrupt      = errors.New("dial interrupt")
 )
 
-type pendingMessage struct {
-	typ     message.Type
-	route   string
-	mid     uint64
-	payload []byte
-}
-
-type handShakeResponse struct {
+type handShake_response struct {
 	Sys struct {
 		Heartbeat int    `json:"heartbeat"`
 		Session   uint64 `json:"session"`
@@ -94,15 +84,15 @@ type ClientConn struct {
 
 	responseRouter sync.Map
 	lastAt         int64
-	chSend         chan pendingMessage
 	chWrite        chan []byte
 	state          int32
 	// 接收到的packet
 	chRecvMessage chan *message.Message
 	ctx           context.Context
-	cancelCtx     context.Context
 	cancelFunc    context.CancelFunc
 	errCtx        context.Context
+	sendBacklog   int
+	recvBacklog   int
 	lastErr       error
 }
 
@@ -113,17 +103,27 @@ func newClientConn() *ClientConn {
 		debug:              false,
 		handshakeValidator: func(_ []byte) error { return nil },
 		rsaPublicKey:       "",
+		sendBacklog:        16,
+		recvBacklog:        16,
 		lastAt:             time.Now().Unix(),
-		chSend:             make(chan pendingMessage, client_write_backlog),
-		chWrite:            make(chan []byte, client_write_backlog),
 		state:              client_status_start,
-
-		chRecvMessage: make(chan *message.Message, client_write_backlog),
 	}
 	return self
 }
 
 type opt func(conn *ClientConn)
+
+func WithSendBacklog(v int) opt {
+	return func(conn *ClientConn) {
+		conn.sendBacklog = v
+	}
+}
+
+func WithRecvBacklog(v int) opt {
+	return func(conn *ClientConn) {
+		conn.recvBacklog = v
+	}
+}
 
 func WithHandshakeValidator(fn func([]byte) error) opt {
 	return func(conn *ClientConn) {
@@ -169,7 +169,7 @@ func WithDialTimeout(timeout time.Duration) opt {
 
 func WithContext(ctx context.Context) opt {
 	return func(conn *ClientConn) {
-		conn.ctx = ctx
+		conn.ctx, conn.cancelFunc = context.WithCancel(ctx)
 	}
 }
 
@@ -187,7 +187,7 @@ func WithDebugMode() opt {
 func WithRSAPublicKey(keyFile string) opt {
 	data, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 		return nil
 	}
 	return func(conn *ClientConn) {
@@ -200,6 +200,11 @@ func Dial(addr string, opts ...opt) (gira.GateClient, error) {
 	for _, v := range opts {
 		v(conn)
 	}
+	if conn.ctx == nil {
+		conn.ctx, conn.cancelFunc = context.WithCancel(context.Background())
+	}
+	conn.chWrite = make(chan []byte, conn.recvBacklog)
+	conn.chRecvMessage = make(chan *message.Message, conn.recvBacklog)
 	if err := conn.dial(addr); err != nil {
 		return nil, err
 	}
@@ -214,14 +219,9 @@ func (self *ClientConn) dial(addr string) error {
 	}
 	self.heartbeatPacket = heartbeatPacket
 	self.serverAddr = addr
-	if self.ctx == nil {
-		self.ctx = context.Background()
-	}
-	self.cancelCtx, self.cancelFunc = context.WithCancel(self.ctx)
 	var conn net.Conn
 	if self.isWebsocket {
 		if len(self.tslCertificate) != 0 {
-			//self.dialWSTLS()
 			// TODO
 			return errors.New("tls certificate not implement")
 		} else {
@@ -238,7 +238,7 @@ func (self *ClientConn) dial(addr string) error {
 	self.setStatus(client_status_handshake)
 	err = self.sendHandShake()
 	if err != nil {
-		log.Println(fmt.Sprintf("[agent] client sendHandShake error: %s", err.Error()))
+		log.Info(fmt.Sprintf("[agent] client sendHandShake error: %s", err.Error()))
 		conn.Close()
 		return err
 	}
@@ -257,7 +257,7 @@ func (self *ClientConn) dialTcp() (net.Conn, error) {
 	if self.dialTimeout != 0 {
 		netDialer.Timeout = self.dialTimeout
 	}
-	conn, err := netDialer.DialContext(self.cancelCtx, "tcp", self.serverAddr)
+	conn, err := netDialer.DialContext(self.ctx, "tcp", self.serverAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -274,11 +274,11 @@ func (self *ClientConn) dialWS() (net.Conn, error) {
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
 		NetDial: func(network, addr string) (net.Conn, error) {
-			return netDialer.DialContext(self.cancelCtx, network, addr)
+			return netDialer.DialContext(self.ctx, network, addr)
 		},
 	}
 	u := url.URL{Scheme: "ws", Host: self.serverAddr, Path: self.wsPath}
-	conn, _, err := d.DialContext(self.cancelCtx, u.String(), nil)
+	conn, _, err := d.DialContext(self.ctx, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +331,7 @@ func (self *ClientConn) sendHandShake() error {
 		return err
 	}
 	if self.debug {
-		gira.Infow("send handshake", "token", token)
+		log.Infow("send handshake", "token", token)
 	}
 	return nil
 }
@@ -344,13 +344,13 @@ func (self *ClientConn) recvHandShakeAck(ctx context.Context) error {
 		n, err = self.conn.Read(buf)
 		if err != nil {
 			if self.debug {
-				log.Println(fmt.Sprintf("[agent] read message error: %s, session will be closed immediately, sessionid=%d", err.Error(), self.sessionId))
+				log.Info(fmt.Sprintf("[agent] read message error: %s, session will be closed immediately, sessionid=%d", err.Error(), self.sessionId))
 			}
 			return err
 		}
 		packets, err := self.decoder.Decode(buf[:n])
 		if err != nil {
-			log.Println(err)
+			log.Info(err)
 			return err
 		}
 		if len(packets) < 1 {
@@ -364,7 +364,7 @@ func (self *ClientConn) recvHandShakeAck(ctx context.Context) error {
 		if p.Type != packet.Handshake {
 			return errors.New("expect handshake packet")
 		}
-		msg := &handShakeResponse{}
+		msg := &handShake_response{}
 		err = json.Unmarshal(p.Data, msg)
 		if err != nil {
 			return err
@@ -382,7 +382,7 @@ func (self *ClientConn) recvHandShakeAck(ctx context.Context) error {
 		}
 		self.sessionId = msg.Sys.Session
 		if self.debug {
-			gira.Infow("handshake success", "session_id", self.sessionId, "remote_addr", self.conn.RemoteAddr())
+			log.Infow("handshake success", "session_id", self.sessionId, "remote_addr", self.conn.RemoteAddr())
 		}
 		if _, err := self.conn.Write(data); err != nil {
 			return err
@@ -395,10 +395,9 @@ func (self *ClientConn) writeRoutine() error {
 	ticker := time.NewTicker(self.heartbeat)
 	defer func() {
 		ticker.Stop()
-		close(self.chSend)
 		close(self.chWrite)
 		if self.debug {
-			gira.Infow("write goroutine exit", "session_id", self.sessionId)
+			log.Infow("write goroutine exit", "session_id", self.sessionId)
 		}
 	}()
 	for {
@@ -406,35 +405,17 @@ func (self *ClientConn) writeRoutine() error {
 		case <-ticker.C:
 			deadline := time.Now().Add(-2 * self.heartbeat).Unix()
 			if atomic.LoadInt64(&self.lastAt) < deadline {
-				log.Println(fmt.Sprintf("[agent] session heartbeat timeout, sessionid=%d, lastTime=%d, deadline=%d",
+				log.Info(fmt.Sprintf("[agent] session heartbeat timeout, sessionid=%d, lastTime=%d, deadline=%d",
 					self.sessionId, atomic.LoadInt64(&self.lastAt), deadline))
 				return ErrHeartbeatTimeout
 			}
 		case data := <-self.chWrite:
 			if _, err := self.conn.Write(data); err != nil {
-				log.Println(fmt.Sprintf("[agent] conn write failed, error:%s", err.Error()))
+				log.Info(fmt.Sprintf("[agent] conn write failed, error:%s", err.Error()))
 				return err
 			}
-		case data := <-self.chSend:
-			m := &message.Message{
-				Type:  data.typ,
-				Data:  data.payload,
-				Route: data.route,
-				ID:    data.mid,
-			}
-			em, err := m.Encode()
-			if err != nil {
-				log.Println(err.Error())
-				break
-			}
-			p, err := packet.Encode(packet.Data, em)
-			if err != nil {
-				log.Println(err)
-				break
-			}
-			self.chWrite <- p
-		case <-self.cancelCtx.Done():
-			return self.cancelCtx.Err()
+		case <-self.ctx.Done():
+			return self.ctx.Err()
 		}
 	}
 }
@@ -443,7 +424,7 @@ func (self *ClientConn) readRoutine() error {
 	defer func() {
 		close(self.chRecvMessage)
 		if self.debug {
-			gira.Infow("read goroutine exit", "session_id", self.sessionId)
+			log.Infow("read goroutine exit", "session_id", self.sessionId)
 		}
 	}()
 	buf := make([]byte, 2048)
@@ -451,13 +432,13 @@ func (self *ClientConn) readRoutine() error {
 		n, err := self.conn.Read(buf)
 		if err != nil {
 			if self.debug {
-				gira.Infow("client read fail", "err", err, "session_id", self.sessionId)
+				log.Infow("client read fail", "err", err, "session_id", self.sessionId)
 			}
 			return err
 		}
 		packets, err := self.decoder.Decode(buf[:n])
 		if err != nil {
-			log.Println(err.Error())
+			log.Info(err.Error())
 			return err
 		}
 		if len(packets) < 1 {
@@ -465,7 +446,7 @@ func (self *ClientConn) readRoutine() error {
 		}
 		for _, p := range packets {
 			if err := self.processPacket(p); err != nil {
-				log.Println(err.Error())
+				log.Info(err.Error())
 				return err
 			}
 		}
@@ -474,19 +455,19 @@ func (self *ClientConn) readRoutine() error {
 
 func (self *ClientConn) processMessage(msg *message.Message) {
 	if self.debug {
-		gira.Infow("got message", "type", msg.Type)
+		log.Infow("got message", "type", msg.Type)
 	}
 	switch msg.Type {
 	case message.Response:
 	case message.Push:
 	default:
-		log.Println("Invalid message type: " + msg.Type.String())
+		log.Info("Invalid message type: " + msg.Type.String())
 		return
 	}
 	if self.getSecretKey() != "" {
 		payload, err := crypto.DesDecrypt(msg.Data, self.getSecretKey())
 		if err != nil {
-			log.Println(fmt.Sprintf("crypto.DesDecrypt failed: %+v (%v)", err, payload))
+			log.Info(fmt.Sprintf("crypto.DesDecrypt failed: %+v (%v)", err, payload))
 			return
 		}
 		msg.Data = payload
@@ -497,7 +478,7 @@ func (self *ClientConn) processMessage(msg *message.Message) {
 // 处理内部消息包
 func (self *ClientConn) processPacket(p *packet.Packet) error {
 	if self.debug {
-		gira.Infow("got packet", "type", p.Type)
+		log.Infow("got packet", "type", p.Type)
 	}
 	switch p.Type {
 	case packet.Data:
@@ -555,11 +536,11 @@ func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data 
 	if self.status() == client_status_closed {
 		return ErrBrokenPipe
 	}
-	if len(self.chSend) >= client_write_backlog {
-		return ErrBufferExceed
-	}
+	// if len(self.chSend) >= self.sendBacklog {
+	// 	return ErrBufferExceed
+	// }
 	if self.debug {
-		gira.Infow("send", "type", typ, "sessioni_id", self.sessionId, "req_id", reqId, "route", route, "len", len(data))
+		log.Infow("send", "type", typ, "sessioni_id", self.sessionId, "req_id", reqId, "route", route, "len", len(data))
 	}
 	if typ == message.Request {
 		self.responseRouter.Store(reqId, route)
@@ -584,16 +565,16 @@ func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data 
 	return nil
 }
 
+// / 发送通知
 func (self *ClientConn) Notify(route string, data []byte) error {
 	return self.send(message.Notify, 0, route, data)
 }
 
+// / 发送请求
 func (self *ClientConn) Request(route string, reqId uint64, data []byte) error {
 	return self.send(message.Request, reqId, route, data)
 }
 
-// Close closes the connection.
-// Any blocked Read or Write operations will be unblocked and return errors.
 func (self *ClientConn) Close() error {
 	if self.status() == client_status_closed {
 		return ErrCloseClosedSession
@@ -603,7 +584,7 @@ func (self *ClientConn) Close() error {
 			self.conn.Close()
 		}
 		select {
-		case <-self.cancelCtx.Done():
+		case <-self.ctx.Done():
 			// expect
 		default:
 			self.cancelFunc()

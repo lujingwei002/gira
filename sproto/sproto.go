@@ -2,8 +2,9 @@ package sproto
 
 import (
 	"context"
-	"log"
 	"reflect"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/lujingwei/gira"
 	gosproto "github.com/xjdrew/gosproto"
@@ -165,7 +166,7 @@ func isSprotoHandlerMethod(method reflect.Method) bool {
 
 func (self *SprotoHandler) suitableHandlerMethods(typ reflect.Type) map[string]*sprotoHandlerMethod {
 	methods := make(map[string]*sprotoHandlerMethod)
-	log.Println(typ)
+	log.Info(typ)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
 		mn := method.Name
@@ -184,6 +185,14 @@ func (self *SprotoHandler) suitableHandlerMethods(typ reflect.Type) map[string]*
 func (self *SprotoHandler) register(handler interface{}) error {
 	self.methods = self.suitableHandlerMethods(reflect.TypeOf(handler))
 	return nil
+}
+
+func (self *SprotoHandler) HasRoute(route string) bool {
+	_, found := self.methods[route]
+	if !found {
+		return false
+	}
+	return true
 }
 
 func (self *SprotoHandler) dispatch(ctx context.Context, receiver interface{}, route string, r interface{}) (resp interface{}, push []SprotoPush, err error) {

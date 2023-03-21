@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -11,6 +10,8 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/lujingwei/gira"
 	"github.com/lujingwei/gira/db"
@@ -153,10 +154,10 @@ func (app *Application) init() error {
 	//var serviceConf ServiceConf
 	// for _, conf := range app.ProjectConf.Services {
 	// 	if conf.Name == app.Name {
-	// 		log.Println("=======", conf.Name)
+	// 		log.Info("=======", conf.Name)
 	// 	}
 	// }
-	// log.Printf("%+v\n", app.ProjectConf)
+	// log.Infof("%+v\n", app.ProjectConf)
 	return nil
 }
 
@@ -175,7 +176,7 @@ func (app *Application) forver() error {
 }
 
 func (app *Application) start() error {
-	// log.Println("application", app.FullName, "start")
+	// log.Info("application", app.FullName, "start")
 	if err := app.init(); err != nil {
 		return err
 	}
@@ -272,19 +273,19 @@ func (app *Application) start() error {
 			case s := <-quit:
 				switch s {
 				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-					log.Println("ctrl shutdown begin.")
+					log.Info("ctrl shutdown begin.")
 					app.cancelFunc()
-					log.Println("ctrl shutdown end.")
+					log.Info("ctrl shutdown end.")
 					return nil
 				case syscall.SIGUSR1:
-					log.Println("sigusr1.")
+					log.Info("sigusr1.")
 				case syscall.SIGUSR2:
-					log.Println("sigusr2.")
+					log.Info("sigusr2.")
 				default:
-					log.Println("single x")
+					log.Info("single x")
 				}
 			case <-app.cancelCtx.Done():
-				log.Println("recv ctx:", app.Err().Error())
+				log.Info("recv ctx:", app.Err().Error())
 				return nil
 			}
 		}
@@ -296,10 +297,10 @@ func (app *Application) start() error {
 
 func (app *Application) wait() error {
 	if err := app.errGroup.Wait(); err != nil {
-		log.Println("application", app.FullName, "down. err:", err.Error())
+		log.Info("application", app.FullName, "down. err:", err.Error())
 		return err
 	} else {
-		log.Println("application", app.FullName, "down.")
+		log.Info("application", app.FullName, "down.")
 		return nil
 	}
 }

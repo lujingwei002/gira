@@ -24,6 +24,7 @@ type Session struct {
 	conn     *Conn
 	data     map[string]interface{}
 	secret   string
+	userData interface{}
 }
 
 func newSession(agent *Conn) *Session {
@@ -89,6 +90,10 @@ func (s *Session) Remove(key string) {
 	s.Lock()
 	defer s.Unlock()
 	delete(s.data, key)
+}
+
+func (s *Session) SetUserData(value interface{}) {
+	s.userData = value
 }
 
 func (s *Session) Set(key string, value interface{}) {
@@ -290,6 +295,10 @@ func (s *Session) Value(key string) interface{} {
 	s.RLock()
 	defer s.RUnlock()
 	return s.data[key]
+}
+
+func (s *Session) UserData() interface{} {
+	return s.userData
 }
 
 func (s *Session) State() map[string]interface{} {

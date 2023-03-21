@@ -3,7 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
-	"log"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/lujingwei/gira"
@@ -38,6 +39,6 @@ func (self *AccountCacheClient) Start(ctx context.Context, config gira.AccountCa
 		return err
 	}
 	self.client = rdb
-	log.Println("connect account-cache success")
+	log.Info("connect account-cache success")
 	return nil
 }

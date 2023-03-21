@@ -2,8 +2,9 @@ package grpc
 
 import (
 	"context"
-	"log"
 	"net"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/lujingwei/gira"
 	"golang.org/x/sync/errgroup"
@@ -50,7 +51,7 @@ func (self *GrpcServer) Start(facade gira.ApplicationFacade, errGroup *errgroup.
 	}
 	errGroup.Go(func() error {
 		server.Serve(listen)
-		log.Println("gpc server shutdown")
+		log.Info("gpc server shutdown")
 		return nil
 	})
 	errGroup.Go(func() error {

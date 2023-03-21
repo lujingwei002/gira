@@ -1,9 +1,10 @@
 package gat
 
 import (
-	"log"
 	"sync"
 	"sync/atomic"
+
+	"github.com/lujingwei/gira/log"
 )
 
 const (
@@ -66,7 +67,7 @@ func (self *Group) Multicast(route string, v interface{}, filter SessionFilter) 
 			continue
 		}
 		if err = s.Push(route, data); err != nil {
-			log.Printf("[group] Multicast message error, ID=%d, UID=%d, Error=%s", s.ID(), s.UID(), err.Error())
+			log.Infof("[group] Multicast message error, ID=%d, UID=%d, Error=%s", s.ID(), s.UID(), err.Error())
 		}
 	}
 	return nil
@@ -84,7 +85,7 @@ func (self *Group) Broadcast(route string, v interface{}) error {
 			continue
 		}
 		if err = s.Push(route, data); err != nil {
-			log.Printf("[group] Broadcast message error, ID=%d, UID=%d, Error=%s", s.ID(), s.UID(), err.Error())
+			log.Infof("[group] Broadcast message error, ID=%d, UID=%d, Error=%s", s.ID(), s.UID(), err.Error())
 		}
 	}
 	return nil
@@ -100,7 +101,7 @@ func (self *Group) Add(session *Session) error {
 		return ErrClosedGroup
 	}
 	if self.gate.debug {
-		log.Printf("[group] Add session to group %s, ID=%d, UID=%d", self.name, session.ID(), session.UID())
+		log.Infof("[group] Add session to group %s, ID=%d, UID=%d", self.name, session.ID(), session.UID())
 	}
 	self.mu.Lock()
 	defer self.mu.Unlock()
@@ -119,7 +120,7 @@ func (self *Group) Leave(s *Session) error {
 		return ErrClosedGroup
 	}
 	if self.gate.debug {
-		log.Printf("[group] Remove session from group %s, UID=%d", self.name, s.UID())
+		log.Infof("[group] Remove session from group %s, UID=%d", self.name, s.UID())
 	}
 	self.mu.Lock()
 	defer self.mu.Unlock()

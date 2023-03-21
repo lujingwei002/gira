@@ -4,9 +4,10 @@ package http
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/lujingwei/gira/log"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -100,24 +101,24 @@ func NewConfigHttpServer(facade gira.ApplicationFacade, config gira.HttpConfig, 
 	h.server = server
 	httpFunc := func() error {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("http server shutdown, err: %s\n", err)
+			log.Infof("http server shutdown, err: %s\n", err)
 			return err
 		} else {
-			log.Printf("http server shutdown")
+			log.Infof("http server shutdown")
 		}
 		return nil
 	}
 	httpCtl := func() error {
 		select {
 		case <-facade.Done():
-			log.Println("http server recv down")
+			log.Info("http server recv down")
 			h.server.Close()
 		}
 		return nil
 	}
 	facade.Go(httpFunc)
 	facade.Go(httpCtl)
-	log.Printf("http server started, addr=%s\n", h.Config.Addr)
+	log.Infof("http server started, addr=%s\n", h.Config.Addr)
 	return h, nil
 }
 

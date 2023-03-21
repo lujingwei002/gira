@@ -3,12 +3,13 @@ package gira
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/lujingwei/gira/log"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -115,14 +116,14 @@ type ConfigHandler interface {
 func (c *Config) Unmarshal(data []byte) error {
 	// 解析yaml
 	if err := yaml.Unmarshal(data, c); err != nil {
-		log.Println(string(data))
+		log.Info(string(data))
 		return err
 	}
 	c.Raw = data
-	// log.Printf("配置: %+v\n", c)
-	// log.Printf("GameDb配置: %+v\n", c.GameDb)
-	// log.Printf("Etcd配置: %+v\n", c.Etcd)
-	// log.Printf("Grpc配置: %+v\n", c.Grpc)
+	// log.Infof("配置: %+v\n", c)
+	// log.Infof("GameDb配置: %+v\n", c.GameDb)
+	// log.Infof("Etcd配置: %+v\n", c.Etcd)
+	// log.Infof("Grpc配置: %+v\n", c.Grpc)
 	return nil
 }
 
@@ -199,7 +200,7 @@ func hostFieldMapFunc(facade ApplicationFacade, env map[string]interface{}, key 
 
 func otherHostFieldMapFunc(facade ApplicationFacade, name string, id int32, env map[string]interface{}, key string) interface{} {
 	appName := fmt.Sprintf("%s-%d", name, facade.GetId()+id)
-	log.Println("bb", appName, key)
+	log.Info("bb", appName, key)
 	var hostName string
 	var hostFound bool = false
 	if v, ok := env["application"]; ok {
@@ -238,7 +239,7 @@ func (c *Config) Read(facade ApplicationFacade, dir string, zone string, env str
 	if err := c.preprocess(&sb, configFilePath); err != nil {
 		return nil, err
 	}
-	// log.Printf("配置预处理后\n%v\n", sb.String())
+	// log.Infof("配置预处理后\n%v\n", sb.String())
 	// 读环境变量
 	envFilePath := path.Join(dir, "env", env, "env.yaml")
 	envData, err := c.readEnv(envFilePath)
@@ -283,7 +284,7 @@ func (c *Config) Read(facade ApplicationFacade, dir string, zone string, env str
 	}
 	out := strings.Builder{}
 	t.Execute(&out, envData)
-	// log.Printf("替换环境变量后\n%v\n", out.String())
+	// log.Infof("替换环境变量后\n%v\n", out.String())
 	return []byte(out.String()), nil
 }
 

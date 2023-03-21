@@ -1,8 +1,9 @@
 package app
 
 import (
-	"log"
 	"os"
+
+	"github.com/lujingwei/gira/log"
 
 	"github.com/lujingwei/gira"
 	"github.com/urfave/cli/v2"
@@ -69,7 +70,7 @@ func Cli(name string, facade gira.ApplicationFacade) error {
 			},
 		},
 	}
-	log.Println(os.Args)
+	log.Info(os.Args)
 	if err := app.Run(os.Args); err != nil {
 		log.Fatalf("app run error %+v", err)
 	}
@@ -77,7 +78,7 @@ func Cli(name string, facade gira.ApplicationFacade) error {
 }
 
 func Start(facade gira.ApplicationFacade, zone string, env string, id int32, name string) error {
-	// log.Println(name, zone, env, id, "start")
+	// log.Info(name, zone, env, id, "start")
 	application := newApplication(ApplicationArgs{
 		Name: name,
 		Id:   id,
@@ -94,7 +95,7 @@ func startAction(args *cli.Context) error {
 	facade, _ := args.App.Metadata["facade"].(gira.ApplicationFacade)
 	name, _ := args.App.Metadata["name"].(string)
 
-	log.Println(name, zone, env, id, "start")
+	log.Info(name, zone, env, id, "start")
 	application := newApplication(ApplicationArgs{
 		Name: name,
 		Id:   id,
