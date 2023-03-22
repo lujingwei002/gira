@@ -68,6 +68,10 @@ func (self *BaseFacade) GetAccountCacheClient() gira.RedisClient {
 	return self.application.AccountCacheClient
 }
 
+func (self *BaseFacade) GetResourceDbClient() gira.MongoClient {
+	return self.application.ResourceDbClient
+}
+
 func (self *BaseFacade) SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
 	return self.application.Sdk.Login(accountPlat, openId, token)
 }

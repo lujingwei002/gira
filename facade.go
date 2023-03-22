@@ -37,6 +37,7 @@ type ApplicationFacade interface {
 	GetGameDbClient() MongoClient
 	GetStatDbClient() MongoClient
 	GetAccountDbClient() MongoClient
+	GetResourceDbClient() MongoClient
 	GetAccountCacheClient() RedisClient
 
 	// ======= sdk登录接口 ===========

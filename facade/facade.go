@@ -9,3 +9,7 @@ import (
 func Context() context.Context {
 	return gira.Facade().Context()
 }
+
+func GetResourceDbClient() gira.MongoClient {
+	return gira.Facade().GetResourceDbClient()
+}

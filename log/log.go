@@ -100,6 +100,7 @@ func ConfigLog(facade gira.ApplicationFacade, config gira.LogConfig) error {
 
 	// 创建日志对象
 	logger := zap.New(zapcore.NewTee(consoleCore, rollingCore))
+	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(1))
 	sugar := logger.Sugar()
 	defaultLogger = sugar
 	return nil

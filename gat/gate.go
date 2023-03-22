@@ -103,14 +103,14 @@ func newGate() *Gate {
 	return gate
 }
 
-func NewConfigGate(facade gira.ApplicationFacade, config *gira.GateConfig) (*Gate, error) {
+func NewConfigGate(facade gira.ApplicationFacade, config gira.GateConfig) (*Gate, error) {
 	var handler gira.GateHandler
 	var ok bool
 	if handler, ok = facade.(gira.GateHandler); !ok {
 		return nil, gira.ErrGateHandlerNotImplement
 	}
 	opts := []Option{
-		WithDebugMode(),
+		WithDebugMode(config.Debug),
 		WithIsWebsocket(true),
 		WithSessionModifer(uint64(facade.GetId()) << 48),
 	}
@@ -144,9 +144,9 @@ func WithSerializer(serializer serialize.Serializer) Option {
 	}
 }
 
-func WithDebugMode() Option {
+func WithDebugMode(v bool) Option {
 	return func(gate *Gate) {
-		gate.debug = true
+		gate.debug = v
 	}
 }
 
@@ -409,9 +409,13 @@ func (gate *Gate) handleConn(conn net.Conn) {
 	}
 	atomic.AddInt64(&gate.Stat.CumulativeConnectionCount, 1)
 	c := newConn(gate)
-	log.Infow("accept a client", "session_id", c.session.ID(), "remote_addr", conn.RemoteAddr())
+	if gate.debug {
+		log.Infow("accept a client", "session_id", c.session.ID(), "remote_addr", conn.RemoteAddr())
+	}
 	err := c.serve(gate.ctx, conn)
-	log.Infow("gate conn serve exit", "error", err)
+	if gate.debug {
+		log.Infow("gate conn serve exit", "error", err)
+	}
 }
 
 func (gate *Gate) serveWsConn(conn *websocket.Conn) {

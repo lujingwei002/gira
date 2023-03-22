@@ -49,6 +49,7 @@ const (
 	E_UPSTREAM_UNREACHABLE           = -38
 	E_SERVICE_UNAVAILABLE            = -39
 	E_SPROTO_PUSH_CONVERSION         = -40
+	E_PROJECT_FILE_NOT_FOUND         = -41
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -93,6 +94,7 @@ const (
 	E_MSG_UPSTREAM_UNREACHABLE           = "上游服务不可达"
 	E_MSG_SERVICE_UNAVAILABLE            = "服务不可用"
 	E_MSG_SPROTO_PUSH_CONVERSION         = "sproto push type conversion"
+	E_MSG_PROJECT_FILE_NOT_FOUND         = "gira.yaml文件找不到"
 )
 
 type Error struct {
@@ -152,6 +154,7 @@ var (
 	ErrUpstreamUnreachable         = NewError(E_UPSTREAM_UNREACHABLE, E_MSG_UPSTREAM_UNREACHABLE)
 	ErrServiceUnavailable          = NewError(E_SERVICE_UNAVAILABLE, E_MSG_SERVICE_UNAVAILABLE)
 	ErrSprotoPushConversion        = NewError(E_SPROTO_PUSH_CONVERSION, E_MSG_SPROTO_PUSH_CONVERSION)
+	ErrProjectFileNotFound         = NewError(E_PROJECT_FILE_NOT_FOUND, E_MSG_PROJECT_FILE_NOT_FOUND)
 )
 
 func ErrCode(err error) int32 {

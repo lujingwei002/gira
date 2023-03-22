@@ -64,6 +64,7 @@ type Application struct {
 	GameDbClient       *db.GameDbClient
 	AccountDbClient    *db.AccountDbClient
 	StatDbClient       *db.StatDbClient
+	ResourceDbClient   *db.ResourceDbClient
 	AccountCacheClient *db.AccountCacheClient
 	Sdk                *sdk.Sdk
 	Gate               *gat.Gate
@@ -111,8 +112,23 @@ func (app *Application) init() error {
 	if workDir, err := os.Getwd(); err != nil {
 		return err
 	} else {
-		app.WorkDir = workDir
+		dir := workDir
+		for {
+			projectFilePath := filepath.Join(dir, "gira.yaml")
+			if _, err := os.Stat(projectFilePath); err == nil {
+				app.WorkDir = dir
+				break
+			}
+			dir = filepath.Dir(dir)
+			if dir == "/" || dir == "" {
+				break
+			}
+		}
 	}
+	if app.WorkDir == "" {
+		return gira.ErrProjectFileNotFound
+	}
+	os.Chdir(app.WorkDir)
 	app.ProjectFilePath = filepath.Join(app.WorkDir, "gira.yaml")
 	if _, err := os.Stat(app.ProjectFilePath); err != nil {
 		return err
@@ -230,6 +246,12 @@ func (app *Application) start() error {
 			return err
 		}
 	}
+	if app.Config.ResourceDb != nil {
+		app.ResourceDbClient = db.NewResourceDbClient()
+		if err := app.ResourceDbClient.Start(app.cancelCtx, *app.Config.ResourceDb); err != nil {
+			return err
+		}
+	}
 	// res加载
 	if resourceManager, ok := app.Facade.(gira.ResourceManager); ok {
 		if err := resourceManager.LoadResource("resource"); err != nil {
@@ -253,7 +275,7 @@ func (app *Application) start() error {
 		}
 	}
 	if app.Config.Gate != nil {
-		if gate, err := gat.NewConfigGate(app.Facade, app.Config.Gate); err != nil {
+		if gate, err := gat.NewConfigGate(app.Facade, *app.Config.Gate); err != nil {
 			return err
 		} else {
 			app.Gate = gate

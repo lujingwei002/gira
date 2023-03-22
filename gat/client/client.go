@@ -493,6 +493,8 @@ func (self *ClientConn) processPacket(p *packet.Packet) error {
 		self.processMessage(msg)
 	case packet.Heartbeat:
 		self.chWrite <- self.heartbeatPacket
+	case packet.Kick:
+		log.Info("recv kick packet")
 	}
 	self.lastAt = time.Now().Unix()
 	return nil
