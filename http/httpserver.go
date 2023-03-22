@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/lujingwei/gira"
+	"github.com/lujingwei002/gira"
 )
 
 type BaseJsonResponse struct {

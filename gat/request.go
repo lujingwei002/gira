@@ -1,6 +1,6 @@
 package gat
 
-import "github.com/lujingwei/gira"
+import "github.com/lujingwei002/gira"
 
 type Request struct {
 	session *Session

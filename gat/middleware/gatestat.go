@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei/gira/gat"
+	"github.com/lujingwei002/gira/gat"
 )
 
 type GateStat struct {

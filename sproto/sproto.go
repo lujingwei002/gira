@@ -4,9 +4,9 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
-	"github.com/lujingwei/gira"
+	"github.com/lujingwei002/gira"
 	gosproto "github.com/xjdrew/gosproto"
 )
 

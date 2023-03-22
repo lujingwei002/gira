@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei/gira"
+	"github.com/lujingwei002/gira"
 )
 
 var (

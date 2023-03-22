@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
-	"github.com/lujingwei/gira/gat/crypto"
-	"github.com/lujingwei/gira/gat/message"
-	"github.com/lujingwei/gira/gat/packet"
+	"github.com/lujingwei002/gira/gat/crypto"
+	"github.com/lujingwei002/gira/gat/message"
+	"github.com/lujingwei002/gira/gat/packet"
 	"golang.org/x/sync/errgroup"
 )
 

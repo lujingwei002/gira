@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 )
 
 const (

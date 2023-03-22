@@ -12,14 +12,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
 	"github.com/gorilla/websocket"
-	"github.com/lujingwei/gira"
-	"github.com/lujingwei/gira/gat/packet"
-	"github.com/lujingwei/gira/gat/serialize"
-	"github.com/lujingwei/gira/gat/serialize/protobuf"
-	"github.com/lujingwei/gira/gat/ws"
+	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/gat/packet"
+	"github.com/lujingwei002/gira/gat/serialize"
+	"github.com/lujingwei002/gira/gat/serialize/protobuf"
+	"github.com/lujingwei002/gira/gat/ws"
 	"golang.org/x/sync/errgroup"
 )
 

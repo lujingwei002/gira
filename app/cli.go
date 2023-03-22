@@ -3,9 +3,9 @@ package app
 import (
 	"os"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
-	"github.com/lujingwei/gira"
+	"github.com/lujingwei002/gira"
 	"github.com/urfave/cli/v2"
 )
 

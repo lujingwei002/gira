@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lujingwei/gira"
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/log"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )

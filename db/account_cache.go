@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/lujingwei/gira"
+	"github.com/lujingwei002/gira"
 )
 
 type AccountCacheClient struct {

@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lujingwei/gira"
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 )

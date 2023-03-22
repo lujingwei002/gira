@@ -1,4 +1,4 @@
-module github.com/lujingwei/gira
+module github.com/lujingwei002/gira
 
 go 1.19
 

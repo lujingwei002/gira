@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
-	"github.com/lujingwei/gira"
-	"github.com/lujingwei/gira/gat/client"
+	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/gat/client"
 	"golang.org/x/sync/errgroup"
 )
 

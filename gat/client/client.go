@@ -15,14 +15,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
 	"github.com/gorilla/websocket"
-	"github.com/lujingwei/gira"
-	"github.com/lujingwei/gira/gat/crypto"
-	"github.com/lujingwei/gira/gat/message"
-	"github.com/lujingwei/gira/gat/packet"
-	"github.com/lujingwei/gira/gat/ws"
+	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/gat/crypto"
+	"github.com/lujingwei002/gira/gat/message"
+	"github.com/lujingwei002/gira/gat/packet"
+	"github.com/lujingwei002/gira/gat/ws"
 )
 
 const (

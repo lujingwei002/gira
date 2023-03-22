@@ -11,15 +11,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lujingwei/gira/log"
+	"github.com/lujingwei002/gira/log"
 
-	"github.com/lujingwei/gira"
-	"github.com/lujingwei/gira/db"
-	"github.com/lujingwei/gira/gat"
-	"github.com/lujingwei/gira/grpc"
-	"github.com/lujingwei/gira/http"
-	"github.com/lujingwei/gira/registry"
-	"github.com/lujingwei/gira/sdk"
+	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/db"
+	"github.com/lujingwei002/gira/gat"
+	"github.com/lujingwei002/gira/grpc"
+	"github.com/lujingwei002/gira/http"
+	"github.com/lujingwei002/gira/registry"
+	"github.com/lujingwei002/gira/sdk"
 
 	"golang.org/x/sync/errgroup"
 )

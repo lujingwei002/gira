@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lujingwei/gira/gat"
+	"github.com/lujingwei002/gira/gat"
 )
 
 type agentStat struct {
