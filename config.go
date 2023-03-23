@@ -12,6 +12,8 @@ import (
 
 	"log"
 
+	"github.com/joho/godotenv"
+
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -179,7 +181,7 @@ type config_reader struct {
 }
 
 // 读取应该配置
-func LoadConfig(dir string, appType string, appId int32) (*Config, error) {
+func LoadConfig(dir string, envDir string, appType string, appId int32) (*Config, error) {
 	c := &Config{}
 	appName := fmt.Sprintf("%s_%d", appType, appId)
 	reader := config_reader{
@@ -187,7 +189,7 @@ func LoadConfig(dir string, appType string, appId int32) (*Config, error) {
 		appId:   appId,
 		appName: appName,
 	}
-	if data, err := reader.read(dir); err != nil {
+	if data, err := reader.read(dir, envDir); err != nil {
 		return nil, err
 	} else {
 		if err := c.unmarshal(data); err != nil {
@@ -214,7 +216,7 @@ func (c *Config) unmarshal(data []byte) error {
 }
 
 // 读取应该配置
-func LoadCliConfig(dir string) (*CliConfig, error) {
+func LoadCliConfig(dir string, envDir string) (*CliConfig, error) {
 	c := &CliConfig{}
 	appType := "cli"
 	var appId int32 = 0
@@ -224,7 +226,7 @@ func LoadCliConfig(dir string) (*CliConfig, error) {
 		appId:   appId,
 		appName: appName,
 	}
-	if data, err := reader.read(dir); err != nil {
+	if data, err := reader.read(dir, envDir); err != nil {
 		return nil, err
 	} else {
 		if err := c.unmarshal(data); err != nil {
@@ -347,10 +349,10 @@ func other_host_field(reader *config_reader, otherAppType string, otherAppId int
 
 // 加载配置
 // 根据环境，区名，服务名， 服务组合配置文件路径，规则是config/app/<<name>>.yaml
-func (c *config_reader) read(dir string) ([]byte, error) {
+func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
 
-	dotEnvFilePath := filepath.Join(dir, ".env")
-	if data, err := ioutil.ReadFile(dotEnvFilePath); err != nil {
+	envFilePath := filepath.Join(envDir, ".env")
+	if data, err := ioutil.ReadFile(envFilePath); err != nil {
 		return nil, err
 	} else {
 		var dotEnvConfig dot_env_config
@@ -369,8 +371,9 @@ func (c *config_reader) read(dir string) ([]byte, error) {
 	}
 	// log.Infof("配置预处理后\n%v\n", sb.String())
 	// 读环境变量
-	envFilePath := path.Join(dir, "env", c.env, "env.yaml")
-	envData, err := c.readEnv(envFilePath)
+	yamlEnvFilePath := path.Join(envDir, c.env, ".env.yaml")
+	dotEnvFilePath := path.Join(envDir, c.env, ".env")
+	envData, err := c.readEnv(yamlEnvFilePath, dotEnvFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +422,7 @@ func (c *config_reader) read(dir string) ([]byte, error) {
 }
 
 // 执行include指令
-func (c *config_reader) readEnv(filePath string) (map[string]interface{}, error) {
+func (c *config_reader) readEnv(filePath string, dotEnvFilePath string) (map[string]interface{}, error) {
 	envData := make(map[string]interface{})
 	sb := strings.Builder{}
 	if _, err := os.Stat(filePath); err != nil {
@@ -431,6 +434,14 @@ func (c *config_reader) readEnv(filePath string) (map[string]interface{}, error)
 	if err := yaml.Unmarshal([]byte(sb.String()), envData); err != nil {
 		return envData, err
 	}
+	if dict, err := godotenv.Read(dotEnvFilePath); err != nil {
+		return nil, err
+	} else {
+		for k, v := range dict {
+			envData[k] = v
+		}
+	}
+	log.Println("===========", os.Getenv("INTERNAL_IP"))
 	return envData, nil
 }
 

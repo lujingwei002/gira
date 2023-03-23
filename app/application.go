@@ -47,6 +47,7 @@ type Application struct {
 	ProjectConf        gira.ProjectConf /// gira.yaml配置
 	ProjectFilePath    string           /// 配置文件绝对路径, gira.yaml
 	ConfigDir          string           /// config目录
+	EnvDir             string           /// env目录
 	ConfigFilePath     string           /// 内置配置文件
 	RunConfigFilePath  string           /// 运行时的配置文件
 	WorkDir            string           /// 工作目录
@@ -130,6 +131,7 @@ func (app *Application) init() error {
 	if _, err := os.Stat(app.ProjectFilePath); err != nil {
 		return err
 	}
+	app.EnvDir = filepath.Join(app.WorkDir, "env")
 	app.ConfigDir = filepath.Join(app.WorkDir, "config")
 	if _, err := os.Stat(app.ConfigDir); err != nil {
 		return err
@@ -153,7 +155,7 @@ func (app *Application) init() error {
 		return err
 	}
 	// 读应用配置文件
-	if c, err := gira.LoadConfig(app.ConfigDir, app.appType, app.appId); err != nil {
+	if c, err := gira.LoadConfig(app.ConfigDir, app.EnvDir, app.appType, app.appId); err != nil {
 		return err
 	} else {
 		app.env = c.Env
