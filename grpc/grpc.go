@@ -32,6 +32,10 @@ func NewConfigGrpcServer(config gira.GrpcConfig) *GrpcServer {
 	return self
 }
 
+func (self *GrpcServer) Server() *grpc.Server {
+	return self.server
+}
+
 func (self *GrpcServer) Start(facade gira.ApplicationFacade, errGroup *errgroup.Group, errCtx context.Context) error {
 	self.facade = facade
 	self.errCtx = errCtx

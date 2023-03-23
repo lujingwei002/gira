@@ -61,8 +61,8 @@ func NewConfigRegistry(config *gira.EtcdConfig, facade gira.ApplicationFacade) (
 		Config: *config,
 	}
 	r.cancelCtx, r.cancelFunc = context.WithCancel(context.Background())
-	r.FullName = facade.GetFullName()
-	r.Name = facade.GetName()
+	r.FullName = facade.GetAppFullName()
+	r.Name = facade.GetAppType()
 	r.facade = facade
 
 	// 配置endpoints

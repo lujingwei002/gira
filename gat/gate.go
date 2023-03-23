@@ -112,7 +112,7 @@ func NewConfigGate(facade gira.ApplicationFacade, config gira.GateConfig) (*Gate
 	opts := []Option{
 		WithDebugMode(config.Debug),
 		WithIsWebsocket(true),
-		WithSessionModifer(uint64(facade.GetId()) << 48),
+		WithSessionModifer(uint64(facade.GetAppId()) << 48),
 	}
 	var server *Gate
 	var err error

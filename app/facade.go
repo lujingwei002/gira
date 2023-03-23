@@ -11,15 +11,20 @@ type BaseFacade struct {
 	gateHandler gira.GateHandler
 }
 
-func (self *BaseFacade) GetId() int32 {
-	return self.application.Id
+func (self *BaseFacade) GetAppId() int32 {
+	return self.application.appId
 }
 
-func (self *BaseFacade) GetName() string {
-	return self.application.Name
+func (self *BaseFacade) GetAppType() string {
+	return self.application.appType
 }
-func (self *BaseFacade) GetFullName() string {
-	return self.application.FullName
+
+func (self *BaseFacade) GetAppName() string {
+	return self.application.appName
+}
+
+func (self *BaseFacade) GetAppFullName() string {
+	return self.application.appFullName
 }
 
 func (self *BaseFacade) Go(f func() error) {

@@ -88,11 +88,11 @@ func ConfigLog(facade gira.ApplicationFacade, config gira.LogConfig) error {
 	rollingCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(rollingCfg), // 滚动日志输出格式
 		zapcore.AddSync(&lumberjack.Logger{
-			Filename:   filepath.Join(facade.GetLogDir(), fmt.Sprintf("%s.log", facade.GetFullName())), // 日志文件路径
-			MaxSize:    config.MaxSize,                                                                 // 每个日志文件的最大大小，单位为 MB
-			MaxBackups: config.MaxBackups,                                                              // 保留的旧日志文件的最大个数
-			MaxAge:     config.MaxAge,                                                                  // 保留的旧日志文件的最大天数
-			Compress:   config.Compress,                                                                // 是否压缩旧日志文件
+			Filename:   filepath.Join(facade.GetLogDir(), fmt.Sprintf("%s.log", facade.GetAppFullName())), // 日志文件路径
+			MaxSize:    config.MaxSize,                                                                    // 每个日志文件的最大大小，单位为 MB
+			MaxBackups: config.MaxBackups,                                                                 // 保留的旧日志文件的最大个数
+			MaxAge:     config.MaxAge,                                                                     // 保留的旧日志文件的最大天数
+			Compress:   config.Compress,                                                                   // 是否压缩旧日志文件
 		}),
 		enabler,
 		//zap.NewAtomicLevelAt(zap.DebugLevel),
@@ -124,6 +124,11 @@ func Debug(args ...interface{}) {
 func Error(args ...interface{}) {
 	defaultLogger.Info(args...)
 }
+
+func Println(args ...interface{}) {
+	defaultLogger.Info(args...)
+}
+
 func Fatal(args ...interface{}) {
 	defaultLogger.Fatal(args...)
 }
@@ -148,6 +153,10 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 }
 func Warnw(msg string, keysAndValues ...interface{}) {
 	defaultLogger.Warnw(msg, keysAndValues...)
+}
+
+func Printf(template string, args ...interface{}) {
+	defaultLogger.Infof(template, args...)
 }
 func Infof(template string, args ...interface{}) {
 	defaultLogger.Infof(template, args...)

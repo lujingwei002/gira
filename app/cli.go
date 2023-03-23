@@ -19,18 +19,6 @@ func Cli(name string, facade gira.ApplicationFacade) error {
 		// flags
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "zone",
-				Usage:    "zone, gf|wc|qq|quick",
-				Required: true,
-				Aliases:  []string{"z"},
-			},
-			&cli.StringFlag{
-				Name:     "env",
-				Usage:    "environment, local|dev|qa|prd",
-				Required: true,
-				Aliases:  []string{"e"},
-			},
-			&cli.StringFlag{
 				Name:     "id",
 				Usage:    "service id",
 				Required: true,
@@ -77,30 +65,23 @@ func Cli(name string, facade gira.ApplicationFacade) error {
 	return nil
 }
 
-func Start(facade gira.ApplicationFacade, zone string, env string, id int32, name string) error {
-	// log.Info(name, zone, env, id, "start")
+func Start(facade gira.ApplicationFacade, appId int32, appType string) error {
 	application := newApplication(ApplicationArgs{
-		Name: name,
-		Id:   id,
-		Env:  env,
-		Zone: zone,
+		AppType: appType,
+		AppId:   appId,
 	}, facade)
 	return application.start()
 }
 
 func startAction(args *cli.Context) error {
-	zone := args.String("zone")
-	env := args.String("env")
-	id := int32(args.Int("id"))
+	appId := int32(args.Int("id"))
 	facade, _ := args.App.Metadata["facade"].(gira.ApplicationFacade)
-	name, _ := args.App.Metadata["name"].(string)
+	appType, _ := args.App.Metadata["name"].(string)
 
-	log.Info(name, zone, env, id, "start")
+	log.Info(appType, appId, "start")
 	application := newApplication(ApplicationArgs{
-		Name: name,
-		Id:   id,
-		Env:  env,
-		Zone: zone,
+		AppType: appType,
+		AppId:   appId,
 	}, facade)
 	err := application.forver()
 	return err

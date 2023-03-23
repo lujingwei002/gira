@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "service/admin/admin_grpc";
+package admin_grpc;
+
+service Admin {
+    rpc ReloadResource (ReloadResourceRequest) returns (ReloadResourceResponse) {}
+}
+
+// 请求消息
+message ReloadResourceRequest {
+    string name = 1;
+}
+
+// 响应消息
+message ReloadResourceResponse {
+    string replay = 1;
+}

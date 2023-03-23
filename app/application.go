@@ -20,15 +20,14 @@ import (
 	"github.com/lujingwei002/gira/http"
 	"github.com/lujingwei002/gira/registry"
 	"github.com/lujingwei002/gira/sdk"
+	admin_service "github.com/lujingwei002/gira/service/admin"
 
 	"golang.org/x/sync/errgroup"
 )
 
 type ApplicationArgs struct {
-	Name string /// 服务名
-	Id   int32  /// 服务id
-	Env  string /// 环境
-	Zone string /// 区名
+	AppType string /// 服务名
+	AppId   int32  /// 服务id
 }
 
 type ApplicationContext interface {
@@ -39,11 +38,12 @@ type ApplicationContext interface {
 // / @Component
 type Application struct {
 	gira.BaseComponent
-	Id                 int32
-	Zone               string           // 区名 wc|qq|hw|quick
-	Env                string           // dev|local|qa|prd
-	Name               string           /// 服务名
-	FullName           string           /// 完整的服务名 Name_Id
+	zone               string // 区名 wc|qq|hw|quick
+	env                string // dev|local|qa|prd
+	appId              int32
+	appType            string           /// 服务类型
+	appName            string           /// 服务名
+	appFullName        string           /// 完整的服务名 Name_Id
 	ProjectConf        gira.ProjectConf /// gira.yaml配置
 	ProjectFilePath    string           /// 配置文件绝对路径, gira.yaml
 	ConfigDir          string           /// config目录
@@ -79,17 +79,14 @@ func newApplication(args ApplicationArgs, facade gira.ApplicationFacade) *Applic
 	cancelCtx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(cancelCtx)
 	application := &Application{
-		Id:         args.Id,
-		Zone:       args.Zone,
-		Env:        args.Env,
+		appId:      args.AppId,
 		Facade:     facade,
-		Name:       args.Name,
-		FullName:   fmt.Sprintf("%s_%s_%s_%d", args.Name, args.Zone, args.Env, args.Id),
+		appType:    args.AppType,
+		appName:    fmt.Sprintf("%s_%d", args.AppType, args.AppId),
 		cancelCtx:  cancelCtx,
 		cancelFunc: cancelFunc,
 		errCtx:     errCtx,
 		errGroup:   errGroup,
-		Config:     gira.NewConfig(),
 	}
 	if v, ok := facade.(FacadeSetApplication); ok {
 		v.SetApplication(application)
@@ -143,7 +140,7 @@ func (app *Application) init() error {
 			return err
 		}
 	}
-	app.RunConfigFilePath = filepath.Join(app.RunDir, fmt.Sprintf("%s", app.FullName))
+	app.RunConfigFilePath = filepath.Join(app.RunDir, fmt.Sprintf("%s", app.appFullName))
 	app.LogDir = filepath.Join(app.RunDir, "log")
 
 	/*
@@ -156,17 +153,16 @@ func (app *Application) init() error {
 		return err
 	}
 	// 读应用配置文件
-	if err := app.Config.Parse(app.Facade, app.ConfigDir, app.Zone, app.Env, app.Name); err != nil {
+	if c, err := gira.LoadConfig(app.ConfigDir, app.appType, app.appId); err != nil {
 		return err
 	} else {
-		// 应用层读取配置文件
-		if configHandler, ok := app.Facade.(gira.ConfigHandler); ok {
-			if err := configHandler.LoadConfig(app.Config); err != nil {
-				return err
-			}
-		} else {
-			return gira.ErrResourceManagerNotImplement
-		}
+		app.env = c.Env
+		app.zone = c.Zone
+		app.appFullName = fmt.Sprintf("%s_%s_%s_%d", app.appType, app.zone, app.env, app.appId)
+		app.Config = c
+	}
+	if err := app.Facade.OnConfigLoad(app.Config); err != nil {
+		return err
 	}
 	if app.Config.Log != nil {
 		if err := log.ConfigLog(app.Facade, *app.Config.Log); err != nil {
@@ -260,6 +256,11 @@ func (app *Application) start() error {
 	} else {
 		return gira.ErrResourceManagerNotImplement
 	}
+	if app.Config.Admin != nil {
+		if err := admin_service.Register(app.Facade, app.GrpcServer.Server()); err != nil {
+			return err
+		}
+	}
 
 	if app.Config.Http != nil {
 		if handler, ok := app.Facade.(http.HttpHandler); !ok {
@@ -326,10 +327,10 @@ func (app *Application) start() error {
 
 func (app *Application) wait() error {
 	if err := app.errGroup.Wait(); err != nil {
-		log.Info("application", app.FullName, "down. err:", err.Error())
+		log.Infow("application down", "full_name", app.appFullName, "error", err)
 		return err
 	} else {
-		log.Info("application", app.FullName, "down.")
+		log.Infow("application down", "full_name", app.appFullName)
 		return nil
 	}
 }
