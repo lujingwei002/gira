@@ -11,6 +11,10 @@ type BaseFacade struct {
 	gateHandler gira.GateHandler
 }
 
+type AdminClient interface {
+	BroadcastReloadResource(ctx context.Context, name string) error
+}
+
 func (self *BaseFacade) GetAppId() int32 {
 	return self.application.appId
 }
@@ -97,4 +101,19 @@ func (self *BaseFacade) OnLocalPlayerDelete(player *gira.LocalPlayer) {
 }
 func (self *BaseFacade) OnLocalPlayerUpdate(player *gira.LocalPlayer) {
 
+}
+
+func (self *BaseFacade) ReloadResource() error {
+	if self.application.resourceLoader == nil {
+		return gira.ErrResourceLoaderNotImplement
+	}
+	return self.application.resourceLoader.ReloadResource("resource")
+}
+
+func (self *BaseFacade) RangePeers(f func(k any, v any) bool) {
+	self.application.Registry.RangePeers(f)
+}
+
+func (self *BaseFacade) BroadcastReloadResource(ctx context.Context, name string) error {
+	return self.application.adminClient.BroadcastReloadResource(ctx, name)
 }

@@ -14,5 +14,4 @@ message ReloadResourceRequest {
 
 // 响应消息
 message ReloadResourceResponse {
-    string replay = 1;
 }

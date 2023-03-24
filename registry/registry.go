@@ -51,7 +51,9 @@ func (r *Registry) Notify() error {
 	}
 	return nil
 }
-
+func (r *Registry) RangePeers(f func(k any, v any) bool) {
+	r.PeerRegistry.RangePeers(f)
+}
 func (r *Registry) GetPeer(fullName string) *gira.Peer {
 	return r.PeerRegistry.getPeer(r, fullName)
 }
@@ -107,13 +109,16 @@ func (r *Registry) LockLocalMember(memberId string) (*gira.Peer, error) {
 func (r *Registry) UnlockLocalMember(memberId string) (*gira.Peer, error) {
 	return r.PlayerRegistry.UnlockLocalMember(r, memberId)
 }
-func explodeServerFullName(fullName string) (name string, id int, err error) {
+func explodeServerFullName(fullName string) (name string, id int32, err error) {
 	pats := strings.Split(string(fullName), "_")
 	if len(pats) != 4 {
 		err = gira.ErrInvalidPeer
 		return
 	}
 	name = pats[0]
-	id, err = strconv.Atoi(pats[3])
+	var v int
+	if v, err = strconv.Atoi(pats[3]); err != nil {
+		id = int32(v)
+	}
 	return
 }

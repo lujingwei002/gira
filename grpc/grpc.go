@@ -28,6 +28,7 @@ type GrpcServer struct {
 func NewConfigGrpcServer(config gira.GrpcConfig) *GrpcServer {
 	self := &GrpcServer{
 		Config: config,
+		server: grpc.NewServer(),
 	}
 	return self
 }
@@ -42,10 +43,8 @@ func (self *GrpcServer) Start(facade gira.ApplicationFacade, errGroup *errgroup.
 	self.errGroup = errGroup
 	listen, err := net.Listen("tcp", self.Config.Address)
 	if err != nil {
-		return err
+		panic(err)
 	}
-	server := grpc.NewServer()
-	self.server = server
 	if handler, ok := facade.(GrpcHandler); !ok {
 		return gira.ErrGrpcHandlerNotImplement
 	} else {
@@ -54,7 +53,7 @@ func (self *GrpcServer) Start(facade gira.ApplicationFacade, errGroup *errgroup.
 		}
 	}
 	errGroup.Go(func() error {
-		server.Serve(listen)
+		self.server.Serve(listen)
 		log.Info("gpc server shutdown")
 		return nil
 	})

@@ -50,6 +50,10 @@ type ApplicationFacade interface {
 	// 如果失败，则返回当前所在的节点
 	LockLocalMember(memberId string) (*Peer, error)
 	UnlockLocalMember(memberId string) (*Peer, error)
+	RangePeers(f func(k any, v any) bool)
+
+	ReloadResource() error
+	BroadcastReloadResource(ctx context.Context, name string) error
 }
 
 var app ApplicationFacade

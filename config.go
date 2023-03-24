@@ -3,10 +3,10 @@ package gira
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -165,6 +165,7 @@ type CliConfig struct {
 }
 
 type AdminConfig struct {
+	None string `yaml:"none"`
 }
 
 type dot_env_config struct {
@@ -350,19 +351,6 @@ func other_host_field(reader *config_reader, otherAppType string, otherAppId int
 // 加载配置
 // 根据环境，区名，服务名， 服务组合配置文件路径，规则是config/app/<<name>>.yaml
 func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
-
-	envFilePath := filepath.Join(envDir, ".env")
-	if data, err := ioutil.ReadFile(envFilePath); err != nil {
-		return nil, err
-	} else {
-		var dotEnvConfig dot_env_config
-		if err := yaml.Unmarshal(data, &dotEnvConfig); err != nil {
-			return nil, err
-		}
-		c.env = dotEnvConfig.Env
-		c.zone = dotEnvConfig.Zone
-	}
-
 	var configFilePath = filepath.Join(dir, fmt.Sprintf("%s.yaml", c.appType))
 	sb := strings.Builder{}
 	// 预处理
@@ -371,8 +359,8 @@ func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
 	}
 	// log.Infof("配置预处理后\n%v\n", sb.String())
 	// 读环境变量
-	yamlEnvFilePath := path.Join(envDir, c.env, ".env.yaml")
-	dotEnvFilePath := path.Join(envDir, c.env, ".env")
+	yamlEnvFilePath := path.Join(envDir, ".config.yaml")
+	dotEnvFilePath := path.Join(envDir, ".env")
 	envData, err := c.readEnv(yamlEnvFilePath, dotEnvFilePath)
 	if err != nil {
 		return nil, err
@@ -423,6 +411,11 @@ func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
 
 // 执行include指令
 func (c *config_reader) readEnv(filePath string, dotEnvFilePath string) (map[string]interface{}, error) {
+	if _, err := os.Stat(dotEnvFilePath); err == nil {
+		if err := godotenv.Load(dotEnvFilePath); err != nil && err != os.ErrNotExist {
+			return nil, err
+		}
+	}
 	envData := make(map[string]interface{})
 	sb := strings.Builder{}
 	if _, err := os.Stat(filePath); err != nil {
@@ -434,26 +427,30 @@ func (c *config_reader) readEnv(filePath string, dotEnvFilePath string) (map[str
 	if err := yaml.Unmarshal([]byte(sb.String()), envData); err != nil {
 		return envData, err
 	}
-	if dict, err := godotenv.Read(dotEnvFilePath); err != nil {
-		return nil, err
-	} else {
-		for k, v := range dict {
-			envData[k] = v
+	if _, err := os.Stat(dotEnvFilePath); err == nil {
+		if dict, err := godotenv.Read(dotEnvFilePath); err != nil {
+			return nil, err
+		} else {
+			for k, v := range dict {
+				envData[k] = v
+			}
 		}
 	}
-	log.Println("===========", os.Getenv("INTERNAL_IP"))
+	c.env = envData["env"].(string)
+	c.zone = envData["zone"].(string)
 	return envData, nil
 }
 
 // 执行include指令
 func (c *config_reader) preprocess(sb *strings.Builder, filePath string) error {
 	dir := path.Dir(filePath)
-
 	lines, err := os.Open(filePath)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	// 正则表达式，用于匹配形如${VAR_NAME}的环境变量
+	re := regexp.MustCompile(`\${\w+}`)
 	scanner := bufio.NewScanner(lines)
 	scanner.Split(bufio.ScanLines)
 	instruction := config_instruction_type_none
@@ -463,6 +460,14 @@ func (c *config_reader) preprocess(sb *strings.Builder, filePath string) error {
 			if strings.HasPrefix(line, `$include:`) {
 				instruction = config_instruction_type_include
 			} else {
+				// 循环匹配所有环境变量
+				for _, match := range re.FindAllString(line, -1) {
+					// 获取环境变量的值
+					envValue := os.Getenv(match[2 : len(match)-1])
+					// 将环境变量替换为其值
+					line = re.ReplaceAllString(line, envValue)
+				}
+				// 循环匹配所有环境变量
 				sb.WriteString(line)
 				sb.WriteString("\n")
 			}

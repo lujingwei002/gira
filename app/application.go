@@ -70,6 +70,8 @@ type Application struct {
 	Sdk                *sdk.Sdk
 	Gate               *gat.Gate
 	GrpcServer         *grpc.GrpcServer
+	resourceLoader     gira.ResourceLoader
+	adminClient        AdminClient
 }
 
 type FacadeSetApplication interface {
@@ -222,6 +224,13 @@ func (app *Application) start() error {
 	}
 	if app.Config.Grpc != nil {
 		app.GrpcServer = grpc.NewConfigGrpcServer(*app.Config.Grpc)
+		// admin service
+		app.adminClient = admin_service.NewAdminClient()
+		if app.Config.Admin != nil {
+			if err := admin_service.Register(app.Facade, app.GrpcServer.Server()); err != nil {
+				return err
+			}
+		}
 		if err := app.GrpcServer.Start(app.Facade, app.errGroup, app.errCtx); err != nil {
 			return err
 		}
@@ -252,16 +261,17 @@ func (app *Application) start() error {
 	}
 	// res加载
 	if resourceManager, ok := app.Facade.(gira.ResourceManager); ok {
-		if err := resourceManager.LoadResource("resource"); err != nil {
-			return err
+		resourceLoader := resourceManager.ResourceLoader()
+		if resourceLoader != nil {
+			app.resourceLoader = resourceLoader
+			if err := app.resourceLoader.LoadResource("resource"); err != nil {
+				return err
+			}
+		} else {
+			return gira.ErrResourceLoaderNotImplement
 		}
 	} else {
 		return gira.ErrResourceManagerNotImplement
-	}
-	if app.Config.Admin != nil {
-		if err := admin_service.Register(app.Facade, app.GrpcServer.Server()); err != nil {
-			return err
-		}
 	}
 
 	if app.Config.Http != nil {

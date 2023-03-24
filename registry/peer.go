@@ -84,7 +84,9 @@ func newConfigPeerRegistry(r *Registry) (*PeerRegistry, error) {
 	})
 	return self, nil
 }
-
+func (self *PeerRegistry) RangePeers(f func(k any, v any) bool) {
+	self.Peers.Range(f)
+}
 func (self *PeerRegistry) getPeer(r *Registry, fullName string) *gira.Peer {
 	if lastValue, ok := self.Peers.Load(fullName); ok {
 		lastPeer := lastValue.(*gira.Peer)
@@ -103,7 +105,7 @@ func (self *PeerRegistry) notify(r *Registry) error {
 }
 
 func (self *PeerRegistry) onPeerAdd(r *Registry, peer *gira.Peer) error {
-	log.Debugw("============ peer %s add ==================", "full_name", peer.FullName)
+	log.Debugw("============ peer add ==================", "full_name", peer.FullName)
 	if peer.FullName == r.FullName {
 		self.SelfPeer = peer
 	}
@@ -116,7 +118,7 @@ func (self *PeerRegistry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
-	log.Debugw("============ peer %s delete ==================", "full_name", peer.FullName)
+	log.Debugw("============ peer delete ==================", "full_name", peer.FullName)
 	if handler, ok := r.facade.(gira.PeerHandler); ok {
 		handler.OnPeerDelete(peer)
 	} else {
@@ -138,7 +140,7 @@ func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *PeerRegistry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
-	log.Debugw("============ peer %s update ==================", "full_name", peer.FullName)
+	log.Debugw("============ peer update ==================", "full_name", peer.FullName)
 	if handler, ok := r.facade.(gira.PeerHandler); ok {
 		handler.OnPeerUpdate(peer)
 	} else {

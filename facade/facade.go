@@ -13,3 +13,13 @@ func Context() context.Context {
 func GetResourceDbClient() gira.MongoClient {
 	return gira.Facade().GetResourceDbClient()
 }
+func ReloadResource() error {
+	return gira.Facade().ReloadResource()
+}
+func RangePeers(f func(k any, v any) bool) {
+	gira.Facade().RangePeers(f)
+}
+
+func BroadcastReloadResource(ctx context.Context, name string) error {
+	return gira.Facade().BroadcastReloadResource(ctx, name)
+}

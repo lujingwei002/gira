@@ -6,9 +6,8 @@ import (
 )
 
 type ResourceLoader interface {
-	LoadFromYaml(dir string) error
-	LoadFromBin(dir string) error
-	Convert(handler ResourceHandler) error
+	LoadResource(dir string) error
+	ReloadResource(dir string) error
 }
 
 type ResourceHandler interface {
@@ -17,7 +16,9 @@ type ResourceHandler interface {
 }
 
 type ResourceManager interface {
-	LoadResource(dir string) error
+	ResourceLoader() ResourceLoader
+	// LoadResource(dir string) error
+	// ReloadResource(dir string) error
 }
 
 // 加载资源
