@@ -117,7 +117,7 @@ func explodeServerFullName(fullName string) (name string, id int32, err error) {
 	}
 	name = pats[0]
 	var v int
-	if v, err = strconv.Atoi(pats[3]); err != nil {
+	if v, err = strconv.Atoi(pats[3]); err == nil {
 		id = int32(v)
 	}
 	return
