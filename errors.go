@@ -50,6 +50,7 @@ const (
 	E_SERVICE_UNAVAILABLE            = -39
 	E_SPROTO_PUSH_CONVERSION         = -40
 	E_PROJECT_FILE_NOT_FOUND         = -41
+	E_INVALID_PASSWORD               = -42
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -95,6 +96,7 @@ const (
 	E_MSG_SERVICE_UNAVAILABLE            = "服务不可用"
 	E_MSG_SPROTO_PUSH_CONVERSION         = "sproto push type conversion"
 	E_MSG_PROJECT_FILE_NOT_FOUND         = "gira.yaml文件找不到"
+	E_MSG_INVALID_PASSWORD               = "密码错误"
 )
 
 type Error struct {
@@ -155,6 +157,7 @@ var (
 	ErrServiceUnavailable          = NewError(E_SERVICE_UNAVAILABLE, E_MSG_SERVICE_UNAVAILABLE)
 	ErrSprotoPushConversion        = NewError(E_SPROTO_PUSH_CONVERSION, E_MSG_SPROTO_PUSH_CONVERSION)
 	ErrProjectFileNotFound         = NewError(E_PROJECT_FILE_NOT_FOUND, E_MSG_PROJECT_FILE_NOT_FOUND)
+	ErrInvalidPassword             = NewError(E_INVALID_PASSWORD, E_MSG_INVALID_PASSWORD)
 )
 
 func ErrCode(err error) int32 {

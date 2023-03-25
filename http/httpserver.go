@@ -35,9 +35,17 @@ type JsonResponse interface {
 func HttpJsonResponse(g *gin.Context, httpCode int, err error, data JsonResponse) {
 	errorCode := gira.ErrCode(err)
 	errorMsg := gira.ErrMsg(err)
-	data.SetCode(errorCode)
-	data.SetMsg(errorMsg)
-	g.JSON(httpCode, data)
+	if data == nil {
+		resp := BaseJsonResponse{
+			Code: errorCode,
+			Msg:  errorMsg,
+		}
+		g.JSON(httpCode, resp)
+	} else {
+		data.SetCode(errorCode)
+		data.SetMsg(errorMsg)
+		g.JSON(httpCode, data)
+	}
 }
 
 // 获取远程客户端ip要设置SetTrustedProxies

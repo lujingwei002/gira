@@ -23,3 +23,6 @@ func RangePeers(f func(k any, v any) bool) {
 func BroadcastReloadResource(ctx context.Context, name string) error {
 	return gira.Facade().BroadcastReloadResource(ctx, name)
 }
+func GetAdminDbClient() gira.MysqlClient {
+	return gira.Facade().GetAdminDbClient()
+}

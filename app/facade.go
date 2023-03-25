@@ -81,6 +81,10 @@ func (self *BaseFacade) GetResourceDbClient() gira.MongoClient {
 	return self.application.ResourceDbClient
 }
 
+func (self *BaseFacade) GetAdminDbClient() gira.MysqlClient {
+	return self.application.adminDbClient
+}
+
 func (self *BaseFacade) SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
 	return self.application.Sdk.Login(accountPlat, openId, token)
 }

@@ -72,6 +72,7 @@ type Application struct {
 	GrpcServer         *grpc.GrpcServer
 	resourceLoader     gira.ResourceLoader
 	adminClient        AdminClient
+	adminDbClient      *db.AdminDbClient
 }
 
 type FacadeSetApplication interface {
@@ -253,6 +254,13 @@ func (app *Application) start() error {
 			return err
 		}
 	}
+	if app.Config.AdminDb != nil {
+		app.adminDbClient = db.NewAdminDbClient()
+		if err := app.adminDbClient.Start(app.cancelCtx, *app.Config.AdminDb); err != nil {
+			return err
+		}
+	}
+
 	if app.Config.ResourceDb != nil {
 		app.ResourceDbClient = db.NewResourceDbClient()
 		if err := app.ResourceDbClient.Start(app.cancelCtx, *app.Config.ResourceDb); err != nil {

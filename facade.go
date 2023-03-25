@@ -42,6 +42,7 @@ type ApplicationFacade interface {
 	GetAccountDbClient() MongoClient
 	GetResourceDbClient() MongoClient
 	GetAccountCacheClient() RedisClient
+	GetAdminDbClient() MysqlClient
 
 	// ======= sdk登录接口 ===========
 	SdkLogin(accountPlat string, open_id string, token string) (*SdkAccount, error)

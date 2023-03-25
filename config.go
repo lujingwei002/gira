@@ -73,6 +73,14 @@ type ResourceDbConfig struct {
 	Db       string `yaml:"db"`
 }
 
+type AdminDbConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Db       string `yaml:"db"`
+}
+
 // 状态数据库配置
 type StatDbConfig struct {
 	Host     string `yaml:"host"`
@@ -134,6 +142,7 @@ type Config struct {
 	GameDb       *GameDbConfig       `yaml:"gamedb"`
 	AccountDb    *AccountDbConfig    `yaml:"accountdb"`
 	ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
+	AdminDb      *AdminDbConfig      `yaml:"admindb"`
 	StatDb       *StatDbConfig       `yaml:"statdb"`
 	AccountCache *AccountCacheConfig `yaml:"account-cache"`
 	Etcd         *EtcdConfig         `yaml:"etcd"`
@@ -154,6 +163,7 @@ type CliConfig struct {
 	GameDb       *GameDbConfig       `yaml:"gamedb"`
 	AccountDb    *AccountDbConfig    `yaml:"accountdb"`
 	ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
+	AdminDb      *AdminDbConfig      `yaml:"admindb"`
 	StatDb       *StatDbConfig       `yaml:"statdb"`
 	AccountCache *AccountCacheConfig `yaml:"account-cache"`
 	Etcd         *EtcdConfig         `yaml:"etcd"`
