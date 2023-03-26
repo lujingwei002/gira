@@ -20,6 +20,7 @@ var (
 type ProjectConfig struct {
 	Version             string `yaml:"version"`
 	Module              string `yaml:"module"`
+	GenResourceHash     string `yaml:"gen_resource_hash"`
 	Env                 string //当前环境 local|dev|qa|prd
 	Zone                string // 当前区 wc|qq|gf|review
 	ProjectDir          string
@@ -55,6 +56,26 @@ func init() {
 	if err := Config.load(); err != nil {
 		panic(err)
 	}
+}
+
+func Update(key string, value interface{}) error {
+	if data, err := ioutil.ReadFile(Config.ProjectConfFilePath); err != nil {
+		return err
+	} else {
+		result := make(map[string]interface{})
+		if err := yaml.Unmarshal(data, result); err != nil {
+			return err
+		}
+		result[key] = value
+		if data, err := yaml.Marshal(result); err != nil {
+			return err
+		} else {
+			if err := ioutil.WriteFile(Config.ProjectConfFilePath, data, 0644); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (p *ProjectConfig) load() error {

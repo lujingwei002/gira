@@ -3,15 +3,15 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	_ "net/http/pprof"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	//https://cli.urfave.org/v2/examples/full-api-example/
+	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
 	"github.com/urfave/cli/v2"
-	"gopkg.in/yaml.v3"
 
 	"github.com/lujingwei002/gira/gen/gen_const"
 	"github.com/lujingwei002/gira/gen/gen_model"
@@ -156,11 +156,14 @@ func resourceCompressAction(args *cli.Context) error {
 }
 
 func resourcePushAction(args *cli.Context) error {
-	return nil
-	// config := proj.Config.ResourceDb
-	// uri := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", config.User, config.Password, config.Host, config.Port, config.Db)
-	// bin := "bin/resource"
-	// return command(bin, "push", uri)
+	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
+		return err
+	} else {
+		dbConfig := config.ResourceDb
+		uri := dbConfig.Uri()
+		bin := "bin/resource"
+		return command(bin, "push", uri)
+	}
 }
 
 func resourceReloadAction(args *cli.Context) error {
@@ -197,43 +200,39 @@ func envSwitchAction(args *cli.Context) error {
 		log.Println("env not found, you can select one of below env")
 		return envListAction(args)
 	}
-	if data, err := ioutil.ReadFile(proj.Config.DotEnvFilePath); err != nil {
+	os.Remove(filepath.Join(proj.Config.EnvDir, ".env"))
+	os.Remove(filepath.Join(proj.Config.EnvDir, ".config.yaml"))
+	if err := os.Symlink(filepath.Join(proj.Config.EnvDir, expectName, ".env"), filepath.Join(proj.Config.EnvDir, ".env")); err != nil {
 		return err
-	} else {
-		var result map[string]interface{}
-		if err := yaml.Unmarshal(data, &result); err != nil {
-			return err
-		}
-		result["env"] = expectName
-		if data, err := yaml.Marshal(result); err != nil {
-			return err
-		} else {
-			if err := ioutil.WriteFile(proj.Config.DotEnvFilePath, data, 0644); err != nil {
-				return err
-			}
-		}
+	}
+	if err := os.Symlink(filepath.Join(proj.Config.EnvDir, expectName, ".config.yaml"), filepath.Join(proj.Config.EnvDir, ".config.yaml")); err != nil {
+		return err
 	}
 	log.Printf("switch %s success", expectName)
-	return nil
+	return envListAction(args)
 }
 
 // 环境列表
 func envListAction(args *cli.Context) error {
-	envDir := proj.Config.EnvDir
-	if d, err := os.Open(envDir); err != nil {
+	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
 		return err
 	} else {
-		defer d.Close()
-		if files, err := d.ReadDir(0); err != nil {
+		envDir := proj.Config.EnvDir
+		if d, err := os.Open(envDir); err != nil {
 			return err
 		} else {
-			for _, file := range files {
-				if file.IsDir() {
-					envName := file.Name()
-					if envName == proj.Config.Env {
-						log.Info("*", file.Name())
-					} else {
-						log.Info(file.Name())
+			defer d.Close()
+			if files, err := d.ReadDir(0); err != nil {
+				return err
+			} else {
+				for _, file := range files {
+					if file.IsDir() {
+						envName := file.Name()
+						if envName == config.Env {
+							log.Info("*", file.Name())
+						} else {
+							log.Info(file.Name())
+						}
 					}
 				}
 			}

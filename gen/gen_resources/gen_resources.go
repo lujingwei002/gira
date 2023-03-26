@@ -3,14 +3,18 @@ package gen_resources
 /// 参考 https://www.cnblogs.com/f-ck-need-u/p/10053124.html
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
+	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira/proj"
@@ -511,34 +515,40 @@ type ExcelData struct {
 }
 
 type Descriptor struct {
-	StructName     string
-	TableName      string
-	CapStructName  string
-	WrapStructName string
-	GoTypeName     string
-	YamlFilePath   string
-	FieldArr       []*Field          // 字段信息
-	FieldDict      map[string]*Field // 字段信息
-	ArrTypeName    string            // ErrorCodeArr
-	KeyArr         []string
-	MapTypeName    string // ErrorCodeMap
-	FilePath       string
-	GoMapTypeName  string // map[int] *ErrorCode
-	ExcelData      *ExcelData
-	ObjectKeyIndex int
-
-	typ              descriptor_type
+	Name             string
+	StructName       string
+	TableName        string
+	CapStructName    string
+	WrapStructName   string
+	GoTypeName       string
+	YamlFilePath     string
+	FieldArr         []*Field          // 字段信息
+	FieldDict        map[string]*Field // 字段信息
+	ArrTypeName      string            // ErrorCodeArr
+	KeyArr           []string
+	MapTypeName      string // ErrorCodeMap
+	FilePath         string
+	GoMapTypeName    string // map[int] *ErrorCode
+	ExcelData        *ExcelData
+	ObjectKeyIndex   int
+	Type             descriptor_type
 	realArrTypeName  string // []*ErrorCode
 	GoObjectTypeName string
 	KeyGoTypeNameArr []string
 }
 
+type SortDescriptorByName []*Descriptor
+
+func (self SortDescriptorByName) Len() int           { return len(self) }
+func (self SortDescriptorByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortDescriptorByName) Less(i, j int) bool { return self[i].StructName < self[j].StructName }
+
 func (self *Descriptor) IsDeriveMap() bool {
-	return self.typ == descriptor_type_map
+	return self.Type == descriptor_type_map
 }
 
 func (self *Descriptor) IsDeriveObject() bool {
-	return self.typ == descriptor_type_object
+	return self.Type == descriptor_type_object
 }
 
 type Bundle struct {
@@ -550,14 +560,25 @@ type Bundle struct {
 	DescriptorArr       []*Descriptor
 }
 
-type Loader struct {
-	LoaderStructName string
+type SortBundleByName []*Bundle
 
-	name              string
+func (self SortBundleByName) Len() int           { return len(self) }
+func (self SortBundleByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortBundleByName) Less(i, j int) bool { return self[i].BundleName < self[j].BundleName }
+
+type Loader struct {
+	LoaderStructName  string
+	Name              string
 	HandlerStructName string
 	bundleNameArr     []string
 	BundleArr         []*Bundle
 }
+
+type SortLoaderByName []*Loader
+
+func (self SortLoaderByName) Len() int           { return len(self) }
+func (self SortLoaderByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortLoaderByName) Less(i, j int) bool { return self[i].Name < self[j].Name }
 
 type ResourceFile struct {
 	DescriptorDict map[string]*Descriptor
@@ -570,8 +591,8 @@ type ResourceFile struct {
 // 生成协议的状态
 type GenState struct {
 	Module        string
-	resourceFile  ResourceFile
-	excelDataDict map[string]*ExcelData
+	ResourceFile  ResourceFile
+	ExcelDataDict map[string]*ExcelData
 }
 
 func capUpperString(s string) string {
@@ -668,7 +689,8 @@ func (f *ResourceFile) read(filePath string) error {
 				// xlsx替换成yaml
 				yamlFilePath := strings.Replace(filePath, filepath.Ext(filePath), ".yaml", -1)
 				descriptor := &Descriptor{
-					typ:              typ,
+					Type:             typ,
+					Name:             name,
 					StructName:       name,
 					TableName:        name,
 					CapStructName:    capLowerString(name),
@@ -721,7 +743,7 @@ func (f *ResourceFile) read(filePath string) error {
 					}
 				}
 				loader := &Loader{
-					name:              name,
+					Name:              name,
 					LoaderStructName:  camelString(name) + "Loader",
 					HandlerStructName: "I" + camelString(name) + "Handler",
 					bundleNameArr:     rows,
@@ -730,6 +752,10 @@ func (f *ResourceFile) read(filePath string) error {
 				f.LoaderArr = append(f.LoaderArr, loader)
 			}
 		}
+		// 排序
+		sort.Sort(SortDescriptorByName(f.DescriptorArr))
+		sort.Sort(SortBundleByName(f.BundleArr))
+		sort.Sort(SortLoaderByName(f.LoaderArr))
 	}
 	return nil
 }
@@ -765,7 +791,7 @@ func (excelData *ExcelData) read(name string, descriptor *Descriptor, filePath s
 		}
 	}
 	descriptor.FieldDict = excelData.FieldDict
-	if descriptor.typ == descriptor_type_map || descriptor.typ == descriptor_type_object {
+	if descriptor.Type == descriptor_type_map || descriptor.Type == descriptor_type_object {
 		var name string = ""
 		for _, v := range descriptor.KeyArr {
 			if field, ok := descriptor.FieldDict[v]; ok {
@@ -778,12 +804,12 @@ func (excelData *ExcelData) read(name string, descriptor *Descriptor, filePath s
 		descriptor.GoMapTypeName = name
 	}
 
-	if descriptor.typ == descriptor_type_map {
+	if descriptor.Type == descriptor_type_map {
 		descriptor.GoTypeName = descriptor.GoMapTypeName
-	} else if descriptor.typ == descriptor_type_array {
+	} else if descriptor.Type == descriptor_type_array {
 		descriptor.realArrTypeName = fmt.Sprintf("[]* %s", descriptor.StructName)
 		descriptor.GoTypeName = descriptor.realArrTypeName
-	} else if descriptor.typ == descriptor_type_object {
+	} else if descriptor.Type == descriptor_type_object {
 		for k, v := range excelData.FieldArr {
 			if v.FieldName == descriptor.KeyArr[0] {
 				descriptor.ObjectKeyIndex = k
@@ -830,12 +856,36 @@ func (excelData *ExcelData) read(name string, descriptor *Descriptor, filePath s
 	return nil
 }
 
-func genResources1(resourceState *GenState) error {
+func getSrcFileHash(arr []string) string {
+	sort.Strings(arr)
+	sb := strings.Builder{}
+	for _, filePath := range arr {
+		if v, err := os.Stat(filePath); err == nil {
+			sb.WriteString(fmt.Sprintf("%s %v\n", filePath, v.ModTime()))
+		}
+	}
+	hash := md5.New()
+	hash.Write([]byte(sb.String()))
+	md5Hash := hex.EncodeToString(hash.Sum(nil))
+	return md5Hash
+}
+
+func genResources1(state *GenState) error {
+	srcFilePathArr := make([]string, 0)
+	srcFilePathArr = append(srcFilePathArr, proj.Config.DocResourceFilePath)
 	// 解析descriptor
-	if err := resourceState.resourceFile.read(proj.Config.DocResourceFilePath); err != nil {
+	if err := state.ResourceFile.read(proj.Config.DocResourceFilePath); err != nil {
 		return err
 	}
-	for name, v := range resourceState.resourceFile.DescriptorDict {
+	for _, v := range state.ResourceFile.DescriptorArr {
+		filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
+		srcFilePathArr = append(srcFilePathArr, filePath)
+	}
+	srcHash := getSrcFileHash(srcFilePathArr)
+	if srcHash == proj.Config.GenResourceHash {
+		return gira.ErrGenNotChange
+	}
+	for _, v := range state.ResourceFile.DescriptorArr {
 		// 解析excel
 		filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
 		excelData := &ExcelData{
@@ -843,26 +893,23 @@ func genResources1(resourceState *GenState) error {
 			FieldArr:  make([]*Field, 0),
 			ValueArr:  make([][]interface{}, 0),
 		}
-		if err := excelData.read(name, v, filePath); err != nil {
+		if err := excelData.read(v.Name, v, filePath); err != nil {
 			return err
 		}
-		resourceState.excelDataDict[name] = excelData
+		state.ExcelDataDict[v.Name] = excelData
 	}
+	proj.Update("gen_resource_hash", srcHash)
 	return nil
 }
 
-func genResources2(resourceState *GenState) error {
+func genResources2(state *GenState) error {
 	log.Info("生成yaml文件")
-	// if err := os.RemoveAll(state.ResourceDir); err != nil {
-	// 	return err
-	// }
 	if _, err := os.Stat(proj.Config.ResourceDir); os.IsNotExist(err) {
 		if err := os.Mkdir(proj.Config.ResourceDir, 0755); err != nil {
 			return err
 		}
 	}
-
-	for name, v := range resourceState.resourceFile.DescriptorDict {
+	for name, v := range state.ResourceFile.DescriptorDict {
 		log.Info(name, "==>", v.YamlFilePath)
 		filePath := path.Join(proj.Config.ResourceDir, v.YamlFilePath)
 		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
@@ -870,7 +917,7 @@ func genResources2(resourceState *GenState) error {
 			return err
 		}
 		file.Truncate(0)
-		if resourceData, ok := resourceState.excelDataDict[name]; ok {
+		if resourceData, ok := state.ExcelDataDict[name]; ok {
 			file.WriteString(fotmatYamlString(v, resourceData))
 			file.WriteString("\n")
 			file.Close()
@@ -894,7 +941,6 @@ func genResources2(resourceState *GenState) error {
 		"capUpper":    capUpperString,
 		"camelString": camelString,
 	}
-
 	resourcesPath := path.Join(proj.Config.SrcGenResourceDir, "resource.go")
 	file, err := os.OpenFile(resourcesPath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -902,20 +948,19 @@ func genResources2(resourceState *GenState) error {
 	}
 	file.Truncate(0)
 	defer file.Close()
-
 	tmpl := template.New("resource").Delims("<<", ">>")
 	tmpl.Funcs(funcMap)
 	if tmpl, err := tmpl.Parse(code); err != nil {
 		return err
 	} else {
-		if err := tmpl.Execute(file, resourceState.resourceFile); err != nil {
+		if err := tmpl.Execute(file, state.ResourceFile); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func genResources3(resourceState *GenState) error {
+func genResources3(state *GenState) error {
 	resourceFilePath := path.Join(proj.Config.SrcGenDir, "resource.go")
 	file, err := os.OpenFile(resourceFilePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -923,12 +968,11 @@ func genResources3(resourceState *GenState) error {
 	}
 	file.Truncate(0)
 	defer file.Close()
-
 	tmpl := template.New("resource").Delims("<<", ">>")
 	if tmpl, err := tmpl.Parse(cli_code); err != nil {
 		return err
 	} else {
-		if err := tmpl.Execute(file, resourceState); err != nil {
+		if err := tmpl.Execute(file, state); err != nil {
 			return err
 		}
 	}
@@ -941,8 +985,8 @@ func Gen() error {
 	// 初始化
 	genState := &GenState{
 		Module:        proj.Config.Module,
-		excelDataDict: make(map[string]*ExcelData),
-		resourceFile: ResourceFile{
+		ExcelDataDict: make(map[string]*ExcelData),
+		ResourceFile: ResourceFile{
 			DescriptorDict: make(map[string]*Descriptor, 0),
 			DescriptorArr:  make([]*Descriptor, 0),
 			BundleDict:     make(map[string]*Bundle, 0),
@@ -950,7 +994,10 @@ func Gen() error {
 			LoaderArr:      make([]*Loader, 0),
 		},
 	}
-	if err := genResources1(genState); err != nil {
+	if err := genResources1(genState); err != nil && err == gira.ErrGenNotChange {
+		log.Info("===============gen resource finished, not change===============")
+		return nil
+	} else if err != nil {
 		return err
 	}
 	if err := genResources2(genState); err != nil {

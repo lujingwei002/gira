@@ -73,6 +73,10 @@ type ResourceDbConfig struct {
 	Db       string `yaml:"db"`
 }
 
+func (self ResourceDbConfig) Uri() string {
+	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
+}
+
 type AdminDbConfig struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
@@ -154,26 +158,6 @@ type Config struct {
 	Admin        *AdminConfig        `yaml:"admin"`
 }
 
-type CliConfig struct {
-	Raw          []byte
-	Thread       int `yaml:"thread"`
-	Env          string
-	Zone         string
-	Http         *HttpConfig         `yaml:"http,omitempty"`
-	GameDb       *GameDbConfig       `yaml:"gamedb"`
-	AccountDb    *AccountDbConfig    `yaml:"accountdb"`
-	ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
-	AdminDb      *AdminDbConfig      `yaml:"admindb"`
-	StatDb       *StatDbConfig       `yaml:"statdb"`
-	AccountCache *AccountCacheConfig `yaml:"account-cache"`
-	Etcd         *EtcdConfig         `yaml:"etcd"`
-	Grpc         *GrpcConfig         `yaml:"grpc"`
-	Sdk          *SdkConfig          `yaml:"sdk"`
-	Jwt          *JwtConfig          `yaml:"jwt"`
-	Gate         *GateConfig         `yaml:"gate"`
-	Log          *LogConfig          `yaml:"log"`
-}
-
 type AdminConfig struct {
 	None string `yaml:"none"`
 }
@@ -192,7 +176,7 @@ type config_reader struct {
 }
 
 // 读取应该配置
-func LoadConfig(dir string, envDir string, appType string, appId int32) (*Config, error) {
+func LoadConfig(configDir string, envDir string, appType string, appId int32) (*Config, error) {
 	c := &Config{}
 	appName := fmt.Sprintf("%s_%d", appType, appId)
 	reader := config_reader{
@@ -200,7 +184,7 @@ func LoadConfig(dir string, envDir string, appType string, appId int32) (*Config
 		appId:   appId,
 		appName: appName,
 	}
-	if data, err := reader.read(dir, envDir); err != nil {
+	if data, err := reader.read(configDir, envDir); err != nil {
 		return nil, err
 	} else {
 		if err := c.unmarshal(data); err != nil {
@@ -227,44 +211,11 @@ func (c *Config) unmarshal(data []byte) error {
 }
 
 // 读取应该配置
-func LoadCliConfig(dir string, envDir string) (*CliConfig, error) {
-	c := &CliConfig{}
-	appType := "cli"
-	var appId int32 = 0
-	appName := fmt.Sprintf("%s_%d", appType, appId)
-	reader := config_reader{
-		appType: appType,
-		appId:   appId,
-		appName: appName,
-	}
-	if data, err := reader.read(dir, envDir); err != nil {
-		return nil, err
-	} else {
-		if err := c.unmarshal(data); err != nil {
-			return nil, err
-		}
-	}
-	c.Env = reader.env
-	c.Zone = reader.zone
-	return c, nil
-}
-
-func (c *CliConfig) unmarshal(data []byte) error {
-	// 解析yaml
-	if err := yaml.Unmarshal(data, c); err != nil {
-		log.Println(string(data))
-		return err
-	}
-	c.Raw = data
-	// log.Infof("配置: %+v\n", c)
-	// log.Infof("GameDb配置: %+v\n", c.GameDb)
-	// log.Infof("Etcd配置: %+v\n", c.Etcd)
-	// log.Infof("Grpc配置: %+v\n", c.Grpc)
-	return nil
+func LoadCliConfig(configDir string, envDir string) (*Config, error) {
+	return LoadConfig(configDir, envDir, "cli", 0)
 }
 
 // 读取cli工具配置
-
 func application_field(reader *config_reader, env map[string]interface{}, key string) interface{} {
 	if v, ok := env["application"]; ok {
 		if applications, ok := v.(map[string]interface{}); ok {

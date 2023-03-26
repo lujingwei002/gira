@@ -51,6 +51,7 @@ const (
 	E_SPROTO_PUSH_CONVERSION         = -40
 	E_PROJECT_FILE_NOT_FOUND         = -41
 	E_INVALID_PASSWORD               = -42
+	E_GEN_NOT_CHANGE                 = -43
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -97,6 +98,7 @@ const (
 	E_MSG_SPROTO_PUSH_CONVERSION         = "sproto push type conversion"
 	E_MSG_PROJECT_FILE_NOT_FOUND         = "gira.yaml文件找不到"
 	E_MSG_INVALID_PASSWORD               = "密码错误"
+	E_MSG_GEN_NOT_CHANGE                 = "gen源文件没变化"
 )
 
 type Error struct {
@@ -158,6 +160,7 @@ var (
 	ErrSprotoPushConversion        = NewError(E_SPROTO_PUSH_CONVERSION, E_MSG_SPROTO_PUSH_CONVERSION)
 	ErrProjectFileNotFound         = NewError(E_PROJECT_FILE_NOT_FOUND, E_MSG_PROJECT_FILE_NOT_FOUND)
 	ErrInvalidPassword             = NewError(E_INVALID_PASSWORD, E_MSG_INVALID_PASSWORD)
+	ErrGenNotChange                = NewError(E_GEN_NOT_CHANGE, E_MSG_GEN_NOT_CHANGE)
 )
 
 func ErrCode(err error) int32 {
