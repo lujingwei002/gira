@@ -77,14 +77,12 @@ func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	facade, _ := args.App.Metadata["facade"].(gira.ApplicationFacade)
 	appType, _ := args.App.Metadata["name"].(string)
-
-	log.Info(appType, appId, "start")
+	log.Infof("%s %d starting...", appType, appId)
 	application := newApplication(ApplicationArgs{
 		AppType: appType,
 		AppId:   appId,
 	}, facade)
-	err := application.forver()
-	return err
+	return application.serve()
 }
 
 func stopAction(args *cli.Context) error {

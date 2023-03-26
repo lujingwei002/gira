@@ -14,7 +14,7 @@ import (
 // http://wzmmmmj.com/2020/09/06/grpc-stream/
 
 type GrpcHandler interface {
-	OnRegisterGrpcServer(server *grpc.Server) error
+	OnGrpcServerAwake(server *grpc.Server) error
 }
 
 type GrpcServer struct {
@@ -48,7 +48,7 @@ func (self *GrpcServer) Start(facade gira.ApplicationFacade, errGroup *errgroup.
 	if handler, ok := facade.(GrpcHandler); !ok {
 		return gira.ErrGrpcHandlerNotImplement
 	} else {
-		if err := handler.OnRegisterGrpcServer(self.server); err != nil {
+		if err := handler.OnGrpcServerAwake(self.server); err != nil {
 			return err
 		}
 	}

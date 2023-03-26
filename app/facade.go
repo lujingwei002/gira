@@ -35,7 +35,7 @@ func (self *BaseFacade) Go(f func() error) {
 	self.application.errGroup.Go(f)
 }
 func (self *BaseFacade) Done() <-chan struct{} {
-	return self.application.cancelCtx.Done()
+	return self.application.ctx.Done()
 }
 
 func (self *BaseFacade) Quit() {
@@ -43,7 +43,7 @@ func (self *BaseFacade) Quit() {
 }
 
 func (self *BaseFacade) Context() context.Context {
-	return self.application.cancelCtx
+	return self.application.ctx
 }
 
 func (self *BaseFacade) SetApplication(application *Application) {

@@ -18,6 +18,7 @@ import (
 	"github.com/lujingwei002/gira/gat"
 	"github.com/lujingwei002/gira/grpc"
 	"github.com/lujingwei002/gira/http"
+	"github.com/lujingwei002/gira/proj"
 	"github.com/lujingwei002/gira/registry"
 	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
@@ -41,21 +42,20 @@ type Application struct {
 	zone               string // 区名 wc|qq|hw|quick
 	env                string // dev|local|qa|prd
 	appId              int32
-	appType            string           /// 服务类型
-	appName            string           /// 服务名
-	appFullName        string           /// 完整的服务名 Name_Id
-	ProjectConf        gira.ProjectConf /// gira.yaml配置
-	ProjectFilePath    string           /// 配置文件绝对路径, gira.yaml
-	ConfigDir          string           /// config目录
-	EnvDir             string           /// env目录
-	ConfigFilePath     string           /// 内置配置文件
-	RunConfigFilePath  string           /// 运行时的配置文件
-	WorkDir            string           /// 工作目录
-	LogDir             string           /// 日志目录
-	RunDir             string           /// 运行目录
+	appType            string /// 服务类型
+	appName            string /// 服务名
+	appFullName        string /// 完整的服务名 Name_Id
+	ProjectFilePath    string /// 配置文件绝对路径, gira.yaml
+	ConfigDir          string /// config目录
+	EnvDir             string /// env目录
+	ConfigFilePath     string /// 内置配置文件
+	RunConfigFilePath  string /// 运行时的配置文件
+	WorkDir            string /// 工作目录
+	LogDir             string /// 日志目录
+	RunDir             string /// 运行目录
 	Facade             gira.ApplicationFacade
 	cancelFunc         context.CancelFunc
-	cancelCtx          context.Context
+	ctx                context.Context
 	errCtx             context.Context
 	errGroup           *errgroup.Group
 	MainScene          *gira.Scene
@@ -87,7 +87,7 @@ func newApplication(args ApplicationArgs, facade gira.ApplicationFacade) *Applic
 		Facade:     facade,
 		appType:    args.AppType,
 		appName:    fmt.Sprintf("%s_%d", args.AppType, args.AppId),
-		cancelCtx:  cancelCtx,
+		ctx:        cancelCtx,
 		cancelFunc: cancelFunc,
 		errCtx:     errCtx,
 		errGroup:   errGroup,
@@ -110,53 +110,31 @@ func (app *Application) init() error {
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
 	// 目录初始化
-	if workDir, err := os.Getwd(); err != nil {
-		return err
-	} else {
-		dir := workDir
-		for {
-			projectFilePath := filepath.Join(dir, "gira.yaml")
-			if _, err := os.Stat(projectFilePath); err == nil {
-				app.WorkDir = dir
-				break
-			}
-			dir = filepath.Dir(dir)
-			if dir == "/" || dir == "" {
-				break
-			}
-		}
-	}
-	if app.WorkDir == "" {
-		return gira.ErrProjectFileNotFound
-	}
+	app.WorkDir = proj.Config.ProjectDir
 	os.Chdir(app.WorkDir)
-	app.ProjectFilePath = filepath.Join(app.WorkDir, "gira.yaml")
+	app.ProjectFilePath = proj.Config.ProjectConfFilePath
 	if _, err := os.Stat(app.ProjectFilePath); err != nil {
 		return err
 	}
-	app.EnvDir = filepath.Join(app.WorkDir, "env")
-	app.ConfigDir = filepath.Join(app.WorkDir, "config")
+	app.EnvDir = proj.Config.EnvDir
+	app.ConfigDir = proj.Config.ConfigDir
 	if _, err := os.Stat(app.ConfigDir); err != nil {
 		return err
 	}
-	app.RunDir = filepath.Join(app.WorkDir, "run")
+	app.RunDir = proj.Config.RunDir
 	if _, err := os.Stat(app.RunDir); err != nil {
 		if err := os.Mkdir(app.RunDir, 0755); err != nil {
 			return err
 		}
 	}
 	app.RunConfigFilePath = filepath.Join(app.RunDir, fmt.Sprintf("%s", app.appFullName))
-	app.LogDir = filepath.Join(app.RunDir, "log")
+	app.LogDir = proj.Config.LogDir
 
 	/*
 		app.ConfigFilePath = filepath.Join(app.ConfigDir, fmt.Sprintf("%sconf.yaml", app.Name))
 		if _, err := os.Stat(app.ConfigFilePath); err != nil {
 			return err
 		}*/
-	// 读项目配置文件
-	if err := app.ProjectConf.Read(app.ProjectFilePath); err != nil {
-		return err
-	}
 	// 读应用配置文件
 	if c, err := gira.LoadConfig(app.ConfigDir, app.EnvDir, app.appType, app.appId); err != nil {
 		return err
@@ -169,27 +147,17 @@ func (app *Application) init() error {
 	if err := app.Facade.OnConfigLoad(app.Config); err != nil {
 		return err
 	}
+	// 初始化日志
 	if app.Config.Log != nil {
 		if err := log.ConfigLog(app.Facade, *app.Config.Log); err != nil {
 			return err
 		}
 	}
 	runtime.GOMAXPROCS(app.Config.Thread)
-	//var serviceConf ServiceConf
-	// for _, conf := range app.ProjectConf.Services {
-	// 	if conf.Name == app.Name {
-	// 		log.Info("=======", conf.Name)
-	// 	}
-	// }
-	// log.Infof("%+v\n", app.ProjectConf)
 	return nil
 }
 
-func (app *Application) createHttpServer() {
-
-}
-
-func (app *Application) forver() error {
+func (app *Application) serve() error {
 	if err := app.start(); err != nil {
 		return err
 	}
@@ -198,18 +166,38 @@ func (app *Application) forver() error {
 	}
 	return nil
 }
-
 func (app *Application) start() error {
-	// log.Info("application", app.FullName, "start")
 	if err := app.init(); err != nil {
 		return err
 	}
-	app.Facade.Awake()
-	// 内置的服务
+	if err := app.awake(); err != nil {
+		return err
+	}
+	if err := app.onApplicationLoad(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (app *Application) onApplicationLoad() error {
+	if app.Registry != nil {
+		if err := app.Registry.Notify(); err != nil {
+			return err
+		}
+	}
+	if err := app.Facade.OnApplicationLoad(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (app *Application) awake() error {
+	// log.Info("application", app.FullName, "start")
+
+	// ====内置的服务=============
 	if app.Config.Sdk != nil {
 		app.Sdk = sdk.NewConfigSdk(*app.Config.Sdk)
 	}
-
 	if app.Config.Etcd != nil {
 		if r, err := registry.NewConfigRegistry(app.Config.Etcd, app.Facade); err != nil {
 			return err
@@ -219,7 +207,7 @@ func (app *Application) start() error {
 	}
 	if app.Config.AccountCache != nil {
 		app.AccountCacheClient = db.NewAccountCacheClient()
-		if err := app.AccountCacheClient.Start(app.cancelCtx, *app.Config.AccountCache); err != nil {
+		if err := app.AccountCacheClient.Start(app.ctx, *app.Config.AccountCache); err != nil {
 			return err
 		}
 	}
@@ -238,50 +226,34 @@ func (app *Application) start() error {
 	}
 	if app.Config.GameDb != nil {
 		app.GameDbClient = db.NewGameDbClient()
-		if err := app.GameDbClient.Start(app.cancelCtx, *app.Config.GameDb); err != nil {
+		if err := app.GameDbClient.Start(app.ctx, *app.Config.GameDb); err != nil {
 			return err
 		}
 	}
 	if app.Config.AccountDb != nil {
 		app.AccountDbClient = db.NewAccountDbClient()
-		if err := app.AccountDbClient.Start(app.cancelCtx, *app.Config.AccountDb); err != nil {
+		if err := app.AccountDbClient.Start(app.ctx, *app.Config.AccountDb); err != nil {
 			return err
 		}
 	}
 	if app.Config.StatDb != nil {
 		app.StatDbClient = db.NewStatDbClient()
-		if err := app.StatDbClient.Start(app.cancelCtx, *app.Config.StatDb); err != nil {
+		if err := app.StatDbClient.Start(app.ctx, *app.Config.StatDb); err != nil {
 			return err
 		}
 	}
 	if app.Config.AdminDb != nil {
 		app.adminDbClient = db.NewAdminDbClient()
-		if err := app.adminDbClient.Start(app.cancelCtx, *app.Config.AdminDb); err != nil {
+		if err := app.adminDbClient.Start(app.ctx, *app.Config.AdminDb); err != nil {
 			return err
 		}
 	}
-
 	if app.Config.ResourceDb != nil {
 		app.ResourceDbClient = db.NewResourceDbClient()
-		if err := app.ResourceDbClient.Start(app.cancelCtx, *app.Config.ResourceDb); err != nil {
+		if err := app.ResourceDbClient.Start(app.ctx, *app.Config.ResourceDb); err != nil {
 			return err
 		}
 	}
-	// res加载
-	if resourceManager, ok := app.Facade.(gira.ResourceManager); ok {
-		resourceLoader := resourceManager.ResourceLoader()
-		if resourceLoader != nil {
-			app.resourceLoader = resourceLoader
-			if err := app.resourceLoader.LoadResource("resource"); err != nil {
-				return err
-			}
-		} else {
-			return gira.ErrResourceLoaderNotImplement
-		}
-	} else {
-		return gira.ErrResourceManagerNotImplement
-	}
-
 	if app.Config.Http != nil {
 		if handler, ok := app.Facade.(http.HttpHandler); !ok {
 			return gira.ErrHttpHandlerNotImplement
@@ -302,18 +274,29 @@ func (app *Application) start() error {
 			app.Gate = gate
 		}
 	}
-	if app.Registry != nil {
-		if err := app.Registry.Notify(); err != nil {
-			return err
+	// res加载
+	if resourceManager, ok := app.Facade.(gira.ResourceManager); ok {
+		resourceLoader := resourceManager.ResourceLoader()
+		if resourceLoader != nil {
+			app.resourceLoader = resourceLoader
+			if err := app.resourceLoader.LoadResource("resource"); err != nil {
+				return err
+			}
+		} else {
+			return gira.ErrResourceLoaderNotImplement
 		}
+	} else {
+		return gira.ErrResourceManagerNotImplement
 	}
-	if err := app.Facade.OnApplicationLoad(); err != nil {
-		return err
-	}
+	app.Facade.Awake()
 	// 创建场景
 	// scene := CreateScene()
 	// app.MainScene = scene
 	// 等待关闭
+	return nil
+}
+
+func (app *Application) wait() error {
 	ctrlFunc := func() error {
 		quit := make(chan os.Signal)
 		defer close(quit)
@@ -334,7 +317,7 @@ func (app *Application) start() error {
 				default:
 					log.Info("single x")
 				}
-			case <-app.cancelCtx.Done():
+			case <-app.ctx.Done():
 				log.Info("recv ctx:", app.Err().Error())
 				return nil
 			}
@@ -342,10 +325,6 @@ func (app *Application) start() error {
 	}
 	// app.Go(scene.forver)
 	app.Go(ctrlFunc)
-	return nil
-}
-
-func (app *Application) wait() error {
 	if err := app.errGroup.Wait(); err != nil {
 		log.Infow("application down", "full_name", app.appFullName, "error", err)
 		return err

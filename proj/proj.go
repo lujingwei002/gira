@@ -24,13 +24,15 @@ type ProjectConfig struct {
 	Zone                string // 当前区 wc|qq|gf|review
 	ProjectDir          string
 	DotEnvFilePath      string // .env
-	projectConfFilePath string // gira.yaml
+	ProjectConfFilePath string // gira.yaml
 	DocDir              string // doc
+	LogDir              string // log
 	ConfigDir           string // config
 	EnvDir              string // env
 	ConstDir            string //
 	ResourceDir         string // resource
 	GenDir              string // gen
+	RunDir              string // run
 	SrcTestDir          string // src/test
 	GenModelDir         string // gen/model
 	GenProtocolDir      string // gen/protocol
@@ -74,9 +76,11 @@ func (p *ProjectConfig) load() error {
 			}
 		}
 	}
-	p.projectConfFilePath = path.Join(p.ProjectDir, project_config_file_name)
+	p.ProjectConfFilePath = path.Join(p.ProjectDir, project_config_file_name)
 	p.EnvDir = path.Join(p.ProjectDir, "env")
 	p.ConfigDir = path.Join(p.ProjectDir, "config")
+	p.RunDir = path.Join(p.ProjectDir, "run")
+	p.LogDir = path.Join(p.ProjectDir, "log")
 	p.DotEnvFilePath = path.Join(p.ConfigDir, ".env")
 	p.DocDir = path.Join(p.ProjectDir, "doc")
 	p.ResourceDir = path.Join(p.ProjectDir, "resource")
@@ -96,10 +100,10 @@ func (p *ProjectConfig) load() error {
 	p.DocProtocolDir = path.Join(p.DocDir, "protocol")
 	p.DocModelDir = path.Join(p.DocDir, "model")
 	p.GenProtocolDir = path.Join(p.GenDir, "protocol")
-	if _, err := os.Stat(p.projectConfFilePath); err != nil && os.IsNotExist(err) {
+	if _, err := os.Stat(p.ProjectConfFilePath); err != nil && os.IsNotExist(err) {
 		return err
 	}
-	data, err := ioutil.ReadFile(p.projectConfFilePath)
+	data, err := ioutil.ReadFile(p.ProjectConfFilePath)
 	if err != nil {
 		return err
 	}
