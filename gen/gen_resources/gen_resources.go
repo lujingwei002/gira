@@ -30,7 +30,7 @@ import (
 	"log"
 	"os"
 	"github.com/urfave/cli/v2"
-	"hayou.com/x3/gen/resource"
+	"<<.Module>>/gen/resource"
 )
 
 func main() {
@@ -569,6 +569,7 @@ type ResourceFile struct {
 
 // 生成协议的状态
 type GenState struct {
+	Module        string
 	resourceFile  ResourceFile
 	excelDataDict map[string]*ExcelData
 }
@@ -927,7 +928,7 @@ func genResources3(resourceState *GenState) error {
 	if tmpl, err := tmpl.Parse(cli_code); err != nil {
 		return err
 	} else {
-		if err := tmpl.Execute(file, resourceState.resourceFile); err != nil {
+		if err := tmpl.Execute(file, resourceState); err != nil {
 			return err
 		}
 	}
@@ -939,6 +940,7 @@ func Gen() error {
 	log.Info("===============gen resource start===============")
 	// 初始化
 	genState := &GenState{
+		Module:        proj.Config.Module,
 		excelDataDict: make(map[string]*ExcelData),
 		resourceFile: ResourceFile{
 			DescriptorDict: make(map[string]*Descriptor, 0),
