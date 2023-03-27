@@ -25,7 +25,8 @@ type field_type int
 var sproto_template = `
 <<.Header>>
 <<- range .PacketArr>>
-<<if .Type.IsStructType>>.<<.Name>><<else>><<.Name>> <<.MessageId>><<- end>> {
+// <<.Comment>>
+<<if .Type.IsStructType>>.<<.StructName>><<else>><<.Name>> <<.MessageId>><<- end>> {
 
 	<<- if .Type.IsStructType>>
 	<<- range .Message.FieldArr>>
@@ -148,7 +149,7 @@ type <<.Push.StructName>> struct {
 }
 
 func (self *<<.Push.StructName>>) GetProtoName() string {
-	return "<<.Name>>"
+	return "<<.StructName>>"
 }
 	<<end>>
 <<- end>>
@@ -159,8 +160,8 @@ var Protocols []*gosproto.Protocol = []*gosproto.Protocol {
 <<- else>>
 	{
 		Type: 		<<.MessageId>>,
-		Name: 		"<<.Name>>",
-		MethodName: "<<.Name>>",
+		Name: 		"<<.StructName>>",
+		MethodName: "<<.StructName>>",
 	<<- if .Type.IsPushType>>
 		Request: reflect.TypeOf(&<<.Push.StructName>>{}),
 	<<- end>>
@@ -236,7 +237,7 @@ func NewClient(ctx context.Context, conn gira.GateClient, sproto *sproto.Sproto)
 	}
 <<- range .PacketArr>>
 <<- if .Type.IsPushType>>
-	self.pushDict["<<.Name>>"] = &self.<<capLower .Push.StructName>>Func 
+	self.pushDict["<<.StructName>>"] = &self.<<capLower .Push.StructName>>Func 
 <<- end>>
 <<- end>>
 	go self.readRoutine()
@@ -298,9 +299,9 @@ func (self *Client) readRoutine() error {
 <<- range .PacketArr>>
 <<- if .Type.IsRequestType>>
 /// <<.Comment>>
-func (self *Client) <<.Name>>(ctx context.Context, req *<<.Request.StructName>>) (*<<.Response.StructName>>, error) {
+func (self *Client) <<.StructName>>(ctx context.Context, req *<<.Request.StructName>>) (*<<.Response.StructName>>, error) {
 	reqId := atomic.AddUint64(&self.reqId, 1)
-	data, err := self.proto.RequestEncode("<<.Name>>", int32(reqId), req)
+	data, err := self.proto.RequestEncode("<<.StructName>>", int32(reqId), req)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +337,7 @@ func (self *Client) <<.Name>>(ctx context.Context, req *<<.Request.StructName>>)
 }
 <<- end>>
 <<- if .Type.IsPushType>>
-func (self *Client) On<<.Name>>Push(f <<.Push.StructName>>Func) uint64 {
+func (self *Client) On<<.StructName>>Push(f <<.Push.StructName>>Func) uint64 {
 	id := atomic.AddUint64(&self.<< capLower .Push.StructName>>Id, 1)
 	method := &<<.Push.StructName>>Method {
 		Func: f,
@@ -345,7 +346,7 @@ func (self *Client) On<<.Name>>Push(f <<.Push.StructName>>Func) uint64 {
 	return id
 }
 
-func (self *Client) Off<<.Name>>Push(id uint64) error {
+func (self *Client) Off<<.StructName>>Push(id uint64) error {
 	self.<<capLower .Push.StructName>>Func.Delete(id)
 	return nil
 }
@@ -442,16 +443,17 @@ func (s MessageType) IsPushType() bool {
 }
 
 type Packet struct {
-	MessageId int
-	Comment   string
-	fullName  string
-	Name      string
-	Type      MessageType
-	Message   Message
-	Request   Message
-	Response  Message
-	Push      Message
-	Notify    Message
+	MessageId  int
+	Comment    string
+	Name       string
+	FullName   string
+	StructName string
+	Type       MessageType
+	Message    Message
+	Request    Message
+	Response   Message
+	Push       Message
+	Notify     Message
 }
 
 func capUpperString(s string) string {
@@ -640,8 +642,9 @@ func genProtocols1(genState *GenState, mainFilePath string, filePathArr []string
 			args := spaceRegexp.FindAllString(k, -1)
 			name := args[0]
 			packet := &Packet{
-				fullName: name,
-				Name:     camelString(name),
+				Name:       name,
+				FullName:   name,
+				StructName: camelString(name),
 			}
 			if c, ok := dict["comment"]; ok {
 				packet.Comment = c.(string)
