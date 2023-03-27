@@ -25,7 +25,7 @@ type field_type int
 var sproto_template = `
 <<.Header>>
 <<- range .PacketArr>>
-// <<.Comment>>
+# <<.Comment>>
 <<if .Type.IsStructType>>.<<.StructName>><<else>><<.Name>> <<.MessageId>><<- end>> {
 
 	<<- if .Type.IsStructType>>

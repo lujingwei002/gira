@@ -128,9 +128,12 @@ type GateConfig struct {
 type TestSdkConfig struct {
 	Secret string `yaml:"secret"`
 }
-
+type PwdSdkConfig struct {
+	Secret string `yaml:"secret"`
+}
 type SdkConfig struct {
 	Test *TestSdkConfig `yaml:"test"`
+	Pwd  *PwdSdkConfig  `yaml:"pwd"`
 }
 
 type GrpcConfig struct {

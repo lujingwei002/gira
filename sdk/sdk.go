@@ -12,6 +12,7 @@ type sdk_interface interface {
 
 type Sdk struct {
 	TestSdk *TestSdk
+	PwdSdk  *PwdSdk
 	sdkDict map[string]sdk_interface
 }
 
@@ -28,6 +29,10 @@ func NewConfigSdk(config gira.SdkConfig) *Sdk {
 	if config.Test != nil {
 		self.TestSdk = ConfigTestSdk(*config.Test)
 		self.sdkDict["test"] = self.TestSdk
+	}
+	if config.Pwd != nil {
+		self.PwdSdk = ConfigGfSdk(*config.Pwd)
+		self.sdkDict["pwd"] = self.PwdSdk
 	}
 	return self
 }
@@ -57,6 +62,25 @@ func (self *TestSdk) Login(accountPlat string, open_id string, token string) (*g
 	}
 	result := &gira.SdkAccount{
 		Nickname: open_id,
+	}
+	return result, nil
+}
+
+type PwdSdk struct {
+	config gira.PwdSdkConfig
+}
+
+func ConfigGfSdk(config gira.PwdSdkConfig) *PwdSdk {
+	self := &PwdSdk{
+		config: config,
+	}
+	return self
+}
+
+func (self *PwdSdk) Login(accountPlat string, open_id string, token string) (*gira.SdkAccount, error) {
+	result := &gira.SdkAccount{
+		Nickname:    open_id,
+		AccessToken: token,
 	}
 	return result, nil
 }
