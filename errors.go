@@ -52,6 +52,9 @@ const (
 	E_PROJECT_FILE_NOT_FOUND         = -41
 	E_INVALID_PASSWORD               = -42
 	E_GEN_NOT_CHANGE                 = -43
+	E_NO_SESSION                     = -44
+	E_SPROTO_WAIT_PUSH_TIMEOUT       = -45
+	E_SPROTO_WAIT_PUSH_CONFLICT      = -46
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -99,6 +102,9 @@ const (
 	E_MSG_PROJECT_FILE_NOT_FOUND         = "gira.yaml文件找不到"
 	E_MSG_INVALID_PASSWORD               = "密码错误"
 	E_MSG_GEN_NOT_CHANGE                 = "gen源文件没变化"
+	E_MSG_NO_SESSION                     = "玩家不在线"
+	E_MSG_SPROTO_WAIT_PUSH_TIMEOUT       = "等待push超时"
+	E_MSG_SPROTO_WAIT_PUSH_CONFLICT      = "等待push冲突 ，只可以有一个"
 )
 
 type Error struct {
@@ -161,6 +167,10 @@ var (
 	ErrProjectFileNotFound         = NewError(E_PROJECT_FILE_NOT_FOUND, E_MSG_PROJECT_FILE_NOT_FOUND)
 	ErrInvalidPassword             = NewError(E_INVALID_PASSWORD, E_MSG_INVALID_PASSWORD)
 	ErrGenNotChange                = NewError(E_GEN_NOT_CHANGE, E_MSG_GEN_NOT_CHANGE)
+	ErrNoSession                   = NewError(E_NO_SESSION, E_MSG_NO_SESSION)
+	ErrSprotoWaitPushTimeout       = NewError(E_SPROTO_WAIT_PUSH_TIMEOUT, E_MSG_SPROTO_WAIT_PUSH_TIMEOUT)
+
+	ErrSprotoWaitPushConflict = NewError(E_SPROTO_WAIT_PUSH_CONFLICT, E_MSG_SPROTO_WAIT_PUSH_CONFLICT)
 )
 
 func ErrCode(err error) int32 {

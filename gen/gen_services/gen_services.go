@@ -25,19 +25,19 @@ import (
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira"
 	gira_app "github.com/lujingwei002/gira/app"
-	"{{.ModuleName}}/{{.ServiceName}}/facade"
+	{{.ServiceName}}_app "{{.ModuleName}}/{{.ServiceName}}/app"
 	{{.ServiceName}}_resource "{{.ModuleName}}/{{.ServiceName}}/resource"
 	"{{.ModuleName}}/gen/resource"
 )
 
 // 检查是否满足接口aa
 var _ = (resource.I{{.ServiceUpperName}}Handler)(&{{.ServiceName}}_resource.ResourceHandler{})
-var _ = (gira.ApplicationFacade)(&facade.Facade{})
-var _ = (gira.ResourceManager)(&facade.Facade{})
+var _ = (gira.ApplicationFacade)(&{{.ServiceName}}_app.Facade{})
+var _ = (gira.ResourceManager)(&{{.ServiceName}}_app.Facade{})
 
 func main() {
-	facade := facade.NewFacade()
-	err := gira_app.Cli("{{.ServiceName}}", facade)
+	app := {{.ServiceName}}_app.NewFacade()
+	err := gira_app.Cli("{{.ServiceName}}", app)
 	log.Info(err)
 }
 

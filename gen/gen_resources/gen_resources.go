@@ -406,8 +406,8 @@ func (self *<<.WrapStructName>>) Make(arr <<.ArrTypeName>>) error {
 type <<.GoObjectTypeName>> struct {
 	<<$descriptor := .>>
 	<<- range .ExcelData.ValueArr>>
-		<<- $v := index . $descriptor.ObjectKeyIndex>>
-		<<- camelString $v>> *<<$descriptor.StructName>>
+	<<- $v := index . $descriptor.ObjectKeyIndex>>
+	<< camelString $v>> *<<$descriptor.StructName>>
 	<<- end>>
 }
 

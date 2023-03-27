@@ -184,7 +184,8 @@ type Client struct {
 	reqId			uint64
 	ctx				context.Context
 	requestDict     sync.Map
-	pushDict		map[string]*sync.Map
+	pushDict     sync.Map
+	onPushDict		map[string]*sync.Map
 
 	// push 消息的侦听函数 
 <<- range .PacketArr>>
@@ -228,16 +229,27 @@ type waitRequest struct {
 	resp    interface{}
 }
 
+type waitPush struct {
+	route	string
+	data	[]byte
+	err		error
+    caller	chan*waitPush
+	mode	gosproto.RpcMode
+	name    string
+	session int32
+	resp    interface{}
+}
+
 func NewClient(ctx context.Context, conn gira.GateClient, sproto *sproto.Sproto) *Client {
 	self := &Client{
 		proto:		sproto,
 		conn:		conn,
 		ctx:		ctx,
-		pushDict:	make(map[string]*sync.Map, 0),
+		onPushDict:	make(map[string]*sync.Map, 0),
 	}
 <<- range .PacketArr>>
 <<- if .Type.IsPushType>>
-	self.pushDict["<<.StructName>>"] = &self.<<capLower .Push.StructName>>Func 
+	self.onPushDict["<<.StructName>>"] = &self.<<capLower .Push.StructName>>Func 
 <<- end>>
 <<- end>>
 	go self.readRoutine()
@@ -278,7 +290,7 @@ func (self *Client) readRoutine() error {
 				if mode != gosproto.RpcRequestMode {
 					continue
 				}
-				if dict, ok := self.pushDict[name]; !ok {
+				if dict, ok := self.onPushDict[name]; !ok {
 					log.Infow("client proto push not register", "name", name)
 				} else {
 					handlerCount := 0
@@ -292,11 +304,22 @@ func (self *Client) readRoutine() error {
 						log.Infow("client proto push not register", "name", name)
 					}
 				}
+				if v, ok := self.pushDict.Load(name); ok {
+					self.pushDict.Delete(name)
+					wait := v.(*waitPush)	
+					wait.data = data
+					// 上下文信息
+					wait.route = route
+					// 解析message
+					wait.mode, wait.name, wait.session, wait.resp, wait.err = self.proto.RequestDecode(data)
+					wait.caller <- wait
+				}
 		}
 	}
 }
 
 <<- range .PacketArr>>
+
 <<- if .Type.IsRequestType>>
 /// <<.Comment>>
 func (self *Client) <<.StructName>>(ctx context.Context, req *<<.Request.StructName>>) (*<<.Response.StructName>>, error) {
@@ -336,7 +359,37 @@ func (self *Client) <<.StructName>>(ctx context.Context, req *<<.Request.StructN
 	}
 }
 <<- end>>
+
+
 <<- if .Type.IsPushType>>
+
+/// <<.Comment>>
+func (self *Client) Wait<<.StructName>>Push(ctx context.Context) (*<<.Push.StructName>>, error) {
+	wait := &waitPush {
+		caller: make(chan* waitPush, 1),
+	}
+	if _, loaded := self.pushDict.LoadOrStore("<<.StructName>>", wait); loaded {
+		return nil, gira.ErrSprotoWaitPushConflict
+	}
+	defer close(wait.caller)
+	select {
+		case v := <- wait.caller:
+			if v.err != nil {
+				return nil, v.err
+			}
+	        if wait.mode != gosproto.RpcRequestMode {
+				return nil, gira.ErrSprotoPushConversion
+			}
+			resp1, ok := wait.resp.(*<<.Push.StructName>>)
+			if !ok {
+				return nil, gira.ErrSprotoPushConversion
+			}
+			return resp1, nil
+		case <-ctx.Done():
+			return nil, gira.ErrSprotoWaitPushTimeout
+	}
+}
+
 func (self *Client) On<<.StructName>>Push(f <<.Push.StructName>>Func) uint64 {
 	id := atomic.AddUint64(&self.<< capLower .Push.StructName>>Id, 1)
 	method := &<<.Push.StructName>>Method {

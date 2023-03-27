@@ -9,7 +9,7 @@ type SdkAccount struct {
 	AccessToken     string
 	RefreshToken    string
 	TokenExpireTime int64
-	Nickname        string
+	NickName        string
 	Gender          int32
 	SmallPic        string
 	LargePic        string

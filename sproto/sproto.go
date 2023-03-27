@@ -82,9 +82,13 @@ func (self *Sproto) ResponseEncode(name string, session int32, response interfac
 	return self.rpc.ResponseEncode(name, session, response)
 }
 
+func (self *Sproto) StructEncode(req interface{}) (data []byte, err error) {
+	return gosproto.Encode(req)
+}
+
 // 根据协议，调用handler的相应方法
 func (self *Sproto) RpcDispatch(ctx context.Context, handler *SprotoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, dataPushArr [][]byte, err error) {
-	resp, pushArr, err := handler.dispatch(ctx, receiver, route, req)
+	resp, pushArr, err := handler.Dispatch(ctx, receiver, route, req)
 	// response
 	if resp == nil {
 		protocol := self.rpc.GetProtocolByName(route)
@@ -195,10 +199,10 @@ func (self *SprotoHandler) HasRoute(route string) bool {
 	return true
 }
 
-func (self *SprotoHandler) dispatch(ctx context.Context, receiver interface{}, route string, r interface{}) (resp interface{}, push []SprotoPush, err error) {
+func (self *SprotoHandler) Dispatch(ctx context.Context, receiver interface{}, route string, r interface{}) (resp interface{}, push []SprotoPush, err error) {
 	handler, found := self.methods[route]
 	if !found {
-		log.Infow("sproto handler not found", "name", route)
+		log.Warnw("sproto handler not found", "name", route)
 		err = gira.ErrSprotoHandlerNotImplement
 		return
 	}

@@ -61,7 +61,7 @@ func (self *TestSdk) Login(accountPlat string, open_id string, token string) (*g
 		return nil, gira.ErrInvalidSdkToken
 	}
 	result := &gira.SdkAccount{
-		Nickname: open_id,
+		NickName: open_id,
 	}
 	return result, nil
 }
@@ -79,7 +79,7 @@ func ConfigGfSdk(config gira.PwdSdkConfig) *PwdSdk {
 
 func (self *PwdSdk) Login(accountPlat string, open_id string, token string) (*gira.SdkAccount, error) {
 	result := &gira.SdkAccount{
-		Nickname:    open_id,
+		NickName:    open_id,
 		AccessToken: token,
 	}
 	return result, nil

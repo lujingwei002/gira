@@ -60,7 +60,7 @@ func JWT() gin.HandlerFunc {
 			err = gira.ErrInvalidJwt
 		} else {
 			//TODO
-			claims, err = ParseJwtToken(token, "app.Config.Jwt.Secret")
+			claims, err = ParseJwtToken1(token, "app.Config.Jwt.Secret")
 			if err != nil {
 				err = gira.ErrInvalidJwt
 			} else if time.Now().Unix() > claims.ExpiresAt {
@@ -139,7 +139,7 @@ type Claims struct {
 	Channel     int64  `json:"channel"`
 }
 
-func GenerateJwtToken(secret string, duration time.Duration, memberId string, channel int64, accountPlat string, phonePlat int32, deviceID string) (string, error) {
+func GenerateJwtToken1(secret string, duration time.Duration, memberId string, channel int64, accountPlat string, phonePlat int32, deviceID string) (string, error) {
 	nowTime := time.Now()
 	expireTime := nowTime.Add(duration)
 	claims := Claims{
@@ -158,7 +158,7 @@ func GenerateJwtToken(secret string, duration time.Duration, memberId string, ch
 	return token, err
 }
 
-func GenerateJwtRefreshToken(secret string, duration time.Duration) (string, error) {
+func GenerateJwtRefreshToken1(secret string, duration time.Duration) (string, error) {
 	nowTime := time.Now()
 	expireTime := nowTime.Add(duration)
 	claims := Claims{
@@ -177,7 +177,7 @@ func GenerateJwtRefreshToken(secret string, duration time.Duration) (string, err
 	return token, err
 }
 
-func ParseJwtToken(token string, secret string) (*Claims, error) {
+func ParseJwtToken1(token string, secret string) (*Claims, error) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
