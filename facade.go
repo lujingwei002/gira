@@ -20,7 +20,9 @@ type ApplicationFacade interface {
 	OnApplicationLoad() error
 	// 配置加载完成后接收通知
 	OnConfigLoad(c *Config) error
-	Awake() error
+	OnFrameworkConfigLoad(c *Config) error
+	OnAwake() error
+	OnFrameworkAwake(facade ApplicationFacade) error
 	Start() error
 
 	// ======= 状态数据 ===========
@@ -49,8 +51,8 @@ type ApplicationFacade interface {
 
 	// ======= registry接口 ===========
 	// 如果失败，则返回当前所在的节点
-	LockLocalMember(memberId string) (*Peer, error)
-	UnlockLocalMember(memberId string) (*Peer, error)
+	LockLocalUser(userId string) (*Peer, error)
+	UnlockLocalUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
 
 	ReloadResource() error

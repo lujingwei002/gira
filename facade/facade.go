@@ -9,7 +9,12 @@ import (
 func Context() context.Context {
 	return gira.Facade().Context()
 }
-
+func GetAppId() int32 {
+	return gira.Facade().GetAppId()
+}
+func GetAppFullName() string {
+	return gira.Facade().GetAppFullName()
+}
 func GetResourceDbClient() gira.MongoClient {
 	return gira.Facade().GetResourceDbClient()
 }

@@ -5,9 +5,9 @@ package registry
 /// key不设置过期时间，程序正常退出时自动清理，非正常退出，要程序重启来解锁
 ///
 /// 注册表结构:
-///   /peer_player/<<Name>>/<<MemberId>> <<FullName>>
-///   /local_player/<<FullName>>/<<MemberId>> time
-///   /player/<<MemberId>>/<<FullName>> time
+///   /peer_player/<<Name>>/<<UserId>> <<FullName>>
+///   /local_player/<<FullName>>/<<UserId>> time
+///   /player/<<UserId>>/<<FullName>> time
 ///
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 type PlayerRegistry struct {
 	PeerPrefix   string // /peer_player/<<Name>>/      根据服务类型查找全部玩家
 	LocalPrefix  string // /local_player/<<FullName>>  根据服务全名查找全部玩家
-	MemberPrefix string // /player/<<MemberId>>/       可以根据memberid查找当前所在的服
+	UserPrefix   string // /player/<<UserId>>/       可以根据user_id查找当前所在的服
 	Peers        map[string]*gira.Peer
 	LocalPlayers sync.Map
 	SelfPeer     *gira.Peer
@@ -36,10 +36,10 @@ type PlayerRegistry struct {
 
 func newConfigPlayerRegistry(r *Registry) (*PlayerRegistry, error) {
 	self := &PlayerRegistry{
-		PeerPrefix:   fmt.Sprintf("/peer_player/%s/", r.Name),
-		LocalPrefix:  fmt.Sprintf("/local_player/%s/", r.FullName),
-		MemberPrefix: fmt.Sprintf("/player/"),
-		Peers:        make(map[string]*gira.Peer, 0),
+		PeerPrefix:  fmt.Sprintf("/peer_user/%s/", r.Name),
+		LocalPrefix: fmt.Sprintf("/local_user/%s/", r.FullName),
+		UserPrefix:  fmt.Sprintf("/user/"),
+		Peers:       make(map[string]*gira.Peer, 0),
 	}
 	self.cancelCtx, self.cancelFunc = context.WithCancel(r.cancelCtx)
 	// 注册自己
@@ -76,7 +76,7 @@ func (self *PlayerRegistry) notify(r *Registry) error {
 }
 
 func (self *PlayerRegistry) onLocalPlayerAdd(r *Registry, player *gira.LocalPlayer) error {
-	log.Infof("============ local player %s add ==================", player.MemberId)
+	log.Infof("============ local user %s add ==================", player.UserId)
 	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerAdd(player)
 	} else {
@@ -86,7 +86,7 @@ func (self *PlayerRegistry) onLocalPlayerAdd(r *Registry, player *gira.LocalPlay
 }
 
 func (self *PlayerRegistry) onLocalPeerDelete(r *Registry, player *gira.LocalPlayer) error {
-	log.Infof("============ local player %s delete ==================", player.MemberId)
+	log.Infof("============ local user %s delete ==================", player.UserId)
 	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerDelete(player)
 	} else {
@@ -96,7 +96,7 @@ func (self *PlayerRegistry) onLocalPeerDelete(r *Registry, player *gira.LocalPla
 }
 
 func (self *PlayerRegistry) onLocalPeerUpdate(r *Registry, player *gira.LocalPlayer) error {
-	log.Infof("============ local player %s update ==================", player.MemberId)
+	log.Infof("============ local user %s update ==================", player.UserId)
 	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerUpdate(player)
 	} else {
@@ -111,24 +111,24 @@ func (self *PlayerRegistry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 		log.Info("player registry got a invalid player", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
-	memberId := pats[3]
+	userId := pats[3]
 	value := string(kv.Value)
 	loginTime, err := strconv.Atoi(value)
 	if err != nil {
 		log.Info("player registry got a invalid player", string(kv.Value))
 		return err
 	}
-	if lastValue, ok := self.LocalPlayers.Load(memberId); ok {
+	if lastValue, ok := self.LocalPlayers.Load(userId); ok {
 		lastPlayer := lastValue.(*gira.LocalPlayer)
-		log.Info("player registry add player, but already exist", memberId, "=>", value, lastPlayer.LoginTime)
+		log.Info("player registry add player, but already exist", userId, "=>", value, lastPlayer.LoginTime)
 	} else {
 		// 新增player
-		log.Info("player registry add player", memberId, "=>", value)
+		log.Info("player registry add player", userId, "=>", value)
 		player := &gira.LocalPlayer{
 			LoginTime: loginTime,
-			MemberId:  memberId,
+			UserId:    userId,
 		}
-		self.LocalPlayers.Store(memberId, player)
+		self.LocalPlayers.Store(userId, player)
 		self.onLocalPlayerAdd(r, player)
 	}
 	return nil
@@ -140,13 +140,13 @@ func (self *PlayerRegistry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 		log.Info("player registry got a invalid player", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
-	memberId := pats[3]
+	userId := pats[3]
 	value := string(kv.Value)
-	if lastPlayer, ok := self.LocalPlayers.Load(memberId); ok {
-		log.Info("player registry remove player", memberId, "=>", value, lastPlayer)
-		self.LocalPlayers.Delete(memberId)
+	if lastPlayer, ok := self.LocalPlayers.Load(userId); ok {
+		log.Info("player registry remove player", userId, "=>", value, lastPlayer)
+		self.LocalPlayers.Delete(userId)
 	} else {
-		log.Info("player registry remote player, but player not found", memberId, "=>", value)
+		log.Info("player registry remote player, but player not found", userId, "=>", value)
 	}
 	return nil
 }
@@ -158,22 +158,22 @@ func (self *PlayerRegistry) onKvAdd(kv *mvccpb.KeyValue) error {
 		log.Info("player registry got a invalid player", string(kv.Key))
 		return gira.ErrInvalidPeer
 	}
-	memberId := pats[3]
+	userId := pats[3]
 	value := string(kv.Value)
 	loginTime, err := strconv.Atoi(value)
 	if err != nil {
 		log.Info("player registry got a invalid player", string(kv.Value))
 		return err
 	}
-	if lastPlayer, ok := self.Peers[memberId]; ok {
-		log.Info("player registry add player, but already exist", memberId, lastPlayer, value)
+	if lastPlayer, ok := self.Peers[userId]; ok {
+		log.Info("player registry add player, but already exist", userId, lastPlayer, value)
 	} else {
 		player := &gira.LocalPlayer{
 			LoginTime: loginTime,
-			MemberId:  memberId,
+			UserId:    userId,
 		}
-		self.LocalPlayers.Store(memberId, player)
-		log.Info("player registry add player", memberId, "=>", value)
+		self.LocalPlayers.Store(userId, player)
+		log.Info("player registry add player", userId, "=>", value)
 	}
 	return nil
 }
@@ -228,37 +228,37 @@ func (self *PlayerRegistry) unregisterSelf(r *Registry) error {
 
 	var txnResp *clientv3.TxnResponse
 	var err error
-	self.LocalPlayers.Range(func(memberId any, v any) bool {
+	self.LocalPlayers.Range(func(userId any, v any) bool {
 		txn := kv.Txn(ctx)
-		localKey := fmt.Sprintf("%s%s", self.LocalPrefix, memberId)
-		peerKey := fmt.Sprintf("%s%s", self.PeerPrefix, memberId)
-		memberKey := fmt.Sprintf("%s%s/%s", self.MemberPrefix, memberId, r.FullName)
+		localKey := fmt.Sprintf("%s%s", self.LocalPrefix, userId)
+		peerKey := fmt.Sprintf("%s%s", self.PeerPrefix, userId)
+		userKey := fmt.Sprintf("%s%s/%s", self.UserPrefix, userId, r.FullName)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(localKey), "!=", 0)).
-			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(memberKey))
+			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(userKey))
 
 		if txnResp, err = txn.Commit(); err != nil {
 			log.Info("txn err", err)
 			return true
 		}
 		if txnResp.Succeeded {
-			log.Info("local player", memberId, "delete")
+			log.Info("local user", userId, "delete")
 		} else {
-			log.Info("local player", memberId, "delete, but not found")
+			log.Info("local user", userId, "delete, but not found")
 		}
 		return true
 	})
 	return nil
 }
 
-func (self *PlayerRegistry) LockLocalMember(r *Registry, memberId string) (*gira.Peer, error) {
-	if _, ok := self.LocalPlayers.Load(memberId); ok {
+func (self *PlayerRegistry) LockLocalUser(r *Registry, userId string) (*gira.Peer, error) {
+	if _, ok := self.LocalPlayers.Load(userId); ok {
 		// return r.PeerRegistry.SelfPeer, nil
 	}
 	client := r.Client
 	// 到etcd抢占localKey
-	localKey := fmt.Sprintf("%s%s", self.LocalPrefix, memberId)
-	peerKey := fmt.Sprintf("%s%s", self.PeerPrefix, memberId)
-	memberKey := fmt.Sprintf("%s%s/%s", self.MemberPrefix, memberId, r.FullName)
+	localKey := fmt.Sprintf("%s%s", self.LocalPrefix, userId)
+	peerKey := fmt.Sprintf("%s%s", self.PeerPrefix, userId)
+	userKey := fmt.Sprintf("%s%s/%s", self.UserPrefix, userId, r.FullName)
 	value := fmt.Sprintf("%d", time.Now().Unix())
 	kv := clientv3.NewKV(client)
 	var err error
@@ -266,9 +266,9 @@ func (self *PlayerRegistry) LockLocalMember(r *Registry, memberId string) (*gira
 	txn := kv.Txn(self.cancelCtx)
 	log.Info("player registry local key", localKey)
 	log.Info("player registry peer key", peerKey)
-	log.Info("player registry member key", memberKey)
+	log.Info("player registry user key", userKey)
 	txn.If(clientv3.Compare(clientv3.CreateRevision(peerKey), "=", 0)).
-		Then(clientv3.OpPut(localKey, value), clientv3.OpPut(peerKey, r.FullName), clientv3.OpPut(memberKey, value)).
+		Then(clientv3.OpPut(localKey, value), clientv3.OpPut(peerKey, r.FullName), clientv3.OpPut(userKey, value)).
 		Else(clientv3.OpGet(peerKey))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Info("txn err", err)
@@ -284,15 +284,15 @@ func (self *PlayerRegistry) LockLocalMember(r *Registry, memberId string) (*gira
 		if peer == nil {
 			return nil, gira.ErrPeerNotFound
 		}
-		return peer, gira.ErrMemberLocked
+		return peer, gira.ErrUserLocked
 	}
 }
 
-func (self *PlayerRegistry) UnlockLocalMember(r *Registry, memberId string) (*gira.Peer, error) {
+func (self *PlayerRegistry) UnlockLocalUser(r *Registry, userId string) (*gira.Peer, error) {
 	client := r.Client
-	localKey := fmt.Sprintf("%s%s", self.LocalPrefix, memberId)
-	peerKey := fmt.Sprintf("%s%s", self.PeerPrefix, memberId)
-	memberKey := fmt.Sprintf("%s%s/%s", self.MemberPrefix, memberId, r.FullName)
+	localKey := fmt.Sprintf("%s%s", self.LocalPrefix, userId)
+	peerKey := fmt.Sprintf("%s%s", self.PeerPrefix, userId)
+	userKey := fmt.Sprintf("%s%s/%s", self.UserPrefix, userId, r.FullName)
 	value := fmt.Sprintf("%d", time.Now().Unix())
 	kv := clientv3.NewKV(client)
 	var err error
@@ -300,9 +300,9 @@ func (self *PlayerRegistry) UnlockLocalMember(r *Registry, memberId string) (*gi
 	txn := kv.Txn(self.cancelCtx)
 	log.Info("player registry local key", localKey)
 	log.Info("player registry peer key", peerKey)
-	log.Info("player registry member key", memberKey)
+	log.Info("player registry user key", userKey)
 	txn.If(clientv3.Compare(clientv3.Value(peerKey), "=", r.FullName), clientv3.Compare(clientv3.CreateRevision(peerKey), "!=", 0)).
-		Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(memberKey)).
+		Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(userKey)).
 		Else(clientv3.OpGet(peerKey))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Info("txn err", err)
@@ -321,7 +321,7 @@ func (self *PlayerRegistry) UnlockLocalMember(r *Registry, memberId string) (*gi
 		if peer == nil {
 			return nil, gira.ErrPeerNotFound
 		}
-		return peer, gira.ErrMemberLocked
+		return peer, gira.ErrUserLocked
 	}
 }
 

@@ -10,7 +10,7 @@ type Peer struct {
 }
 
 type LocalPlayer struct {
-	MemberId  string
+	UserId    string
 	LoginTime int
 }
 

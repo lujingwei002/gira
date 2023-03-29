@@ -17,15 +17,18 @@ type Sproto struct {
 var (
 	typeOfError          = reflect.TypeOf((*error)(nil)).Elem()
 	typeOfContext        = reflect.TypeOf((*context.Context)(nil)).Elem()
+	typeOfSprotoRequest  = reflect.TypeOf((*SprotoRequest)(nil)).Elem()
 	typeOfSprotoResponse = reflect.TypeOf((*SprotoResponse)(nil)).Elem()
+	typeOfSprotoPush     = reflect.TypeOf((*SprotoPush)(nil)).Elem()
 	typeOfSprotoPushArr  = reflect.TypeOf(([]SprotoPush)(nil))
 )
 
 type SprotoRequest interface {
+	GetRequestName() string
 }
 
 type SprotoPush interface {
-	GetProtoName() string
+	GetPushName() string
 }
 
 type SprotoResponse interface {
@@ -33,14 +36,32 @@ type SprotoResponse interface {
 	SetErrorMsg(v string)
 }
 
-type sprotoHandlerMethod struct {
-	method       reflect.Method
-	isReturnPush bool
+type proto_type int
+
+const (
+	proto_handler_type_request = 1
+	proto_handler_type_push    = 2
+)
+
+func (self proto_type) String() string {
+	switch self {
+	case proto_handler_type_push:
+		return "Push"
+	case proto_handler_type_request:
+		return "Request"
+	default:
+		return "unsupport"
+	}
+}
+
+type sproto_handler_method struct {
+	method    reflect.Method
+	protoType proto_type
 }
 
 type SprotoHandler struct {
 	typ     reflect.Type
-	methods map[string]*sprotoHandlerMethod
+	methods map[string]*sproto_handler_method
 }
 
 func RegisterRpc(protocols []*gosproto.Protocol) (*Sproto, error) {
@@ -64,8 +85,49 @@ func (self *Sproto) RegisterHandler(handler interface{}) *SprotoHandler {
 }
 
 // 解码
-func (self *Sproto) RequestDecode(packed []byte) (gosproto.RpcMode, string, int32, interface{}, error) {
-	return self.rpc.Dispatch(packed)
+func (self *Sproto) RequestDecode(packed []byte) (mode gosproto.RpcMode, route string, session int32, resp SprotoRequest, err error) {
+	var sp interface{}
+	mode, route, session, sp, err = self.rpc.Dispatch(packed)
+	if err != nil {
+		return
+	}
+	resp = sp.(SprotoRequest)
+	return
+}
+
+func (self *Sproto) ResponseDecode(packed []byte) (mode gosproto.RpcMode, route string, session int32, resp SprotoResponse, err error) {
+	var sp interface{}
+	mode, route, session, sp, err = self.rpc.Dispatch(packed)
+	if err != nil {
+		return
+	}
+	resp = sp.(SprotoResponse)
+	return
+}
+
+func (self *Sproto) PushDecode(packed []byte) (mode gosproto.RpcMode, route string, session int32, resp SprotoPush, err error) {
+	var sp interface{}
+	mode, route, session, sp, err = self.rpc.Dispatch(packed)
+	if err != nil {
+		return
+	}
+	resp = sp.(SprotoPush)
+	return
+}
+
+func (self *Sproto) NewResponse(req SprotoRequest) (resp SprotoResponse, err error) {
+	proto := self.rpc.GetProtocolByName(req.GetRequestName())
+	if proto == nil {
+		err = gira.ErrTodo
+		return
+	}
+	sp := reflect.New(proto.Response.Elem()).Interface()
+	if sp == nil {
+		err = gira.ErrTodo
+		return
+	}
+	resp = sp.(SprotoResponse)
+	return
 }
 
 // 编码
@@ -75,7 +137,7 @@ func (self *Sproto) RequestEncode(name string, session int32, req interface{}) (
 
 // 编码
 func (self *Sproto) PushEncode(req SprotoPush) (data []byte, err error) {
-	return self.rpc.RequestEncode(req.GetProtoName(), 0, req)
+	return self.rpc.RequestEncode(req.GetPushName(), 0, req)
 }
 
 func (self *Sproto) ResponseEncode(name string, session int32, response interface{}) (data []byte, err error) {
@@ -86,9 +148,17 @@ func (self *Sproto) StructEncode(req interface{}) (data []byte, err error) {
 	return gosproto.Encode(req)
 }
 
+func (self *Sproto) StructDecode(data []byte, req interface{}) error {
+	if _, err := gosproto.Decode(data, req); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
 // 根据协议，调用handler的相应方法
-func (self *Sproto) RpcDispatch(ctx context.Context, handler *SprotoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, dataPushArr [][]byte, err error) {
-	resp, pushArr, err := handler.Dispatch(ctx, receiver, route, req)
+func (self *Sproto) RequestDispatch(ctx context.Context, handler *SprotoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, dataPushArr [][]byte, err error) {
+	resp, pushArr, err := handler.RequestDispatch(ctx, receiver, route, req)
 	// response
 	if resp == nil {
 		protocol := self.rpc.GetProtocolByName(route)
@@ -123,7 +193,7 @@ func (self *Sproto) RpcDispatch(ctx context.Context, handler *SprotoHandler, rec
 				err = gira.ErrSprotoPushConversion
 				return
 			}
-			dataPush, err = self.rpc.RequestEncode(proto.GetProtoName(), 0, proto)
+			dataPush, err = self.rpc.RequestEncode(proto.GetPushName(), 0, proto)
 			if err != nil {
 				return
 			}
@@ -133,53 +203,66 @@ func (self *Sproto) RpcDispatch(ctx context.Context, handler *SprotoHandler, rec
 	return
 }
 
-func isSprotoHandlerMethod(method reflect.Method) bool {
-	mt := method.Type
-	if method.PkgPath != "" {
-		return false
-	}
-	if mt.NumIn() != 3 {
-		return false
-	}
-	if mt.NumOut() != 2 && mt.NumOut() != 3 {
-		return false
-	}
-	if arg1 := mt.In(1); arg1 != typeOfContext {
-		return false
-	}
-	if arg2 := mt.In(2); arg2.Kind() != reflect.Ptr {
-		return false
-	}
-	if r0 := mt.Out(0); r0.Kind() != reflect.Ptr || !r0.Implements(typeOfSprotoResponse) {
-		return false
-	}
-	if mt.NumOut() == 2 {
-		if mt.Out(1) != typeOfError {
-			return false
-		}
-	} else if mt.NumOut() == 3 {
-		if mt.Out(1) != typeOfSprotoPushArr {
-			return false
-		}
-		if mt.Out(2) != typeOfError {
-			return false
-		}
-	}
-	return true
+// 根据协议，调用handler的相应方法
+func (self *Sproto) PushDispatch(ctx context.Context, handler *SprotoHandler, receiver interface{}, route string, req SprotoPush) error {
+	return handler.PushDispatch(ctx, receiver, route, req)
 }
 
-func (self *SprotoHandler) suitableHandlerMethods(typ reflect.Type) map[string]*sprotoHandlerMethod {
-	methods := make(map[string]*sprotoHandlerMethod)
+func isSprotoHandlerMethod(method reflect.Method) *sproto_handler_method {
+	mt := method.Type
+	if method.PkgPath != "" {
+		return nil
+	}
+	if mt.NumIn() != 3 {
+		return nil
+	}
+	if arg1 := mt.In(1); arg1 != typeOfContext {
+		return nil
+	}
+	if arg2 := mt.In(2); arg2.Kind() != reflect.Ptr {
+		return nil
+	}
+	if arg2 := mt.In(2); arg2.Implements(typeOfSprotoRequest) {
+		if mt.NumOut() != 2 && mt.NumOut() != 3 {
+			return nil
+		}
+		if r0 := mt.Out(0); r0.Kind() != reflect.Ptr || !r0.Implements(typeOfSprotoResponse) {
+			return nil
+		}
+		if mt.NumOut() == 2 {
+			if mt.Out(1) != typeOfError {
+				return nil
+			}
+		} else if mt.NumOut() == 3 {
+			if mt.Out(1) != typeOfSprotoPushArr {
+				return nil
+			}
+			if mt.Out(2) != typeOfError {
+				return nil
+			}
+		}
+		return &sproto_handler_method{method: method, protoType: proto_handler_type_request}
+	} else if arg2 := mt.In(2); arg2.Implements(typeOfSprotoPush) {
+		if mt.NumOut() != 1 {
+			return nil
+		}
+		if mt.Out(0) != typeOfError {
+			return nil
+		}
+		return &sproto_handler_method{method: method, protoType: proto_handler_type_push}
+	}
+
+	return nil
+}
+
+func (self *SprotoHandler) suitableHandlerMethods(typ reflect.Type) map[string]*sproto_handler_method {
+	methods := make(map[string]*sproto_handler_method)
 	log.Info(typ)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
 		mn := method.Name
-		if isSprotoHandlerMethod(method) {
-			log.Infow("registr handler", "name", mn)
-			handler := &sprotoHandlerMethod{method: method}
-			if method.Type.NumOut() == 3 {
-				handler.isReturnPush = true
-			}
+		if handler := isSprotoHandlerMethod(method); handler != nil {
+			log.Infow("registr handler", "type", handler.protoType, "name", mn)
 			methods[mn] = handler
 		}
 	}
@@ -199,7 +282,7 @@ func (self *SprotoHandler) HasRoute(route string) bool {
 	return true
 }
 
-func (self *SprotoHandler) Dispatch(ctx context.Context, receiver interface{}, route string, r interface{}) (resp interface{}, push []SprotoPush, err error) {
+func (self *SprotoHandler) RequestDispatch(ctx context.Context, receiver interface{}, route string, r interface{}) (resp interface{}, push []SprotoPush, err error) {
 	handler, found := self.methods[route]
 	if !found {
 		log.Warnw("sproto handler not found", "name", route)
@@ -221,7 +304,7 @@ func (self *SprotoHandler) Dispatch(ctx context.Context, receiver interface{}, r
 		if !result1.IsNil() {
 			push = (result1.Interface()).([]SprotoPush)
 		}
-	} else {
+	} else if handler.method.Type.NumOut() == 2 {
 		result0 := result[0]
 		result1 := result[1]
 		if !result0.IsNil() {
@@ -229,6 +312,24 @@ func (self *SprotoHandler) Dispatch(ctx context.Context, receiver interface{}, r
 		}
 		if !result1.IsNil() {
 			err = result1.Interface().(error)
+		}
+	}
+	return
+}
+
+func (self *SprotoHandler) PushDispatch(ctx context.Context, receiver interface{}, route string, r interface{}) (err error) {
+	handler, found := self.methods[route]
+	if !found {
+		log.Warnw("sproto handler not found", "name", route)
+		err = gira.ErrSprotoHandlerNotImplement
+		return
+	}
+	args := []reflect.Value{reflect.ValueOf(receiver), reflect.ValueOf(ctx), reflect.ValueOf(r)}
+	result := handler.method.Func.Call(args)
+	if handler.method.Type.NumOut() == 1 {
+		result0 := result[0]
+		if !result0.IsNil() {
+			err = result0.Interface().(error)
 		}
 	}
 	return

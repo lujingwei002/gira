@@ -32,11 +32,11 @@ import (
 
 // 检查是否满足接口aa
 var _ = (resource.I{{.ServiceUpperName}}Handler)(&{{.ServiceName}}_resource.ResourceHandler{})
-var _ = (gira.ApplicationFacade)(&{{.ServiceName}}_app.Facade{})
-var _ = (gira.ResourceManager)(&{{.ServiceName}}_app.Facade{})
+var _ = (gira.ApplicationFacade)(&{{.ServiceName}}_app.Application{})
+var _ = (gira.ResourceManager)(&{{.ServiceName}}_app.Application{})
 
 func main() {
-	app := {{.ServiceName}}_app.NewFacade()
+	app := {{.ServiceName}}_app.NewApplication()
 	err := gira_app.Cli("{{.ServiceName}}", app)
 	log.Info(err)
 }

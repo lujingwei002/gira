@@ -106,6 +106,7 @@ var _ reflect.Type
 	<<- if .Type.IsStructType>>
 type <<.Message.StructName>> struct {
 	<<- range .Message.FieldArr>>
+	// <<.Comment>>
     <<.CamelName>> <<if .IsArray>>[]<<end>><<.GoTypeName>> <<quote>>sproto:"<<.SpWireTypeName>>,<<.Tag>><<if .IsArray>>,array<<end>>"<<quote>>
 	<<- end>>
 }
@@ -114,15 +115,28 @@ type <<.Message.StructName>> struct {
 	<<- if .Type.IsRequestType>>
 type <<.Request.StructName>> struct {
 	<<- range .Request.FieldArr>>
+	// <<.Comment>>
     <<.CamelName>> <<if .IsArray>>[]<<end>><<.GoTypeName>> <<quote>>sproto:"<<.SpWireTypeName>>,<<.Tag>><<if .IsArray>>,array<<end>>"<<quote>>
 	<<- end>>
 }
 
 type <<.Response.StructName>> struct {
 	<<- range .Response.FieldArr>>
+	// <<.Comment>>
     <<.CamelName>> <<if .IsArray>>[]<<end>><<.GoTypeName>> <<quote>>sproto:"<<.SpWireTypeName>>,<<.Tag>><<if .IsArray>>,array<<end>>"<<quote>>
 	<<- end>>
 }
+
+func (self *<<.Request.StructName>>) GetRequestName() string {
+	return "<<.StructName>>"
+}
+
+<<- range .Request.FieldArr>>
+// <<.Comment>>
+func (self *<<.Message.StructName>>) Get<<.CamelName>>() <<if .IsArray>>[]<<end>><<.GoTypeName>> {
+	return self.<<.CamelName>> 
+}
+<<- end>>
 
 func (self *<<.Response.StructName>>) SetErrorCode(v int32) {
 	self.ErrorCode = v
@@ -135,6 +149,7 @@ func (self *<<.Response.StructName>>) SetErrorMsg(v string) {
 	<<- if .Type.IsNotifyType>>
 type <<.Notify.StructName>> struct {
 	<<- range .Notify.FieldArr>>
+	// <<.Comment>>
     <<.CamelName>> <<if .IsArray>>[]<<end>><<.GoTypeName>> <<quote>>sproto:"<<.SpWireTypeName>>,<<.Tag>><<if .IsArray>>,array<<end>>"<<quote>>
 	<<- end>>
 }
@@ -144,11 +159,12 @@ type <<.Notify.StructName>> struct {
 	<<- if .Type.IsPushType>>
 type <<.Push.StructName>> struct {
 	<<- range .Push.FieldArr>>
+	// <<.Comment>>
     <<.CamelName>> <<if .IsArray>>[]<<end>><<.GoTypeName>> <<quote>>sproto:"<<.SpWireTypeName>>,<<.Tag>><<if .IsArray>>,array<<end>>"<<quote>>
 	<<- end>>
 }
 
-func (self *<<.Push.StructName>>) GetProtoName() string {
+func (self *<<.Push.StructName>>) GetPushName() string {
 	return "<<.StructName>>"
 }
 	<<end>>
@@ -184,7 +200,9 @@ type Client struct {
 	reqId			uint64
 	ctx				context.Context
 	requestDict     sync.Map
-	pushDict     sync.Map
+	// 末处理的push, 只保留最后一个
+	pendingPushDict sync.Map
+	waitPushDict    sync.Map
 	onPushDict		map[string]*sync.Map
 
 	// push 消息的侦听函数 
@@ -281,38 +299,38 @@ func (self *Client) readRoutine() error {
 					wait.route = route
 					wait.reqId = reqId
 					// 解析message
-					wait.mode, wait.name, wait.session, wait.resp, wait.err = self.proto.RequestDecode(data)
+					wait.mode, wait.name, wait.session, wait.resp, wait.err = self.proto.ResponseDecode(data)
 					wait.caller <- wait
 				}
 			case gira.GateMessageType_PUSH:
-				mode, name, _, resp, err := self.proto.RequestDecode(data)
-				log.Infow("recv push message", "data", resp)
+				mode, name, _, resp, err := self.proto.PushDecode(data)
+				log.Infow("recv push message", "name", name, "data", resp)
 				if mode != gosproto.RpcRequestMode {
 					continue
 				}
-				if dict, ok := self.onPushDict[name]; !ok {
-					log.Infow("client proto push not register", "name", name)
-				} else {
-					handlerCount := 0
+				handlerCount := 0
+				if dict, ok := self.onPushDict[name]; ok {
 					dict.Range(func(k any, v any) bool {
 						handlerCount = handlerCount + 1
 						f := v.(PushMethod)
 						f.Call(resp.(sproto.SprotoPush), err)
 						return true
 					})
-					if handlerCount == 0 {
-						log.Infow("client proto push not register", "name", name)
-					}
 				}
-				if v, ok := self.pushDict.Load(name); ok {
-					self.pushDict.Delete(name)
+				if v, ok := self.waitPushDict.Load(name); ok {
+					handlerCount = handlerCount + 1
+					self.waitPushDict.Delete(name)
 					wait := v.(*waitPush)	
 					wait.data = data
 					// 上下文信息
 					wait.route = route
 					// 解析message
-					wait.mode, wait.name, wait.session, wait.resp, wait.err = self.proto.RequestDecode(data)
+					wait.mode, wait.name, wait.session, wait.resp, wait.err = self.proto.PushDecode(data)
 					wait.caller <- wait
+				}
+				if handlerCount == 0 {
+					self.pendingPushDict.Store(name, resp)
+					// log.Warnw("client proto push not register", "name", name)
 				}
 		}
 	}
@@ -368,7 +386,12 @@ func (self *Client) Wait<<.StructName>>Push(ctx context.Context) (*<<.Push.Struc
 	wait := &waitPush {
 		caller: make(chan* waitPush, 1),
 	}
-	if _, loaded := self.pushDict.LoadOrStore("<<.StructName>>", wait); loaded {
+	if v, ok := self.pendingPushDict.Load("<<.StructName>>"); ok {
+		if resp, ok := v.(*<<.Push.StructName>>); ok {
+			return resp, nil
+		}
+	} 
+	if _, loaded := self.waitPushDict.LoadOrStore("<<.StructName>>", wait); loaded {
 		return nil, gira.ErrSprotoWaitPushConflict
 	}
 	defer close(wait.caller)
@@ -436,7 +459,7 @@ var sp_type_name_dict = map[field_type]string{
 }
 
 var go_type_name_dict = map[field_type]string{
-	field_type_int:    "int64",
+	field_type_int:    "int",
 	field_type_int32:  "int32",
 	field_type_int64:  "int64",
 	field_type_string: "string",
@@ -467,6 +490,7 @@ type Field struct {
 	IsArray        bool
 	Comment        string
 	HasComment     bool
+	Message        *Message
 }
 
 type Message struct {
@@ -604,6 +628,7 @@ func (m *Message) parse(arr []interface{}) error {
 			Array:     false,
 			Tag:       tag,
 			IsArray:   isArray,
+			Message:   m,
 		}
 		//args = commaRegexp.FindAllString(v.(string), -1)
 		//if len(args) <= 0 {

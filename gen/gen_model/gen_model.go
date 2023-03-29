@@ -62,7 +62,6 @@ import (
 <</* 模型字段 */>>
 <<- range .CollectionDict>> 
 var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
-	Id: "_id",
 	<<- range .FieldDict>> 
 	/// <<.Comment>>
 	<<.CamelName>>: "<<.Name>>",
@@ -74,7 +73,6 @@ var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
 
 <</* 模型字段 */>>
 type <<.StructName>>_Field struct {
-	Id string
 	<<- range .FieldDict>> 
 	/// <<.Comment>>
 	<<.CamelName>> string;
@@ -83,7 +81,6 @@ type <<.StructName>>_Field struct {
 
 <</* 模型Data */>>
 type <<.DataStructName>> struct {
-	Id 		primitive.ObjectID <<quote>>bson:"_id" json:"_id"<<quote>>
 	<<- range .FieldDict>> 
 	/// <<.Comment>>
 	<<.CamelName>> <<.GoTypeName>> <<quote>>bson:"<<.Name>>" json:"<<.Name>>"<<quote>>
@@ -637,6 +634,7 @@ const (
 	field_type_string
 	field_type_message
 	field_type_objectid
+	field_type_bool
 )
 
 const field_id_name string = "id"
@@ -647,6 +645,7 @@ var type_name_dict = map[string]field_type{
 	"int64":  field_type_int64,
 	"string": field_type_string,
 	"id":     field_type_objectid,
+	"bool":   field_type_bool,
 }
 
 var go_type_name_dict = map[field_type]string{
@@ -655,6 +654,7 @@ var go_type_name_dict = map[field_type]string{
 	field_type_int64:    "int64",
 	field_type_string:   "string",
 	field_type_objectid: "primitive.ObjectID",
+	field_type_bool:     "bool",
 }
 
 var protobuf_type_name_dict = map[field_type]string{
@@ -663,6 +663,7 @@ var protobuf_type_name_dict = map[field_type]string{
 	field_type_int64:    "int64",
 	field_type_string:   "string",
 	field_type_objectid: "string",
+	field_type_bool:     "bool",
 }
 
 type message_type int
@@ -686,7 +687,6 @@ type Field struct {
 	ProtobufTypeName string
 	Default          interface{}
 	Comment          string
-	IsIdField        bool
 	Coll             *Descriptor
 	IsPrimaryKey     bool /// 是否主键，目前只对userarr类型的表格有效果
 	IsSecondaryKey   bool /// 是否次键，目前只对userarr类型的表格有效果
@@ -813,7 +813,6 @@ func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
 		}
 		typeStr = args[0]
 		fieldName = args[1]
-
 		field := &Field{
 			Coll:      descriptor,
 			Name:      fieldName,
@@ -821,14 +820,13 @@ func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
 			Array:     false,
 			Tag:       tag,
 		}
-		if fieldName == field_id_name {
-			field.IsIdField = true
+		if fieldName == "_id" {
+			field.Name = fieldName
+			field.CamelName = "Id"
+		} else {
+			field.Name = fieldName
+			field.CamelName = camelString(fieldName)
 		}
-		//args = commaRegexp.FindAllString(v.(string), -1)
-		//if len(args) <= 0 {
-		//	fmt.Println(args)
-		//	return fmt.Errorf("field args wrong %s %s %s", "name", k, v)
-		//}
 		field.TypeName = typeStr
 		if typeValue, ok := type_name_dict[typeStr]; ok {
 			field.Type = typeValue
@@ -845,6 +843,7 @@ func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
 				field.Comment = comment.(string)
 			}
 		}
+
 		descriptor.FieldDict[fieldName] = field
 	}
 	return nil

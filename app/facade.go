@@ -15,6 +15,14 @@ type AdminClient interface {
 	BroadcastReloadResource(ctx context.Context, name string) error
 }
 
+func (self *BaseFacade) OnFrameworkAwake(facade gira.ApplicationFacade) error {
+	return nil
+}
+
+func (self *BaseFacade) OnFrameworkConfigLoad(c *gira.Config) error {
+	return nil
+}
+
 func (self *BaseFacade) GetAppId() int32 {
 	return self.application.appId
 }
@@ -89,12 +97,12 @@ func (self *BaseFacade) SdkLogin(accountPlat string, openId string, token string
 	return self.application.Sdk.Login(accountPlat, openId, token)
 }
 
-func (self *BaseFacade) LockLocalMember(memberId string) (*gira.Peer, error) {
-	return self.application.Registry.LockLocalMember(memberId)
+func (self *BaseFacade) LockLocalUser(userId string) (*gira.Peer, error) {
+	return self.application.Registry.LockLocalUser(userId)
 }
 
-func (self *BaseFacade) UnlockLocalMember(memberId string) (*gira.Peer, error) {
-	return self.application.Registry.UnlockLocalMember(memberId)
+func (self *BaseFacade) UnlockLocalUser(userId string) (*gira.Peer, error) {
+	return self.application.Registry.UnlockLocalUser(userId)
 }
 
 func (self *BaseFacade) OnLocalPlayerAdd(player *gira.LocalPlayer) {

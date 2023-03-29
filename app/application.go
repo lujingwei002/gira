@@ -144,6 +144,9 @@ func (app *Application) init() error {
 		app.appFullName = fmt.Sprintf("%s_%s_%s_%d", app.appType, app.zone, app.env, app.appId)
 		app.Config = c
 	}
+	if err := app.Facade.OnFrameworkConfigLoad(app.Config); err != nil {
+		return err
+	}
 	if err := app.Facade.OnConfigLoad(app.Config); err != nil {
 		return err
 	}
@@ -288,7 +291,12 @@ func (app *Application) awake() error {
 	} else {
 		return gira.ErrResourceManagerNotImplement
 	}
-	app.Facade.Awake()
+	if err := app.Facade.OnFrameworkAwake(app.Facade); err != nil {
+		return err
+	}
+	if err := app.Facade.OnAwake(); err != nil {
+		return err
+	}
 	// 创建场景
 	// scene := CreateScene()
 	// app.MainScene = scene

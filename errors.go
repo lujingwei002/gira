@@ -40,8 +40,8 @@ const (
 	E_SPROTO_RESPONSE_CONVERSION     = -29
 	E_READ_ON_CLOSED_CLIENT          = -30
 	E_PEER_NOT_FOUND                 = -31
-	E_MEMBER_INSTEAD                 = -32
-	E_MEMBER_LOCKED                  = -33
+	E_USER_INSTEAD                   = -32
+	E_USER_LOCKED                    = -33
 	E_GRPC_CLIENT_POOL_NIL           = -34
 	E_BROKEN_CHANNEL                 = -35
 	E_SESSION_CLOSED                 = -36
@@ -55,6 +55,7 @@ const (
 	E_NO_SESSION                     = -44
 	E_SPROTO_WAIT_PUSH_TIMEOUT       = -45
 	E_SPROTO_WAIT_PUSH_CONFLICT      = -46
+	E_TODO                           = -47
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -90,8 +91,8 @@ const (
 	E_MSG_SPROTO_RESPONSE_CONVERSION     = "sproto response type conversion"
 	E_MSG_READ_ON_CLOSED_CLIENT          = "read on closed client"
 	E_MSG_PEER_NOT_FOUND                 = "peer not found"
-	E_MSG_MEMBER_INSTEAD                 = "账号在其他地方登录"
-	E_MSG_MEMBER_LOCKED                  = "账号在其他地方被锁定"
+	E_MSG_USER_INSTEAD                   = "账号在其他地方登录"
+	E_MSG_USER_LOCKED                    = "账号在其他地方被锁定"
 	E_MSG_GRPC_CLIENT_POOL_NIL           = "grpc pool无法申请client"
 	E_MSG_BROKEN_CHANNEL                 = "管道已关闭，不能再写数据"
 	E_MSG_SESSION_CLOSED                 = "会话已经关闭"
@@ -105,6 +106,7 @@ const (
 	E_MSG_NO_SESSION                     = "玩家不在线"
 	E_MSG_SPROTO_WAIT_PUSH_TIMEOUT       = "等待push超时"
 	E_MSG_SPROTO_WAIT_PUSH_CONFLICT      = "等待push冲突 ，只可以有一个"
+	E_MSG_TODO                           = "TODO"
 )
 
 type Error struct {
@@ -155,8 +157,8 @@ var (
 	ErrSprotoResponseConversion    = NewError(E_SPROTO_RESPONSE_CONVERSION, E_MSG_SPROTO_RESPONSE_CONVERSION)
 	ErrReadOnClosedClient          = NewError(E_READ_ON_CLOSED_CLIENT, E_MSG_READ_ON_CLOSED_CLIENT)
 	ErrPeerNotFound                = NewError(E_PEER_NOT_FOUND, E_MSG_PEER_NOT_FOUND)
-	ErrMemberInstead               = NewError(E_MEMBER_INSTEAD, E_MSG_MEMBER_INSTEAD)
-	ErrMemberLocked                = NewError(E_MEMBER_LOCKED, E_MSG_MEMBER_LOCKED)
+	ErrUserInstead                 = NewError(E_USER_INSTEAD, E_MSG_USER_INSTEAD)
+	ErrUserLocked                  = NewError(E_USER_LOCKED, E_MSG_USER_LOCKED)
 	ErrGrpcClientPoolNil           = NewError(E_GRPC_CLIENT_POOL_NIL, E_MSG_GRPC_CLIENT_POOL_NIL)
 	ErrBrokenChannel               = NewError(E_BROKEN_CHANNEL, E_MSG_BROKEN_CHANNEL)
 	ErrSessionClosed               = NewError(E_SESSION_CLOSED, E_MSG_SESSION_CLOSED)
@@ -169,8 +171,8 @@ var (
 	ErrGenNotChange                = NewError(E_GEN_NOT_CHANGE, E_MSG_GEN_NOT_CHANGE)
 	ErrNoSession                   = NewError(E_NO_SESSION, E_MSG_NO_SESSION)
 	ErrSprotoWaitPushTimeout       = NewError(E_SPROTO_WAIT_PUSH_TIMEOUT, E_MSG_SPROTO_WAIT_PUSH_TIMEOUT)
-
-	ErrSprotoWaitPushConflict = NewError(E_SPROTO_WAIT_PUSH_CONFLICT, E_MSG_SPROTO_WAIT_PUSH_CONFLICT)
+	ErrSprotoWaitPushConflict      = NewError(E_SPROTO_WAIT_PUSH_CONFLICT, E_MSG_SPROTO_WAIT_PUSH_CONFLICT)
+	ErrTodo                        = NewError(E_TODO, E_MSG_TODO)
 )
 
 func ErrCode(err error) int32 {
