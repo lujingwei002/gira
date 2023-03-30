@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/lujingwei002/gira"
-	"hayou.com/x3/gen/grpc/hall_grpc"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 )
 
 type Session struct {
@@ -93,7 +93,7 @@ func (self *Session) request(req gira.GateRequest) error {
 
 func (self *Session) response(resp *hall_grpc.StreamDataResponse) error {
 	sessionId := self.sessionId
-	log.Infow("upstream=>client", "session_id", sessionId, "type", resp.Type, "len", len(resp.Data), "req_id", resp.ReqId)
+	log.Infow("upstream=>client", "session_id", sessionId, "type", resp.Type, "len", len(resp.Data), "req_id", resp.ReqId, "data", resp.Data)
 	switch resp.Type {
 	case hall_grpc.PacketType_DATA:
 		if resp.ReqId != 0 {

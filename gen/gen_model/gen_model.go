@@ -142,6 +142,10 @@ func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
 	self.<<.CamelName>> = v
 	self.dirty = true
 }
+
+func (self *<<.Coll.StructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
+	return self.<<.CamelName>> 
+}
 <<- end>>
 
 <<- end>><</* if .IsDeriveUser*/>>
@@ -241,6 +245,14 @@ func (self *<<.ArrStructName>>) Count() int {
 	return len(self.dict)
 }
 
+func (self *<<.ArrStructName>>) Range(f func(<<.CapCamelSecondaryKey>> <<.SecondaryKeyField.GoTypeName>>, value *<<.StructName>>) bool)  {
+	for k, v := range self.dict {
+		if !f(k, v) {
+			break
+		}
+	}
+}
+
 func (self *<<.ArrStructName>>) Clear() error {
 	for k, v := range self.dict {
 		self.del[k] = v
@@ -263,11 +275,6 @@ func (self *<<.ArrStructName>>) Get(<<.CapCamelSecondaryKey>> <<.SecondaryKeyFie
 	return v, ok
 }
 
-func (self *<<.ArrStructName>>) Range(f func(<<.CapCamelSecondaryKey>> <<.SecondaryKeyField.GoTypeName>>, v *<<.StructName>>)) {
-	for k, v := range self.dict {
-		f(k, v)
-	}
-}
 
 <<- range .FieldDict>> 
 <<- if .IsPrimaryKey>>
@@ -283,6 +290,9 @@ func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
 	if self.arr != nil {
 		self.arr.setDirty(self)
 	}
+}
+func (self *<<.Coll.StructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
+	return self.<<.CamelName>>
 }
 <<- end>>
 <<- end>>
@@ -309,7 +319,7 @@ type <<.MongoDbStructName>> struct {
 	client		*mongo.Client
 	database	*mongo.Database
 	<<- range .CollectionDict>> 
-	<<.StructName>>  *<<.MongoOpStructName>>
+	<<.StructName>>  *<<.MongoDaoStructName>>
 	<<- end>>
 }
 
@@ -319,7 +329,7 @@ func UseMongo(client gira.MongoClient) *<<.MongoDbStructName>> {
 		database: client.GetMongoDatabase(),
 	}
 	<<- range .CollectionDict>> 
-	self.<<.StructName>> = &<<.MongoOpStructName>>{
+	self.<<.StructName>> = &<<.MongoDaoStructName>>{
 		db: self,
 	}
 	<<- end>> 
@@ -328,17 +338,17 @@ func UseMongo(client gira.MongoClient) *<<.MongoDbStructName>> {
 
 <<- range .CollectionDict>> 
 
-type <<.MongoOpStructName>> struct {
+type <<.MongoDaoStructName>> struct {
 	db *<<$.MongoDbStructName>>
 }
 
-func (self *<<.MongoOpStructName>>) New() *<<.StructName>> {
+func (self *<<.MongoDaoStructName>>) New() *<<.StructName>> {
 	doc := &<<.StructName>>{}
 	doc.Id = primitive.NewObjectID()
 	return doc
 }
 
-func (self *<<.MongoOpStructName>>) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) (*<<.StructName>>, error) {
+func (self *<<.MongoDaoStructName>>) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) (*<<.StructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	doc := &<<.StructName>>{}
@@ -350,7 +360,7 @@ func (self *<<.MongoOpStructName>>) FindOne(ctx context.Context, filter interfac
 }
 
 
-func (self *<<.MongoOpStructName>>) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) ([]*<<.StructName>>, error) {
+func (self *<<.MongoDaoStructName>>) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) ([]*<<.StructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	cursor, err := coll.Find(ctx, filter, opts...)
@@ -371,21 +381,21 @@ func (self *<<.MongoOpStructName>>) Find(ctx context.Context, filter interface{}
 	return results, nil
 }
 
-func (self *<<.MongoOpStructName>>) UpdateOne(ctx context.Context, filter interface{}, update *<<.StructName>>, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+func (self *<<.MongoDaoStructName>>) UpdateOne(ctx context.Context, filter interface{}, update *<<.StructName>>, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	result, err := coll.UpdateOne(ctx, filter, &update.<<.DataStructName>>, opts...)
 	return result, err
 }
 
-func (self *<<.MongoOpStructName>>) ReplaceOne(ctx context.Context, filter interface{}, replacement *<<.StructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
+func (self *<<.MongoDaoStructName>>) ReplaceOne(ctx context.Context, filter interface{}, replacement *<<.StructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	result, err := coll.ReplaceOne(ctx, filter, &replacement.<<.DataStructName>>, opts...)
 	return result, err
 }
 
-func (self *<<.MongoOpStructName>>) UpsertOne(ctx context.Context, filter interface{}, replacement *<<.StructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
+func (self *<<.MongoDaoStructName>>) UpsertOne(ctx context.Context, filter interface{}, replacement *<<.StructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	opts = append(opts, options.Replace().SetUpsert(true))
@@ -394,7 +404,7 @@ func (self *<<.MongoOpStructName>>) UpsertOne(ctx context.Context, filter interf
 }
 <<- if .IsDeriveUser>>
 
-func (self *<<.MongoOpStructName>>) Save(ctx context.Context, doc *<<.StructName>>) error {
+func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructName>>) error {
 	if !doc.dirty {
 		return nil
 	}
@@ -417,7 +427,7 @@ func (self *<<.MongoOpStructName>>) Save(ctx context.Context, doc *<<.StructName
 	return nil
 }
 
-func (self *<<.MongoOpStructName>>) Load(ctx context.Context, id primitive.ObjectID) (*<<.StructName>>, error) {
+func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, id primitive.ObjectID) (*<<.StructName>>, error) {
     doc := new<<.StructName>>()
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
@@ -435,7 +445,7 @@ func (self *<<.MongoOpStructName>>) Load(ctx context.Context, id primitive.Objec
 	return doc, nil
 }
 
-func (self *<<.MongoOpStructName>>) Delete(ctx context.Context, doc *<<.StructName>>) error {
+func (self *<<.MongoDaoStructName>>) Delete(ctx context.Context, doc *<<.StructName>>) error {
 	if doc == nil {
 		return gira.ErrNullPonter
 	}
@@ -466,7 +476,7 @@ func (self *<<.MongoOpStructName>>) Delete(ctx context.Context, doc *<<.StructNa
 <<- if .IsDeriveUserArr>>
 
 
-func (self *<<.MongoOpStructName>>) Save(ctx context.Context, doc *<<.ArrStructName>>) error {
+func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStructName>>) error {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	// opts := options.Replace().SetUpsert(true)
@@ -513,7 +523,7 @@ func (self *<<.MongoOpStructName>>) Save(ctx context.Context, doc *<<.ArrStructN
 	return nil
 }
 
-func (self *<<.MongoOpStructName>>) Load(ctx context.Context, <<.CapCamelPrimaryKey>> <<.PrimaryKeyField.GoTypeName>>) (*<<.ArrStructName>>, error) {
+func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimaryKey>> <<.PrimaryKeyField.GoTypeName>>) (*<<.ArrStructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	cursor, err := coll.Find(ctx, bson.D{{"<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>}})
@@ -552,7 +562,7 @@ func (self *<<.MongoOpStructName>>) Load(ctx context.Context, <<.CapCamelPrimary
 type <<.RedisDbStructName>> struct {
 	client		*redis.Client
 	<<- range .CollectionDict>> 
-	<<.StructName>>  *<<.RedisOpStructName>>
+	<<.StructName>>  *<<.RedisDaoStructName>>
 	<<- end>>
 }
 
@@ -561,7 +571,7 @@ func UseRedis(client gira.RedisClient) *<<.RedisDbStructName>> {
 		client: client.GetRedisClient(),
 	}
 	<<- range .CollectionDict>> 
-	self.<<.StructName>> = &<<.RedisOpStructName>>{
+	self.<<.StructName>> = &<<.RedisDaoStructName>>{
 		db: self,
 	}
 	<<- end>> 
@@ -570,24 +580,24 @@ func UseRedis(client gira.RedisClient) *<<.RedisDbStructName>> {
 
 <<- range .CollectionDict>> 
 
-type <<.RedisOpStructName>> struct {
+type <<.RedisDaoStructName>> struct {
 	db *<<$.RedisDbStructName>>
 }
 
-func (self *<<.RedisOpStructName>>) New() *<<.StructName>> {
+func (self *<<.RedisDaoStructName>>) New() *<<.StructName>> {
 	doc := &<<.StructName>>{}
 	doc.Id = primitive.NewObjectID()
 	return doc
 }
 
 <<- if .IsDeriveUser>>
-func (self *<<.RedisOpStructName>>) Set(ctx context.Context, key primitive.ObjectID, value *<<.StructName>>, expiration time.Duration) *redis.StatusCmd {
+func (self *<<.RedisDaoStructName>>) Set(ctx context.Context, key primitive.ObjectID, value *<<.StructName>>, expiration time.Duration) *redis.StatusCmd {
 	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
 	result := self.db.client.Set(ctx, rkey, value, expiration)
 	return result
 }
 
-func (self *<<.RedisOpStructName>>) Get(ctx context.Context, key primitive.ObjectID) (*<<.StructName>>, error) {
+func (self *<<.RedisDaoStructName>>) Get(ctx context.Context, key primitive.ObjectID) (*<<.StructName>>, error) {
 	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
 	result := self.db.client.Get(ctx, rkey)
 	if result.Err() != nil {
@@ -608,7 +618,7 @@ func (self *<<.RedisOpStructName>>) Get(ctx context.Context, key primitive.Objec
 
 
 <<- if .IsDeriveUserArr>>
-func (self *<<.RedisOpStructName>>) HSet(ctx context.Context, key primitive.ObjectID, values ...interface{}) *redis.IntCmd {
+func (self *<<.RedisDaoStructName>>) HSet(ctx context.Context, key primitive.ObjectID, values ...interface{}) *redis.IntCmd {
 	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
 	result := self.db.client.HSet(ctx, rkey, values...)
 	return result
@@ -728,9 +738,9 @@ type Descriptor struct {
 	StructName           string
 	PbStructName         string
 	ArrStructName        string
-	OpStructName         string
-	MongoOpStructName    string
-	RedisOpStructName    string
+	DaoStructName        string
+	MongoDaoStructName   string
+	RedisDaoStructName   string
 	Derive               string
 	KeyArr               []string
 	DataStructName       string
@@ -752,8 +762,8 @@ type Database struct {
 	MongoDbStructName   string
 	RedisDbStructName   string
 	DbName              string
-	genFilePath         string
-	genProtobufFilePath string
+	GenModelFilePath    string
+	GenProtobufFilePath string
 	CollectionDict      map[string]*Descriptor
 }
 
@@ -820,8 +830,8 @@ func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
 			Array:     false,
 			Tag:       tag,
 		}
-		if fieldName == "_id" {
-			field.Name = fieldName
+		if fieldName == "id" {
+			field.Name = "_id"
 			field.CamelName = "Id"
 		} else {
 			field.Name = fieldName
@@ -920,8 +930,8 @@ func genModel1(genState *GenState, filePathArr []string) error {
 		database := &Database{
 			Module:              proj.Config.Module,
 			CollectionDict:      make(map[string]*Descriptor),
-			genFilePath:         path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.go", dbName)),
-			genProtobufFilePath: path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.proto", dbName)),
+			GenModelFilePath:    path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.go", dbName)),
+			GenProtobufFilePath: path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.proto", dbName)),
 			DbName:              dbName,
 			DbStructName:        camelString(dbName),
 			MongoDbStructName:   fmt.Sprintf("Mongo%s", camelString(dbName)),
@@ -937,14 +947,14 @@ func genModel1(genState *GenState, filePathArr []string) error {
 			} else {
 				collName := k
 				descriptor := &Descriptor{
-					CollName:          collName,
-					StructName:        camelString(collName),
-					PbStructName:      fmt.Sprintf("%sPb", camelString(collName)),
-					ArrStructName:     fmt.Sprintf("%sArr", camelString(collName)),
-					OpStructName:      fmt.Sprintf("%sOp", camelString(collName)),
-					DataStructName:    fmt.Sprintf("%sData", camelString(collName)),
-					MongoOpStructName: fmt.Sprintf("%sMongoOp", camelString(collName)),
-					RedisOpStructName: fmt.Sprintf("%sRedisOp", camelString(collName)),
+					CollName:           collName,
+					StructName:         camelString(collName),
+					PbStructName:       fmt.Sprintf("%sPb", camelString(collName)),
+					ArrStructName:      fmt.Sprintf("%sArr", camelString(collName)),
+					DaoStructName:      fmt.Sprintf("%sOp", camelString(collName)),
+					DataStructName:     fmt.Sprintf("%sData", camelString(collName)),
+					MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
+					RedisDaoStructName: fmt.Sprintf("%sRedisDao", camelString(collName)),
 				}
 				if err := descriptor.Unmarshal(genState, v); err != nil {
 					return err
@@ -960,7 +970,7 @@ func genModel1(genState *GenState, filePathArr []string) error {
 func genModel2(protocolState *GenState) error {
 	for _, db := range protocolState.databaseDict {
 
-		dir := path.Dir(db.genFilePath)
+		dir := path.Dir(db.GenModelFilePath)
 		if _, err := os.Stat(dir); err != nil {
 			if os.IsNotExist(err) {
 				if err := os.Mkdir(dir, 0755); err != nil {
@@ -972,7 +982,7 @@ func genModel2(protocolState *GenState) error {
 		}
 
 		var err error
-		file, err := os.OpenFile(db.genFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+		file, err := os.OpenFile(db.GenModelFilePath, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err
 		}
@@ -994,7 +1004,7 @@ func genModel2(protocolState *GenState) error {
 func genProtobuf(protocolState *GenState) error {
 	for _, db := range protocolState.databaseDict {
 
-		dir := path.Dir(db.genProtobufFilePath)
+		dir := path.Dir(db.GenProtobufFilePath)
 		if _, err := os.Stat(dir); err != nil {
 			if os.IsNotExist(err) {
 				if err := os.Mkdir(dir, 0755); err != nil {
@@ -1006,7 +1016,7 @@ func genProtobuf(protocolState *GenState) error {
 		}
 
 		var err error
-		file, err := os.OpenFile(db.genProtobufFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+		file, err := os.OpenFile(db.GenProtobufFilePath, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err
 		}

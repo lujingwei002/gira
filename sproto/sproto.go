@@ -186,17 +186,19 @@ func (self *Sproto) RequestDispatch(ctx context.Context, handler *SprotoHandler,
 	}
 	// push
 	if pushArr != nil {
-		var dataPush []byte
+		dataPushArr = make([][]byte, 0)
 		for _, v := range pushArr {
 			proto, ok := v.(SprotoPush)
 			if !ok {
 				err = gira.ErrSprotoPushConversion
 				return
 			}
+			var dataPush []byte
 			dataPush, err = self.rpc.RequestEncode(proto.GetPushName(), 0, proto)
 			if err != nil {
 				return
 			}
+			log.Debugw("CCCCC", "name", proto.GetPushName(), "data", dataPush)
 			dataPushArr = append(dataPushArr, dataPush)
 		}
 	}

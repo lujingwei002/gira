@@ -66,6 +66,9 @@ func (self *GateApplication) OnPeerUpdate(peer *gira.Peer) {
 	hall.OnPeerUpdate(peer)
 }
 
-func (self *GateApplication) OnGrpcServerAwake(server *grpc.Server) error {
+func (self *GateApplication) OnGrpcServerStart(server *grpc.Server) error {
+	return nil
+}
+func (self *GateApplication) OnFrameworkGrpcServerStart(server *grpc.Server) error {
 	return nil
 }

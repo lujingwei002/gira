@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+option go_package = "gen/grpc/hall_grpc";
+package hall_grpc;
+
+// 定义服务
+service Upstream {
+    // SayHello 方法
+    rpc SayHello (HelloRequest) returns (HelloResponse) {}
+    rpc DataStream (stream StreamDataRequest) returns (stream StreamDataResponse){}
+}
+
+service Hall {
+    // SayHello 方法
+    rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
+}
+
+message StreamDataRequest {
+    string MemberId = 1;
+    uint64 SessionId = 2;
+    uint64 ReqId = 3;
+    bytes Data = 4;
+}
+
+//stream返回结构
+message StreamDataResponse {
+    PacketType Type = 1;
+    uint64 SessionId = 2;
+    uint64 ReqId = 3;
+    bytes Data = 4;
+}
+
+// 请求消息
+message HelloRequest {
+    string name = 1;
+}
+
+// 响应消息
+message HelloResponse {
+    string replay = 1;
+}
+
+// 请求消息
+message UserInsteadRequest {
+    string UserId = 1;
+    string Address = 2;
+}
+
+// 响应消息
+message UserInsteadResponse {
+    int32 ErrorCode = 1;
+    string ErrorMsg = 2;
+}
+
+enum PacketType {
+    NONE = 0;
+    DATA = 1;
+    KICK = 5;
+    SERVER_DOWN = 6;
+    SERVER_MAINTAIN = 7;
+    USER_INSTEAD = 8;
+}
+
+

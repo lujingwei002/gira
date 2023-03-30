@@ -356,6 +356,7 @@ func (self *<<.ArrTypeName>>) LoadFromYaml(filePath string) error {
 		return err
 	}
 	if err := yaml.Unmarshal(data, self); err != nil {
+		log.Warnw("load resource fail", "name", filePath)
 		return err
 	}
 	return nil
@@ -639,7 +640,10 @@ func fotmatYamlString(descriptor *Descriptor, data *ExcelData) string {
 				sb.WriteString(fmt.Sprintf("  %s: |-%s", field.FieldName, fmt.Sprintln()))
 				sb.WriteString(fmt.Sprintf("    %s%s", v, fmt.Sprintln()))
 			} else if field.Type == field_type_string {
-				sb.WriteString(fmt.Sprintf("  %s: %s%s", field.FieldName, v, fmt.Sprintln()))
+				str := v.(string)
+				str = strings.ReplaceAll(str, "\r\n", " ")
+				str = strings.ReplaceAll(str, "\n", " ")
+				sb.WriteString(fmt.Sprintf("  %s: %s%s", field.FieldName, str, fmt.Sprintln()))
 			} else {
 				sb.WriteString(fmt.Sprintf("  %s: %v%s", field.FieldName, v, fmt.Sprintln()))
 			}

@@ -173,28 +173,53 @@ func (app *Application) start() error {
 	if err := app.init(); err != nil {
 		return err
 	}
-	if err := app.awake(); err != nil {
+	if err := app.onAwake(); err != nil {
 		return err
 	}
-	if err := app.onApplicationLoad(); err != nil {
+	if err := app.onStart(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (app *Application) onApplicationLoad() error {
+func (app *Application) onStart() error {
 	if app.Registry != nil {
-		if err := app.Registry.Notify(); err != nil {
+		if err := app.Registry.OnStart(); err != nil {
 			return err
 		}
 	}
-	if err := app.Facade.OnApplicationLoad(); err != nil {
+	// 注册grpc服务
+	if app.GrpcServer != nil {
+		// admin service
+		app.adminClient = admin_service.NewAdminClient()
+		if app.Config.Admin != nil {
+			if err := admin_service.Register(app.Facade, app.GrpcServer.Server()); err != nil {
+				return err
+			}
+		}
+		if handler, ok := app.Facade.(grpc.GrpcHandler); !ok {
+			return gira.ErrGrpcHandlerNotImplement
+		} else {
+			if err := handler.OnFrameworkGrpcServerStart(app.GrpcServer.Server()); err != nil {
+				return err
+			}
+			if err := handler.OnGrpcServerStart(app.GrpcServer.Server()); err != nil {
+				return err
+			}
+		}
+	}
+	if err := app.Facade.OnStart(); err != nil {
 		return err
+	}
+	if app.Config.Grpc != nil {
+		if err := app.GrpcServer.Start(app.Facade, app.errGroup, app.errCtx); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (app *Application) awake() error {
+func (app *Application) onAwake() error {
 	// log.Info("application", app.FullName, "start")
 
 	// ====内置的服务=============
@@ -216,16 +241,6 @@ func (app *Application) awake() error {
 	}
 	if app.Config.Grpc != nil {
 		app.GrpcServer = grpc.NewConfigGrpcServer(*app.Config.Grpc)
-		// admin service
-		app.adminClient = admin_service.NewAdminClient()
-		if app.Config.Admin != nil {
-			if err := admin_service.Register(app.Facade, app.GrpcServer.Server()); err != nil {
-				return err
-			}
-		}
-		if err := app.GrpcServer.Start(app.Facade, app.errGroup, app.errCtx); err != nil {
-			return err
-		}
 	}
 	if app.Config.GameDb != nil {
 		app.GameDbClient = db.NewGameDbClient()

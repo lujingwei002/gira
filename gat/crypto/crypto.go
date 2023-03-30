@@ -118,7 +118,6 @@ func RsaDecryptWithSha1Base64(encryptedData, privateKey string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	log.Info("ggggg", len(encryptedDecodeBytes), base64.StdEncoding.DecodedLen(len(encryptedData)))
 	key, _ := base64.StdEncoding.DecodeString(privateKey)
 	prvKey, err := x509.ParsePKCS1PrivateKey(key)
 	if err != nil {

@@ -10,8 +10,8 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/account/jwt"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"google.golang.org/grpc"
-	"hayou.com/x3/gen/grpc/hall_grpc"
 )
 
 type Hall struct {
@@ -38,7 +38,6 @@ func init() {
 
 func (self *Hall) Awake(facade gira.ApplicationFacade, proto *sproto.Sproto) error {
 	if handler, ok := facade.(GateHandler); !ok {
-
 		return gira.ErrGateHandlerNotImplement
 	} else {
 		hall.handler = handler

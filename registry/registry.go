@@ -42,7 +42,10 @@ type Registry struct {
 	PlayerRegistry *PlayerRegistry
 }
 
-func (r *Registry) Notify() error {
+func (r *Registry) OnStart() error {
+	return r.notify()
+}
+func (r *Registry) notify() error {
 	if err := r.PeerRegistry.notify(r); err != nil {
 		return err
 	}

@@ -31,3 +31,10 @@ func BroadcastReloadResource(ctx context.Context, name string) error {
 func GetAdminDbClient() gira.MysqlClient {
 	return gira.Facade().GetAdminDbClient()
 }
+
+func UnlockLocalUser(userId string) (*gira.Peer, error) {
+	return gira.Facade().UnlockLocalUser(userId)
+}
+func LockLocalUser(userId string) (*gira.Peer, error) {
+	return gira.Facade().LockLocalUser(userId)
+}

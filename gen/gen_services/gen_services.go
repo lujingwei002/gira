@@ -26,12 +26,9 @@ import (
 	"github.com/lujingwei002/gira"
 	gira_app "github.com/lujingwei002/gira/app"
 	{{.ServiceName}}_app "{{.ModuleName}}/{{.ServiceName}}/app"
-	{{.ServiceName}}_resource "{{.ModuleName}}/{{.ServiceName}}/resource"
-	"{{.ModuleName}}/gen/resource"
 )
 
-// 检查是否满足接口aa
-var _ = (resource.I{{.ServiceUpperName}}Handler)(&{{.ServiceName}}_resource.ResourceHandler{})
+// 检查是否满足接口
 var _ = (gira.ApplicationFacade)(&{{.ServiceName}}_app.Application{})
 var _ = (gira.ResourceManager)(&{{.ServiceName}}_app.Application{})
 

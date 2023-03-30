@@ -94,6 +94,7 @@ type ClientConn struct {
 	sendBacklog   int
 	recvBacklog   int
 	lastErr       error
+	recvBuffSize  int
 }
 
 func newClientConn() *ClientConn {
@@ -107,6 +108,7 @@ func newClientConn() *ClientConn {
 		recvBacklog:        16,
 		lastAt:             time.Now().Unix(),
 		state:              client_status_start,
+		recvBuffSize:       4096,
 	}
 	return self
 }
@@ -128,6 +130,12 @@ func WithRecvBacklog(v int) opt {
 func WithHandshakeValidator(fn func([]byte) error) opt {
 	return func(conn *ClientConn) {
 		conn.handshakeValidator = fn
+	}
+}
+
+func WithRecvBuffSize(v int) opt {
+	return func(conn *ClientConn) {
+		conn.recvBuffSize = v
 	}
 }
 
@@ -337,7 +345,7 @@ func (self *ClientConn) sendHandShake() error {
 }
 
 func (self *ClientConn) recvHandShakeAck(ctx context.Context) error {
-	buf := make([]byte, 2048)
+	buf := make([]byte, self.recvBuffSize)
 	for {
 		var n int
 		var err error
@@ -457,6 +465,7 @@ func (self *ClientConn) processMessage(msg *message.Message) {
 	if self.debug {
 		log.Infow("got message", "type", msg.Type)
 	}
+
 	switch msg.Type {
 	case message.Response:
 	case message.Push:
@@ -472,6 +481,10 @@ func (self *ClientConn) processMessage(msg *message.Message) {
 		}
 		msg.Data = payload
 	}
+	// WARN: 当前data是指向缓冲区的，如果交给其他协程处理，要复制一次
+	data := msg.Data
+	msg.Data = make([]byte, len(msg.Data))
+	copy(msg.Data, data)
 	self.chRecvMessage <- msg
 }
 
@@ -527,6 +540,7 @@ func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId 
 			reqId = 0
 		}
 		data = msg.Data
+
 		return
 	case <-ctx.Done():
 		err = ctx.Err()

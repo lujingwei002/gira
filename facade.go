@@ -17,13 +17,12 @@ type SdkAccount struct {
 
 type ApplicationFacade interface {
 	// ======= 生命周期回调 ===========
-	OnApplicationLoad() error
 	// 配置加载完成后接收通知
 	OnConfigLoad(c *Config) error
 	OnFrameworkConfigLoad(c *Config) error
 	OnAwake() error
 	OnFrameworkAwake(facade ApplicationFacade) error
-	Start() error
+	OnStart() error
 
 	// ======= 状态数据 ===========
 	GetAppType() string

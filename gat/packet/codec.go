@@ -73,6 +73,7 @@ func (c *Decoder) Decode(data []byte) ([]*Packet, error) {
 			return nil, err
 		}
 	}
+
 	return packets, nil
 }
 

@@ -105,6 +105,7 @@ func (self *Conn) push(route string, data []byte) error {
 		log.Info(err)
 		return err
 	}
+
 	return self.send(p)
 }
 
@@ -526,7 +527,9 @@ func (self *Conn) processMessage(msg *message.Message) (err error) {
 		return
 	}
 	var session = self.session
-	var payload = msg.Data
+	// WARN: 当前data指向缓冲区，要复制出来
+	var payload = make([]byte, len(msg.Data))
+	copy(payload, msg.Data)
 	if session.getSecret() != "" {
 		payload, err = crypto.DesDecrypt(payload, session.getSecret())
 		if err != nil {

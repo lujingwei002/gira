@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"log"
 
 	"github.com/lujingwei002/gira"
+	"google.golang.org/grpc"
 )
 
 type BaseFacade struct {
@@ -20,6 +22,10 @@ func (self *BaseFacade) OnFrameworkAwake(facade gira.ApplicationFacade) error {
 }
 
 func (self *BaseFacade) OnFrameworkConfigLoad(c *gira.Config) error {
+	return nil
+}
+func (self *BaseFacade) OnFrameworkGrpcServerAwake(server *grpc.Server) error {
+	log.Print("qqqqqqqqqqqqq")
 	return nil
 }
 
