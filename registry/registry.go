@@ -109,9 +109,15 @@ func NewConfigRegistry(config *gira.EtcdConfig, facade gira.ApplicationFacade) (
 func (r *Registry) LockLocalUser(userId string) (*gira.Peer, error) {
 	return r.PlayerRegistry.LockLocalUser(r, userId)
 }
+
 func (r *Registry) UnlockLocalUser(userId string) (*gira.Peer, error) {
 	return r.PlayerRegistry.UnlockLocalUser(r, userId)
 }
+
+func (r *Registry) WhereIsUser(userId string) (*gira.Peer, error) {
+	return r.PlayerRegistry.WhereIsUser(r, userId)
+}
+
 func explodeServerFullName(fullName string) (name string, id int32, err error) {
 	pats := strings.Split(string(fullName), "_")
 	if len(pats) != 4 {

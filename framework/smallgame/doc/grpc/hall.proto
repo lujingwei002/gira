@@ -5,14 +5,14 @@ package hall_grpc;
 
 // 定义服务
 service Upstream {
-    // SayHello 方法
-    rpc SayHello (HelloRequest) returns (HelloResponse) {}
     rpc DataStream (stream StreamDataRequest) returns (stream StreamDataResponse){}
 }
 
 service Hall {
     // SayHello 方法
     rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
+    rpc PushStream (stream PushStreamRequest) returns (PushStreamResponse) {}
+    rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
 }
 
 message StreamDataRequest {
@@ -40,14 +40,38 @@ message HelloResponse {
     string replay = 1;
 }
 
-// 请求消息
+// 顶号下线
 message UserInsteadRequest {
     string UserId = 1;
     string Address = 2;
 }
 
-// 响应消息
+// 顶号下线
 message UserInsteadResponse {
+    int32 ErrorCode = 1;
+    string ErrorMsg = 2;
+}
+
+// 推送消息
+message PushStreamRequest {
+    string UserId = 1;
+    bytes Data = 4;
+}
+
+// 推送消息
+message PushStreamResponse {
+    int32 ErrorCode = 1;
+    string ErrorMsg = 2;
+}
+
+// 推送消息
+message MustPushRequest {
+    string UserId = 1;
+    bytes Data = 4;
+}
+
+// 推送消息
+message MustPushResponse {
     int32 ErrorCode = 1;
     string ErrorMsg = 2;
 }

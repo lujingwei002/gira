@@ -537,7 +537,11 @@ func (__arg__ *<<.Method.ReceiverType>><<.Method.MethodName>>Argument) Call() {
 	<<- end>>
 }
 
-func (<<.Method.ReceiverName>> <<.Method.ReceiverPtr>><<.Method.ReceiverType>>) Call_<<.Method.MethodName>> (<<join_args_with_type .Method.Args>>) (<<join_args_with_type .Method.Returns>>){
+func (<<.Method.ReceiverName>> <<.Method.ReceiverPtr>><<.Method.ReceiverType>>) Call_<<.Method.MethodName>> (<<join_args_with_type .Method.Args>>, opts ...actor.CallOption) (<<join_args_with_type .Method.Returns>>){
+	var __options__ actor.CallOptions
+	for _, v := range opts {
+		v.Config(&__options__)	
+	}
 	__arg__ := &<<.Method.ReceiverType>><<.Method.MethodName>>Argument {
 		<< .Method.ReceiverName>>: << .Method.ReceiverName>>,
 		<<- range .Method.Args>>
@@ -549,26 +553,31 @@ func (<<.Method.ReceiverName>> <<.Method.ReceiverPtr>><<.Method.ReceiverType>>) 
 	}
 	<<.Method.ReceiverName>>.Inbox() <- __arg__
 	<<- if eq .Macro.Arg0 "call">>
-	select {
-	case resp :=<-__arg__.__caller__:
-		return <<join_args "resp." .Method.Returns>>
-	case <-<<.Method.Arg0.Name>>.Done():
-		return <<- range .Method.ReturnsHead>> __arg__.<<.Name>>, <<- end>> <<.Method.Arg0.Name>>.Err()
+	if __options__.TimeOut != 0 {
+		__timer__ := time.NewTimer(__options__.TimeOut)
+		defer __timer__.Stop()
+		select {
+		case resp :=<-__arg__.__caller__:
+			return <<join_args "resp." .Method.Returns>>
+		case <-<<.Method.Arg0.Name>>.Done():
+			return <<- range .Method.ReturnsHead>> __arg__.<<.Name>>, <<- end>> <<.Method.Arg0.Name>>.Err()
+		case <-__timer__.C:
+	        log.Errorw("actor call time out", "func", "<<.Method.Declaration>>")
+			return <<- range .Method.ReturnsHead>> __arg__.<<.Name>>, <<- end>> actor.ErrCallTimeOut
+		}
+	} else {
+		select {
+		case resp :=<-__arg__.__caller__:
+			return <<join_args "resp." .Method.Returns>>
+		case <-<<.Method.Arg0.Name>>.Done():
+			return <<- range .Method.ReturnsHead>> __arg__.<<.Name>>, <<- end>> <<.Method.Arg0.Name>>.Err()
+		}
 	}
 	<<- else >>
 	return nil
 	<<- end>>
 }
 
-<<- if eq .Macro.Arg0 "call">>
-func (<<.Method.ReceiverName>> <<.Method.ReceiverPtr>><<.Method.ReceiverType>>) CallWithTimeout_<<.Method.MethodName>> (__timeout__ time.Duration, <<join_args_tail_with_type 1 .Method.Args>>) (<<join_args_with_type .Method.Returns>>){
-	__ctx__, __cancel__ := context.WithTimeout(context.Background(), __timeout__)
-	defer __cancel__()
-	return <<.Method.ReceiverName>>.Call_<<.Method.MethodName>>(__ctx__, <<join_args_tail 1 "" .Method.Args>>)
-}
-
-
-<<- end>>
 
 
 	`

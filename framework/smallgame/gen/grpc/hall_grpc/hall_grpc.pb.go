@@ -19,7 +19,6 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Upstream_SayHello_FullMethodName   = "/hall_grpc.Upstream/SayHello"
 	Upstream_DataStream_FullMethodName = "/hall_grpc.Upstream/DataStream"
 )
 
@@ -27,8 +26,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UpstreamClient interface {
-	// SayHello 方法
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
 	DataStream(ctx context.Context, opts ...grpc.CallOption) (Upstream_DataStreamClient, error)
 }
 
@@ -38,15 +35,6 @@ type upstreamClient struct {
 
 func NewUpstreamClient(cc grpc.ClientConnInterface) UpstreamClient {
 	return &upstreamClient{cc}
-}
-
-func (c *upstreamClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error) {
-	out := new(HelloResponse)
-	err := c.cc.Invoke(ctx, Upstream_SayHello_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *upstreamClient) DataStream(ctx context.Context, opts ...grpc.CallOption) (Upstream_DataStreamClient, error) {
@@ -84,8 +72,6 @@ func (x *upstreamDataStreamClient) Recv() (*StreamDataResponse, error) {
 // All implementations must embed UnimplementedUpstreamServer
 // for forward compatibility
 type UpstreamServer interface {
-	// SayHello 方法
-	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
 	DataStream(Upstream_DataStreamServer) error
 	mustEmbedUnimplementedUpstreamServer()
 }
@@ -94,9 +80,6 @@ type UpstreamServer interface {
 type UnimplementedUpstreamServer struct {
 }
 
-func (UnimplementedUpstreamServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
-}
 func (UnimplementedUpstreamServer) DataStream(Upstream_DataStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method DataStream not implemented")
 }
@@ -111,24 +94,6 @@ type UnsafeUpstreamServer interface {
 
 func RegisterUpstreamServer(s grpc.ServiceRegistrar, srv UpstreamServer) {
 	s.RegisterService(&Upstream_ServiceDesc, srv)
-}
-
-func _Upstream_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UpstreamServer).SayHello(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Upstream_SayHello_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UpstreamServer).SayHello(ctx, req.(*HelloRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Upstream_DataStream_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -163,12 +128,7 @@ func (x *upstreamDataStreamServer) Recv() (*StreamDataRequest, error) {
 var Upstream_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "hall_grpc.Upstream",
 	HandlerType: (*UpstreamServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "SayHello",
-			Handler:    _Upstream_SayHello_Handler,
-		},
-	},
+	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "DataStream",
@@ -182,6 +142,8 @@ var Upstream_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	Hall_UserInstead_FullMethodName = "/hall_grpc.Hall/UserInstead"
+	Hall_PushStream_FullMethodName  = "/hall_grpc.Hall/PushStream"
+	Hall_MustPush_FullMethodName    = "/hall_grpc.Hall/MustPush"
 )
 
 // HallClient is the client API for Hall service.
@@ -190,6 +152,8 @@ const (
 type HallClient interface {
 	// SayHello 方法
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
+	PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error)
+	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 }
 
 type hallClient struct {
@@ -209,12 +173,57 @@ func (c *hallClient) UserInstead(ctx context.Context, in *UserInsteadRequest, op
 	return out, nil
 }
 
+func (c *hallClient) PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Hall_ServiceDesc.Streams[0], Hall_PushStream_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &hallPushStreamClient{stream}
+	return x, nil
+}
+
+type Hall_PushStreamClient interface {
+	Send(*PushStreamRequest) error
+	CloseAndRecv() (*PushStreamResponse, error)
+	grpc.ClientStream
+}
+
+type hallPushStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *hallPushStreamClient) Send(m *PushStreamRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *hallPushStreamClient) CloseAndRecv() (*PushStreamResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(PushStreamResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *hallClient) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
+	out := new(MustPushResponse)
+	err := c.cc.Invoke(ctx, Hall_MustPush_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HallServer is the server API for Hall service.
 // All implementations must embed UnimplementedHallServer
 // for forward compatibility
 type HallServer interface {
 	// SayHello 方法
 	UserInstead(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error)
+	PushStream(Hall_PushStreamServer) error
+	MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error)
 	mustEmbedUnimplementedHallServer()
 }
 
@@ -224,6 +233,12 @@ type UnimplementedHallServer struct {
 
 func (UnimplementedHallServer) UserInstead(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserInstead not implemented")
+}
+func (UnimplementedHallServer) PushStream(Hall_PushStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method PushStream not implemented")
+}
+func (UnimplementedHallServer) MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MustPush not implemented")
 }
 func (UnimplementedHallServer) mustEmbedUnimplementedHallServer() {}
 
@@ -256,6 +271,50 @@ func _Hall_UserInstead_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Hall_PushStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(HallServer).PushStream(&hallPushStreamServer{stream})
+}
+
+type Hall_PushStreamServer interface {
+	SendAndClose(*PushStreamResponse) error
+	Recv() (*PushStreamRequest, error)
+	grpc.ServerStream
+}
+
+type hallPushStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *hallPushStreamServer) SendAndClose(m *PushStreamResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *hallPushStreamServer) Recv() (*PushStreamRequest, error) {
+	m := new(PushStreamRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Hall_MustPush_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MustPushRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HallServer).MustPush(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Hall_MustPush_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HallServer).MustPush(ctx, req.(*MustPushRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Hall_ServiceDesc is the grpc.ServiceDesc for Hall service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -267,7 +326,17 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "UserInstead",
 			Handler:    _Hall_UserInstead_Handler,
 		},
+		{
+			MethodName: "MustPush",
+			Handler:    _Hall_MustPush_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "PushStream",
+			Handler:       _Hall_PushStream_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "doc/grpc/hall.proto",
 }

@@ -34,9 +34,10 @@ type hall_sesssion struct {
 	isClosed         int32
 }
 
-func (hall *hall) createSession(ctx context.Context, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
+func newSession(hall *hall, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
 	var userId string
 	var avatar UserAvatar
+	ctx := hall.ctx
 	avatar, err = hall.hallHandler.NewUser(ctx, memberId)
 	if err != nil {
 		return
@@ -51,17 +52,17 @@ func (hall *hall) createSession(ctx context.Context, sessionId uint64, memberId 
 			return nil, err
 		} else {
 			// 顶号下线
-			log.Infow("user instread", "session_id", userId)
+			log.Infow("user instead", "session_id", userId)
 			var resp *hall_grpc.UserInsteadResponse
 			if resp, err = rpc.Hall.UserInstead(ctx, peer, userId); err != nil {
-				log.Infow("user instread fail", "session_id", sessionId, "error", err)
+				log.Infow("user instead fail", "session_id", sessionId, "error", err)
 				return
 			} else if resp.ErrorCode != 0 {
 				err = gira.NewError(resp.ErrorCode, resp.ErrorMsg)
-				log.Infow("user instread fail", "session_id", sessionId, "error", err)
+				log.Infow("user instead fail", "session_id", sessionId, "error", err)
 				return
 			} else {
-				log.Infow("user instread success", "session_id", sessionId)
+				log.Infow("user instead success", "session_id", sessionId)
 			}
 		}
 		// 再次抢占锁
@@ -244,6 +245,7 @@ func (self *hall_sesssion) close(ctx context.Context) error {
 	if !atomic.CompareAndSwapInt32(&self.isClosed, 0, 1) {
 		return gira.ErrSessionClosed
 	}
+	log.Infow("session close")
 	userId := self.userId
 	sessionId := self.sessionId
 	// 脱离stream
@@ -259,12 +261,6 @@ func (self *hall_sesssion) close(ctx context.Context) error {
 	self.hall.SessionDict.Delete(userId)
 	log.Infow("session close finished", "session_id", sessionId)
 	return nil
-}
-
-// 网关连接关闭
-// @goroutine(hall.UpstreamServer)
-func (self *hall_sesssion) OnStreamClose() {
-	self.CallWithTimeout_close(5 * time.Second)
 }
 
 // 踢下线
@@ -324,25 +320,39 @@ func (__arg__ *hall_sesssioncloseArgument) Call() {
 	__arg__.__caller__ <- __arg__
 }
 
-func (self *hall_sesssion) Call_close (ctx context.Context) (r0 error){
+func (self *hall_sesssion) Call_close (ctx context.Context, opts ...actor.CallOption) (r0 error){
+	var __options__ actor.CallOptions
+	for _, v := range opts {
+		v.Config(&__options__)	
+	}
 	__arg__ := &hall_sesssioncloseArgument {
 		self: self,
 		ctx: ctx,
 		__caller__: make(chan*hall_sesssioncloseArgument),
 	}
 	self.Inbox() <- __arg__
-	select {
-	case resp :=<-__arg__.__caller__:
-		return resp.r0
-	case <-ctx.Done():
-		return ctx.Err()
+	if __options__.TimeOut != 0 {
+		__timer__ := time.NewTimer(__options__.TimeOut)
+		defer __timer__.Stop()
+		select {
+		case resp :=<-__arg__.__caller__:
+			return resp.r0
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-__timer__.C:
+	        log.Errorw("actor call time out", "func", "func (self *hall_sesssion) close(ctx context.Context) error ")
+			return actor.ErrCallTimeOut
+		}
+	} else {
+		select {
+		case resp :=<-__arg__.__caller__:
+			return resp.r0
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
-func (self *hall_sesssion) CallWithTimeout_close (__timeout__ time.Duration, ) (r0 error){
-	__ctx__, __cancel__ := context.WithTimeout(context.Background(), __timeout__)
-	defer __cancel__()
-	return self.Call_close(__ctx__, )
-}
+
 
 
 	
@@ -359,7 +369,11 @@ func (__arg__ *hall_sesssioninsteadArgument) Call() {
 	__arg__.__caller__ <- __arg__
 }
 
-func (self *hall_sesssion) Call_instead (ctx context.Context, reason string) (err error){
+func (self *hall_sesssion) Call_instead (ctx context.Context, reason string, opts ...actor.CallOption) (err error){
+	var __options__ actor.CallOptions
+	for _, v := range opts {
+		v.Config(&__options__)	
+	}
 	__arg__ := &hall_sesssioninsteadArgument {
 		self: self,
 		ctx: ctx,
@@ -367,18 +381,28 @@ func (self *hall_sesssion) Call_instead (ctx context.Context, reason string) (er
 		__caller__: make(chan*hall_sesssioninsteadArgument),
 	}
 	self.Inbox() <- __arg__
-	select {
-	case resp :=<-__arg__.__caller__:
-		return resp.err
-	case <-ctx.Done():
-		return ctx.Err()
+	if __options__.TimeOut != 0 {
+		__timer__ := time.NewTimer(__options__.TimeOut)
+		defer __timer__.Stop()
+		select {
+		case resp :=<-__arg__.__caller__:
+			return resp.err
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-__timer__.C:
+	        log.Errorw("actor call time out", "func", "func (self *hall_sesssion) instead(ctx context.Context, reason string) (err error) ")
+			return actor.ErrCallTimeOut
+		}
+	} else {
+		select {
+		case resp :=<-__arg__.__caller__:
+			return resp.err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
-func (self *hall_sesssion) CallWithTimeout_instead (__timeout__ time.Duration, reason string) (err error){
-	__ctx__, __cancel__ := context.WithTimeout(context.Background(), __timeout__)
-	defer __cancel__()
-	return self.Call_instead(__ctx__, reason)
-}
+
 
 
 	

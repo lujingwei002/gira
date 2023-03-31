@@ -38,3 +38,7 @@ func UnlockLocalUser(userId string) (*gira.Peer, error) {
 func LockLocalUser(userId string) (*gira.Peer, error) {
 	return gira.Facade().LockLocalUser(userId)
 }
+
+func WhereIsUser(userId string) (*gira.Peer, error) {
+	return gira.Facade().WhereIsUser(userId)
+}

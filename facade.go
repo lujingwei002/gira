@@ -53,6 +53,7 @@ type ApplicationFacade interface {
 	// 如果失败，则返回当前所在的节点
 	LockLocalUser(userId string) (*Peer, error)
 	UnlockLocalUser(userId string) (*Peer, error)
+	WhereIsUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
 
 	ReloadResource() error

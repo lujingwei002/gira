@@ -109,6 +109,10 @@ func (self *BaseFacade) LockLocalUser(userId string) (*gira.Peer, error) {
 	return self.application.Registry.LockLocalUser(userId)
 }
 
+func (self *BaseFacade) WhereIsUser(userId string) (*gira.Peer, error) {
+	return self.application.Registry.WhereIsUser(userId)
+}
+
 func (self *BaseFacade) UnlockLocalUser(userId string) (*gira.Peer, error) {
 	return self.application.Registry.UnlockLocalUser(userId)
 }

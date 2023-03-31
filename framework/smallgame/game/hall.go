@@ -3,12 +3,14 @@ package game
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/actor"
 	"github.com/lujingwei002/gira/facade"
+	"github.com/lujingwei002/gira/framework/smallgame/common/rpc"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/sproto"
@@ -61,9 +63,49 @@ func (hall *hall) serve() {
 	}
 }
 
-func (hall *hall) Push(ctx context.Context, memberId string, req sproto.SprotoPush) error {
-	if v, ok := hall.SessionDict.Load(memberId); !ok {
-		return gira.ErrNoSession
+func (hall *hall) Push(ctx context.Context, userId string, req sproto.SprotoPush) error {
+	// WARN: TEST
+	var err error
+	if v, ok := hall.SessionDict.Load(userId); !ok {
+		var data []byte
+		var peer *gira.Peer
+		data, err = hall.proto.PushEncode(req)
+		if err != nil {
+			return err
+		}
+		peer, err = facade.WhereIsUser(userId)
+		if err != nil {
+			return err
+		}
+		if err = rpc.Hall.Push(ctx, peer, userId, data); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		session, _ := v.(*hall_sesssion)
+		session.chPush <- req
+		return nil
+	}
+}
+
+func (hall *hall) MustPush(ctx context.Context, userId string, req sproto.SprotoPush) error {
+	// WARN: TEST
+	var err error
+	if v, ok := hall.SessionDict.Load(userId); !ok {
+		var data []byte
+		var peer *gira.Peer
+		data, err = hall.proto.PushEncode(req)
+		if err != nil {
+			return err
+		}
+		peer, err = facade.WhereIsUser(userId)
+		if err != nil {
+			return err
+		}
+		if _, err = rpc.Hall.MustPush(ctx, peer, userId, data); err != nil {
+			return err
+		}
+		return nil
 	} else {
 		session, _ := v.(*hall_sesssion)
 		session.chPush <- req
@@ -95,7 +137,7 @@ func (self hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInst
 		session := v.(*hall_sesssion)
 		timeoutCtx, timeoutFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer timeoutFunc()
-		if err := session.Call_instead(timeoutCtx, fmt.Sprintf("在%s登录", req.Address)); err != nil {
+		if err := session.Call_instead(timeoutCtx, fmt.Sprintf("在%s登录", req.Address), actor.WithCallTimeOut(1*time.Second)); err != nil {
 			log.Errorw("user instead fail", "user_id", userId, "error", err)
 			resp.ErrorCode = gira.ErrCode(err)
 			resp.ErrorMsg = gira.ErrMsg(err)
@@ -106,6 +148,61 @@ func (self hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInst
 		}
 	}
 }
+
+func (self hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error {
+	for {
+		req, err := server.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		userId := req.UserId
+		_, _, _, push, err := self.hall.proto.PushDecode(req.Data)
+		if err != nil {
+			log.Warnw("user push decode fail", "error", err)
+			continue
+		}
+		if v, ok := self.hall.SessionDict.Load(userId); ok {
+			session, _ := v.(*hall_sesssion)
+			session.chPush <- push
+		}
+	}
+}
+
+func (self hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushRequest) (*hall_grpc.MustPushResponse, error) {
+	resp := &hall_grpc.MustPushResponse{}
+	userId := req.UserId
+	_, _, _, push, err := self.hall.proto.PushDecode(req.Data)
+	if err != nil {
+		return resp, err
+	}
+	if v, ok := self.hall.SessionDict.Load(userId); !ok {
+		return resp, gira.ErrNoSession
+	} else {
+		session, _ := v.(*hall_sesssion)
+		session.chPush <- push
+		return resp, nil
+	}
+}
+
+// func (self hall_server) UserPush(ctx context.Context, req *hall_grpc.UserPushRequest) (*hall_grpc.UserPushResponse, error) {
+// 	resp := &hall_grpc.UserPushResponse{}
+// 	userId := req.UserId
+// 	_, _, _, push, err := self.hall.proto.PushDecode(req.Data)
+// 	if err != nil {
+// 		return resp, err
+// 	}
+// 	log.Println("ffffffffffffffffff1")
+// 	if v, ok := self.hall.SessionDict.Load(userId); !ok {
+// 		return resp, gira.ErrNoSession
+// 	} else {
+// 		session, _ := v.(*hall_sesssion)
+// 		session.chPush <- push
+// 		return resp, nil
+// 	}
+// }
 
 // 处理网关发过来的消息
 type upstream_server struct {
@@ -144,7 +241,7 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 	// 申请建立会话
 	var session *hall_sesssion
 	// TODO 增加timeout
-	session, err = self.hall.createSession(self.hall.ctx, sessionId, memberId)
+	session, err = newSession(self.hall, sessionId, memberId)
 	if err != nil {
 		log.Errorw("create session fail", "session_id", sessionId, "error", err)
 		return err
@@ -162,8 +259,8 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 	session.streamCancelFunc = cancelFunc
 	// recv ctrl context
 	defer func() {
-		defer cancelFunc()
-		defer session.OnStreamClose()
+		cancelFunc()
+		session.Call_close(self.hall.ctx, actor.WithCallTimeOut(5*time.Second))
 	}()
 
 	errGroup.Go(func() error {
@@ -231,6 +328,6 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 	default:
 		close(session.chResponse)
 	}
-	log.Infow("stream quit", "error", err, "session_id", sessionId)
+	log.Infow("stream exit", "error", err, "session_id", sessionId, "member_id", memberId)
 	return nil
 }

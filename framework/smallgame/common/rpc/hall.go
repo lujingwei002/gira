@@ -5,22 +5,59 @@ import (
 	"sync"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"google.golang.org/grpc"
 )
 
-func init() {
+type HallClient struct {
+	clientPool map[string]*sync.Pool
+	streamPool map[string]*sync.Pool
+	mu         sync.Mutex
+	facade     gira.ApplicationFacade
+}
+
+var Hall *HallClient
+
+func OnAwake(facade gira.ApplicationFacade) {
 	Hall = &HallClient{
+		facade:     facade,
 		clientPool: make(map[string]*sync.Pool),
 	}
 }
 
-type HallClient struct {
-	clientPool map[string]*sync.Pool
-	mu         sync.Mutex
+func (self *HallClient) getStream(address string) (hall_grpc.Hall_PushStreamClient, error) {
+	self.mu.Lock()
+	var pool *sync.Pool
+	var ok bool
+	if pool, ok = self.clientPool[address]; !ok {
+		pool = &sync.Pool{
+			New: func() any {
+				conn, err := grpc.Dial(address, grpc.WithInsecure())
+				if err != nil {
+					return err
+				}
+				client := hall_grpc.NewHallClient(conn)
+				if stream, err := client.PushStream(facade.Context()); err != nil {
+					return err
+				} else {
+					return stream
+				}
+			},
+		}
+		self.clientPool[address] = pool
+		self.mu.Unlock()
+	} else {
+		self.mu.Unlock()
+	}
+	if v := pool.Get(); v == nil {
+		return nil, gira.ErrGrpcClientPoolNil
+	} else if err, ok := v.(error); ok {
+		return nil, err
+	} else {
+		return v.(hall_grpc.Hall_PushStreamClient), nil
+	}
 }
-
-var Hall *HallClient
 
 func (self *HallClient) getClient(address string) (hall_grpc.HallClient, error) {
 	self.mu.Lock()
@@ -59,6 +96,38 @@ func (self *HallClient) UserInstead(ctx context.Context, peer *gira.Peer, userId
 			UserId: userId,
 		}
 		if resp, err := client.UserInstead(ctx, req); err != nil {
+			return nil, err
+		} else {
+			return resp, nil
+		}
+	}
+}
+
+func (self *HallClient) Push(ctx context.Context, peer *gira.Peer, userId string, req []byte) error {
+	if stream, err := self.getStream(peer.GrpcAddr); err != nil {
+		return err
+	} else {
+		req := &hall_grpc.PushStreamRequest{
+			UserId: userId,
+			Data:   req,
+		}
+		if err := stream.Send(req); err != nil {
+			return err
+		} else {
+			return nil
+		}
+	}
+}
+
+func (self *HallClient) MustPush(ctx context.Context, peer *gira.Peer, userId string, req []byte) (*hall_grpc.MustPushResponse, error) {
+	if client, err := self.getClient(peer.GrpcAddr); err != nil {
+		return nil, err
+	} else {
+		req := &hall_grpc.MustPushRequest{
+			UserId: userId,
+			Data:   req,
+		}
+		if resp, err := client.MustPush(ctx, req); err != nil {
 			return nil, err
 		} else {
 			return resp, nil
