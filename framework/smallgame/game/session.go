@@ -37,7 +37,7 @@ type hall_sesssion struct {
 func (hall *hall_server) createSession(ctx context.Context, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
 	var userId string
 	var avatar UserAvatar
-	avatar, err = hall.hallHandler.Login(ctx, memberId)
+	avatar, err = hall.hallHandler.NewUser(ctx, memberId)
 	if err != nil {
 		return
 	}

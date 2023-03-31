@@ -198,7 +198,6 @@ func (self *Sproto) RequestDispatch(ctx context.Context, handler *SprotoHandler,
 			if err != nil {
 				return
 			}
-			log.Debugw("CCCCC", "name", proto.GetPushName(), "data", dataPush)
 			dataPushArr = append(dataPushArr, dataPush)
 		}
 	}

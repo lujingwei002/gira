@@ -27,7 +27,7 @@ type Session interface {
 }
 
 type HallHandler interface {
-	Login(ctx context.Context, memberId string) (avatar UserAvatar, err error)
+	NewUser(ctx context.Context, memberId string) (avatar UserAvatar, err error)
 	NewPlayer(ctx context.Context, session Session, memberId string, avatar UserAvatar) (player Player, err error)
 }
 
