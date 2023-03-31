@@ -33,7 +33,7 @@ func (self *GameDbClient) GetMongoClient() *mongo.Client {
 }
 
 // 初始化并启动
-func (self *GameDbClient) Start(ctx context.Context, config gira.GameDbConfig) error {
+func (self *GameDbClient) OnAwake(ctx context.Context, config gira.GameDbConfig) error {
 	self.config = config
 	self.cancelCtx, self.cancelFunc = context.WithCancel(ctx)
 	uri := fmt.Sprintf("mongodb://%s:%s@%s:%d", config.User, config.Password, config.Host, config.Port)

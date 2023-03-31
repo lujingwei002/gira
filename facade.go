@@ -23,6 +23,7 @@ type ApplicationFacade interface {
 	OnAwake() error
 	OnFrameworkAwake(facade ApplicationFacade) error
 	OnStart() error
+	OnFrameworkStart() error
 
 	// ======= 状态数据 ===========
 	GetAppType() string

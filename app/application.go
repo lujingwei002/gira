@@ -109,7 +109,7 @@ func (app *Application) Go(f func() error) {
 func (app *Application) init() error {
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
-	// 目录初始化
+	// 项目配置初始化
 	app.WorkDir = proj.Config.ProjectDir
 	os.Chdir(app.WorkDir)
 	app.ProjectFilePath = proj.Config.ProjectConfFilePath
@@ -169,6 +169,7 @@ func (app *Application) serve() error {
 	}
 	return nil
 }
+
 func (app *Application) start() error {
 	if err := app.init(); err != nil {
 		return err
@@ -193,7 +194,8 @@ func (app *Application) onStart() error {
 		// admin service
 		app.adminClient = admin_service.NewAdminClient()
 		if app.Config.Admin != nil {
-			if err := admin_service.Register(app.Facade, app.GrpcServer.Server()); err != nil {
+			service := admin_service.NewService(app.Facade)
+			if err := service.Register(app.GrpcServer.Server()); err != nil {
 				return err
 			}
 		}
@@ -207,6 +209,9 @@ func (app *Application) onStart() error {
 				return err
 			}
 		}
+	}
+	if err := app.Facade.OnFrameworkStart(); err != nil {
+		return err
 	}
 	if err := app.Facade.OnStart(); err != nil {
 		return err
@@ -235,7 +240,7 @@ func (app *Application) onAwake() error {
 	}
 	if app.Config.AccountCache != nil {
 		app.AccountCacheClient = db.NewAccountCacheClient()
-		if err := app.AccountCacheClient.Start(app.ctx, *app.Config.AccountCache); err != nil {
+		if err := app.AccountCacheClient.OnAwake(app.ctx, *app.Config.AccountCache); err != nil {
 			return err
 		}
 	}
@@ -244,31 +249,31 @@ func (app *Application) onAwake() error {
 	}
 	if app.Config.GameDb != nil {
 		app.GameDbClient = db.NewGameDbClient()
-		if err := app.GameDbClient.Start(app.ctx, *app.Config.GameDb); err != nil {
+		if err := app.GameDbClient.OnAwake(app.ctx, *app.Config.GameDb); err != nil {
 			return err
 		}
 	}
 	if app.Config.AccountDb != nil {
 		app.AccountDbClient = db.NewAccountDbClient()
-		if err := app.AccountDbClient.Start(app.ctx, *app.Config.AccountDb); err != nil {
+		if err := app.AccountDbClient.OnAwake(app.ctx, *app.Config.AccountDb); err != nil {
 			return err
 		}
 	}
 	if app.Config.StatDb != nil {
 		app.StatDbClient = db.NewStatDbClient()
-		if err := app.StatDbClient.Start(app.ctx, *app.Config.StatDb); err != nil {
+		if err := app.StatDbClient.OnAwake(app.ctx, *app.Config.StatDb); err != nil {
 			return err
 		}
 	}
 	if app.Config.AdminDb != nil {
 		app.adminDbClient = db.NewAdminDbClient()
-		if err := app.adminDbClient.Start(app.ctx, *app.Config.AdminDb); err != nil {
+		if err := app.adminDbClient.OnAwake(app.ctx, *app.Config.AdminDb); err != nil {
 			return err
 		}
 	}
 	if app.Config.ResourceDb != nil {
 		app.ResourceDbClient = db.NewResourceDbClient()
-		if err := app.ResourceDbClient.Start(app.ctx, *app.Config.ResourceDb); err != nil {
+		if err := app.ResourceDbClient.OnAwake(app.ctx, *app.Config.ResourceDb); err != nil {
 			return err
 		}
 	}

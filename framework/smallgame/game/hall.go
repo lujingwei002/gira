@@ -16,8 +16,18 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newHallServer(proto *sproto.Sproto, hallHandler HallHandler, playerHandler *sproto.SprotoHandler) *hall_server {
-	return &hall_server{
+type hall struct {
+	*actor.Actor
+	ctx           context.Context
+	cancelFunc    context.CancelFunc
+	SessionDict   sync.Map
+	hallHandler   HallHandler
+	playerHandler *sproto.SprotoHandler
+	proto         *sproto.Sproto
+}
+
+func newHall(proto *sproto.Sproto, hallHandler HallHandler, playerHandler *sproto.SprotoHandler) *hall {
+	return &hall{
 		hallHandler:   hallHandler,
 		proto:         proto,
 		playerHandler: playerHandler,
@@ -25,18 +35,19 @@ func newHallServer(proto *sproto.Sproto, hallHandler HallHandler, playerHandler 
 	}
 }
 
-func (hall *hall_server) Register(server *grpc.Server) error {
+func (hall *hall) Register(server *grpc.Server) error {
 	// 注册grpc
 	hall_grpc.RegisterUpstreamServer(server, upstream_server{
 		hall: hall,
 	})
-	hall_grpc.RegisterHallServer(server, hall)
+	hall_grpc.RegisterHallServer(server, &hall_server{
+		hall: hall,
+	})
 	go hall.serve()
 	return nil
 }
 
-func (hall *hall_server) serve() {
-	log.Printf(" %p\n", hall)
+func (hall *hall) serve() {
 	hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
 	defer hall.cancelFunc()
 	for {
@@ -50,7 +61,7 @@ func (hall *hall_server) serve() {
 	}
 }
 
-func (hall *hall_server) Push(ctx context.Context, memberId string, req sproto.SprotoPush) error {
+func (hall *hall) Push(ctx context.Context, memberId string, req sproto.SprotoPush) error {
 	if v, ok := hall.SessionDict.Load(memberId); !ok {
 		return gira.ErrNoSession
 	} else {
@@ -62,21 +73,14 @@ func (hall *hall_server) Push(ctx context.Context, memberId string, req sproto.S
 
 type hall_server struct {
 	hall_grpc.UnsafeHallServer
-
-	*actor.Actor
-	ctx           context.Context
-	cancelFunc    context.CancelFunc
-	SessionDict   sync.Map
-	hallHandler   HallHandler
-	playerHandler *sproto.SprotoHandler
-	proto         *sproto.Sproto
+	hall *hall
 }
 
 func (self hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInsteadRequest) (*hall_grpc.UserInsteadResponse, error) {
 	resp := &hall_grpc.UserInsteadResponse{}
 	userId := req.UserId
 	log.Infow("user instead", "user_id", userId)
-	if v, ok := self.SessionDict.Load(userId); !ok {
+	if v, ok := self.hall.SessionDict.Load(userId); !ok {
 		// 偿试解锁
 		peer, err := facade.UnlockLocalUser(userId)
 		log.Infow("unlock local user return", "user_id", userId, "peer", peer, "err", err)
@@ -103,9 +107,10 @@ func (self hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInst
 	}
 }
 
+// 处理网关发过来的消息
 type upstream_server struct {
 	hall_grpc.UnsafeUpstreamServer
-	hall *hall_server
+	hall *hall
 }
 
 func (h upstream_server) SayHello(ctx context.Context, in *hall_grpc.HelloRequest) (*hall_grpc.HelloResponse, error) {

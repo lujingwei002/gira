@@ -28,7 +28,7 @@ func (self *AdminDbClient) GetMysqlClient() *sql.DB {
 }
 
 // 初始化并启动
-func (self *AdminDbClient) Start(ctx context.Context, config gira.AdminDbConfig) error {
+func (self *AdminDbClient) OnAwake(ctx context.Context, config gira.AdminDbConfig) error {
 	self.config = config
 	self.ctx, self.cancelFunc = context.WithCancel(ctx)
 

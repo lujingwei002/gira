@@ -16,6 +16,10 @@ type AdminClient interface {
 	BroadcastReloadResource(ctx context.Context, name string) error
 }
 
+func (self *BaseFacade) OnFrameworkStart() error {
+	return nil
+}
+
 func (self *BaseFacade) OnFrameworkAwake(facade gira.ApplicationFacade) error {
 	return nil
 }

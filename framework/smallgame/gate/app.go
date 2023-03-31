@@ -8,67 +8,74 @@ import (
 	"google.golang.org/grpc"
 )
 
-var application *GateApplication
-
 type GateApplication struct {
 	app.BaseFacade
+	hall *hall
+	// 使用的协议，当中必须包括名为Login的协议
 	Proto  *sproto.Sproto
-	Config Config
+	Config *Config
 }
 
+// 需要实现的接口
 type GateHandler interface {
-	OnGateLogin(req sproto.SprotoRequest) (sproto.SprotoResponse, error)
-	OnGateRequest(req sproto.SprotoRequest) (sproto.SprotoResponse, error)
 }
 
+// 登录后，第一个登录消息
 type LoginRequest interface {
 	GetMemberId() string
 	GetToken() string
 }
 
+// 当前会话的数量
 func (self *GateApplication) SessionCount() int64 {
-	return hall.connCount
+	return self.hall.sessionCount
 }
 
+// 当前连接的数量
 func (self *GateApplication) ConnectionCount() int64 {
-	return hall.sessionCount
+	return self.hall.connectionCount
 }
 
 func (self *GateApplication) OnFrameworkAwake(facade gira.ApplicationFacade) error {
-	application = self
-	return hall.Awake(facade, self.Proto)
+	self.hall = newHall(facade, self.Proto, self.Config)
+	if err := self.hall.OnAwake(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (self *GateApplication) Start() error {
-	log.Info("start")
+func (self *GateApplication) OnFrameworkStart() error {
+	log.Info("framework start")
 	return nil
 }
 func (self *GateApplication) OnFrameworkConfigLoad(c *gira.Config) error {
+	self.Config = &Config{}
 	return self.Config.OnConfigLoad(c)
 }
 
 func (self *GateApplication) OnGateStream(conn gira.GateConn) {
-	hall.OnGateStream(conn)
+	self.hall.OnGateStream(conn)
 }
 
 func (self *GateApplication) OnPeerAdd(peer *gira.Peer) {
 	log.Info("OnPeerAdd")
-	hall.OnPeerAdd(peer)
+	self.hall.OnPeerAdd(peer)
 }
 
 func (self *GateApplication) OnPeerDelete(peer *gira.Peer) {
 	log.Info("OnPeerDelete")
-	hall.OnPeerDelete(peer)
+	self.hall.OnPeerDelete(peer)
 }
 
 func (self *GateApplication) OnPeerUpdate(peer *gira.Peer) {
 	log.Info("OnPeerUpdate")
-	hall.OnPeerUpdate(peer)
+	self.hall.OnPeerUpdate(peer)
 }
 
 func (self *GateApplication) OnGrpcServerStart(server *grpc.Server) error {
 	return nil
 }
+
 func (self *GateApplication) OnFrameworkGrpcServerStart(server *grpc.Server) error {
 	return nil
 }

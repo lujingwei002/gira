@@ -11,16 +11,25 @@ import (
 	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 )
 
-type Session struct {
+type client_session struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	sessionId  uint64
 	memberId   string
 	client     gira.GateConn
 	stream     hall_grpc.Upstream_DataStreamClient
+	hall       *hall
 }
 
-func (session *Session) serve(ctx context.Context, stream hall_grpc.Upstream_DataStreamClient, client gira.GateConn, req gira.GateRequest) error {
+func newSession(hall *hall, sessionId uint64, memberId string) *client_session {
+	return &client_session{
+		hall:      hall,
+		sessionId: sessionId,
+		memberId:  memberId,
+	}
+}
+
+func (session *client_session) serve(ctx context.Context, stream hall_grpc.Upstream_DataStreamClient, client gira.GateConn, req gira.GateRequest) error {
 	sessionId := session.sessionId
 	var err error
 	session.stream = stream
@@ -31,8 +40,8 @@ func (session *Session) serve(ctx context.Context, stream hall_grpc.Upstream_Dat
 	}()
 	session.ctx, session.cancelFunc = context.WithCancel(ctx)
 	errGroup, _ := errgroup.WithContext(ctx)
-	atomic.AddInt64(&hall.sessionCount, 1)
-	defer atomic.AddInt64(&hall.sessionCount, -1)
+	atomic.AddInt64(&session.hall.sessionCount, 1)
+	defer atomic.AddInt64(&session.hall.sessionCount, -1)
 	// 将上游消息转发到客户端
 	errGroup.Go(func() error {
 		defer func() {
@@ -41,7 +50,7 @@ func (session *Session) serve(ctx context.Context, stream hall_grpc.Upstream_Dat
 		for {
 			// 上游关闭时，stream并不会返回，会一直阻塞
 			if resp, err := stream.Recv(); err == nil {
-				session.response(resp)
+				session.streamResponse(resp)
 			} else {
 				log.Infow("上游连接关闭", "session_id", sessionId, "error", err)
 				client.Close()
@@ -55,7 +64,7 @@ func (session *Session) serve(ctx context.Context, stream hall_grpc.Upstream_Dat
 			log.Infow("client=>upstream goroutine close", "session_id", sessionId)
 		}()
 		// 接收客户端消息
-		if err := session.request(req); err != nil {
+		if err := session.clientRequest(req); err != nil {
 			log.Infow("request fail", "session_id", sessionId, "error", err)
 		}
 		for {
@@ -65,8 +74,8 @@ func (session *Session) serve(ctx context.Context, stream hall_grpc.Upstream_Dat
 				stream.CloseSend()
 				return err
 			}
-			if err := session.request(req); err != nil {
-				log.Infow("request fail", "session_id", sessionId, "error", err)
+			if err := session.clientRequest(req); err != nil {
+				log.Warnw("request fail", "session_id", sessionId, "error", err)
 
 			}
 		}
@@ -75,7 +84,8 @@ func (session *Session) serve(ctx context.Context, stream hall_grpc.Upstream_Dat
 	return err
 }
 
-func (self *Session) request(req gira.GateRequest) error {
+// 收到客户端的消息
+func (self *client_session) clientRequest(req gira.GateRequest) error {
 	sessionId := self.sessionId
 	memberId := self.memberId
 	log.Infow("client=>upstream", "session_id", sessionId, "len", len(req.Payload()), "req_id", req.ReqId())
@@ -91,7 +101,8 @@ func (self *Session) request(req gira.GateRequest) error {
 	return nil
 }
 
-func (self *Session) response(resp *hall_grpc.StreamDataResponse) error {
+// 收到上游的消息
+func (self *client_session) streamResponse(resp *hall_grpc.StreamDataResponse) error {
 	sessionId := self.sessionId
 	log.Infow("upstream=>client", "session_id", sessionId, "type", resp.Type, "len", len(resp.Data), "req_id", resp.ReqId, "data", resp.Data)
 	switch resp.Type {

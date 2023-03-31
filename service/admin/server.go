@@ -10,6 +10,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+type AdminService struct {
+	facade gira.ApplicationFacade
+}
+
 type admin_server struct {
 	admin_grpc.UnimplementedAdminServer
 	facade gira.ApplicationFacade
@@ -23,10 +27,17 @@ func (self admin_server) ReloadResource(context.Context, *admin_grpc.ReloadResou
 	return resp, nil
 }
 
-func Register(facade gira.ApplicationFacade, server *grpc.Server) error {
+func NewService(facade gira.ApplicationFacade) *AdminService {
+	return &AdminService{
+		facade: facade,
+	}
+}
+
+func (self *AdminService) Register(server *grpc.Server) error {
 	log.Infof("注册Admin服务 %p", server)
 	admin_grpc.RegisterAdminServer(server, admin_server{
-		facade: facade,
+		facade: self.facade,
 	})
 	return nil
+
 }

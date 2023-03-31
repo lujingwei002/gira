@@ -18,16 +18,21 @@ type Player interface {
 	Logout(ctx context.Context) error
 }
 
+// 大厅
 type Hall interface {
+	// 将消息推送给userId
 	Push(ctx context.Context, userId string, req sproto.SprotoPush) error
 }
 
 type Session interface {
+	//  将消息推送给当前玩家
 	Push(resp sproto.SprotoPush) (err error)
 }
 
 type HallHandler interface {
+	// 由memberId创建账号
 	NewUser(ctx context.Context, memberId string) (avatar UserAvatar, err error)
+	// 创建player
 	NewPlayer(ctx context.Context, session Session, memberId string, avatar UserAvatar) (player Player, err error)
 }
 
@@ -37,7 +42,8 @@ type UserAvatar interface {
 
 type HallApplication struct {
 	app.BaseFacade
-	hall          *hall_server
+	hall *hall
+
 	Proto         *sproto.Sproto
 	PlayerHandler *sproto.SprotoHandler
 	Hall          Hall
@@ -52,7 +58,7 @@ func (app *HallApplication) OnFrameworkAwake(facade gira.ApplicationFacade) erro
 	if handler, ok := facade.(HallHandler); !ok {
 		return gira.ErrGateHandlerNotImplement
 	} else {
-		app.hall = newHallServer(app.Proto, handler, app.PlayerHandler)
+		app.hall = newHall(app.Proto, handler, app.PlayerHandler)
 		app.Hall = app.hall
 		return nil
 	}

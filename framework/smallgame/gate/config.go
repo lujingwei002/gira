@@ -2,11 +2,8 @@ package gate
 
 import (
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
 	"gopkg.in/yaml.v2"
 )
-
-var Configs *Config
 
 type Config struct {
 	gira.Config
@@ -21,7 +18,5 @@ func (c *Config) OnConfigLoad(config *gira.Config) error {
 	if err := yaml.Unmarshal(config.Raw, c); err != nil {
 		return err
 	}
-	Configs = c
-	log.Infof("配置: %+v\n", string(c.Raw))
 	return nil
 }

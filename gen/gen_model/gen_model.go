@@ -645,6 +645,7 @@ const (
 	field_type_message
 	field_type_objectid
 	field_type_bool
+	field_type_bytes
 )
 
 const field_id_name string = "id"
@@ -656,6 +657,7 @@ var type_name_dict = map[string]field_type{
 	"string": field_type_string,
 	"id":     field_type_objectid,
 	"bool":   field_type_bool,
+	"bytes":  field_type_bytes,
 }
 
 var go_type_name_dict = map[field_type]string{
@@ -665,6 +667,7 @@ var go_type_name_dict = map[field_type]string{
 	field_type_string:   "string",
 	field_type_objectid: "primitive.ObjectID",
 	field_type_bool:     "bool",
+	field_type_bytes:    "[]byte",
 }
 
 var protobuf_type_name_dict = map[field_type]string{
@@ -674,6 +677,7 @@ var protobuf_type_name_dict = map[field_type]string{
 	field_type_string:   "string",
 	field_type_objectid: "string",
 	field_type_bool:     "bool",
+	field_type_bytes:    "bytes",
 }
 
 type message_type int

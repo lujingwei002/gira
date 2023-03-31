@@ -19,7 +19,7 @@ import (
 // session 被动从stream接收消息
 type hall_sesssion struct {
 	*actor.Actor
-	hall             *hall_server
+	hall             *hall
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	sessionId        uint64
@@ -34,7 +34,7 @@ type hall_sesssion struct {
 	isClosed         int32
 }
 
-func (hall *hall_server) createSession(ctx context.Context, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
+func (hall *hall) createSession(ctx context.Context, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
 	var userId string
 	var avatar UserAvatar
 	avatar, err = hall.hallHandler.NewUser(ctx, memberId)
@@ -312,70 +312,74 @@ func (self *hall_sesssion) Notify(userId string, resp sproto.SprotoPush) error {
 
 /// 宏展开的地方，不要在文件末尾添加代码============// afafa
 
-type SessioncloseArgument struct {
-	self       *hall_sesssion
-	ctx        context.Context
-	r0         error
-	__caller__ chan *SessioncloseArgument
+type hall_sesssioncloseArgument struct {
+	self *hall_sesssion
+	ctx context.Context
+	r0 error
+	__caller__ chan*hall_sesssioncloseArgument
 }
 
-func (__arg__ *SessioncloseArgument) Call() {
+func (__arg__ *hall_sesssioncloseArgument) Call() {
 	__arg__.r0 = __arg__.self.close(__arg__.ctx)
 	__arg__.__caller__ <- __arg__
 }
 
-func (self *hall_sesssion) Call_close(ctx context.Context) (r0 error) {
-	__arg__ := &SessioncloseArgument{
-		self:       self,
-		ctx:        ctx,
-		__caller__: make(chan *SessioncloseArgument),
+func (self *hall_sesssion) Call_close (ctx context.Context) (r0 error){
+	__arg__ := &hall_sesssioncloseArgument {
+		self: self,
+		ctx: ctx,
+		__caller__: make(chan*hall_sesssioncloseArgument),
 	}
 	self.Inbox() <- __arg__
 	select {
-	case resp := <-__arg__.__caller__:
+	case resp :=<-__arg__.__caller__:
 		return resp.r0
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 }
-func (self *hall_sesssion) CallWithTimeout_close(__timeout__ time.Duration) (r0 error) {
+func (self *hall_sesssion) CallWithTimeout_close (__timeout__ time.Duration, ) (r0 error){
 	__ctx__, __cancel__ := context.WithTimeout(context.Background(), __timeout__)
 	defer __cancel__()
-	return self.Call_close(__ctx__)
+	return self.Call_close(__ctx__, )
 }
 
-type SessioninsteadArgument struct {
-	self       *hall_sesssion
-	ctx        context.Context
-	reason     string
-	err        error
-	__caller__ chan *SessioninsteadArgument
+
+	
+type hall_sesssioninsteadArgument struct {
+	self *hall_sesssion
+	ctx context.Context
+	reason string
+	err error
+	__caller__ chan*hall_sesssioninsteadArgument
 }
 
-func (__arg__ *SessioninsteadArgument) Call() {
+func (__arg__ *hall_sesssioninsteadArgument) Call() {
 	__arg__.err = __arg__.self.instead(__arg__.ctx, __arg__.reason)
 	__arg__.__caller__ <- __arg__
 }
 
-func (self *hall_sesssion) Call_instead(ctx context.Context, reason string) (err error) {
-	__arg__ := &SessioninsteadArgument{
-		self:       self,
-		ctx:        ctx,
-		reason:     reason,
-		__caller__: make(chan *SessioninsteadArgument),
+func (self *hall_sesssion) Call_instead (ctx context.Context, reason string) (err error){
+	__arg__ := &hall_sesssioninsteadArgument {
+		self: self,
+		ctx: ctx,
+		reason: reason,
+		__caller__: make(chan*hall_sesssioninsteadArgument),
 	}
 	self.Inbox() <- __arg__
 	select {
-	case resp := <-__arg__.__caller__:
+	case resp :=<-__arg__.__caller__:
 		return resp.err
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 }
-func (self *hall_sesssion) CallWithTimeout_instead(__timeout__ time.Duration, reason string) (err error) {
+func (self *hall_sesssion) CallWithTimeout_instead (__timeout__ time.Duration, reason string) (err error){
 	__ctx__, __cancel__ := context.WithTimeout(context.Background(), __timeout__)
 	defer __cancel__()
 	return self.Call_instead(__ctx__, reason)
 }
 
+
+	
 /// =============宏展开的地方，不要在文件末尾添加代码============

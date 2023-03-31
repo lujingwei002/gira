@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -264,7 +263,7 @@ func (self* <<.BundleStructName>>) Clear() {
 func (self* <<.BundleStructName>>) LoadFromYaml(dir string) error {
 	self.Clear()
 	<<- range .DescriptorArr>>
-	var <<.CapStructName>>filePath = filepath.Join(dir, "<<.YamlFilePath>>")
+	var <<.CapStructName>>filePath = filepath.Join(dir, "<<.YamlFileName>>")
 	if err := self.<<.WrapStructName>>.LoadFromYaml(<<.CapStructName>>filePath); err != nil {
 		return err
 	}
@@ -312,7 +311,7 @@ func (self *<<.BundleStructName>>) SaveToBin(dir string) error {
 
 func (self *<<.BundleStructName>>) SaveToDb(ctx context.Context, database *mongo.Database, dir string) error {
 	<<- range .DescriptorArr>>
-	var <<.CapStructName>>filePath = filepath.Join(dir, "<<.YamlFilePath>>")
+	var <<.CapStructName>>filePath = filepath.Join(dir, "<<.YamlFileName>>")
 	var <<.ArrTypeName>> <<.ArrTypeName>>
 	if err := <<.ArrTypeName>>.LoadFromYaml(<<.CapStructName>>filePath); err != nil {
 		return err
@@ -466,6 +465,7 @@ const (
 	field_type_string
 	field_type_json
 	field_type_bool
+	field_type_string_arr
 )
 
 type descriptor_type int
@@ -477,21 +477,23 @@ const (
 )
 
 var type_name_dict = map[string]field_type{
-	"int":    field_type_int,
-	"int64":  field_type_int64,
-	"int32":  field_type_int32,
-	"string": field_type_string,
-	"json":   field_type_json,
-	"bool":   field_type_bool,
+	"int":      field_type_int,
+	"int64":    field_type_int64,
+	"int32":    field_type_int32,
+	"string":   field_type_string,
+	"json":     field_type_json,
+	"bool":     field_type_bool,
+	"string[]": field_type_string_arr,
 }
 
 var go_type_name_dict = map[field_type]string{
-	field_type_int:    "int64",
-	field_type_int64:  "int64",
-	field_type_int32:  "int32",
-	field_type_string: "string",
-	field_type_json:   "interface{}",
-	field_type_bool:   "bool",
+	field_type_int:        "int64",
+	field_type_int64:      "int64",
+	field_type_int32:      "int32",
+	field_type_string:     "string",
+	field_type_json:       "interface{}",
+	field_type_bool:       "bool",
+	field_type_string_arr: "[]string",
 }
 
 var descriptor_type_name_dict = map[string]descriptor_type{
@@ -522,7 +524,7 @@ type Descriptor struct {
 	CapStructName    string
 	WrapStructName   string
 	GoTypeName       string
-	YamlFilePath     string
+	YamlFileName     string
 	FieldArr         []*Field          // 字段信息
 	FieldDict        map[string]*Field // 字段信息
 	ArrTypeName      string            // ErrorCodeArr
@@ -691,7 +693,8 @@ func (f *ResourceFile) read(filePath string) error {
 				// 解析key arr
 				keyArr := row.Keys
 				// xlsx替换成yaml
-				yamlFilePath := strings.Replace(filePath, filepath.Ext(filePath), ".yaml", -1)
+				//yamlFileName := strings.Replace(filePath, filepath.Ext(filePath), ".yaml", -1)
+				yamlFileName := fmt.Sprintf("%s.yaml", name)
 				descriptor := &Descriptor{
 					Type:             typ,
 					Name:             name,
@@ -702,7 +705,7 @@ func (f *ResourceFile) read(filePath string) error {
 					MapTypeName:      name + "Map",
 					GoObjectTypeName: name + "Object",
 					FilePath:         filePath,
-					YamlFilePath:     yamlFilePath,
+					YamlFileName:     yamlFileName,
 					KeyArr:           keyArr,
 				}
 				if typ == descriptor_type_array {
@@ -790,6 +793,7 @@ func (excelData *ExcelData) read(name string, descriptor *Descriptor, filePath s
 				excelData.FieldArr = append(excelData.FieldArr, field)
 				excelData.FieldDict[v] = field
 			} else {
+				log.Warnw("invalid type", "type", typeName, "field", v)
 				return fmt.Errorf("invalid type %s", typeName)
 			}
 		}
@@ -840,6 +844,7 @@ func (excelData *ExcelData) read(name string, descriptor *Descriptor, filePath s
 					v = "false"
 				}
 			} else if field.Type == field_type_json {
+			} else if field.Type == field_type_string_arr {
 			} else {
 				if v == "" {
 					v = 0
@@ -898,6 +903,7 @@ func genResources1(state *GenState) error {
 			ValueArr:  make([][]interface{}, 0),
 		}
 		if err := excelData.read(v.Name, v, filePath); err != nil {
+			log.Println(filePath)
 			return err
 		}
 		state.ExcelDataDict[v.Name] = excelData
@@ -914,8 +920,8 @@ func genResources2(state *GenState) error {
 		}
 	}
 	for name, v := range state.ResourceFile.DescriptorDict {
-		log.Info(name, "==>", v.YamlFilePath)
-		filePath := path.Join(proj.Config.ResourceDir, v.YamlFilePath)
+		log.Info(name, "==>", v.YamlFileName)
+		filePath := path.Join(proj.Config.ResourceDir, v.YamlFileName)
 		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err

@@ -1,4 +1,4 @@
-package macro
+package gen_macro
 
 import (
 	"bufio"
@@ -42,18 +42,19 @@ type Method struct {
 	Arg0        *Arg
 	Arg1        *Arg
 }
+
 type Macro struct {
 	file       *os.File
-	FilePath   string
-	Type       MacroType
+	FilePath   string    // 所有的文件
+	Type       MacroType //类型
 	MacroFuncs []*MacroFunc
 	Method     *Method
 }
 
 type MacroFunc struct {
+	Line string
 	Name string
 	Args []string
-
 	Arg0 string
 	Arg1 string
 	Arg2 string
@@ -61,9 +62,12 @@ type MacroFunc struct {
 	Arg4 string
 }
 
-func scanDirFiles() map[string][]string {
+func scanDirFiles(config *Config) map[string][]string {
 	dirArr := make([]string, 0)
 	dirArr = append(dirArr, proj.Config.SrcDir)
+	if config.SrcDirs != nil {
+		dirArr = append(dirArr, config.SrcDirs...)
+	}
 	files := make(map[string][]string, 0)
 	for _, dir := range dirArr {
 		filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
@@ -181,6 +185,7 @@ func scanMacros(files map[string][]string) (map[string][]*Macro, error) {
 						// log.Info(macroName, args)
 						macroFunc := &MacroFunc{}
 						macroFunc.Name = macroName
+						macroFunc.Line = v
 						args = strings.TrimSpace(args)
 						if len(args) > 0 {
 							macroFunc.Args = strings.Split(args, ",")
@@ -221,7 +226,7 @@ func scanMacros(files map[string][]string) (map[string][]*Macro, error) {
 							method.ReceiverPtr = receiverPtr
 							method.Args = parseArgs(args)
 							method.Returns = parseReturns(returnType)
-							log.Infof("%#v\n", method)
+							//log.Infof("%#v\n", method)
 							macro.Method = method
 						} else {
 							fmt.Println("No match found")
@@ -253,8 +258,14 @@ type GenState struct {
 var code = `// afafa
 `
 
-func Gen() error {
-	files := scanDirFiles()
+type Config struct {
+	SrcDirs []string
+}
+
+func Gen(config *Config) error {
+	log.Info("===============gen macro start===============")
+	log.Info(config.SrcDirs)
+	files := scanDirFiles(config)
 	if fileMacros, err := scanMacros(files); err != nil {
 		return err
 	} else {
@@ -367,6 +378,7 @@ func Gen() error {
 					log.Infof("macro %s not found", macro.Type)
 				} else {
 					for _, macroFunc := range macro.MacroFuncs {
+						log.Println(macroFunc.Line)
 						if handler, ok := dict[macroFunc.Name]; !ok {
 							log.Infof("macro %s not found", macroFunc.Name)
 						} else {
@@ -377,6 +389,8 @@ func Gen() error {
 							}
 						}
 					}
+					log.Println("方法宏", macro.Method.Declaration)
+					log.Println()
 				}
 				macro.file.WriteString(sb.String())
 			}
@@ -386,6 +400,7 @@ func Gen() error {
 /// =============宏展开的地方，不要在文件末尾添加代码============`)
 		}
 	}
+	log.Info("===============gen macro finished===============")
 	return nil
 }
 

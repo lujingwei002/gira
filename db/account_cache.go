@@ -26,7 +26,7 @@ func (self *AccountCacheClient) GetRedisClient() *redis.Client {
 }
 
 // 初始化并启动
-func (self *AccountCacheClient) Start(ctx context.Context, config gira.AccountCacheConfig) error {
+func (self *AccountCacheClient) OnAwake(ctx context.Context, config gira.AccountCacheConfig) error {
 	self.config = config
 	self.cancelCtx, self.cancelFunc = context.WithCancel(ctx)
 

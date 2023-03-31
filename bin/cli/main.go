@@ -14,11 +14,11 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/lujingwei002/gira/gen/gen_const"
+	"github.com/lujingwei002/gira/gen/gen_macro"
 	"github.com/lujingwei002/gira/gen/gen_model"
 	"github.com/lujingwei002/gira/gen/gen_protocols"
 	"github.com/lujingwei002/gira/gen/gen_resources"
 	"github.com/lujingwei002/gira/gen/gen_services"
-	"github.com/lujingwei002/gira/macro"
 	"github.com/lujingwei002/gira/proj"
 )
 
@@ -271,7 +271,7 @@ func resourceAction(args *cli.Context) error {
 
 func macroAction(args *cli.Context) error {
 	log.Println("macroAction")
-	if err := macro.Gen(); err != nil {
+	if err := gen_macro.Gen(&gen_macro.Config{}); err != nil {
 		return err
 	}
 	return nil
