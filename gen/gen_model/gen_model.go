@@ -23,7 +23,7 @@ syntax = "proto3";
 package <<.DbName>>;
 option go_package="src/gen/model/<<.DbName>>";
 
-<<- range .CollectionDict>> 
+<<- range .CollectionArr>> 
 
 message <<.StructName>>Pb {
 	<<- range .FieldDict>> 
@@ -59,8 +59,8 @@ import (
 
 
 
-<</* 模型字段 */>>
-<<- range .CollectionDict>> 
+<<- range .CollectionArr>> 
+// <<.CollName>>模型字段 
 var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
 	<<- range .FieldDict>> 
 	/// <<.Comment>>
@@ -69,7 +69,7 @@ var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
 }
 <<- end>> 
 
-<<- range .CollectionDict>> 
+<<- range .CollectionArr>> 
 
 <</* 模型字段 */>>
 type <<.StructName>>_Field struct {
@@ -105,7 +105,7 @@ func (self *<<.DataStructName>>) MarshalProtobuf(pb *<<.PbStructName>>) error {
 
 
 <</* ===========================derive user ================ */>>
-<<- range .CollectionDict>> 
+<<- range .CollectionArr>> 
 <<- if .IsDeriveUser>>
 type <<.StructName>> struct {
 	<<.DataStructName>>
@@ -132,9 +132,8 @@ func (self* <<.StructName>>)MarshalBinary() (data []byte, err error) {
 	data, err = json.Marshal(self)
 	return
 }
-
-
 <<- range .FieldDict>> 
+
 func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
 	if self.<<.CamelName>> == v {
 		return
@@ -149,18 +148,41 @@ func (self *<<.Coll.StructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
 <<- end>>
 
 <<- end>><</* if .IsDeriveUser*/>>
-<<- end>><</* range .CollectionDict*/>>
+<<- end>><</* range .CollectionArr*/>>
 
 
 
 <</* ===========================derive userarr ================ */>>
-<<- range .CollectionDict>> 
+<<- range .CollectionArr>> 
 <<- if .IsDeriveUserArr>>
 type <<.StructName>> struct {
 	<<.DataStructName>>
 	dirty   bool
 	arr     *<<.ArrStructName>>
 }
+
+<<- range .FieldDict>> 
+<<- if .IsPrimaryKey>>
+<<- else>>
+<<- if .IsSecondaryKey>>
+<<- else>>
+func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
+	self.<<.CamelName>> = v
+	if self.dirty {
+		return
+	}
+	self.dirty = true
+	if self.arr != nil {
+		self.arr.setDirty(self)
+	}
+}
+func (self *<<.Coll.StructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
+	return self.<<.CamelName>>
+}
+<<- end>>
+<<- end>>
+<<- end>>
+
 
 type <<.ArrStructName>> struct {
 	<<.CamelPrimaryKey>>	<<.PrimaryKeyField.GoTypeName>>	
@@ -276,31 +298,9 @@ func (self *<<.ArrStructName>>) Get(<<.CapCamelSecondaryKey>> <<.SecondaryKeyFie
 }
 
 
-<<- range .FieldDict>> 
-<<- if .IsPrimaryKey>>
-<<- else>>
-<<- if .IsSecondaryKey>>
-<<- else>>
-func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
-	self.<<.CamelName>> = v
-	if self.dirty {
-		return
-	}
-	self.dirty = true
-	if self.arr != nil {
-		self.arr.setDirty(self)
-	}
-}
-func (self *<<.Coll.StructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
-	return self.<<.CamelName>>
-}
-<<- end>>
-<<- end>>
-<<- end>>
-
 
 <<- end>><</* if .IsDeriveUserArr*/>>
-<<- end>><</* range .CollectionDict*/>>
+<<- end>><</* range .CollectionArr*/>>
 
 
 
@@ -314,11 +314,11 @@ func (self *<<.Coll.StructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
 
 
 
-<</* mongo操作 */>>
+// mongo 
 type <<.MongoDbStructName>> struct {
 	client		*mongo.Client
 	database	*mongo.Database
-	<<- range .CollectionDict>> 
+	<<- range .CollectionArr>> 
 	<<.StructName>>  *<<.MongoDaoStructName>>
 	<<- end>>
 }
@@ -328,7 +328,7 @@ func UseMongo(client gira.MongoClient) *<<.MongoDbStructName>> {
 		client: client.GetMongoClient(),
 		database: client.GetMongoDatabase(),
 	}
-	<<- range .CollectionDict>> 
+	<<- range .CollectionArr>> 
 	self.<<.StructName>> = &<<.MongoDaoStructName>>{
 		db: self,
 	}
@@ -336,7 +336,7 @@ func UseMongo(client gira.MongoClient) *<<.MongoDbStructName>> {
 	return self
 }
 
-<<- range .CollectionDict>> 
+<<- range .CollectionArr>> 
 
 type <<.MongoDaoStructName>> struct {
 	db *<<$.MongoDbStructName>>
@@ -517,7 +517,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 	opts := options.BulkWrite().SetOrdered(false)
 	_, err := coll.BulkWrite(ctx, models, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	    return err
 	}
 	return nil
@@ -561,7 +561,7 @@ func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimar
 <</* redis操作 */>>
 type <<.RedisDbStructName>> struct {
 	client		*redis.Client
-	<<- range .CollectionDict>> 
+	<<- range .CollectionArr>> 
 	<<.StructName>>  *<<.RedisDaoStructName>>
 	<<- end>>
 }
@@ -570,7 +570,7 @@ func UseRedis(client gira.RedisClient) *<<.RedisDbStructName>> {
 	self := &<<.RedisDbStructName>>{
 		client: client.GetRedisClient(),
 	}
-	<<- range .CollectionDict>> 
+	<<- range .CollectionArr>> 
 	self.<<.StructName>> = &<<.RedisDaoStructName>>{
 		db: self,
 	}
@@ -578,7 +578,7 @@ func UseRedis(client gira.RedisClient) *<<.RedisDbStructName>> {
 	return self
 }
 
-<<- range .CollectionDict>> 
+<<- range .CollectionArr>> 
 
 type <<.RedisDaoStructName>> struct {
 	db *<<$.RedisDbStructName>>
@@ -701,7 +701,7 @@ type Field struct {
 	ProtobufTypeName string
 	Default          interface{}
 	Comment          string
-	Coll             *Descriptor
+	Coll             *Collection
 	IsPrimaryKey     bool /// 是否主键，目前只对userarr类型的表格有效果
 	IsSecondaryKey   bool /// 是否次键，目前只对userarr类型的表格有效果
 }
@@ -737,14 +737,13 @@ func camelString(s string) string {
 	return string(data[:])
 }
 
-type Descriptor struct {
-	CollName             string
-	StructName           string
+type Collection struct {
+	CollName             string // 表名
+	StructName           string // 表名的驼峰格式
 	PbStructName         string
 	ArrStructName        string
-	DaoStructName        string
-	MongoDaoStructName   string
-	RedisDaoStructName   string
+	MongoDaoStructName   string // mongo dao 结构的名称
+	RedisDaoStructName   string // redis dao 结构的名称
 	Derive               string
 	KeyArr               []string
 	DataStructName       string
@@ -762,17 +761,17 @@ type Descriptor struct {
 type Database struct {
 	Module              string
 	Driver              string
-	DbStructName        string
-	MongoDbStructName   string
-	RedisDbStructName   string
+	DbStructName        string // 数据库名的驼峰格式
+	MongoDbStructName   string // mongo 的 dao 结构名字
+	RedisDbStructName   string // redis 的 dao 结构名字
 	DbName              string
-	GenModelFilePath    string
-	GenProtobufFilePath string
-	CollectionDict      map[string]*Descriptor
+	GenModelFilePath    string        // 生成的文件路径，在 gen/{{DbName}}//{{DbName}}.go
+	GenProtobufFilePath string        // 生成的protobuf文件路径， 在gen/{{DbName}}/{{DbName}}.proto
+	CollectionArr       []*Collection // 所有的模型
 }
 
 // 生成协议的状态
-type GenState struct {
+type gen_state struct {
 	databaseDict []*Database
 }
 
@@ -780,22 +779,21 @@ func QuoteChar() interface{} {
 	return "`"
 }
 
-func (descriptor *Descriptor) IsDeriveUser() bool {
+func (descriptor *Collection) IsDeriveUser() bool {
 	return descriptor.Derive == "user"
 }
 
-func (descriptor *Descriptor) IsDeriveUserArr() bool {
+func (descriptor *Collection) IsDeriveUserArr() bool {
 	return descriptor.Derive == "userarr"
 }
 
-func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
+func (descriptor *Collection) parseStruct(attrs map[string]interface{}) error {
 	descriptor.FieldDict = make(map[string]*Field)
 	//commaRegexp := regexp.MustCompile("[^,]+")
 	spaceRegexp := regexp.MustCompile("[^\\s]+")
 	equalRegexp := regexp.MustCompile("[^=]+")
 
-	for _, v := range arr {
-		var valueStr string
+	for valueStr, v := range attrs {
 		var tag int
 		var err error
 		var fieldName string
@@ -803,13 +801,10 @@ func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
 		var tagStr string
 		var optionArr []interface{}
 		switch v.(type) {
-		case string:
-			valueStr = v.(string)
-		case map[string]interface{}:
-			for k1, v1 := range v.(map[string]interface{}) {
-				valueStr = k1
-				optionArr = v1.([]interface{})
-			}
+		case nil:
+			break
+		case []interface{}:
+			optionArr = v.([]interface{})
 		default:
 			return fmt.Errorf("%+v invalid11", v)
 		}
@@ -825,8 +820,8 @@ func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
 		if len(args) != 2 {
 			return fmt.Errorf("%s invalid", valueStr)
 		}
-		typeStr = args[0]
-		fieldName = args[1]
+		typeStr = args[1]
+		fieldName = args[0]
 		field := &Field{
 			Coll:      descriptor,
 			Name:      fieldName,
@@ -863,7 +858,7 @@ func (descriptor *Descriptor) parseStruct(arr []interface{}) error {
 	return nil
 }
 
-func (descriptor *Descriptor) Unmarshal(genState *GenState, v interface{}) error {
+func (descriptor *Collection) Unmarshal(genState *gen_state, v interface{}) error {
 	var derive string
 	row := v.(map[string]interface{})
 	if v, ok := row["derive"]; ok {
@@ -875,8 +870,8 @@ func (descriptor *Descriptor) Unmarshal(genState *GenState, v interface{}) error
 		return fmt.Errorf("collection %s struct part not found", descriptor.CollName)
 	}
 	structPart := row["struct"]
-	if _, ok := structPart.([]interface{}); !ok {
-		return fmt.Errorf("collection %s struct part not array", descriptor.CollName)
+	if _, ok := structPart.(map[string]interface{}); !ok {
+		return fmt.Errorf("collection %s struct part not map", descriptor.CollName)
 	}
 	if _, ok := row["key"]; !ok {
 		return fmt.Errorf("collection %s key part not found", descriptor.CollName)
@@ -891,7 +886,7 @@ func (descriptor *Descriptor) Unmarshal(genState *GenState, v interface{}) error
 	}
 	descriptor.Derive = derive
 	descriptor.KeyArr = keyArr
-	if err := descriptor.parseStruct(row["struct"].([]interface{})); err != nil {
+	if err := descriptor.parseStruct(row["struct"].(map[string]interface{})); err != nil {
 		return err
 	}
 	if descriptor.Derive == "userarr" {
@@ -922,7 +917,7 @@ func (descriptor *Descriptor) Unmarshal(genState *GenState, v interface{}) error
 	return nil
 }
 
-func genModel1(genState *GenState, filePathArr []string) error {
+func parse(state *gen_state, filePathArr []string) error {
 	for _, fileName := range filePathArr {
 		filePath := path.Join(proj.Config.DocModelDir, fileName)
 		log.Info("处理文件", filePath)
@@ -933,9 +928,9 @@ func genModel1(genState *GenState, filePathArr []string) error {
 		dbName := strings.Replace(fileName, ".yaml", "", 1)
 		database := &Database{
 			Module:              proj.Config.Module,
-			CollectionDict:      make(map[string]*Descriptor),
-			GenModelFilePath:    path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.go", dbName)),
-			GenProtobufFilePath: path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.proto", dbName)),
+			CollectionArr:       make([]*Collection, 0),
+			GenModelFilePath:    path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+			GenProtobufFilePath: path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.gen.proto", dbName)),
 			DbName:              dbName,
 			DbStructName:        camelString(dbName),
 			MongoDbStructName:   fmt.Sprintf("Mongo%s", camelString(dbName)),
@@ -950,28 +945,27 @@ func genModel1(genState *GenState, filePathArr []string) error {
 				database.Driver = v.(string)
 			} else {
 				collName := k
-				descriptor := &Descriptor{
+				coll := &Collection{
 					CollName:           collName,
 					StructName:         camelString(collName),
 					PbStructName:       fmt.Sprintf("%sPb", camelString(collName)),
 					ArrStructName:      fmt.Sprintf("%sArr", camelString(collName)),
-					DaoStructName:      fmt.Sprintf("%sOp", camelString(collName)),
 					DataStructName:     fmt.Sprintf("%sData", camelString(collName)),
 					MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
 					RedisDaoStructName: fmt.Sprintf("%sRedisDao", camelString(collName)),
 				}
-				if err := descriptor.Unmarshal(genState, v); err != nil {
+				if err := coll.Unmarshal(state, v); err != nil {
 					return err
 				}
-				database.CollectionDict[collName] = descriptor
+				database.CollectionArr = append(database.CollectionArr, coll)
 			}
 		}
-		genState.databaseDict = append(genState.databaseDict, database)
+		state.databaseDict = append(state.databaseDict, database)
 	}
 	return nil
 }
 
-func genModel2(protocolState *GenState) error {
+func genModel(protocolState *gen_state) error {
 	for _, db := range protocolState.databaseDict {
 
 		dir := path.Dir(db.GenModelFilePath)
@@ -1005,7 +999,7 @@ func genModel2(protocolState *GenState) error {
 	return nil
 }
 
-func genProtobuf(protocolState *GenState) error {
+func genProtobuf(protocolState *gen_state) error {
 	for _, db := range protocolState.databaseDict {
 
 		dir := path.Dir(db.GenProtobufFilePath)
@@ -1061,10 +1055,10 @@ func Gen() error {
 		}
 		return nil
 	})
-	genState := &GenState{
+	genState := &gen_state{
 		databaseDict: make([]*Database, 0),
 	}
-	if err := genModel1(genState, fileNameArr); err != nil {
+	if err := parse(genState, fileNameArr); err != nil {
 		log.Info(err)
 		return err
 	}
@@ -1072,7 +1066,7 @@ func Gen() error {
 		log.Info(err)
 		return err
 	}
-	if err := genModel2(genState); err != nil {
+	if err := genModel(genState); err != nil {
 		log.Info(err)
 		return err
 	}

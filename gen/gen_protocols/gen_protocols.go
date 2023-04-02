@@ -575,15 +575,14 @@ type GenState struct {
 	PacketArr  []*Packet
 }
 
-func (m *Message) parse(arr []interface{}) error {
+func (m *Message) parse(attrs map[string]interface{}) error {
 	m.FieldDict = make(map[string]*Field)
 	m.FieldArr = make([]*Field, 0)
 	//commaRegexp := regexp.MustCompile("[^,]+")
 	spaceRegexp := regexp.MustCompile("[^\\s]+")
 	equalRegexp := regexp.MustCompile("[^=]+")
 
-	for _, v := range arr {
-		var valueStr string
+	for valueStr, v := range attrs {
 		var tag int
 		var err error
 		var fieldName string
@@ -591,15 +590,12 @@ func (m *Message) parse(arr []interface{}) error {
 		var tagStr string
 		var optionArr []interface{}
 		switch v.(type) {
-		case string:
-			valueStr = v.(string)
-		case map[string]interface{}:
-			for k1, v1 := range v.(map[string]interface{}) {
-				valueStr = k1
-				optionArr = v1.([]interface{})
-			}
+		case nil:
+			break
+		case []interface{}:
+			optionArr = v.([]interface{})
 		default:
-			return fmt.Errorf("%+v invalid11", v)
+			return fmt.Errorf("%+v invalid11 %s", v, valueStr)
 		}
 		args := equalRegexp.FindAllString(valueStr, -1)
 		if len(args) != 2 {
@@ -731,8 +727,8 @@ func genProtocols1(genState *GenState, mainFilePath string, filePathArr []string
 				log.Info("读取协议", name)
 				packet.Type = message_type_struct
 				if _, ok := dict["struct"]; ok {
-					if _, ok := dict["struct"].([]interface{}); ok {
-						if err := packet.Message.parse(dict["struct"].([]interface{})); err != nil {
+					if _, ok := dict["struct"].(map[string]interface{}); ok {
+						if err := packet.Message.parse(dict["struct"].(map[string]interface{})); err != nil {
 							return err
 						}
 					}
@@ -750,14 +746,14 @@ func genProtocols1(genState *GenState, mainFilePath string, filePathArr []string
 				hasResponse := false
 				if v, ok := dict["request"]; ok {
 					if v == nil {
-					} else if _, ok := v.([]interface{}); !ok {
+					} else if _, ok := v.(map[string]interface{}); !ok {
 						return fmt.Errorf("%s invalid66 %#v", k, v)
 					}
 					hasRequest = true
 				}
 				if v, ok := dict["response"]; ok {
 					if v == nil {
-					} else if _, ok := v.([]interface{}); !ok {
+					} else if _, ok := v.(map[string]interface{}); !ok {
 						return fmt.Errorf("%s invalid77", k)
 					}
 					hasResponse = true
@@ -772,12 +768,12 @@ func genProtocols1(genState *GenState, mainFilePath string, filePathArr []string
 					return fmt.Errorf("%s request and response not found", name)
 				}
 				if packet.Type == message_type_request {
-					if v, ok := dict["request"].([]interface{}); ok {
+					if v, ok := dict["request"].(map[string]interface{}); ok {
 						if err := packet.Request.parse(v); err != nil {
 							return err
 						}
 					}
-					if v, ok := dict["response"].([]interface{}); ok {
+					if v, ok := dict["response"].(map[string]interface{}); ok {
 						if err := packet.Response.parse(v); err != nil {
 							return err
 						}
@@ -785,14 +781,14 @@ func genProtocols1(genState *GenState, mainFilePath string, filePathArr []string
 					packet.Request.StructName = fmt.Sprintf("%sRequest", camelString(name))
 					packet.Response.StructName = fmt.Sprintf("%sResponse", camelString(name))
 				} else if packet.Type == message_type_notify {
-					if v, ok := dict["response"].([]interface{}); ok {
+					if v, ok := dict["response"].(map[string]interface{}); ok {
 						if err := packet.Notify.parse(v); err != nil {
 							return err
 						}
 					}
 					packet.Notify.StructName = fmt.Sprintf("%sNotify", camelString(name))
 				} else if packet.Type == message_type_push {
-					if v, ok := dict["request"].([]interface{}); ok {
+					if v, ok := dict["request"].(map[string]interface{}); ok {
 						if err := packet.Push.parse(v); err != nil {
 							return err
 						}
