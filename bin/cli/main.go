@@ -1,24 +1,25 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	//https://cli.urfave.org/v2/examples/full-api-example/
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
 	"github.com/urfave/cli/v2"
 
+	"github.com/lujingwei002/gira/gen/gen_application"
 	"github.com/lujingwei002/gira/gen/gen_const"
 	"github.com/lujingwei002/gira/gen/gen_macro"
 	"github.com/lujingwei002/gira/gen/gen_model"
 	"github.com/lujingwei002/gira/gen/gen_protocols"
 	"github.com/lujingwei002/gira/gen/gen_resources"
-	"github.com/lujingwei002/gira/gen/gen_services"
 	"github.com/lujingwei002/gira/proj"
 )
 
@@ -63,6 +64,11 @@ func main() {
 						Name:   "const",
 						Usage:  "gen const",
 						Action: genConstAction,
+					},
+					{
+						Name:   "app",
+						Usage:  "gen app",
+						Action: genAppAction,
 					},
 				},
 			},
@@ -137,25 +143,95 @@ func main() {
 				Usage:  "Reload config",
 				Action: reloadAction,
 			},
+			{
+				Name:   "run",
+				Usage:  "run command",
+				Action: runAction,
+			},
+			{
+				Name:   "build",
+				Usage:  "build command",
+				Action: buildAction,
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal("error", err)
+		log.Info(err)
 	}
 }
 
-func execCommand(name string, arg []string) (string, error) {
-	cmd := exec.Command(name, arg...)
-	//cmd.Stdin = strings.NewReader("")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
+func execCommandLine(line string) error {
+	lastWd, err := os.Getwd()
 	if err != nil {
-		log.Println(err)
-		return "", err
+		return err
 	}
-	fmt.Println(out.String())
-	return out.String(), nil
+	defer func() {
+		os.Chdir(lastWd)
+	}()
+	arr := strings.Split(line, ";")
+	for _, v := range arr {
+		pats := strings.Fields(v)
+		name := pats[0]
+		args := pats[1:]
+		switch name {
+		case "cd":
+			if len(args) > 0 {
+				os.Chdir(args[0])
+			} else {
+				os.Chdir("")
+			}
+			log.Printf("[OK] %s", v)
+		default:
+			if err := execCommand(name, args); err != nil {
+				log.Printf("[FAIL] %s", v)
+				return err
+			} else {
+				log.Printf("[OK] %s", v)
+			}
+		}
+	}
+	return nil
+}
+
+func execCommand(name string, arg []string) error {
+	cmd := exec.Command(name, arg...)
+
+	// 获取命令的标准输出管道
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+
+	// 启动命令
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	// 创建一个 Scanner 对象，对命令的标准输出和标准错误输出进行扫描
+	scanner := bufio.NewScanner(stdout)
+	go func() {
+		for scanner.Scan() {
+			// 输出命令的标准输出
+			log.Println(scanner.Text())
+			log.Println(name, arg)
+		}
+	}()
+	scanner = bufio.NewScanner(stderr)
+	go func() {
+		for scanner.Scan() {
+			// 输出命令的标准错误输出
+			fmt.Fprintln(os.Stderr, scanner.Text())
+		}
+	}()
+
+	// 等待命令执行完成
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func beforeAction1(args *cli.Context) error {
@@ -293,6 +369,13 @@ func genModelAction(args *cli.Context) error {
 	return nil
 }
 
+func genAppAction(args *cli.Context) error {
+	if err := gen_application.Gen(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func genConstAction(args *cli.Context) error {
 	if err := gen_const.Gen(); err != nil {
 		return err
@@ -304,7 +387,7 @@ func genAllAction(args *cli.Context) error {
 	if err := gen_protocols.Gen(); err != nil {
 		return err
 	}
-	if err := gen_services.Gen(); err != nil {
+	if err := gen_application.Gen(); err != nil {
 		return err
 	}
 	if err := gen_resources.Gen(gen_resources.Config{
@@ -357,5 +440,41 @@ func statusAction(args *cli.Context) error {
 }
 
 func reloadAction(args *cli.Context) error {
+	return nil
+}
+
+func runAction(c *cli.Context) error {
+	if c.Args().Len() <= 0 {
+		return nil
+	}
+	name := c.Args().First()
+	// args := c.Args().Tail()
+	if arr, ok := proj.Config.Run[name]; !ok {
+		return nil
+	} else {
+		for _, v := range arr {
+			if err := execCommandLine(v); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func buildAction(c *cli.Context) error {
+	if c.Args().Len() <= 0 {
+		return nil
+	}
+	name := c.Args().First()
+	// args := c.Args().Tail()
+	if arr, ok := proj.Config.Build[name]; !ok {
+		return nil
+	} else {
+		for _, v := range arr {
+			if err := execCommandLine(v); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }

@@ -18,37 +18,43 @@ var (
 )
 
 type ProjectConfig struct {
-	Version             string `yaml:"version"`
-	Module              string `yaml:"module"`
-	GenResourceHash     string `yaml:"gen_resource_hash"`
-	Env                 string //当前环境 local|dev|qa|prd
-	Zone                string // 当前区 wc|qq|gf|review
-	ProjectDir          string
-	DotEnvFilePath      string // .env
-	ProjectConfFilePath string // gira.yaml
-	DocDir              string // doc
-	LogDir              string // log
-	ConfigDir           string // config
-	EnvDir              string // env
-	ConstDir            string //
-	ResourceDir         string // resource
-	GenDir              string // gen
-	RunDir              string // run
-	SrcTestDir          string // src/test
-	GenModelDir         string // gen/model
-	GenProtocolDir      string // gen/protocol
-	SrcDir              string // src
-	SrcGenDir           string // src/gen/
-	SrcGenModelDir      string // src/gen/model/
-	SrcGenProtocolDir   string // src/gen/protocol/
-	SrcGenConstDir      string // src/gen/const/
-	SrcGenResourceDir   string // src/gen/resource/
-	ExcelDir            string // doc/resource/
-	ConstDocFilePath    string // doc/const.yaml
-	DocResourceFilePath string // doc/resource.yaml
-	DocProtocolFilePath string // doc/protocol.yaml
-	DocProtocolDir      string // doc/protocol/
-	DocModelDir         string // doc/model/
+	Version         string `yaml:"version"`
+	Module          string `yaml:"module"`
+	GenResourceHash string `yaml:"gen_resource_hash"`
+	Applications    []struct {
+		Name string `yaml:"name"`
+	} `yaml:"application"`
+	Run                  map[string][]string `yaml:"run"`
+	Build                map[string][]string `yaml:"build"`
+	Env                  string              //当前环境 local|dev|qa|prd
+	Zone                 string              // 当前区 wc|qq|gf|review
+	ProjectDir           string
+	DotEnvFilePath       string // .env
+	ProjectConfFilePath  string // gira.yaml
+	DocDir               string // doc
+	LogDir               string // log
+	ConfigDir            string // config
+	EnvDir               string // env
+	ConstDir             string //
+	ResourceDir          string // resource
+	GenDir               string // gen
+	RunDir               string // run
+	SrcTestDir           string // src/test
+	GenModelDir          string // gen/model
+	GenProtocolDir       string // gen/protocol
+	SrcDir               string // src
+	SrcGenDir            string // src/gen/
+	SrcGenApplicationDir string // src/gen/application
+	SrcGenModelDir       string // src/gen/model/
+	SrcGenProtocolDir    string // src/gen/protocol/
+	SrcGenConstDir       string // src/gen/const/
+	SrcGenResourceDir    string // src/gen/resource/
+	ExcelDir             string // doc/resource/
+	ConstDocFilePath     string // doc/const.yaml
+	DocResourceFilePath  string // doc/resource.yaml
+	DocProtocolFilePath  string // doc/protocol.yaml
+	DocProtocolDir       string // doc/protocol/
+	DocModelDir          string // doc/model/
 }
 
 func init() {
@@ -112,6 +118,7 @@ func (p *ProjectConfig) load() error {
 	p.SrcGenDir = path.Join(p.ProjectDir, "src", "gen")
 	p.SrcGenConstDir = path.Join(p.SrcGenDir, "const")
 	p.SrcGenModelDir = path.Join(p.SrcGenDir, "model")
+	p.SrcGenApplicationDir = path.Join(p.SrcGenDir, "application")
 	p.SrcGenResourceDir = path.Join(p.SrcGenDir, "resource")
 	p.SrcGenProtocolDir = path.Join(p.SrcGenDir, "protocol")
 	p.ExcelDir = path.Join(p.DocDir, "resource")
