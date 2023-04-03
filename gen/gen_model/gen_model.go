@@ -91,6 +91,12 @@ func (self *<<.DataStructName>>) MarshalProtobuf(pb *<<.PbStructName>>) error {
 	<<- range .FieldDict>> 
 	<<- if eq .TypeName "id" >>
 	pb.<<.CamelName>> = self.<<.CamelName>>.String()
+	<<- else if .IsStruct >>
+	if v, err := json.Marshal(self.<<.CamelName>>); err != nil {
+		return err
+	} else {
+		pb.<<.CamelName>> = v
+	}
 	<<- else>>
 	pb.<<.CamelName>> = self.<<.CamelName>> 
 	<<- end>>
@@ -646,38 +652,47 @@ const (
 	field_type_objectid
 	field_type_bool
 	field_type_bytes
+	field_type_int_arr
+	field_type_int64_arr
+	field_type_struct
 )
 
 const field_id_name string = "id"
 
 var type_name_dict = map[string]field_type{
-	"int":    field_type_int,
-	"int32":  field_type_int32,
-	"int64":  field_type_int64,
-	"string": field_type_string,
-	"id":     field_type_objectid,
-	"bool":   field_type_bool,
-	"bytes":  field_type_bytes,
+	"int":     field_type_int,
+	"int32":   field_type_int32,
+	"int64":   field_type_int64,
+	"string":  field_type_string,
+	"id":      field_type_objectid,
+	"bool":    field_type_bool,
+	"bytes":   field_type_bytes,
+	"[]int":   field_type_int_arr,
+	"[]int64": field_type_int64_arr,
 }
 
 var go_type_name_dict = map[field_type]string{
-	field_type_int:      "int64",
-	field_type_int32:    "int32",
-	field_type_int64:    "int64",
-	field_type_string:   "string",
-	field_type_objectid: "primitive.ObjectID",
-	field_type_bool:     "bool",
-	field_type_bytes:    "[]byte",
+	field_type_int:       "int64",
+	field_type_int32:     "int32",
+	field_type_int64:     "int64",
+	field_type_string:    "string",
+	field_type_objectid:  "primitive.ObjectID",
+	field_type_bool:      "bool",
+	field_type_bytes:     "[]byte",
+	field_type_int_arr:   "[]int64",
+	field_type_int64_arr: "[]int64",
 }
 
 var protobuf_type_name_dict = map[field_type]string{
-	field_type_int:      "int64",
-	field_type_int32:    "int32",
-	field_type_int64:    "int64",
-	field_type_string:   "string",
-	field_type_objectid: "string",
-	field_type_bool:     "bool",
-	field_type_bytes:    "bytes",
+	field_type_int:       "int64",
+	field_type_int32:     "int32",
+	field_type_int64:     "int64",
+	field_type_string:    "string",
+	field_type_objectid:  "string",
+	field_type_bool:      "bool",
+	field_type_bytes:     "bytes",
+	field_type_int64_arr: "repeated int64",
+	field_type_int_arr:   "repeated int64",
 }
 
 type message_type int
@@ -704,6 +719,10 @@ type Field struct {
 	Coll             *Collection
 	IsPrimaryKey     bool /// 是否主键，目前只对userarr类型的表格有效果
 	IsSecondaryKey   bool /// 是否次键，目前只对userarr类型的表格有效果
+}
+
+func (f *Field) IsStruct() bool {
+	return f.Type == field_type_struct
 }
 
 func capLowerString(s string) string {
@@ -839,9 +858,14 @@ func (descriptor *Collection) parseStruct(attrs map[string]interface{}) error {
 		field.TypeName = typeStr
 		if typeValue, ok := type_name_dict[typeStr]; ok {
 			field.Type = typeValue
+			field.GoTypeName = go_type_name_dict[field.Type]
+			field.ProtobufTypeName = protobuf_type_name_dict[field.Type]
+		} else {
+			field.Type = field_type_struct
+			field.GoTypeName = typeStr
+			field.ProtobufTypeName = "bytes"
 		}
-		field.GoTypeName = go_type_name_dict[field.Type]
-		field.ProtobufTypeName = protobuf_type_name_dict[field.Type]
+
 		// fmt.Println(optionArr)
 		for _, option := range optionArr {
 			optionDict := option.(map[string]interface{})

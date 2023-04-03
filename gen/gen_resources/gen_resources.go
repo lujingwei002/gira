@@ -490,6 +490,7 @@ const (
 	field_type_json
 	field_type_bool
 	field_type_string_arr
+	field_type_int_arr
 	field_type_struct
 )
 
@@ -510,6 +511,7 @@ var type_name_dict = map[string]field_type{
 	"json":     field_type_json,
 	"bool":     field_type_bool,
 	"string[]": field_type_string_arr,
+	"int[]":    field_type_int_arr,
 }
 
 // 和go类型的对应关系
@@ -521,6 +523,7 @@ var go_type_name_dict = map[field_type]string{
 	field_type_json:       "interface{}",
 	field_type_bool:       "bool",
 	field_type_string_arr: "[]string",
+	field_type_int_arr:    "[]int64",
 }
 
 var resource_type_name_dict = map[string]resource_type{
@@ -750,6 +753,8 @@ func (r *Resource) readExcel(filePath string) error {
 				}
 			} else if field.Type == field_type_json {
 			} else if field.Type == field_type_string_arr {
+			} else if field.Type == field_type_int_arr {
+				v = fmt.Sprintf("[%s]", v)
 			} else {
 				if v == "" {
 					v = 0
