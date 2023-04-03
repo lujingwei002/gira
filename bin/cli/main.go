@@ -36,9 +36,35 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:   "gen",
-				Usage:  "gen code",
-				Action: genAction,
+				Usage:  "gen [resource|model|protocol|const]",
 				Before: beforeAction1,
+				Subcommands: []*cli.Command{
+					{
+						Name:   "all",
+						Usage:  "gen all",
+						Action: genAllAction,
+					},
+					{
+						Name:   "resource",
+						Usage:  "gen resource",
+						Action: genResourceAction,
+					},
+					{
+						Name:   "model",
+						Usage:  "gen model",
+						Action: genModelAction,
+					},
+					{
+						Name:   "protocol",
+						Usage:  "gen protocol",
+						Action: genProtocolAction,
+					},
+					{
+						Name:   "const",
+						Usage:  "gen const",
+						Action: genConstAction,
+					},
+				},
 			},
 			{
 				Name:   "resource",
@@ -244,15 +270,46 @@ func beforeAction(args *cli.Context) error {
 	return nil
 }
 
-func genAction(args *cli.Context) error {
-	log.Println("genAction")
+func genResourceAction(args *cli.Context) error {
+	if err := gen_resources.Gen(gen_resources.Config{
+		Force: true,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func genProtocolAction(args *cli.Context) error {
+	if err := gen_protocols.Gen(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func genModelAction(args *cli.Context) error {
+	if err := gen_model.Gen(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func genConstAction(args *cli.Context) error {
+	if err := gen_const.Gen(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func genAllAction(args *cli.Context) error {
 	if err := gen_protocols.Gen(); err != nil {
 		return err
 	}
 	if err := gen_services.Gen(); err != nil {
 		return err
 	}
-	if err := gen_resources.Gen(); err != nil {
+	if err := gen_resources.Gen(gen_resources.Config{
+		Force: true,
+	}); err != nil {
 		return err
 	}
 	if err := gen_const.Gen(); err != nil {

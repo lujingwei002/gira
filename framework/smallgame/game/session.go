@@ -11,7 +11,6 @@ import (
 	"github.com/lujingwei002/gira/framework/smallgame/common/rpc"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/sproto"
 )
 
 // 锁是和session绑定的，因此由session来抢占会释放
@@ -29,7 +28,7 @@ type hall_sesssion struct {
 	player           Player
 	chResponse       chan *hall_grpc.StreamDataResponse // 由stream负责关闭
 	chRequest        chan *hall_grpc.StreamDataRequest  // 由stream负责关闭
-	chPush           chan sproto.SprotoPush             // 由session负责关闭
+	chPush           chan gira.ProtoPush                // 由session负责关闭
 	streamCancelFunc context.CancelFunc
 	isClosed         int32
 }
@@ -115,7 +114,7 @@ func newSession(hall *hall, sessionId uint64, memberId string) (session *hall_se
 
 // 主要的业务逻辑的主协程
 func (self *hall_sesssion) serve() {
-	self.chPush = make(chan sproto.SprotoPush, 10)
+	self.chPush = make(chan gira.ProtoPush, 10)
 	defer func() {
 		close(self.chPush)
 	}()
@@ -149,9 +148,14 @@ func (self *hall_sesssion) serve() {
 
 // 加载数据
 func (self *hall_sesssion) load() (player Player, err error) {
-	player, err = self.hall.hallHandler.NewPlayer(self.ctx, self, self.memberId, self.avatar)
-	if err = player.Load(self.ctx, self.memberId, self.userId); err != nil {
-		return nil, err
+	player, err = self.hall.hallHandler.NewPlayer(self.hall.ctx, self, self.memberId, self.avatar)
+	if err != nil {
+		return
+	}
+	// player的ctx和session的ctx平级，player并不和session绑定，player可以将自己缓存起来，下次相同玩家登录的时候再复用
+	err = player.Load(self.hall.ctx, self.memberId, self.userId)
+	if err != nil {
+		return
 	}
 	return player, nil
 }
@@ -174,7 +178,8 @@ func (self *hall_sesssion) sendPacketAndClose(ctx context.Context, typ hall_grpc
 	return nil
 }
 
-func (self *hall_sesssion) push(req sproto.SprotoPush) error {
+// 处理push请求
+func (self *hall_sesssion) push(req gira.ProtoPush) error {
 	sessionId := self.sessionId
 	var err error
 	var name string = req.GetPushName()
@@ -198,7 +203,7 @@ func (self *hall_sesssion) request(req *hall_grpc.StreamDataRequest) (err error)
 	var dataReq interface{}
 	var dataResp []byte
 	var dataPushArr [][]byte
-	_, name, reqId, dataReq, err = self.hall.proto.RequestDecode(req.Data)
+	name, reqId, dataReq, err = self.hall.proto.RequestDecode(req.Data)
 	if err != nil {
 		log.Errorw("request decode fail", "session_id", sessionId, "error", err)
 		return
@@ -277,7 +282,7 @@ func (self *hall_sesssion) instead(ctx context.Context, reason string) (err erro
 }
 
 // 推送消息
-func (self *hall_sesssion) Push(resp sproto.SprotoPush) (err error) {
+func (self *hall_sesssion) Push(resp gira.ProtoPush) (err error) {
 	var data []byte
 	if data, err = self.hall.proto.PushEncode(resp); err != nil {
 		return
@@ -297,7 +302,7 @@ func (self *hall_sesssion) Push(resp sproto.SprotoPush) (err error) {
 	}
 }
 
-func (self *hall_sesssion) Notify(userId string, resp sproto.SprotoPush) error {
+func (self *hall_sesssion) Notify(userId string, resp gira.ProtoPush) error {
 	if v, ok := self.hall.SessionDict.Load(userId); !ok {
 		return gira.ErrNoSession
 	} else {

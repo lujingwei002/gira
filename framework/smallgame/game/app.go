@@ -6,7 +6,6 @@ import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/common/rpc"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/sproto"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/lujingwei002/gira/app"
@@ -21,14 +20,14 @@ type Player interface {
 
 // 大厅
 type Hall interface {
-	//  将消息推送给玩家, 不保证消息已经被处理，如果玩家当前不在线，消息将会推送失败，但不会返回错误
-	Push(ctx context.Context, userId string, req sproto.SprotoPush) error
-	//  会将消息推送到玩家的消息队列中，但不等待结果，如果玩家不在线，会返回错误
-	MustPush(ctx context.Context, userId string, resp sproto.SprotoPush) (err error)
+	// 将消息推送给玩家, 不保证消息已经被处理，如果玩家当前不在线，消息将会推送失败，但不会返回错误
+	Push(ctx context.Context, userId string, req gira.ProtoPush) error
+	// 会将消息推送到玩家的消息队列中，但不等待结果，如果玩家不在线，会返回错误
+	MustPush(ctx context.Context, userId string, resp gira.ProtoPush) (err error)
 }
 
 type Session interface {
-	Push(resp sproto.SprotoPush) (err error)
+	Push(resp gira.ProtoPush) (err error)
 }
 
 type HallHandler interface {
@@ -42,12 +41,13 @@ type UserAvatar interface {
 	GetUserId() primitive.ObjectID
 }
 
+// 应用
 type HallApplication struct {
 	app.BaseFacade
 	hall *hall
 
-	Proto         *sproto.Sproto
-	PlayerHandler *sproto.SprotoHandler
+	Proto         gira.Proto
+	PlayerHandler gira.ProtoHandler
 	Hall          Hall
 }
 

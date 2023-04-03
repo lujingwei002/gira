@@ -13,7 +13,6 @@ import (
 	"github.com/lujingwei002/gira/framework/smallgame/common/rpc"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/sproto"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -24,14 +23,14 @@ type hall struct {
 	cancelFunc    context.CancelFunc
 	SessionDict   sync.Map
 	hallHandler   HallHandler
-	playerHandler *sproto.SprotoHandler
-	proto         *sproto.Sproto
+	playerHandler gira.ProtoHandler
+	proto         gira.Proto
 }
 
-func newHall(proto *sproto.Sproto, hallHandler HallHandler, playerHandler *sproto.SprotoHandler) *hall {
+func newHall(proto gira.Proto, hallHandler HallHandler, playerHandler gira.ProtoHandler) *hall {
 	return &hall{
-		hallHandler:   hallHandler,
 		proto:         proto,
+		hallHandler:   hallHandler,
 		playerHandler: playerHandler,
 		Actor:         actor.NewActor(16),
 	}
@@ -63,8 +62,7 @@ func (hall *hall) serve() {
 	}
 }
 
-func (hall *hall) Push(ctx context.Context, userId string, req sproto.SprotoPush) error {
-	// WARN: TEST
+func (hall *hall) Push(ctx context.Context, userId string, req gira.ProtoPush) error {
 	var err error
 	if v, ok := hall.SessionDict.Load(userId); !ok {
 		var data []byte
@@ -88,8 +86,7 @@ func (hall *hall) Push(ctx context.Context, userId string, req sproto.SprotoPush
 	}
 }
 
-func (hall *hall) MustPush(ctx context.Context, userId string, req sproto.SprotoPush) error {
-	// WARN: TEST
+func (hall *hall) MustPush(ctx context.Context, userId string, req gira.ProtoPush) error {
 	var err error
 	if v, ok := hall.SessionDict.Load(userId); !ok {
 		var data []byte
@@ -159,7 +156,7 @@ func (self hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error
 			return err
 		}
 		userId := req.UserId
-		_, _, _, push, err := self.hall.proto.PushDecode(req.Data)
+		_, _, push, err := self.hall.proto.PushDecode(req.Data)
 		if err != nil {
 			log.Warnw("user push decode fail", "error", err)
 			continue
@@ -174,7 +171,7 @@ func (self hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error
 func (self hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushRequest) (*hall_grpc.MustPushResponse, error) {
 	resp := &hall_grpc.MustPushResponse{}
 	userId := req.UserId
-	_, _, _, push, err := self.hall.proto.PushDecode(req.Data)
+	_, _, push, err := self.hall.proto.PushDecode(req.Data)
 	if err != nil {
 		return resp, err
 	}

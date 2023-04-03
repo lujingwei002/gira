@@ -4,7 +4,6 @@ import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/app"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/sproto"
 	"google.golang.org/grpc"
 )
 
@@ -12,7 +11,7 @@ type GateApplication struct {
 	app.BaseFacade
 	hall *hall
 	// 使用的协议，当中必须包括名为Login的协议
-	Proto  *sproto.Sproto
+	Proto  gira.Proto
 	Config *Config
 }
 

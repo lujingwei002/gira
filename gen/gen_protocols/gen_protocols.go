@@ -94,7 +94,7 @@ import (
 	gosproto "github.com/xjdrew/gosproto"
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/sproto"
+	//"github.com/lujingwei002/gira/sproto"
 	"sync/atomic"
 	"sync"
 )
@@ -195,7 +195,7 @@ var Protocols []*gosproto.Protocol = []*gosproto.Protocol {
 
 
 type Client struct {
-	proto			*sproto.Sproto
+	proto			gira.Proto
 	conn			gira.GateClient
 	reqId			uint64
 	ctx				context.Context
@@ -216,7 +216,7 @@ type Client struct {
 }
 
 type PushMethod interface {
-	Call(req sproto.SprotoPush, err error)
+	Call(req gira.ProtoPush, err error)
 }
 
 <<- range .PacketArr>>
@@ -227,7 +227,7 @@ type <<.Push.StructName>>Method struct {
 	Func <<.Push.StructName>>Func
 }
 
-func (self* <<.Push.StructName>>Method) Call(req sproto.SprotoPush, err error) {
+func (self* <<.Push.StructName>>Method) Call(req gira.ProtoPush, err error) {
 	r := req.(*<<.Push.StructName>>)
 	self.Func(r, err)
 }
@@ -241,7 +241,6 @@ type waitRequest struct {
 	err		error
     caller	chan*waitRequest
 	reqId	uint64
-	mode	gosproto.RpcMode
 	name    string
 	session int32
 	resp    interface{}
@@ -252,13 +251,12 @@ type waitPush struct {
 	data	[]byte
 	err		error
     caller	chan*waitPush
-	mode	gosproto.RpcMode
 	name    string
 	session int32
 	resp    interface{}
 }
 
-func NewClient(ctx context.Context, conn gira.GateClient, sproto *sproto.Sproto) *Client {
+func NewClient(ctx context.Context, conn gira.GateClient, sproto gira.Proto) *Client {
 	self := &Client{
 		proto:		sproto,
 		conn:		conn,
@@ -299,21 +297,18 @@ func (self *Client) readRoutine() error {
 					wait.route = route
 					wait.reqId = reqId
 					// 解析message
-					wait.mode, wait.name, wait.session, wait.resp, wait.err = self.proto.ResponseDecode(data)
+					wait.name, wait.session, wait.resp, wait.err = self.proto.ResponseDecode(data)
 					wait.caller <- wait
 				}
 			case gira.GateMessageType_PUSH:
-				mode, name, _, resp, err := self.proto.PushDecode(data)
+				name, _, resp, err := self.proto.PushDecode(data)
 				log.Infow("recv push message", "name", name, "data", resp)
-				if mode != gosproto.RpcRequestMode {
-					continue
-				}
 				handlerCount := 0
 				if dict, ok := self.onPushDict[name]; ok {
 					dict.Range(func(k any, v any) bool {
 						handlerCount = handlerCount + 1
 						f := v.(PushMethod)
-						f.Call(resp.(sproto.SprotoPush), err)
+						f.Call(resp.(gira.ProtoPush), err)
 						return true
 					})
 				}
@@ -325,7 +320,7 @@ func (self *Client) readRoutine() error {
 					// 上下文信息
 					wait.route = route
 					// 解析message
-					wait.mode, wait.name, wait.session, wait.resp, wait.err = self.proto.PushDecode(data)
+					wait.name, wait.session, wait.resp, wait.err = self.proto.PushDecode(data)
 					wait.caller <- wait
 				}
 				if handlerCount == 0 {
@@ -360,9 +355,6 @@ func (self *Client) <<.StructName>>(ctx context.Context, req *<<.Request.StructN
 		case v := <- wait.caller:
 			if v.err != nil {
 				return nil, v.err
-			}
-	        if wait.mode != gosproto.RpcResponseMode {
-				return nil, gira.ErrSprotoResponseConversion
 			}
 	        if uint64(wait.session) != wait.reqId {
 				return nil, gira.ErrSprotoResponseConversion 
@@ -399,9 +391,6 @@ func (self *Client) Wait<<.StructName>>Push(ctx context.Context) (*<<.Push.Struc
 		case v := <- wait.caller:
 			if v.err != nil {
 				return nil, v.err
-			}
-	        if wait.mode != gosproto.RpcRequestMode {
-				return nil, gira.ErrSprotoPushConversion
 			}
 			resp1, ok := wait.resp.(*<<.Push.StructName>>)
 			if !ok {
@@ -670,7 +659,7 @@ func (m *Message) parse(attrs map[string]interface{}) error {
 	return nil
 }
 
-func genProtocols1(genState *GenState, mainFilePath string, filePathArr []string) error {
+func parse(genState *GenState, mainFilePath string, filePathArr []string) error {
 
 	// 主文件的注释
 	f, err := os.Open(mainFilePath)
@@ -880,7 +869,7 @@ func genSprotoGo(genState *GenState) error {
 			return err
 		}
 	}
-	filePath := filepath.Join(dir, fmt.Sprintf("%s.go", genState.Module))
+	filePath := filepath.Join(dir, fmt.Sprintf("%s.gen.go", genState.Module))
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -946,20 +935,20 @@ func Gen() error {
 			})
 		}
 
-		protocolState := &GenState{
+		state := &GenState{
 			Module:     name,
 			PacketDict: make(map[string]*Packet),
 			PacketArr:  make([]*Packet, 0),
 		}
-		if err := genProtocols1(protocolState, protocolFilePath, protocolFilePathArr); err != nil {
+		if err := parse(state, protocolFilePath, protocolFilePathArr); err != nil {
 			log.Info(err)
 			return err
 		}
-		if err := genSproto(protocolState); err != nil {
+		if err := genSproto(state); err != nil {
 			log.Info(err)
 			return err
 		}
-		if err := genSprotoGo(protocolState); err != nil {
+		if err := genSprotoGo(state); err != nil {
 			log.Info(err)
 			return err
 		}

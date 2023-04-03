@@ -6,7 +6,6 @@ import (
 
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/sproto"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/account/jwt"
@@ -15,7 +14,7 @@ import (
 )
 
 type hall struct {
-	proto           *sproto.Sproto
+	proto           gira.Proto
 	facade          gira.ApplicationFacade
 	peer            *upstream_peer
 	ctx             context.Context
@@ -32,7 +31,7 @@ type upstream_peer struct {
 	Address  string
 }
 
-func newHall(facade gira.ApplicationFacade, proto *sproto.Sproto, config *Config) *hall {
+func newHall(facade gira.ApplicationFacade, proto gira.Proto, config *Config) *hall {
 	return &hall{
 		facade: facade,
 		proto:  proto,
@@ -54,7 +53,7 @@ func (h *hall) SelectPeer() *upstream_peer {
 	return h.peer
 }
 
-func (h *hall) loginErrResponse(r gira.GateRequest, req sproto.SprotoRequest, err error) error {
+func (h *hall) loginErrResponse(r gira.GateRequest, req gira.ProtoRequest, err error) error {
 	log.Info(err)
 	resp, err := h.proto.NewResponse(req)
 	if err == nil {
@@ -89,7 +88,7 @@ func (self *hall) OnGateStream(client gira.GateConn) {
 		return
 	}
 	// log.Infow("client=>gate request", "session_id", sessionId, "req_id", req.ReqId)
-	if _, name, _, dataReq, err := self.proto.RequestDecode(req.Payload()); err != nil {
+	if name, _, dataReq, err := self.proto.RequestDecode(req.Payload()); err != nil {
 		log.Infow("client=>gate request decode fail", "session_id", sessionId, "error", err)
 		return
 	} else if name != "Login" {

@@ -273,7 +273,7 @@ func (self* <<.BundleStructName>>) Clear() {
 	<<- range .ResourceArr>>
 		<<- if .IsDeriveObject>>
 		<<- else>>
-	self.<<.WrapStructName>> = make(<<.GoTypeName>>, 0)
+	self.<<.WrapStructName>> = make(<<.WrapTypeName>>, 0)
 		<<- end>>
 	<<- end>>
 }
@@ -546,7 +546,7 @@ type Resource struct {
 	TableName      string
 	CapStructName  string
 	WrapStructName string
-	GoTypeName     string
+	WrapTypeName   string
 	YamlFileName   string
 	ArrTypeName    string // ErrorCodeArr
 	FilePath       string
@@ -615,6 +615,7 @@ func (self SortLoaderByName) Less(i, j int) bool { return self[i].LoaderName < s
 
 // 生成协议的状态
 type GenState struct {
+	Config       Config
 	Module       string
 	ResourceDict map[string]*Resource
 	ResourceArr  []*Resource
@@ -683,7 +684,7 @@ func fotmatYamlString(resource *Resource) string {
 }
 
 type struct_type struct {
-	Source    string                 `yaml:"source"`
+	Format    string                 `yaml:"format"`
 	Excel     string                 `yaml:"excel"`
 	Bundles   []string               `yaml:"bundles"`
 	Resources []string               `yaml:"resources"`
@@ -729,43 +730,7 @@ func (r *Resource) readExcel(filePath string) error {
 			}
 		}
 	}
-	// if r.Type == resource_type_map || r.Type == resource_type_object {
-	var name string = ""
-	for _, v := range r.MapKeyArr {
-		if field, ok := r.FieldDict[v]; ok {
-			name = name + fmt.Sprintf(`map[%s]`, field.GoTypeName)
-		} else {
-			return fmt.Errorf("resource %s key %s not found\n", r.StructName, v)
-		}
-	}
-	name = name + fmt.Sprintf(" *%s", r.StructName)
-	r.GoMapTypeName = name
-	// }
-
-	name = ""
-	for _, v := range r.ObjectKeyArr {
-		if field, ok := r.FieldDict[v]; ok {
-			name = name + fmt.Sprintf(`map[%s]`, field.GoTypeName)
-		} else {
-			return fmt.Errorf("resource %s key %s not found\n", r.StructName, v)
-		}
-	}
-	name = name + fmt.Sprintf(" *%s", r.StructName)
-	r.GoObjectTypeName = name
-
-	if r.Type == resource_type_map {
-		r.GoTypeName = r.GoMapTypeName
-	} else if r.Type == resource_type_array {
-		r.GoTypeName = fmt.Sprintf("[]* %s", r.StructName)
-	} else if r.Type == resource_type_object {
-		for k, v := range r.FieldArr {
-			if v.FieldName == r.ObjectKeyArr[0] {
-				r.ObjectKeyIndex = k
-				break
-			}
-		}
-	}
-	// 值
+	//值
 	for index, row := range rows {
 		if index <= 4 {
 			continue
@@ -794,20 +759,6 @@ func (r *Resource) readExcel(filePath string) error {
 		}
 		r.ValueArr = append(r.ValueArr, valueArr)
 	}
-	mapKeyGoTypeNameArr := make([]string, 0)
-	for _, k := range r.MapKeyArr {
-		f, _ := r.FieldDict[k]
-		mapKeyGoTypeNameArr = append(mapKeyGoTypeNameArr, f.GoTypeName)
-	}
-	r.MapKeyGoTypeNameArr = mapKeyGoTypeNameArr
-
-	objectKeyGoTypeNameArr := make([]string, 0)
-	for _, k := range r.ObjectKeyArr {
-		f, _ := r.FieldDict[k]
-		objectKeyGoTypeNameArr = append(objectKeyGoTypeNameArr, f.GoTypeName)
-	}
-	r.ObjectKeyGoTypeNameArr = objectKeyGoTypeNameArr
-
 	return nil
 }
 
@@ -910,7 +861,7 @@ func parse(state *GenState) error {
 			// bundle
 			if len(v.Resources) > 0 {
 				bundle := &Bundle{
-					BundleType:          v.Source,
+					BundleType:          v.Format,
 					BundleName:          name,
 					BundleStructName:    name,
 					CapBundleStructName: capLowerString(name),
@@ -947,7 +898,7 @@ func parse(state *GenState) error {
 				//yamlFileName := strings.Replace(filePath, filepath.Ext(filePath), ".yaml", -1)
 				yamlFileName := fmt.Sprintf("%s.yaml", name)
 				camelName := camelString(name)
-				resource := &Resource{
+				r := &Resource{
 					FieldDict:      make(map[string]*Field, 0),
 					FieldArr:       make([]*Field, 0),
 					ValueArr:       make([][]interface{}, 0),
@@ -965,26 +916,74 @@ func parse(state *GenState) error {
 					ObjectKeyArr:   v.Object,
 				}
 				if typ == resource_type_array {
-					resource.WrapStructName = resource.ArrTypeName
+					r.WrapStructName = r.ArrTypeName
 				} else if typ == resource_type_map {
-					resource.WrapStructName = resource.MapTypeName
+					r.WrapStructName = r.MapTypeName
 				} else if typ == resource_type_object {
-					resource.WrapStructName = resource.ObjectTypeName
+					r.WrapStructName = r.ObjectTypeName
 				}
 				// 解析excel
 				// filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
-				if err := resource.readExcel(path.Join(proj.Config.ExcelDir, filePath)); err != nil {
-					// log.Println(filePath)
+				if err := r.readExcel(path.Join(proj.Config.ExcelDir, filePath)); err != nil {
 					return err
 				}
 				// 解析struct
 				if len(v.Struct) > 0 {
-					if err := resource.parseStruct(v.Struct); err != nil {
+					if err := r.parseStruct(v.Struct); err != nil {
 						return err
 					}
 				}
-				state.ResourceDict[name] = resource
-				state.ResourceArr = append(state.ResourceArr, resource)
+				// 处理不同的转换类型， 转map, 转object
+				//GoMapTypeName
+				r.GoMapTypeName = ""
+				for _, v := range r.MapKeyArr {
+					if field, ok := r.FieldDict[v]; ok {
+						r.GoMapTypeName = r.GoMapTypeName + fmt.Sprintf(`map[%s]`, field.GoTypeName)
+					} else {
+						return fmt.Errorf("resource %s key %s not found\n", r.StructName, v)
+					}
+				}
+				r.GoMapTypeName = r.GoMapTypeName + fmt.Sprintf(" *%s", r.StructName)
+				// GoObjectTypeName
+				r.GoObjectTypeName = ""
+				for _, v := range r.ObjectKeyArr {
+					if field, ok := r.FieldDict[v]; ok {
+						r.GoObjectTypeName = r.GoObjectTypeName + fmt.Sprintf(`map[%s]`, field.GoTypeName)
+					} else {
+						return fmt.Errorf("resource %s key %s not found\n", r.StructName, v)
+					}
+				}
+				r.GoObjectTypeName = r.GoObjectTypeName + fmt.Sprintf(" *%s", r.StructName)
+				// WrapTypeName
+				if r.Type == resource_type_map {
+					r.WrapTypeName = r.GoMapTypeName
+				} else if r.Type == resource_type_array {
+					r.WrapTypeName = fmt.Sprintf("[]* %s", r.StructName)
+				} else if r.Type == resource_type_object {
+					for k, v := range r.FieldArr {
+						if v.FieldName == r.ObjectKeyArr[0] {
+							r.ObjectKeyIndex = k
+							break
+						}
+					}
+				}
+				// make key时用的
+				mapKeyGoTypeNameArr := make([]string, 0)
+				for _, k := range r.MapKeyArr {
+					f, _ := r.FieldDict[k]
+					mapKeyGoTypeNameArr = append(mapKeyGoTypeNameArr, f.GoTypeName)
+				}
+				r.MapKeyGoTypeNameArr = mapKeyGoTypeNameArr
+
+				// make key时用的
+				objectKeyGoTypeNameArr := make([]string, 0)
+				for _, k := range r.ObjectKeyArr {
+					f, _ := r.FieldDict[k]
+					objectKeyGoTypeNameArr = append(objectKeyGoTypeNameArr, f.GoTypeName)
+				}
+				r.ObjectKeyGoTypeNameArr = objectKeyGoTypeNameArr
+				state.ResourceDict[name] = r
+				state.ResourceArr = append(state.ResourceArr, r)
 			}
 		}
 		for _, v := range state.BundleArr {
@@ -1007,23 +1006,6 @@ func parse(state *GenState) error {
 		sort.Sort(SortLoaderByName(state.LoaderArr))
 	}
 
-	// for _, v := range state.ResourceArr {
-	// 	filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
-	// 	srcFilePathArr = append(srcFilePathArr, filePath)
-	// }
-	// srcHash := getSrcFileHash(srcFilePathArr)
-	// if srcHash == proj.Config.GenResourceHash {
-	// 	return gira.ErrGenNotChange
-	// }
-	//for _, v := range state.ResourceArr {
-	// 解析excel
-	//filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
-	//if err := v.readExcel(filePath); err != nil {
-	////	log.Println(filePath)
-	// return err
-	//}
-	//}
-	// proj.Update("gen_resource_hash", srcHash)
 	return nil
 }
 
@@ -1046,12 +1028,7 @@ func genResourcesYamlAndGo(state *GenState) error {
 		file.WriteString("\n")
 		file.Close()
 	}
-
 	log.Info("生成go文件")
-	// sb := strings.Builder{}
-	// if err := os.RemoveAll(proj.Config.SrcGenResourceDir); err != nil {
-	// 	return err
-	// }
 	if _, err := os.Stat(proj.Config.SrcGenResourceDir); err != nil && os.IsNotExist(err) {
 		if err := os.Mkdir(proj.Config.SrcGenResourceDir, 0755); err != nil {
 			return err
@@ -1104,11 +1081,16 @@ func genResourceCli(state *GenState) error {
 	return nil
 }
 
+type Config struct {
+	Force bool
+}
+
 // 生成协议
-func Gen() error {
+func Gen(config Config) error {
 	log.Info("===============gen resource start===============")
 	// 初始化
-	genState := &GenState{
+	state := &GenState{
+		Config:       config,
 		Module:       proj.Config.Module,
 		ResourceDict: make(map[string]*Resource, 0),
 		ResourceArr:  make([]*Resource, 0),
@@ -1116,16 +1098,37 @@ func Gen() error {
 		BundleArr:    make([]*Bundle, 0),
 		LoaderArr:    make([]*Loader, 0),
 	}
-	if err := parse(genState); err != nil && err == gira.ErrGenNotChange {
+
+	// for _, v := range state.ResourceArr {
+	// 	filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
+	// 	srcFilePathArr = append(srcFilePathArr, filePath)
+	// }
+	// srcHash := getSrcFileHash(srcFilePathArr)
+	// if srcHash == proj.Config.GenResourceHash {
+	// 	return gira.ErrGenNotChange
+	// }
+	//for _, v := range state.ResourceArr {
+	// 解析excel
+	//filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
+	//if err := v.readExcel(filePath); err != nil {
+	////	log.Println(filePath)
+	// return err
+	//}
+	//}
+	// proj.Update("gen_resource_hash", srcHash)
+
+	if err := parse(state); err != nil && err == gira.ErrGenNotChange {
 		log.Info("===============gen resource finished, not change===============")
 		return nil
 	} else if err != nil {
 		return err
 	}
-	if err := genResourcesYamlAndGo(genState); err != nil {
+	// 生成YAML和go
+	if err := genResourcesYamlAndGo(state); err != nil {
 		return err
 	}
-	if err := genResourceCli(genState); err != nil {
+	// 生成cli程序
+	if err := genResourceCli(state); err != nil {
 		return err
 	}
 	log.Info("===============gen resource finished===============")
