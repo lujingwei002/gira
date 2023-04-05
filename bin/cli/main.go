@@ -194,6 +194,9 @@ func execCommandLine(line string) error {
 }
 
 func execCommand(name string, arg []string) error {
+	for _, v := range arg {
+		log.Println(v)
+	}
 	cmd := exec.Command(name, arg...)
 
 	// 获取命令的标准输出管道
@@ -466,15 +469,30 @@ func buildAction(c *cli.Context) error {
 		return nil
 	}
 	name := c.Args().First()
-	// args := c.Args().Tail()
-	if arr, ok := proj.Config.Build[name]; !ok {
-		return nil
-	} else {
-		for _, v := range arr {
-			if err := execCommandLine(v); err != nil {
-				return err
+	var buildFunc func(target string) error
+	buildFunc = func(target string) error {
+		if build, ok := proj.Config.Build[target]; !ok {
+			return nil
+		} else {
+			if len(build.Dependency) <= 0 {
+				for _, v := range build.Run {
+					if err := execCommandLine(v); err != nil {
+						return err
+					}
+				}
+				return nil
+			} else {
+				for _, v := range build.Dependency {
+					if err := buildFunc(v); err != nil {
+						log.Printf("[FAIL] build %s\n", v)
+						return err
+					} else {
+						log.Printf("[OK] build %s\n", v)
+					}
+				}
+				return nil
 			}
 		}
 	}
-	return nil
+	return buildFunc(name)
 }

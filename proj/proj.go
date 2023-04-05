@@ -17,6 +17,10 @@ var (
 	Config *ProjectConfig
 )
 
+type BuildConfig struct {
+	Run        []string `yaml:"run"`
+	Dependency []string `yaml:"dependency"`
+}
 type ProjectConfig struct {
 	Version         string `yaml:"version"`
 	Module          string `yaml:"module"`
@@ -24,10 +28,10 @@ type ProjectConfig struct {
 	Applications    []struct {
 		Name string `yaml:"name"`
 	} `yaml:"application"`
-	Run                  map[string][]string `yaml:"run"`
-	Build                map[string][]string `yaml:"build"`
-	Env                  string              //当前环境 local|dev|qa|prd
-	Zone                 string              // 当前区 wc|qq|gf|review
+	Run                  map[string][]string    `yaml:"run"`
+	Build                map[string]BuildConfig `yaml:"build"`
+	Env                  string                 //当前环境 local|dev|qa|prd
+	Zone                 string                 // 当前区 wc|qq|gf|review
 	ProjectDir           string
 	DotEnvFilePath       string // .env
 	ProjectConfFilePath  string // gira.yaml
