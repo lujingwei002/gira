@@ -77,6 +77,10 @@ func (self ResourceDbConfig) Uri() string {
 	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
 }
 
+func (self GameDbConfig) Uri() string {
+	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
+}
+
 type AdminDbConfig struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`

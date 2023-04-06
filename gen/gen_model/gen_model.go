@@ -203,9 +203,9 @@ func (self *<<.Coll.StructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
 type <<.ArrStructName>> struct {
 	<<.CamelPrimaryKey>>	<<.PrimaryKeyField.GoTypeName>>	
 	dict    map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>
-	del		map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>
-	dirty	map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>
-	add     map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>
+	del		map[primitive.ObjectID]*<<.StructName>>
+	dirty	map[primitive.ObjectID]*<<.StructName>>
+	add     map[primitive.ObjectID]*<<.StructName>>
 }
 
 func new<<.StructName>>(arr *<<.ArrStructName>>) *<<.StructName>> {
@@ -223,23 +223,23 @@ func new<<.ArrStructName>>(<<.CapCamelPrimaryKey>> <<.PrimaryKeyField.GoTypeName
 	return &<<.ArrStructName>>{
 		<<.CamelPrimaryKey>>: <<.CapCamelPrimaryKey>>,
 		dict: make(map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>),
-		del: make(map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>),
-		add: make(map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>),
-		dirty: make(map[<<.SecondaryKeyField.GoTypeName>>]*<<.StructName>>),
+		del: make(map[primitive.ObjectID]*<<.StructName>>),
+		add: make(map[primitive.ObjectID]*<<.StructName>>),
+		dirty: make(map[primitive.ObjectID]*<<.StructName>>),
 	}
 }
 
 func (self *<<.ArrStructName>>) setDirty(doc *<<.StructName>>) {
-	if _, ok := self.add[doc.<<.CamelSecondaryKey>>]; ok {
+	if _, ok := self.add[doc.Id]; ok {
 		return
 	}
-	if _, ok := self.dirty[doc.<<.CamelSecondaryKey>>]; ok {
+	if _, ok := self.dirty[doc.Id]; ok {
 		return
 	}
-	if _, ok := self.del[doc.<<.CamelSecondaryKey>>]; ok {
+	if _, ok := self.del[doc.Id]; ok {
 		return
 	}
-	self.dirty[doc.<<.CamelSecondaryKey>>] = doc
+	self.dirty[doc.Id] = doc
 }
 
 func (self *<<.ArrStructName>>) Add(<<.CapCamelSecondaryKey>> <<.SecondaryKeyField.GoTypeName>>) (*<<.StructName>>, error) {
@@ -252,31 +252,26 @@ func (self *<<.ArrStructName>>) Add(<<.CapCamelSecondaryKey>> <<.SecondaryKeyFie
 	if _, ok := self.dict[<<.CapCamelSecondaryKey>>]; ok {
 		return nil, gira.ErrDataExist
 	}
-	// 已经有相同id的数据, 并且准备删除了
-	if _, ok := self.del[<<.CapCamelSecondaryKey>>]; ok {
-		return nil, gira.ErrDataExist
-	}
 	self.dict[<<.CapCamelSecondaryKey>>] = doc
-	self.add[<<.CapCamelSecondaryKey>>] = doc 
+	self.add[doc.Id] = doc 
 	return doc, nil
 }
 
 func (self *<<.ArrStructName>>) Delete(<<.CapCamelSecondaryKey>> <<.SecondaryKeyField.GoTypeName>>) error {
-	var row *<<.StructName>>
-	var ok bool
-	if row, ok = self.dict[<<.CapCamelSecondaryKey>>]; !ok {
+	if doc, ok := self.dict[<<.CapCamelSecondaryKey>>]; !ok {
 		return gira.ErrDataNotFound
+	} else {
+		// 已经准备删除也，也当成成功返回
+		if _, ok := self.del[doc.Id]; ok {
+			return nil 
+		}
+		// 除了del， 从各个字典中删除
+		delete(self.dict, <<.CapCamelSecondaryKey>>)
+		delete(self.dirty, doc.Id)
+		delete(self.add, doc.Id)
+		self.del[doc.Id] = doc
+		return nil
 	}
-	// 已经准备删除也，也当成成功返回
-	if _, ok := self.del[<<.CapCamelSecondaryKey>>]; ok {
-		return nil 
-	}
-	// 除了del， 从各个字典中删除
-	delete(self.dict, <<.CapCamelSecondaryKey>>)
-	delete(self.dirty, <<.CapCamelSecondaryKey>>)
-	delete(self.add, <<.CapCamelSecondaryKey>>)
-	self.del[<<.CapCamelSecondaryKey>>] = row
-	return nil
 }
 
 func (self *<<.ArrStructName>>) Count() int {
@@ -292,8 +287,8 @@ func (self *<<.ArrStructName>>) Range(f func(<<.CapCamelSecondaryKey>> <<.Second
 }
 
 func (self *<<.ArrStructName>>) Clear() error {
-	for k, v := range self.dict {
-		self.del[k] = v
+	for _, v := range self.dict {
+		self.del[v.Id] = v
 	}
 	for oi := range self.add {
 		delete(self.add, oi)
@@ -500,16 +495,19 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 	models := make([]mongo.WriteModel, 0)
 	if len(doc.del) > 0 {
 		for _, v := range(doc.del) {
+			log.Debugw("<<.CollName>> del", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
 			models = append(models, mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", v.Id}}))
 		}
 	}
 	if len(doc.add) > 0 {
 		for _, v := range(doc.add) {
+			log.Debugw("<<.CollName>> add", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
 			models = append(models, mongo.NewInsertOneModel().SetDocument(&v.<<.DataStructName>>))
 		}
 	}
 	if len(doc.dirty) > 0 {
 		for _, v := range(doc.dirty) {
+			log.Debugw("<<.CollName>> update", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
 			models = append(models, mongo.NewReplaceOneModel().
 				SetFilter(bson.D{{"_id", v.Id}}).
 				SetReplacement(&v.<<.DataStructName>>))

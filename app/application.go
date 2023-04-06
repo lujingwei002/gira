@@ -248,15 +248,17 @@ func (app *Application) onAwake() error {
 		app.GrpcServer = grpc.NewConfigGrpcServer(*app.Config.Grpc)
 	}
 	if app.Config.GameDb != nil {
-		app.GameDbClient = db.NewGameDbClient()
-		if err := app.GameDbClient.OnAwake(app.ctx, *app.Config.GameDb); err != nil {
+		if client, err := db.ConfigGameDbClient(app.ctx, *app.Config.GameDb); err != nil {
 			return err
+		} else {
+			app.GameDbClient = client
 		}
 	}
 	if app.Config.AccountDb != nil {
-		app.AccountDbClient = db.NewAccountDbClient()
-		if err := app.AccountDbClient.OnAwake(app.ctx, *app.Config.AccountDb); err != nil {
+		if client, err := db.ConfigAccountDbClient(app.ctx, *app.Config.AccountDb); err != nil {
 			return err
+		} else {
+			app.AccountDbClient = client
 		}
 	}
 	if app.Config.StatDb != nil {

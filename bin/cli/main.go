@@ -458,12 +458,17 @@ func runAction(c *cli.Context) error {
 		return nil
 	}
 	name := c.Args().First()
-	// args := c.Args().Tail()
+	args := c.Args().Tail()
+	log.Println(args)
 	if arr, ok := proj.Config.Run[name]; !ok {
 		return nil
 	} else {
-		for _, v := range arr {
-			if err := execCommandLine(v); err != nil {
+		for _, line := range arr {
+			// 替换命令中的变量
+			for k, v := range args {
+				line = strings.Replace(line, fmt.Sprintf("$(%d)", k+1), v, 1)
+			}
+			if err := execCommandLine(line); err != nil {
 				return err
 			}
 		}

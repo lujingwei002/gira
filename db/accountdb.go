@@ -15,13 +15,41 @@ import (
 
 type AccountDbClient struct {
 	cancelFunc context.CancelFunc
-	cancelCtx  context.Context
+	ctx        context.Context
 	client     *mongo.Client
 	config     gira.AccountDbConfig
 }
 
 func NewAccountDbClient() *AccountDbClient {
 	return &AccountDbClient{}
+}
+
+func ConfigAccountDbClient(ctx context.Context, config gira.AccountDbConfig) (client *AccountDbClient, err error) {
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	client = &AccountDbClient{
+		config:     config,
+		cancelFunc: cancelFunc,
+		ctx:        cancelCtx,
+	}
+	uri := fmt.Sprintf("mongodb://%s:%s@%s:%d", config.User, config.Password, config.Host, config.Port)
+	log.Info(uri)
+	clientOpts := options.Client().ApplyURI(uri)
+	ctx, cancelFunc1 := context.WithTimeout(client.ctx, 3*time.Second)
+	defer cancelFunc1()
+	conn, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		log.Fatal("connect accountdb error", err)
+		return
+	}
+	ctx2, cancelFunc2 := context.WithTimeout(client.ctx, 3*time.Second)
+	defer cancelFunc2()
+	if err = conn.Ping(ctx2, readpref.Primary()); err != nil {
+		log.Fatal("connect accountdb error", err)
+		return
+	}
+	client.client = conn
+	log.Info("connect accountdb success")
+	return
 }
 
 func (self *AccountDbClient) GetMongoDatabase() *mongo.Database {
@@ -34,25 +62,5 @@ func (self *AccountDbClient) GetMongoClient() *mongo.Client {
 
 // 初始化并启动
 func (self *AccountDbClient) OnAwake(ctx context.Context, config gira.AccountDbConfig) error {
-	self.config = config
-	self.cancelCtx, self.cancelFunc = context.WithCancel(ctx)
-	uri := fmt.Sprintf("mongodb://%s:%s@%s:%d", config.User, config.Password, config.Host, config.Port)
-	log.Info(uri)
-	clientOpts := options.Client().
-		ApplyURI(uri)
-	ctx, cancelFunc := context.WithTimeout(self.cancelCtx, 3*time.Second)
-	defer cancelFunc()
-	client, err := mongo.Connect(ctx, clientOpts)
-	if err != nil {
-		log.Fatal("connect accountdb error", err)
-	}
-	ctx2, cancelFunc2 := context.WithTimeout(self.cancelCtx, 3*time.Second)
-	defer cancelFunc2()
-	if err = client.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Fatal("connect accountdb error", err)
-		return err
-	}
-	self.client = client
-	log.Info("connect accountdb success")
 	return nil
 }
