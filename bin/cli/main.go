@@ -6,8 +6,10 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	//https://cli.urfave.org/v2/examples/full-api-example/
 	"github.com/lujingwei002/gira"
@@ -182,6 +184,7 @@ func execCommandLine(line string) error {
 			}
 			log.Printf("[OK] %s", v)
 		default:
+			log.Printf("%s", v)
 			if err := execCommand(name, args); err != nil {
 				log.Printf("[FAIL] %s", v)
 				return err
@@ -194,11 +197,7 @@ func execCommandLine(line string) error {
 }
 
 func execCommand(name string, arg []string) error {
-	for _, v := range arg {
-		log.Println(v)
-	}
 	cmd := exec.Command(name, arg...)
-
 	// 获取命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -208,28 +207,36 @@ func execCommand(name string, arg []string) error {
 	if err != nil {
 		return err
 	}
-
 	// 启动命令
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	// 创建一个channel，用于接收信号
+	c := make(chan os.Signal, 1)
+	// 监听SIGINT信号
+	signal.Notify(c, os.Interrupt, syscall.SIGINT)
+	defer func() {
+		signal.Reset(os.Interrupt, syscall.SIGINT)
+	}()
 	// 创建一个 Scanner 对象，对命令的标准输出和标准错误输出进行扫描
-	scanner := bufio.NewScanner(stdout)
+	scanner1 := bufio.NewScanner(stdout)
 	go func() {
-		for scanner.Scan() {
+		for scanner1.Scan() {
 			// 输出命令的标准输出
-			log.Println(scanner.Text())
-			log.Println(name, arg)
+			log.Println(scanner1.Text())
 		}
 	}()
-	scanner = bufio.NewScanner(stderr)
+	scanner2 := bufio.NewScanner(stderr)
 	go func() {
-		for scanner.Scan() {
+		for scanner2.Scan() {
 			// 输出命令的标准错误输出
-			fmt.Fprintln(os.Stderr, scanner.Text())
+			fmt.Fprintln(os.Stderr, scanner2.Text())
 		}
 	}()
-
+	go func() {
+		// 等待信号
+		<-c
+	}()
 	// 等待命令执行完成
 	if err := cmd.Wait(); err != nil {
 		return err
@@ -475,6 +482,7 @@ func buildAction(c *cli.Context) error {
 			return nil
 		} else {
 			if len(build.Dependency) <= 0 {
+				log.Printf(build.Description)
 				for _, v := range build.Run {
 					if err := execCommandLine(v); err != nil {
 						return err

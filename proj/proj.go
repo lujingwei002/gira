@@ -18,8 +18,9 @@ var (
 )
 
 type BuildConfig struct {
-	Run        []string `yaml:"run"`
-	Dependency []string `yaml:"dependency"`
+	Run         []string `yaml:"run"`
+	Dependency  []string `yaml:"dependency"`
+	Description string   `yaml:"description"`
 }
 type ProjectConfig struct {
 	Version         string `yaml:"version"`

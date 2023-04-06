@@ -167,6 +167,16 @@ type <<.StructName>> struct {
 	arr     *<<.ArrStructName>>
 }
 
+func (self *<<.StructName>>) SetDirty() {
+	if self.dirty {
+		return
+	}
+	self.dirty = true
+	if self.arr != nil {
+		self.arr.setDirty(self)
+	}
+}
+
 <<- range .FieldDict>> 
 <<- if .IsPrimaryKey>>
 <<- else>>
