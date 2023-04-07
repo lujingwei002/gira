@@ -16,6 +16,8 @@ import (
 type Player interface {
 	Load(ctx context.Context, memberId string, userId string) error
 	Logout(ctx context.Context) error
+	Update()
+	Save(ctx context.Context) error
 }
 
 // 大厅
@@ -44,7 +46,8 @@ type UserAvatar interface {
 // 应用
 type HallApplication struct {
 	app.BaseFacade
-	hall *hall
+	hall   *hall
+	Config *Config
 
 	Proto         gira.Proto
 	PlayerHandler gira.ProtoHandler
@@ -60,12 +63,17 @@ func (app *HallApplication) OnFrameworkAwake(facade gira.ApplicationFacade) erro
 	if handler, ok := facade.(HallHandler); !ok {
 		return gira.ErrGateHandlerNotImplement
 	} else {
-		hall := newHall(app.Proto, handler, app.PlayerHandler)
+		hall := newHall(facade, app.Proto, app.Config, handler, app.PlayerHandler)
 		app.hall = hall
 		app.Hall = hall
 		rpc.OnAwake(facade)
 		return nil
 	}
+}
+
+func (self *HallApplication) OnFrameworkConfigLoad(c *gira.Config) error {
+	self.Config = &Config{}
+	return self.Config.OnConfigLoad(c)
 }
 
 func (self *HallApplication) OnGrpcServerStart(server *grpc.Server) error {

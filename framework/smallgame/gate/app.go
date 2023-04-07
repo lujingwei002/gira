@@ -3,13 +3,12 @@ package gate
 import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/app"
-	"github.com/lujingwei002/gira/log"
 	"google.golang.org/grpc"
 )
 
 type GateApplication struct {
 	app.BaseFacade
-	hall *hall
+	hall *hall_server
 	// 使用的协议，当中必须包括名为Login的协议
 	Proto  gira.Proto
 	Config *Config
@@ -35,16 +34,15 @@ func (self *GateApplication) ConnectionCount() int64 {
 	return self.hall.connectionCount
 }
 
-func (self *GateApplication) OnFrameworkAwake(facade gira.ApplicationFacade) error {
-	self.hall = newHall(facade, self.Proto, self.Config)
-	if err := self.hall.OnAwake(); err != nil {
+func (app *GateApplication) OnFrameworkAwake(facade gira.ApplicationFacade) error {
+	app.hall = newHall(app, facade, app.Proto, app.Config)
+	if err := app.hall.OnAwake(); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (self *GateApplication) OnFrameworkStart() error {
-	log.Info("framework start")
 	return nil
 }
 func (self *GateApplication) OnFrameworkConfigLoad(c *gira.Config) error {
@@ -57,17 +55,14 @@ func (self *GateApplication) OnGateStream(conn gira.GateConn) {
 }
 
 func (self *GateApplication) OnPeerAdd(peer *gira.Peer) {
-	log.Info("OnPeerAdd")
 	self.hall.OnPeerAdd(peer)
 }
 
 func (self *GateApplication) OnPeerDelete(peer *gira.Peer) {
-	log.Info("OnPeerDelete")
 	self.hall.OnPeerDelete(peer)
 }
 
 func (self *GateApplication) OnPeerUpdate(peer *gira.Peer) {
-	log.Info("OnPeerUpdate")
 	self.hall.OnPeerUpdate(peer)
 }
 

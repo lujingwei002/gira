@@ -56,6 +56,7 @@ const (
 	E_SPROTO_WAIT_PUSH_TIMEOUT       = -45
 	E_SPROTO_WAIT_PUSH_CONFLICT      = -46
 	E_TODO                           = -47
+	E_SERVER_DOWN                    = -48
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -107,6 +108,7 @@ const (
 	E_MSG_SPROTO_WAIT_PUSH_TIMEOUT       = "等待push超时"
 	E_MSG_SPROTO_WAIT_PUSH_CONFLICT      = "等待push冲突 ，只可以有一个"
 	E_MSG_TODO                           = "TODO"
+	E_MSG_SERVER_DOWN                    = "服务器关闭"
 )
 
 type Error struct {
@@ -173,6 +175,7 @@ var (
 	ErrSprotoWaitPushTimeout       = NewError(E_SPROTO_WAIT_PUSH_TIMEOUT, E_MSG_SPROTO_WAIT_PUSH_TIMEOUT)
 	ErrSprotoWaitPushConflict      = NewError(E_SPROTO_WAIT_PUSH_CONFLICT, E_MSG_SPROTO_WAIT_PUSH_CONFLICT)
 	ErrTodo                        = NewError(E_TODO, E_MSG_TODO)
+	ErrServerDown                  = NewError(E_SERVER_DOWN, E_MSG_SERVER_DOWN)
 )
 
 func ErrCode(err error) int32 {

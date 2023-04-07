@@ -100,11 +100,13 @@ func newSession(hall *hall, sessionId uint64, memberId string) (session *hall_se
 		err = gira.ErrUserInstead
 		return
 	}
+	atomic.AddInt64(&hall.SessionCount, 1)
 	var player Player
 	// 加载数据
 	if player, err = session.load(); err != nil {
 		// 数据加载失败，释放锁
 		hall.SessionDict.Delete(userId)
+		atomic.AddInt64(&hall.SessionCount, -1)
 		return
 	} else {
 		session.player = player
@@ -113,47 +115,60 @@ func newSession(hall *hall, sessionId uint64, memberId string) (session *hall_se
 }
 
 // 主要的业务逻辑的主协程
-func (self *hall_sesssion) serve() {
-	self.chPush = make(chan gira.ProtoPush, 10)
+func (session *hall_sesssion) serve() {
+	ticker := time.NewTicker(1 * time.Second)
+	saveTicker := time.NewTicker(time.Duration(session.hall.config.BgSaveInterval) * time.Second)
+	session.chPush = make(chan gira.ProtoPush, 10)
 	defer func() {
-		close(self.chPush)
+		ticker.Stop()
+		saveTicker.Stop()
+		close(session.chPush)
 	}()
-	sessionId := self.sessionId
+	sessionId := session.sessionId
 	for {
 		select {
-		case req := <-self.chRequest:
+		case <-saveTicker.C:
+			if session.player != nil && session.isClosed == 0 {
+				session.player.Save(session.ctx)
+			}
+		case <-ticker.C:
+			if session.player != nil && session.isClosed == 0 {
+				session.player.Update()
+			}
+		case req := <-session.chRequest:
 			if req != nil {
-				if self.isClosed == 0 {
-					if err := self.request(req); err != nil {
+				if session.isClosed == 0 {
+					if err := session.request(req); err != nil {
 						log.Infow("request fail", "session_id", sessionId, "error", err)
 					}
 				}
 			}
-		case req := <-self.chPush:
+		case req := <-session.chPush:
 			if req != nil {
-				if self.isClosed == 0 {
-					if err := self.push(req); err != nil {
+				if session.isClosed == 0 {
+					if err := session.processPush(req); err != nil {
 						log.Infow("push fail", "session_id", sessionId, "error", err, "name", req.GetPushName())
 					}
 				}
 			}
-		case r := <-self.Inbox():
+		case r := <-session.Inbox():
 			r.Call()
-		case <-self.ctx.Done():
+		case <-session.ctx.Done():
 			log.Infow("session exit", "session_id", sessionId)
+			session.close(context.TODO())
 			return
 		}
 	}
 }
 
 // 加载数据
-func (self *hall_sesssion) load() (player Player, err error) {
-	player, err = self.hall.hallHandler.NewPlayer(self.hall.ctx, self, self.memberId, self.avatar)
+func (session *hall_sesssion) load() (player Player, err error) {
+	// player的ctx和session的ctx平级，player并不和session绑定，player可以将自己缓存起来，下次相同玩家登录的时候再复用
+	player, err = session.hall.hallHandler.NewPlayer(session.hall.ctx, session, session.memberId, session.avatar)
 	if err != nil {
 		return
 	}
-	// player的ctx和session的ctx平级，player并不和session绑定，player可以将自己缓存起来，下次相同玩家登录的时候再复用
-	err = player.Load(self.hall.ctx, self.memberId, self.userId)
+	err = player.Load(session.hall.ctx, session.memberId, session.userId)
 	if err != nil {
 		return
 	}
@@ -178,16 +193,16 @@ func (self *hall_sesssion) sendPacketAndClose(ctx context.Context, typ hall_grpc
 	return nil
 }
 
-// 处理push请求
-func (self *hall_sesssion) push(req gira.ProtoPush) error {
-	sessionId := self.sessionId
+// 处理processPush请求
+func (session *hall_sesssion) processPush(req gira.ProtoPush) error {
+	sessionId := session.sessionId
 	var err error
 	var name string = req.GetPushName()
 	log.Infow("request ", "session_id", sessionId, "name", name)
 
-	timeoutCtx, timeoutFunc := context.WithTimeout(self.ctx, 10*time.Second)
+	timeoutCtx, timeoutFunc := context.WithTimeout(session.ctx, 10*time.Second)
 	defer timeoutFunc()
-	err = self.hall.proto.PushDispatch(timeoutCtx, self.hall.playerHandler, self.player, name, req)
+	err = session.hall.proto.PushDispatch(timeoutCtx, session.hall.playerHandler, session.player, name, req)
 	if err != nil {
 		log.Errorw("push dispatch fail", "session_id", sessionId, "error", err, "name", name)
 		return err
@@ -196,23 +211,23 @@ func (self *hall_sesssion) push(req gira.ProtoPush) error {
 }
 
 // 处理请求
-func (self *hall_sesssion) request(req *hall_grpc.StreamDataRequest) (err error) {
-	sessionId := self.sessionId
+func (session *hall_sesssion) request(req *hall_grpc.StreamDataRequest) (err error) {
+	sessionId := session.sessionId
 	var name string
 	var reqId int32
 	var dataReq interface{}
 	var dataResp []byte
-	var dataPushArr [][]byte
-	name, reqId, dataReq, err = self.hall.proto.RequestDecode(req.Data)
+	var pushArr []gira.ProtoPush
+	name, reqId, dataReq, err = session.hall.proto.RequestDecode(req.Data)
 	if err != nil {
 		log.Errorw("request decode fail", "session_id", sessionId, "error", err)
 		return
 	}
 	log.Infow("request ", "session_id", sessionId, "name", name, "req_id", reqId)
 
-	timeoutCtx, timeoutFunc := context.WithTimeout(self.ctx, 10*time.Second)
+	timeoutCtx, timeoutFunc := context.WithTimeout(session.ctx, 10*time.Second)
 	defer timeoutFunc()
-	dataResp, dataPushArr, err = self.hall.proto.RequestDispatch(timeoutCtx, self.hall.playerHandler, self.player, name, reqId, dataReq)
+	dataResp, pushArr, err = session.hall.proto.RequestDispatch(timeoutCtx, session.hall.playerHandler, session.player, name, reqId, dataReq)
 	if err != nil {
 		log.Errorw("request dispatch fail", "session_id", sessionId, "error", err)
 		return
@@ -229,16 +244,21 @@ func (self *hall_sesssion) request(req *hall_grpc.StreamDataRequest) (err error)
 	resp.SessionId = req.SessionId
 	resp.ReqId = req.ReqId
 	resp.Data = dataResp
-	self.chResponse <- resp
-	if dataPushArr != nil {
-		for _, dataPush := range dataPushArr {
-			log.Debugw("data push", "session_id", sessionId, "data resp", dataPush)
-			resp := &hall_grpc.StreamDataResponse{}
-			resp.Type = hall_grpc.PacketType_DATA
-			resp.SessionId = req.SessionId
-			resp.ReqId = 0
-			resp.Data = dataPush
-			self.chResponse <- resp
+	resp.Route = name
+	session.chResponse <- resp
+	if pushArr != nil {
+		for _, push := range pushArr {
+			if dataPush, err := session.hall.proto.PushEncode(push); err != nil {
+			} else {
+				log.Debugw("data push", "session_id", sessionId, "data resp", dataPush)
+				resp := &hall_grpc.StreamDataResponse{}
+				resp.Type = hall_grpc.PacketType_DATA
+				resp.SessionId = req.SessionId
+				resp.ReqId = 0
+				resp.Data = dataPush
+				resp.Route = push.GetPushName()
+				session.chResponse <- resp
+			}
 		}
 	}
 	return
@@ -246,24 +266,25 @@ func (self *hall_sesssion) request(req *hall_grpc.StreamDataRequest) (err error)
 
 // 关闭session
 // #actor(call)
-func (self *hall_sesssion) close(ctx context.Context) error {
-	if !atomic.CompareAndSwapInt32(&self.isClosed, 0, 1) {
+func (session *hall_sesssion) close(ctx context.Context) error {
+	if !atomic.CompareAndSwapInt32(&session.isClosed, 0, 1) {
 		return gira.ErrSessionClosed
 	}
 	log.Infow("session close")
-	userId := self.userId
-	sessionId := self.sessionId
+	userId := session.userId
+	sessionId := session.sessionId
 	// 脱离stream
-	self.streamCancelFunc()
+	session.streamCancelFunc()
 	// 开始关闭操作
-	if self.player != nil {
-		self.player.Logout(ctx)
+	if session.player != nil {
+		session.player.Logout(ctx)
 	}
-	self.cancelFunc()
+	session.cancelFunc()
 	peer, err := facade.UnlockLocalUser(userId)
 	log.Infow("unlock local user return", "session_id", sessionId, "peer", peer, "err", err)
 	// 从agent dict释放
-	self.hall.SessionDict.Delete(userId)
+	session.hall.SessionDict.Delete(userId)
+	atomic.AddInt64(&session.hall.SessionCount, -1)
 	log.Infow("session close finished", "session_id", sessionId)
 	return nil
 }
@@ -275,16 +296,20 @@ func (self *hall_sesssion) Kick(ctx context.Context, reason string) (err error) 
 }
 
 // 顶号下线
-// #actor(call)
 // call by hall
+// #actor(call)
 func (self *hall_sesssion) instead(ctx context.Context, reason string) (err error) {
 	return self.sendPacketAndClose(ctx, hall_grpc.PacketType_USER_INSTEAD, reason)
 }
 
+func (self *hall_sesssion) serverDown(ctx context.Context, reason string) (err error) {
+	return self.sendPacketAndClose(ctx, hall_grpc.PacketType_SERVER_DOWN, reason)
+}
+
 // 推送消息
-func (self *hall_sesssion) Push(resp gira.ProtoPush) (err error) {
+func (self *hall_sesssion) Push(push gira.ProtoPush) (err error) {
 	var data []byte
-	if data, err = self.hall.proto.PushEncode(resp); err != nil {
+	if data, err = self.hall.proto.PushEncode(push); err != nil {
 		return
 	} else {
 		defer func() {
@@ -297,6 +322,7 @@ func (self *hall_sesssion) Push(resp gira.ProtoPush) (err error) {
 		resp.SessionId = self.sessionId
 		resp.ReqId = 0
 		resp.Data = data
+		resp.Route = push.GetPushName()
 		self.chResponse <- resp
 		return
 	}
@@ -314,10 +340,10 @@ func (self *hall_sesssion) Notify(userId string, resp gira.ProtoPush) error {
 /// 宏展开的地方，不要在文件末尾添加代码============// afafa
 
 type hall_sesssioncloseArgument struct {
-	self *hall_sesssion
-	ctx context.Context
-	r0 error
-	__caller__ chan*hall_sesssioncloseArgument
+	self       *hall_sesssion
+	ctx        context.Context
+	r0         error
+	__caller__ chan *hall_sesssioncloseArgument
 }
 
 func (__arg__ *hall_sesssioncloseArgument) Call() {
@@ -325,32 +351,32 @@ func (__arg__ *hall_sesssioncloseArgument) Call() {
 	__arg__.__caller__ <- __arg__
 }
 
-func (self *hall_sesssion) Call_close (ctx context.Context, opts ...actor.CallOption) (r0 error){
+func (self *hall_sesssion) Call_close(ctx context.Context, opts ...actor.CallOption) (r0 error) {
 	var __options__ actor.CallOptions
 	for _, v := range opts {
-		v.Config(&__options__)	
+		v.Config(&__options__)
 	}
-	__arg__ := &hall_sesssioncloseArgument {
-		self: self,
-		ctx: ctx,
-		__caller__: make(chan*hall_sesssioncloseArgument),
+	__arg__ := &hall_sesssioncloseArgument{
+		self:       self,
+		ctx:        ctx,
+		__caller__: make(chan *hall_sesssioncloseArgument),
 	}
 	self.Inbox() <- __arg__
 	if __options__.TimeOut != 0 {
 		__timer__ := time.NewTimer(__options__.TimeOut)
 		defer __timer__.Stop()
 		select {
-		case resp :=<-__arg__.__caller__:
+		case resp := <-__arg__.__caller__:
 			return resp.r0
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-__timer__.C:
-	        log.Errorw("actor call time out", "func", "func (self *hall_sesssion) close(ctx context.Context) error ")
+			log.Errorw("actor call time out", "func", "func (self *hall_sesssion) close(ctx context.Context) error ")
 			return actor.ErrCallTimeOut
 		}
 	} else {
 		select {
-		case resp :=<-__arg__.__caller__:
+		case resp := <-__arg__.__caller__:
 			return resp.r0
 		case <-ctx.Done():
 			return ctx.Err()
@@ -358,15 +384,12 @@ func (self *hall_sesssion) Call_close (ctx context.Context, opts ...actor.CallOp
 	}
 }
 
-
-
-	
 type hall_sesssioninsteadArgument struct {
-	self *hall_sesssion
-	ctx context.Context
-	reason string
-	err error
-	__caller__ chan*hall_sesssioninsteadArgument
+	self       *hall_sesssion
+	ctx        context.Context
+	reason     string
+	err        error
+	__caller__ chan *hall_sesssioninsteadArgument
 }
 
 func (__arg__ *hall_sesssioninsteadArgument) Call() {
@@ -374,33 +397,33 @@ func (__arg__ *hall_sesssioninsteadArgument) Call() {
 	__arg__.__caller__ <- __arg__
 }
 
-func (self *hall_sesssion) Call_instead (ctx context.Context, reason string, opts ...actor.CallOption) (err error){
+func (self *hall_sesssion) Call_instead(ctx context.Context, reason string, opts ...actor.CallOption) (err error) {
 	var __options__ actor.CallOptions
 	for _, v := range opts {
-		v.Config(&__options__)	
+		v.Config(&__options__)
 	}
-	__arg__ := &hall_sesssioninsteadArgument {
-		self: self,
-		ctx: ctx,
-		reason: reason,
-		__caller__: make(chan*hall_sesssioninsteadArgument),
+	__arg__ := &hall_sesssioninsteadArgument{
+		self:       self,
+		ctx:        ctx,
+		reason:     reason,
+		__caller__: make(chan *hall_sesssioninsteadArgument),
 	}
 	self.Inbox() <- __arg__
 	if __options__.TimeOut != 0 {
 		__timer__ := time.NewTimer(__options__.TimeOut)
 		defer __timer__.Stop()
 		select {
-		case resp :=<-__arg__.__caller__:
+		case resp := <-__arg__.__caller__:
 			return resp.err
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-__timer__.C:
-	        log.Errorw("actor call time out", "func", "func (self *hall_sesssion) instead(ctx context.Context, reason string) (err error) ")
+			log.Errorw("actor call time out", "func", "func (self *hall_sesssion) instead(ctx context.Context, reason string) (err error) ")
 			return actor.ErrCallTimeOut
 		}
 	} else {
 		select {
-		case resp :=<-__arg__.__caller__:
+		case resp := <-__arg__.__caller__:
 			return resp.err
 		case <-ctx.Done():
 			return ctx.Err()
@@ -408,7 +431,4 @@ func (self *hall_sesssion) Call_instead (ctx context.Context, reason string, opt
 	}
 }
 
-
-
-	
 /// =============宏展开的地方，不要在文件末尾添加代码============

@@ -122,7 +122,7 @@ func Debug(args ...interface{}) {
 }
 
 func Error(args ...interface{}) {
-	defaultLogger.Info(args...)
+	defaultLogger.Error(args...)
 }
 
 func Println(args ...interface{}) {

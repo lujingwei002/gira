@@ -15,21 +15,28 @@ import (
 	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type hall struct {
 	*actor.Actor
+	facade        gira.ApplicationFacade
 	ctx           context.Context
 	cancelFunc    context.CancelFunc
 	SessionDict   sync.Map
+	SessionCount  int64
 	hallHandler   HallHandler
 	playerHandler gira.ProtoHandler
 	proto         gira.Proto
+	config        *Config
 }
 
-func newHall(proto gira.Proto, hallHandler HallHandler, playerHandler gira.ProtoHandler) *hall {
+func newHall(facade gira.ApplicationFacade, proto gira.Proto, config *Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) *hall {
 	return &hall{
+		facade:        facade,
 		proto:         proto,
+		config:        config,
 		hallHandler:   hallHandler,
 		playerHandler: playerHandler,
 		Actor:         actor.NewActor(16),
@@ -51,6 +58,19 @@ func (hall *hall) Register(server *grpc.Server) error {
 func (hall *hall) serve() {
 	hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
 	defer hall.cancelFunc()
+	hall.facade.Go(func() error {
+		select {
+		case <-hall.ctx.Done():
+			for {
+				log.Infow("hall停止中", "session_count", hall.SessionCount)
+				if hall.SessionCount <= 0 {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+		return nil
+	})
 	for {
 		select {
 		case r := <-hall.Inbox():
@@ -62,6 +82,7 @@ func (hall *hall) serve() {
 	}
 }
 
+// 推送消息给其他玩家
 func (hall *hall) Push(ctx context.Context, userId string, req gira.ProtoPush) error {
 	var err error
 	if v, ok := hall.SessionDict.Load(userId); !ok {
@@ -86,6 +107,7 @@ func (hall *hall) Push(ctx context.Context, userId string, req gira.ProtoPush) e
 	}
 }
 
+// 推送消息给其他玩家
 func (hall *hall) MustPush(ctx context.Context, userId string, req gira.ProtoPush) error {
 	var err error
 	if v, ok := hall.SessionDict.Load(userId); !ok {
@@ -115,6 +137,7 @@ type hall_server struct {
 	hall *hall
 }
 
+// 收到顶号下线的请求
 func (self hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInsteadRequest) (*hall_grpc.UserInsteadResponse, error) {
 	resp := &hall_grpc.UserInsteadResponse{}
 	userId := req.UserId
@@ -237,7 +260,7 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 	}
 	// 申请建立会话
 	var session *hall_sesssion
-	// TODO 增加timeout
+	// TODO: 增加timeout
 	session, err = newSession(self.hall, sessionId, memberId)
 	if err != nil {
 		log.Errorw("create session fail", "session_id", sessionId, "error", err)
@@ -257,7 +280,9 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 	// recv ctrl context
 	defer func() {
 		cancelFunc()
-		session.Call_close(self.hall.ctx, actor.WithCallTimeOut(5*time.Second))
+		if err := session.Call_close(self.hall.ctx, actor.WithCallTimeOut(5*time.Second)); err != nil {
+			log.Errorw("session close fail", "error", err)
+		}
 	}()
 
 	errGroup.Go(func() error {
@@ -313,6 +338,8 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 			// 关闭response管道，不再接收消息
 			close(session.chResponse)
 			return cancelCtx.Err()
+		case <-self.hall.ctx.Done():
+			return gira.ErrServerDown
 		case <-errCtx.Done():
 			//expect
 		}
@@ -326,5 +353,9 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 		close(session.chResponse)
 	}
 	log.Infow("stream exit", "error", err, "session_id", sessionId, "member_id", memberId)
-	return nil
+	if err == gira.ErrServerDown {
+		return status.Error(codes.Code(333), gira.ErrMsg(err))
+	} else {
+		return err
+	}
 }

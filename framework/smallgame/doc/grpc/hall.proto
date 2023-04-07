@@ -28,6 +28,7 @@ message StreamDataResponse {
     uint64 SessionId = 2;
     uint64 ReqId = 3;
     bytes Data = 4;
+    string Route = 5;
 }
 
 // 请求消息

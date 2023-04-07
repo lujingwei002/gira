@@ -11,6 +11,13 @@ type Config struct {
 		Id   int32  `yaml:"id"`
 		Name string `yaml:"name"`
 	} `yaml:"upstream"`
+
+	FrameWork struct {
+		// 登录超时
+		WaitLoginTimeout int64 `yaml:"wait-login-timeout"`
+		// 最大会话数量
+		MaxSessionCount int64 `yaml:"max-session-count"`
+	} `yaml:"framework"`
 }
 
 func (c *Config) OnConfigLoad(config *gira.Config) error {

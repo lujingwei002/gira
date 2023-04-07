@@ -155,7 +155,7 @@ func (self *sproto) StructDecode(data []byte, req interface{}) error {
 }
 
 // 根据协议，调用handler的相应方法
-func (self *sproto) RequestDispatch(ctx context.Context, handler gira.ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, dataPushArr [][]byte, err error) {
+func (self *sproto) RequestDispatch(ctx context.Context, handler gira.ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, pushArr []gira.ProtoPush, err error) {
 	resp, pushArr, err := handler.RequestDispatch(ctx, receiver, route, req)
 	// response
 	if resp == nil {
@@ -183,22 +183,22 @@ func (self *sproto) RequestDispatch(ctx context.Context, handler gira.ProtoHandl
 		return
 	}
 	// push
-	if pushArr != nil {
-		dataPushArr = make([][]byte, 0)
-		for _, v := range pushArr {
-			proto, ok := v.(gira.ProtoPush)
-			if !ok {
-				err = gira.ErrSprotoPushConversion
-				return
-			}
-			var dataPush []byte
-			dataPush, err = self.rpc.RequestEncode(proto.GetPushName(), 0, proto)
-			if err != nil {
-				return
-			}
-			dataPushArr = append(dataPushArr, dataPush)
-		}
-	}
+	// if pushArr != nil {
+	// 	dataPushArr = make([][]byte, 0)
+	// 	for _, v := range pushArr {
+	// 		proto, ok := v.(gira.ProtoPush)
+	// 		if !ok {
+	// 			err = gira.ErrSprotoPushConversion
+	// 			return
+	// 		}
+	// 		var dataPush []byte
+	// 		dataPush, err = self.rpc.RequestEncode(proto.GetPushName(), 0, proto)
+	// 		if err != nil {
+	// 			return
+	// 		}
+	// 		dataPushArr = append(dataPushArr, dataPush)
+	// 	}
+	// }
 	return
 }
 

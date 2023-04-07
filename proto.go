@@ -54,7 +54,7 @@ type Proto interface {
 	NewResponse(req ProtoRequest) (resp ProtoResponse, err error)
 
 	// 将request路由到handler的相应方法
-	RequestDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, dataPushArr [][]byte, err error)
+	RequestDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, pushArr []ProtoPush, err error)
 	// 将push路由到handler的相应方法
 	PushDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, req ProtoPush) error
 }
