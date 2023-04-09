@@ -13,17 +13,12 @@ import (
 
 // http://wzmmmmj.com/2020/09/06/grpc-stream/
 
-type GrpcHandler interface {
-	OnGrpcServerStart(server *grpc.Server) error
-	OnFrameworkGrpcServerStart(server *grpc.Server) error
-}
-
 type GrpcServer struct {
 	Config   gira.GrpcConfig
 	server   *grpc.Server
 	errGroup *errgroup.Group
 	errCtx   context.Context
-	facade   gira.ApplicationFacade
+	facade   gira.Application
 }
 
 func NewConfigGrpcServer(config gira.GrpcConfig) *GrpcServer {
@@ -38,7 +33,7 @@ func (self *GrpcServer) Server() *grpc.Server {
 	return self.server
 }
 
-func (self *GrpcServer) Start(facade gira.ApplicationFacade, errGroup *errgroup.Group, errCtx context.Context) error {
+func (self *GrpcServer) OnStart(facade gira.Application, errGroup *errgroup.Group, errCtx context.Context) error {
 	self.facade = facade
 	self.errCtx = errCtx
 	self.errGroup = errGroup
@@ -46,7 +41,6 @@ func (self *GrpcServer) Start(facade gira.ApplicationFacade, errGroup *errgroup.
 	if err != nil {
 		panic(err)
 	}
-
 	errGroup.Go(func() error {
 		self.server.Serve(listen)
 		log.Info("gpc server shutdown")

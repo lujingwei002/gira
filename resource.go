@@ -6,7 +6,9 @@ import (
 )
 
 type ResourceLoader interface {
+	// 加载资源
 	LoadResource(dir string) error
+	// 重载资源
 	ReloadResource(dir string) error
 }
 
@@ -17,28 +19,6 @@ type ResourceHandler interface {
 
 type ResourceManager interface {
 	ResourceLoader() ResourceLoader
-	// LoadResource(dir string) error
-	// ReloadResource(dir string) error
-}
-
-// 加载资源
-func Awaaaake() error {
-	/*
-		loader := r.Loader
-		handler := r.Handler
-		if loader == nil {
-			return ErrorResourceLoaderNotImplement
-		}
-		if handler == nil {
-			return ErrorResourceHandlerNotImplement
-		}
-		if err := loader.LoadFromYaml("resource"); err != nil {
-			return err
-		}
-		if err := loader.Convert(handler); err != nil {
-			return err
-		}*/
-	return nil
 }
 
 func Make1Key_int[T any](arr []*T, dict map[int]*T, key string) error {

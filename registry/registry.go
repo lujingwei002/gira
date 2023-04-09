@@ -37,7 +37,7 @@ type Registry struct {
 	Client         *clientv3.Client
 	cancelCtx      context.Context
 	cancelFunc     context.CancelFunc
-	facade         gira.ApplicationFacade
+	application    gira.Application
 	PeerRegistry   *PeerRegistry
 	PlayerRegistry *PlayerRegistry
 }
@@ -45,6 +45,7 @@ type Registry struct {
 func (r *Registry) OnStart() error {
 	return r.notify()
 }
+
 func (r *Registry) notify() error {
 	if err := r.PeerRegistry.notify(r); err != nil {
 		return err
@@ -54,21 +55,23 @@ func (r *Registry) notify() error {
 	}
 	return nil
 }
+
 func (r *Registry) RangePeers(f func(k any, v any) bool) {
 	r.PeerRegistry.RangePeers(f)
 }
+
 func (r *Registry) GetPeer(fullName string) *gira.Peer {
 	return r.PeerRegistry.getPeer(r, fullName)
 }
 
-func NewConfigRegistry(config *gira.EtcdConfig, facade gira.ApplicationFacade) (*Registry, error) {
+func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
 	r := &Registry{
 		Config: *config,
 	}
 	r.cancelCtx, r.cancelFunc = context.WithCancel(context.Background())
-	r.FullName = facade.GetAppFullName()
-	r.Name = facade.GetAppType()
-	r.facade = facade
+	r.FullName = application.GetAppFullName()
+	r.Name = application.GetAppType()
+	r.application = application
 
 	// 配置endpoints
 	endpoints := make([]string, 0)

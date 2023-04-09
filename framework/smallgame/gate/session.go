@@ -4,13 +4,9 @@ import (
 	"context"
 	"runtime/debug"
 	"sync/atomic"
-	"time"
 
 	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
@@ -22,7 +18,7 @@ type client_session struct {
 	sessionId  uint64
 	memberId   string
 	client     gira.GateConn
-	stream     hall_grpc.Upstream_DataStreamClient
+	stream     hall_grpc.Hall_ClientStreamClient
 	hall       *hall_server
 	hall1      *hall_server
 }
@@ -35,21 +31,15 @@ func newSession(hall *hall_server, sessionId uint64, memberId string) *client_se
 	}
 }
 
-func (session *client_session) serve(ctx context.Context, server *upstream_peer, client gira.GateConn, req gira.GateRequest, dataReq gira.ProtoRequest) error {
+func (session *client_session) serve(server *upstream_peer, client gira.GateConn, req gira.GateRequest, dataReq gira.ProtoRequest) error {
 	sessionId := session.sessionId
 	var err error
 	log.Infow("session open", "session_id", sessionId)
-	// 连接上游服务器
-	conn, err := grpc.Dial(server.Address, grpc.WithInsecure())
-	if err != nil {
-		log.Errorw("server dail fail", "error", err, "address", server.Address)
-		session.hall.loginErrResponse(req, dataReq, gira.ErrUpstreamUnreachable)
-		return err
-	}
+	ctx := server.ctx
+
 	streamCtx, streamCancelFunc := context.WithCancel(ctx)
 	defer streamCancelFunc()
-	grpcClient := hall_grpc.NewUpstreamClient(conn)
-	stream, err := grpcClient.DataStream(streamCtx)
+	stream, err := server.NewClientStream(streamCtx)
 	if err != nil {
 		session.hall.loginErrResponse(req, dataReq, gira.ErrUpstreamUnreachable)
 		return err
@@ -83,43 +73,8 @@ func (session *client_session) serve(ctx context.Context, server *upstream_peer,
 				session.processStreamResponse(resp)
 			} else {
 				log.Infow("上游连接关闭", "session_id", sessionId, "error", err)
-				serverErr, ok := status.FromError(err)
-				if ok {
-					log.Println("ccccccccccc", serverErr.Code())
-					log.Println("ccccccccccc", serverErr.Err())
-					if serverErr.Code() == codes.Code(333) {
-						log.Println("dddddddddddddd")
-						session.stream = nil
-						// 再次连接上游服务器
-						for {
-							conn, err := grpc.Dial(server.Address, grpc.WithInsecure())
-							if err != nil {
-								log.Errorw("server dail fail", "error", err, "address", server.Address)
-								time.Sleep(1 * time.Second)
-								continue
-							}
-							streamCtx, streamCancelFunc = context.WithCancel(ctx)
-							defer streamCancelFunc()
-							grpcClient = hall_grpc.NewUpstreamClient(conn)
-							stream, err = grpcClient.DataStream(streamCtx)
-							if err != nil {
-								log.Errorw("server dail fail", "error", err, "address", server.Address)
-								time.Sleep(1 * time.Second)
-								continue
-
-							}
-							session.stream = stream
-							break
-						}
-					} else {
-						client.Close()
-						return
-					}
-				} else {
-					client.Close()
-					return
-
-				}
+				client.Close()
+				return
 			}
 		}
 	})

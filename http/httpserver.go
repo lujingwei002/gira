@@ -93,7 +93,7 @@ type HttpHandler interface {
 	HttpHandler() http.Handler
 }
 
-func NewConfigHttpServer(facade gira.ApplicationFacade, config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
+func NewConfigHttpServer(facade gira.Application, config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
 	h := &HttpServer{
 		Config:  config,
 		Handler: router,

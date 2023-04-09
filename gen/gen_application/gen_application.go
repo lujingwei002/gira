@@ -29,7 +29,7 @@ import (
 )
 
 // 检查是否满足接口
-var _ = (gira.ApplicationFacade)(&{{.ApplicationName}}_app.Application{})
+var _ = (gira.Application)(&{{.ApplicationName}}_app.Application{})
 var _ = (gira.ResourceManager)(&{{.ApplicationName}}_app.Application{})
 
 func main() {

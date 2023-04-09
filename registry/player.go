@@ -50,9 +50,9 @@ func newConfigPlayerRegistry(r *Registry) (*PlayerRegistry, error) {
 	if err := self.watchLocalPlayers(r); err != nil {
 		return nil, err
 	}
-	r.facade.Go(func() error {
+	r.application.Go(func() error {
 		select {
-		case <-r.facade.Done():
+		case <-r.application.Done():
 			{
 				log.Info("player registry recv down")
 			}
@@ -77,30 +77,39 @@ func (self *PlayerRegistry) notify(r *Registry) error {
 
 func (self *PlayerRegistry) onLocalPlayerAdd(r *Registry, player *gira.LocalPlayer) error {
 	log.Infof("============ local user %s add ==================", player.UserId)
-	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
+	for _, fw := range r.application.Frameworks() {
+		if handler, ok := fw.(gira.LocalPlayerHandler); ok {
+			handler.OnLocalPlayerAdd(player)
+		}
+	}
+	if handler, ok := r.application.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerAdd(player)
-	} else {
-		panic(gira.ErrPeerHandlerNotImplement)
 	}
 	return nil
 }
 
 func (self *PlayerRegistry) onLocalPeerDelete(r *Registry, player *gira.LocalPlayer) error {
 	log.Infof("============ local user %s delete ==================", player.UserId)
-	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
+	for _, fw := range r.application.Frameworks() {
+		if handler, ok := fw.(gira.LocalPlayerHandler); ok {
+			handler.OnLocalPlayerDelete(player)
+		}
+	}
+	if handler, ok := r.application.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerDelete(player)
-	} else {
-		panic(gira.ErrPeerHandlerNotImplement)
 	}
 	return nil
 }
 
 func (self *PlayerRegistry) onLocalPeerUpdate(r *Registry, player *gira.LocalPlayer) error {
 	log.Infof("============ local user %s update ==================", player.UserId)
-	if handler, ok := r.facade.(gira.LocalPlayerHandler); ok {
+	for _, fw := range r.application.Frameworks() {
+		if handler, ok := fw.(gira.LocalPlayerHandler); ok {
+			handler.OnLocalPlayerUpdate(player)
+		}
+	}
+	if handler, ok := r.application.(gira.LocalPlayerHandler); ok {
 		handler.OnLocalPlayerUpdate(player)
-	} else {
-		panic(gira.ErrPeerHandlerNotImplement)
 	}
 	return nil
 }
@@ -193,7 +202,7 @@ func (self *PlayerRegistry) watchLocalPlayers(r *Registry) error {
 	}
 	watchStartRevision := getResp.Header.Revision + 1
 	watcher := clientv3.NewWatcher(client)
-	r.facade.Go(func() error {
+	r.application.Go(func() error {
 		watchRespChan := watcher.Watch(self.ctx, self.LocalPrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
 		log.Info("etcd watch player started", self.LocalPrefix, watchStartRevision)
 		for watchResp := range watchRespChan {

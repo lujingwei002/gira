@@ -4,15 +4,46 @@ option go_package = "gen/grpc/hall_grpc";
 package hall_grpc;
 
 // 定义服务
-service Upstream {
-    rpc DataStream (stream StreamDataRequest) returns (stream StreamDataResponse){}
-}
+// service Upstream {
+//     rpc DataStream (stream StreamDataRequest) returns (stream StreamDataResponse){}
+// }
 
 service Hall {
     // SayHello 方法
     rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
     rpc PushStream (stream PushStreamRequest) returns (PushStreamResponse) {}
     rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
+    rpc ClientStream (stream StreamDataRequest) returns (stream StreamDataResponse){}
+    rpc GateStream (stream GateDataRequest) returns (stream GateDataResponse){}
+}
+
+service Gate {
+    rpc HallSuspend (UserInsteadRequest) returns (UserInsteadResponse) {}
+    rpc HallRestart (UserInsteadRequest) returns (UserInsteadResponse) {}
+}
+
+message HallSuspendRequest {
+
+}
+
+message HallSuspendResponse {
+
+}
+
+message HallRestartRequest {
+
+}
+
+message HallRestartResponse {
+
+}
+
+message GateDataRequest {
+}
+
+//stream返回结构
+message GateDataResponse {
+    GateDataType Type = 1;
 }
 
 message StreamDataRequest {
@@ -30,6 +61,7 @@ message StreamDataResponse {
     bytes Data = 4;
     string Route = 5;
 }
+
 
 // 请求消息
 message HelloRequest {
@@ -84,6 +116,12 @@ enum PacketType {
     SERVER_DOWN = 6;
     SERVER_MAINTAIN = 7;
     USER_INSTEAD = 8;
+}
+
+
+enum GateDataType {
+    SERVER_SUSPEND = 0;
+    SERVER_RESUME = 1;
 }
 
 

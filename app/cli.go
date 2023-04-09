@@ -10,7 +10,7 @@ import (
 )
 
 // 需要两个系参数 xx -id 1 start|stop|restart
-func Cli(name string, facade gira.ApplicationFacade) error {
+func Cli(name string, facade gira.Application) error {
 	app := &cli.App{
 		Name: "gira service",
 		//app.Author = "lujingwei"
@@ -65,8 +65,8 @@ func Cli(name string, facade gira.ApplicationFacade) error {
 	return nil
 }
 
-func Start(facade gira.ApplicationFacade, appId int32, appType string) error {
-	application := newApplication(ApplicationArgs{
+func Start(facade gira.Application, appId int32, appType string) error {
+	application := newRuntime(ApplicationArgs{
 		AppType: appType,
 		AppId:   appId,
 	}, facade)
@@ -75,10 +75,10 @@ func Start(facade gira.ApplicationFacade, appId int32, appType string) error {
 
 func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	facade, _ := args.App.Metadata["facade"].(gira.ApplicationFacade)
+	facade, _ := args.App.Metadata["facade"].(gira.Application)
 	appType, _ := args.App.Metadata["name"].(string)
 	log.Infof("%s %d starting...", appType, appId)
-	application := newApplication(ApplicationArgs{
+	application := newRuntime(ApplicationArgs{
 		AppType: appType,
 		AppId:   appId,
 	}, facade)

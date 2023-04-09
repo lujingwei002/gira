@@ -32,7 +32,7 @@ const (
 	E_JWT_EXPIRE                     = -21
 	E_GATE_HANDLER_NOT_IMPLEMENT     = -22
 	E_PEER_HANDLER_NOT_IMPLEMENT     = -23
-	E_GRPC_HANDLER_NOT_IMPLEMENT     = -24
+	E_GRPC_SERVER_NOT_IMPLEMENT      = -24
 	E_HALL_HANDLER_NOT_IMPLEMENT     = -25
 	E_SPROTO_HANDLER_NOT_IMPLEMENT   = -26
 	E_SPROTO_REQ_ID_CONFLICT         = -27
@@ -57,6 +57,9 @@ const (
 	E_SPROTO_WAIT_PUSH_CONFLICT      = -46
 	E_TODO                           = -47
 	E_SERVER_DOWN                    = -48
+	E_GRPC_SERVER_NOT_OPEN           = -49
+	E_ADMIN_CLIENT_NOT_IMPLEMENT     = -50
+	E_REGISTRY_NOT_IMPLEMENT         = -51
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -84,7 +87,7 @@ const (
 	E_MSG_JWT_EXPIRE                     = "token已过期"
 	E_MSG_GATE_HANDLER_NOT_IMPLEMENT     = "gate handler not implement"
 	E_MSG_PEER_HANDLER_NOT_IMPLEMENT     = "peer handler not implement"
-	E_MSG_GRPC_HANDLER_NOT_IMPLEMENT     = "grpc handler not implement"
+	E_MSG_GRPC_SERVER_NOT_IMPLEMENT      = "grpc handler not implement"
 	E_MSG_HALL_HANDLER_NOT_IMPLEMENT     = "hall handler not implement"
 	E_MSG_SPROTO_HANDLER_NOT_IMPLEMENT   = "sproto handler not implement"
 	E_MSG_SPROTO_REQ_ID_CONFLICT         = "sproto req id conflict"
@@ -109,6 +112,9 @@ const (
 	E_MSG_SPROTO_WAIT_PUSH_CONFLICT      = "等待push冲突 ，只可以有一个"
 	E_MSG_TODO                           = "TODO"
 	E_MSG_SERVER_DOWN                    = "服务器关闭"
+	E_MSG_GRPC_SERVER_NOT_OPEN           = "grpc模块未开启"
+	E_MSG_ADMIN_CLIENT_NOT_IMPLEMENT     = "admin client 接口末实现"
+	E_MSG_REGISTRY_NOT_IMPLEMENT         = "注册表功能未实现"
 )
 
 type Error struct {
@@ -151,7 +157,7 @@ var (
 	ErrJwtExpire                   = NewError(E_JWT_EXPIRE, E_MSG_JWT_EXPIRE)
 	ErrGateHandlerNotImplement     = NewError(E_GATE_HANDLER_NOT_IMPLEMENT, E_MSG_GATE_HANDLER_NOT_IMPLEMENT)
 	ErrPeerHandlerNotImplement     = NewError(E_PEER_HANDLER_NOT_IMPLEMENT, E_MSG_PEER_HANDLER_NOT_IMPLEMENT)
-	ErrGrpcHandlerNotImplement     = NewError(E_GRPC_HANDLER_NOT_IMPLEMENT, E_MSG_GRPC_HANDLER_NOT_IMPLEMENT)
+	ErrGrpcServerNotImplement      = NewError(E_GRPC_SERVER_NOT_IMPLEMENT, E_MSG_GRPC_SERVER_NOT_IMPLEMENT)
 	ErrHallHandlerNotImplement     = NewError(E_HALL_HANDLER_NOT_IMPLEMENT, E_MSG_HALL_HANDLER_NOT_IMPLEMENT)
 	ErrSprotoHandlerNotImplement   = NewError(E_SPROTO_HANDLER_NOT_IMPLEMENT, E_MSG_SPROTO_HANDLER_NOT_IMPLEMENT)
 	ErrSprotoReqIdConflict         = NewError(E_SPROTO_REQ_ID_CONFLICT, E_MSG_SPROTO_REQ_ID_CONFLICT)
@@ -176,6 +182,9 @@ var (
 	ErrSprotoWaitPushConflict      = NewError(E_SPROTO_WAIT_PUSH_CONFLICT, E_MSG_SPROTO_WAIT_PUSH_CONFLICT)
 	ErrTodo                        = NewError(E_TODO, E_MSG_TODO)
 	ErrServerDown                  = NewError(E_SERVER_DOWN, E_MSG_SERVER_DOWN)
+	ErrGrpcServerNotOpen           = NewError(E_GRPC_SERVER_NOT_OPEN, E_MSG_GRPC_SERVER_NOT_OPEN)
+	ErrAdminClientNotImplement     = NewError(E_ADMIN_CLIENT_NOT_IMPLEMENT, E_MSG_ADMIN_CLIENT_NOT_IMPLEMENT)
+	ErrRegistryNOtImplement        = NewError(E_REGISTRY_NOT_IMPLEMENT, E_MSG_REGISTRY_NOT_IMPLEMENT)
 )
 
 func ErrCode(err error) int32 {

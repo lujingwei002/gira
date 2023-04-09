@@ -69,9 +69,9 @@ func newConfigPeerRegistry(r *Registry) (*PeerRegistry, error) {
 	if err := self.watchPeers(r); err != nil {
 		return nil, err
 	}
-	r.facade.Go(func() error {
+	r.application.Go(func() error {
 		select {
-		case <-r.facade.Done():
+		case <-r.application.Done():
 			{
 				log.Infow("peer registry recv down")
 			}
@@ -109,20 +109,26 @@ func (self *PeerRegistry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 	if peer.FullName == r.FullName {
 		self.SelfPeer = peer
 	}
-	if handler, ok := r.facade.(gira.PeerHandler); ok {
+	for _, fw := range r.application.Frameworks() {
+		if handler, ok := fw.(gira.PeerHandler); ok {
+			handler.OnPeerAdd(peer)
+		}
+	}
+	if handler, ok := r.application.(gira.PeerHandler); ok {
 		handler.OnPeerAdd(peer)
-	} else {
-		panic(gira.ErrPeerHandlerNotImplement)
 	}
 	return nil
 }
 
 func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 	log.Debugw("============ peer delete ==================", "full_name", peer.FullName)
-	if handler, ok := r.facade.(gira.PeerHandler); ok {
+	for _, fw := range r.application.Frameworks() {
+		if handler, ok := fw.(gira.PeerHandler); ok {
+			handler.OnPeerDelete(peer)
+		}
+	}
+	if handler, ok := r.application.(gira.PeerHandler); ok {
 		handler.OnPeerDelete(peer)
-	} else {
-		panic(gira.ErrPeerHandlerNotImplement)
 	}
 	if peer.FullName == r.FullName {
 		log.Errorw("delete myself???", "is_normal", self.isNormalUnregisterSelf)
@@ -141,10 +147,13 @@ func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 
 func (self *PeerRegistry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
 	log.Debugw("============ peer update ==================", "full_name", peer.FullName)
-	if handler, ok := r.facade.(gira.PeerHandler); ok {
+	for _, fw := range r.application.Frameworks() {
+		if handler, ok := fw.(gira.PeerHandler); ok {
+			handler.OnPeerUpdate(peer)
+		}
+	}
+	if handler, ok := r.application.(gira.PeerHandler); ok {
 		handler.OnPeerUpdate(peer)
-	} else {
-		panic(gira.ErrPeerHandlerNotImplement)
 	}
 	return nil
 }
@@ -317,7 +326,7 @@ func (self *PeerRegistry) watchPeers(r *Registry) error {
 	}
 	watchStartRevision := getResp.Header.Revision + 1
 	watcher := clientv3.NewWatcher(client)
-	r.facade.Go(func() error {
+	r.application.Go(func() error {
 		watchRespChan := watcher.Watch(self.cancelCtx, self.Prefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
 		log.Info("etcd watch peer started", self.Prefix, watchStartRevision)
 		for watchResp := range watchRespChan {
@@ -445,7 +454,7 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 			return err
 		}
 		//判断续约应答的协程
-		r.facade.Go(func() error {
+		r.application.Go(func() error {
 			for {
 				select {
 				case keepResp := <-keepRespChan:
@@ -459,7 +468,7 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 						// KeepAlive每秒会续租一次,所以就会收到一次应答
 						// log.Info("收到应答,租约ID是:", keepResp.ID)
 					}
-				case <-r.facade.Done():
+				case <-r.application.Done():
 					break
 				}
 			}

@@ -103,12 +103,7 @@ func newGate() *Gate {
 	return gate
 }
 
-func NewConfigGate(facade gira.ApplicationFacade, config gira.GateConfig) (*Gate, error) {
-	var handler gira.GateHandler
-	var ok bool
-	if handler, ok = facade.(gira.GateHandler); !ok {
-		return nil, gira.ErrGateHandlerNotImplement
-	}
+func NewConfigGate(facade gira.Application, handler gira.GateHandler, config gira.GateConfig) (*Gate, error) {
 	opts := []Option{
 		WithDebugMode(config.Debug),
 		WithIsWebsocket(true),

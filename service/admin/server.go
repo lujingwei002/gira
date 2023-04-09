@@ -11,12 +11,12 @@ import (
 )
 
 type AdminService struct {
-	facade gira.ApplicationFacade
+	facade gira.Application
 }
 
 type admin_server struct {
 	admin_grpc.UnimplementedAdminServer
-	facade gira.ApplicationFacade
+	facade gira.Application
 }
 
 func (self admin_server) ReloadResource(context.Context, *admin_grpc.ReloadResourceRequest) (*admin_grpc.ReloadResourceResponse, error) {
@@ -27,7 +27,7 @@ func (self admin_server) ReloadResource(context.Context, *admin_grpc.ReloadResou
 	return resp, nil
 }
 
-func NewService(facade gira.ApplicationFacade) *AdminService {
+func NewService(facade gira.Application) *AdminService {
 	return &AdminService{
 		facade: facade,
 	}

@@ -19,9 +19,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type hall struct {
+type hall_server struct {
 	*actor.Actor
-	facade        gira.ApplicationFacade
+	framework     *Framework
 	ctx           context.Context
 	cancelFunc    context.CancelFunc
 	SessionDict   sync.Map
@@ -32,9 +32,9 @@ type hall struct {
 	config        *Config
 }
 
-func newHall(facade gira.ApplicationFacade, proto gira.Proto, config *Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) *hall {
-	return &hall{
-		facade:        facade,
+func newHall(framework *Framework, proto gira.Proto, config *Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) *hall_server {
+	return &hall_server{
+		framework:     framework,
 		proto:         proto,
 		config:        config,
 		hallHandler:   hallHandler,
@@ -43,22 +43,25 @@ func newHall(facade gira.ApplicationFacade, proto gira.Proto, config *Config, ha
 	}
 }
 
-func (hall *hall) Register(server *grpc.Server) error {
+func (hall *hall_server) Register() error {
 	// 注册grpc
-	hall_grpc.RegisterUpstreamServer(server, upstream_server{
-		hall: hall,
-	})
-	hall_grpc.RegisterHallServer(server, &hall_server{
-		hall: hall,
+	facade.RegisterGrpc(func(server *grpc.Server) error {
+		// hall_grpc.RegisterUpstreamServer(server, grpc_upstream_server{
+		// 	hall: hall,
+		// })
+		hall_grpc.RegisterHallServer(server, &grpc_hall_server{
+			hall: hall,
+		})
+		return nil
 	})
 	go hall.serve()
 	return nil
 }
 
-func (hall *hall) serve() {
+func (hall *hall_server) serve() {
 	hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
 	defer hall.cancelFunc()
-	hall.facade.Go(func() error {
+	facade.Go(func() error {
 		select {
 		case <-hall.ctx.Done():
 			for {
@@ -83,7 +86,7 @@ func (hall *hall) serve() {
 }
 
 // 推送消息给其他玩家
-func (hall *hall) Push(ctx context.Context, userId string, req gira.ProtoPush) error {
+func (hall *hall_server) Push(ctx context.Context, userId string, req gira.ProtoPush) error {
 	var err error
 	if v, ok := hall.SessionDict.Load(userId); !ok {
 		var data []byte
@@ -108,7 +111,7 @@ func (hall *hall) Push(ctx context.Context, userId string, req gira.ProtoPush) e
 }
 
 // 推送消息给其他玩家
-func (hall *hall) MustPush(ctx context.Context, userId string, req gira.ProtoPush) error {
+func (hall *hall_server) MustPush(ctx context.Context, userId string, req gira.ProtoPush) error {
 	var err error
 	if v, ok := hall.SessionDict.Load(userId); !ok {
 		var data []byte
@@ -132,13 +135,13 @@ func (hall *hall) MustPush(ctx context.Context, userId string, req gira.ProtoPus
 	}
 }
 
-type hall_server struct {
+type grpc_hall_server struct {
 	hall_grpc.UnsafeHallServer
-	hall *hall
+	hall *hall_server
 }
 
 // 收到顶号下线的请求
-func (self hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInsteadRequest) (*hall_grpc.UserInsteadResponse, error) {
+func (self grpc_hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInsteadRequest) (*hall_grpc.UserInsteadResponse, error) {
 	resp := &hall_grpc.UserInsteadResponse{}
 	userId := req.UserId
 	log.Infow("user instead", "user_id", userId)
@@ -169,7 +172,7 @@ func (self hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInst
 	}
 }
 
-func (self hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error {
+func (self grpc_hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error {
 	for {
 		req, err := server.Recv()
 		if err == io.EOF {
@@ -191,7 +194,7 @@ func (self hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error
 	}
 }
 
-func (self hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushRequest) (*hall_grpc.MustPushResponse, error) {
+func (self grpc_hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushRequest) (*hall_grpc.MustPushResponse, error) {
 	resp := &hall_grpc.MustPushResponse{}
 	userId := req.UserId
 	_, _, push, err := self.hall.proto.PushDecode(req.Data)
@@ -225,23 +228,36 @@ func (self hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushReq
 // }
 
 // 处理网关发过来的消息
-type upstream_server struct {
-	hall_grpc.UnsafeUpstreamServer
-	hall *hall
-}
+// type grpc_upstream_server struct {
+// 	hall_grpc.UnsafeUpstreamServer
+// 	hall *hall_server
+// }
 
-func (h upstream_server) SayHello(ctx context.Context, in *hall_grpc.HelloRequest) (*hall_grpc.HelloResponse, error) {
+func (h grpc_hall_server) SayHello(ctx context.Context, in *hall_grpc.HelloRequest) (*hall_grpc.HelloResponse, error) {
 	resp := new(hall_grpc.HelloResponse)
 	resp.Replay = in.Name
 	log.Debugw("upstream server recv", "name", in.Name)
 	return resp, nil
 }
 
+func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) error {
+	for {
+		req, err := client.Recv()
+		if err != nil {
+			log.Infow("gate recv fail", "error", err)
+			// 连接关闭，返回错误，会触发errCtx的cancel
+			return err
+		} else {
+			log.Infow("gate recv", "req", req)
+		}
+	}
+}
+
 // client.Recv无法解除阻塞，要通知网送开断开连接
 // 有两种断开方式，
 // 网关连接断开，1.recv goroutine结束，2.recv ctrl goroutine结束 3.response goroutine马上结束, 4.ctrl goroutine马上结束 5.stream结束(释放session)
 // session自己主动断开, 1.ctrl goroutine结束, 关闭response channel, 2.response goroutine处理完剩余消息后结束, 3.recv ctrl goroutinue马上结束 4.stream结束(释放session) 5.recv goroutinue结束
-func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServer) error {
+func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) error {
 	var req *hall_grpc.StreamDataRequest
 	var err error
 	var memberId string
@@ -338,8 +354,8 @@ func (self upstream_server) DataStream(client hall_grpc.Upstream_DataStreamServe
 			// 关闭response管道，不再接收消息
 			close(session.chResponse)
 			return cancelCtx.Err()
-		case <-self.hall.ctx.Done():
-			return gira.ErrServerDown
+		// case <-self.hall.ctx.Done():
+		// 	return gira.ErrServerDown
 		case <-errCtx.Done():
 			//expect
 		}

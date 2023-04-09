@@ -31,7 +31,7 @@ type Logger interface {
 	Warnf(template string, args ...interface{})
 }
 
-func ConfigLog(facade gira.ApplicationFacade, config gira.LogConfig) error {
+func ConfigLog(facade gira.Application, config gira.LogConfig) error {
 	var level zap.AtomicLevel
 	// level.SetLevel(zapcore.InfoLevel)
 	err := level.UnmarshalText([]byte(config.Level))

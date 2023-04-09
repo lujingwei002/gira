@@ -4,41 +4,143 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
+	"google.golang.org/grpc"
 )
 
 func Context() context.Context {
-	return gira.Facade().Context()
+	return gira.App().Context()
 }
+
 func GetAppId() int32 {
-	return gira.Facade().GetAppId()
+	return gira.App().GetAppId()
 }
+
 func GetAppFullName() string {
-	return gira.Facade().GetAppFullName()
+	return gira.App().GetAppFullName()
 }
+
 func GetResourceDbClient() gira.MongoClient {
-	return gira.Facade().GetResourceDbClient()
+	application := gira.App()
+	if h, ok := application.(gira.ResourceDbClient); ok {
+		return h.GetResourceDbClient()
+	} else {
+		return nil
+	}
 }
+
 func ReloadResource() error {
-	return gira.Facade().ReloadResource()
-}
-func RangePeers(f func(k any, v any) bool) {
-	gira.Facade().RangePeers(f)
+	application := gira.App()
+	if s, ok := application.(gira.ResourceLoader); !ok {
+		return gira.ErrResourceLoaderNotImplement
+	} else {
+		return s.ReloadResource("resource")
+	}
 }
 
 func BroadcastReloadResource(ctx context.Context, name string) error {
-	return gira.Facade().BroadcastReloadResource(ctx, name)
+	application := gira.App()
+	if h, ok := application.(gira.AdminClient); !ok {
+		return gira.ErrAdminClientNotImplement
+	} else {
+		return h.BroadcastReloadResource(ctx, name)
+	}
 }
 func GetAdminDbClient() gira.MysqlClient {
-	return gira.Facade().GetAdminDbClient()
+	application := gira.App()
+	if h, ok := application.(gira.AdminDbClient); ok {
+		return h.GetAdminDbClient()
+	} else {
+		return nil
+	}
 }
 
 func UnlockLocalUser(userId string) (*gira.Peer, error) {
-	return gira.Facade().UnlockLocalUser(userId)
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		return h.UnlockLocalUser(userId)
+	} else {
+		return nil, gira.ErrRegistryNOtImplement
+	}
 }
 func LockLocalUser(userId string) (*gira.Peer, error) {
-	return gira.Facade().LockLocalUser(userId)
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		return h.LockLocalUser(userId)
+	} else {
+		return nil, gira.ErrRegistryNOtImplement
+	}
 }
 
 func WhereIsUser(userId string) (*gira.Peer, error) {
-	return gira.Facade().WhereIsUser(userId)
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		return h.WhereIsUser(userId)
+	} else {
+		return nil, gira.ErrRegistryNOtImplement
+	}
+}
+
+func RangePeers(f func(k any, v any) bool) {
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		h.RangePeers(f)
+	}
+}
+
+func GetStatDbClient() gira.MongoClient {
+	application := gira.App()
+	if h, ok := application.(gira.StatDbClient); ok {
+		return h.GetStatDbClient()
+	} else {
+		return nil
+	}
+}
+
+func GetAccountDbClient() gira.MongoClient {
+	application := gira.App()
+	if h, ok := application.(gira.AccountDbClient); ok {
+		return h.GetAccountDbClient()
+	} else {
+		return nil
+	}
+}
+
+func GetAccountCacheClient() gira.RedisClient {
+	application := gira.App()
+	if h, ok := application.(gira.AccountCacheClient); ok {
+		return h.GetAccountCacheClient()
+	} else {
+		return nil
+	}
+}
+
+func GetGameDbClient() gira.MongoClient {
+	application := gira.App()
+	if h, ok := application.(gira.GameDbClient); ok {
+		return h.GetGameDbClient()
+	} else {
+		return nil
+	}
+}
+
+func Go(f func() error) {
+	gira.App().Go(f)
+}
+
+func RegisterGrpc(f func(server *grpc.Server) error) error {
+	application := gira.App()
+	if s, ok := application.(gira.GrpcServer); !ok {
+		return gira.ErrGrpcServerNotImplement
+	} else {
+		return s.RegisterGrpc(f)
+	}
+}
+
+func SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
+	application := gira.App()
+	if s, ok := application.(gira.Sdk); !ok {
+		return nil, gira.ErrSdkNotImplement
+	} else {
+		return s.SdkLogin(accountPlat, openId, token)
+	}
 }

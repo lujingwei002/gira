@@ -5,11 +5,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/common/rpc"
-	"github.com/lujingwei002/gira/log"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"github.com/lujingwei002/gira/app"
-	"google.golang.org/grpc"
 )
 
 // 玩家接口
@@ -44,45 +40,32 @@ type UserAvatar interface {
 }
 
 // 应用
-type HallApplication struct {
-	app.BaseFacade
-	hall   *hall
-	Config *Config
-
+type Framework struct {
+	Config        *Config
 	Proto         gira.Proto
 	PlayerHandler gira.ProtoHandler
 	Hall          Hall
 }
 
-func (self *HallApplication) Create() error {
-	log.Info("create")
-	return nil
-}
-
-func (app *HallApplication) OnFrameworkAwake(facade gira.ApplicationFacade) error {
-	if handler, ok := facade.(HallHandler); !ok {
+func (framework *Framework) OnFrameworkAwake(application gira.Application) error {
+	if handler, ok := application.(HallHandler); !ok {
 		return gira.ErrGateHandlerNotImplement
 	} else {
-		hall := newHall(facade, app.Proto, app.Config, handler, app.PlayerHandler)
-		app.hall = hall
-		app.Hall = hall
-		rpc.OnAwake(facade)
+		hall := newHall(framework, framework.Proto, framework.Config, handler, framework.PlayerHandler)
+		framework.Hall = hall
+		if err := hall.Register(); err != nil {
+			return err
+		}
+		rpc.OnAwake()
 		return nil
 	}
 }
 
-func (self *HallApplication) OnFrameworkConfigLoad(c *gira.Config) error {
-	self.Config = &Config{}
-	return self.Config.OnConfigLoad(c)
-}
-
-func (self *HallApplication) OnGrpcServerStart(server *grpc.Server) error {
+func (framework *Framework) OnFrameworkStart() error {
 	return nil
 }
 
-func (self *HallApplication) OnFrameworkGrpcServerStart(server *grpc.Server) error {
-	if err := self.hall.Register(server); err != nil {
-		return err
-	}
-	return nil
+func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
+	framework.Config = &Config{}
+	return framework.Config.OnConfigLoad(c)
 }

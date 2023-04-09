@@ -14,14 +14,12 @@ type HallClient struct {
 	clientPool map[string]*sync.Pool
 	streamPool map[string]*sync.Pool
 	mu         sync.Mutex
-	facade     gira.ApplicationFacade
 }
 
 var Hall *HallClient
 
-func OnAwake(facade gira.ApplicationFacade) {
+func OnAwake() {
 	Hall = &HallClient{
-		facade:     facade,
 		clientPool: make(map[string]*sync.Pool),
 	}
 }

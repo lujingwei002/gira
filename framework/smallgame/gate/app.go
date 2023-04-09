@@ -2,12 +2,9 @@ package gate
 
 import (
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/app"
-	"google.golang.org/grpc"
 )
 
-type GateApplication struct {
-	app.BaseFacade
+type Framework struct {
 	hall *hall_server
 	// 使用的协议，当中必须包括名为Login的协议
 	Proto  gira.Proto
@@ -25,51 +22,44 @@ type LoginRequest interface {
 }
 
 // 当前会话的数量
-func (self *GateApplication) SessionCount() int64 {
-	return self.hall.sessionCount
+func (framework *Framework) SessionCount() int64 {
+	return framework.hall.sessionCount
 }
 
 // 当前连接的数量
-func (self *GateApplication) ConnectionCount() int64 {
-	return self.hall.connectionCount
+func (framework *Framework) ConnectionCount() int64 {
+	return framework.hall.connectionCount
 }
 
-func (app *GateApplication) OnFrameworkAwake(facade gira.ApplicationFacade) error {
-	app.hall = newHall(app, facade, app.Proto, app.Config)
-	if err := app.hall.OnAwake(); err != nil {
+func (framework *Framework) OnFrameworkAwake(application gira.Application) error {
+	framework.hall = newHall(framework, framework.Proto, framework.Config)
+	if err := framework.hall.OnAwake(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (self *GateApplication) OnFrameworkStart() error {
-	return nil
-}
-func (self *GateApplication) OnFrameworkConfigLoad(c *gira.Config) error {
-	self.Config = &Config{}
-	return self.Config.OnConfigLoad(c)
-}
-
-func (self *GateApplication) OnGateStream(conn gira.GateConn) {
-	self.hall.OnGateStream(conn)
-}
-
-func (self *GateApplication) OnPeerAdd(peer *gira.Peer) {
-	self.hall.OnPeerAdd(peer)
-}
-
-func (self *GateApplication) OnPeerDelete(peer *gira.Peer) {
-	self.hall.OnPeerDelete(peer)
-}
-
-func (self *GateApplication) OnPeerUpdate(peer *gira.Peer) {
-	self.hall.OnPeerUpdate(peer)
-}
-
-func (self *GateApplication) OnGrpcServerStart(server *grpc.Server) error {
+func (framework *Framework) OnFrameworkStart() error {
 	return nil
 }
 
-func (self *GateApplication) OnFrameworkGrpcServerStart(server *grpc.Server) error {
-	return nil
+func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
+	framework.Config = &Config{}
+	return framework.Config.OnConfigLoad(c)
+}
+
+func (framework *Framework) OnGateStream(conn gira.GateConn) {
+	framework.hall.OnClientStream(conn)
+}
+
+func (framework *Framework) OnPeerAdd(peer *gira.Peer) {
+	framework.hall.OnPeerAdd(peer)
+}
+
+func (framework *Framework) OnPeerDelete(peer *gira.Peer) {
+	framework.hall.OnPeerDelete(peer)
+}
+
+func (framework *Framework) OnPeerUpdate(peer *gira.Peer) {
+	framework.hall.OnPeerUpdate(peer)
 }

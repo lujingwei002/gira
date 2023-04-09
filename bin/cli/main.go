@@ -486,15 +486,7 @@ func buildAction(c *cli.Context) error {
 		if build, ok := proj.Config.Build[target]; !ok {
 			return nil
 		} else {
-			if len(build.Dependency) <= 0 {
-				log.Printf(build.Description)
-				for _, v := range build.Run {
-					if err := execCommandLine(v); err != nil {
-						return err
-					}
-				}
-				return nil
-			} else {
+			if len(build.Dependency) > 0 {
 				for _, v := range build.Dependency {
 					if err := buildFunc(v); err != nil {
 						log.Printf("[FAIL] build %s\n", v)
@@ -503,8 +495,14 @@ func buildAction(c *cli.Context) error {
 						log.Printf("[OK] build %s\n", v)
 					}
 				}
-				return nil
 			}
+			log.Printf(build.Description)
+			for _, v := range build.Run {
+				if err := execCommandLine(v); err != nil {
+					return err
+				}
+			}
+			return nil
 		}
 	}
 	return buildFunc(name)
