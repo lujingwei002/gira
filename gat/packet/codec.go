@@ -81,7 +81,7 @@ func (c *Decoder) Decode(data []byte) ([]*Packet, error) {
 // --------|------------------------|--------
 // 1 byte packet type, 3 bytes packet data length(big end), and data segment
 func Encode(typ Type, data []byte) ([]byte, error) {
-	if typ < Handshake || typ > Kick {
+	if typ < TypeMin || typ > TypeMax {
 		return nil, ErrWrongPacketType
 	}
 	p := &Packet{Type: typ, Length: len(data)}

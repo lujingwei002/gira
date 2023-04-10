@@ -152,6 +152,38 @@ func (self *Conn) kick(reason string) error {
 	return self.send(data)
 }
 
+func (self *Conn) sendServerSuspendPacket(reason string) error {
+	data, err := packet.Encode(packet.ServerSuspend, []byte(reason))
+	if err != nil {
+		return err
+	}
+	return self.send(data)
+}
+
+func (self *Conn) sendServerResumePacket(reason string) error {
+	data, err := packet.Encode(packet.ServerResume, []byte(reason))
+	if err != nil {
+		return err
+	}
+	return self.send(data)
+}
+
+func (self *Conn) sendServerDownPacket(reason string) error {
+	data, err := packet.Encode(packet.ServerDown, []byte(reason))
+	if err != nil {
+		return err
+	}
+	return self.send(data)
+}
+
+func (self *Conn) sendServerMaintainPacket(reason string) error {
+	data, err := packet.Encode(packet.ServerMaintain, []byte(reason))
+	if err != nil {
+		return err
+	}
+	return self.send(data)
+}
+
 func (self *Conn) close() error {
 	if self.status() == conn_status_closed {
 		return nil

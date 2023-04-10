@@ -174,11 +174,13 @@ func execCommandLine(line string) error {
 	for _, v := range arr {
 		pats := strings.Fields(v)
 		name := pats[0]
-		args := pats[1:]
+		args := strings.Replace(v, name, "", 1)
+		log.Println("fff", name)
+		log.Println("fff", args)
 		switch name {
 		case "cd":
 			if len(args) > 0 {
-				os.Chdir(args[0])
+				os.Chdir(args)
 			} else {
 				os.Chdir("")
 			}
@@ -196,8 +198,8 @@ func execCommandLine(line string) error {
 	return nil
 }
 
-func execCommand(name string, arg []string) error {
-	cmd := exec.Command(name, arg...)
+func execCommand(name string, arg string) error {
+	cmd := exec.Command(name, arg)
 	// 获取命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

@@ -152,7 +152,7 @@ func (self *GateHandler1) OnClientStream(s gira.GateConn) {
 func TestClientClose1(t *testing.T) {
 	var err error
 	var gate *Gate
-	gate, err = Listen(context.TODO(), ":1234", WithDebugMode(), WithIsWebsocket(true))
+	gate, err = Listen(context.TODO(), ":1234", WithDebugMode(true), WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func (self *GateHandler2) OnClientStream(s gira.GateConn) {
 func TestClientClose2(t *testing.T) {
 	var err error
 	var gate *Gate
-	gate, err = Listen(context.TODO(), ":1234", WithDebugMode(), WithIsWebsocket(true))
+	gate, err = Listen(context.TODO(), ":1234", WithDebugMode(true), WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +274,7 @@ func (self *GateHandler3) OnClientStream(s gira.GateConn) {
 func TestClientClose3(t *testing.T) {
 	var err error
 	var gate *Gate
-	gate, err = Listen(context.TODO(), ":1234", WithDebugMode(), WithIsWebsocket(true))
+	gate, err = Listen(context.TODO(), ":1234", WithDebugMode(true), WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +336,7 @@ func (self *GateHandler4) OnClientStream(s gira.GateConn) {
 func TestClientClose4(t *testing.T) {
 	var err error
 	var gate *Gate
-	gate, err = Listen(context.TODO(), ":1234", WithDebugMode())
+	gate, err = Listen(context.TODO(), ":1234", WithDebugMode(true))
 	if err != nil {
 		t.Fatal(err)
 	}

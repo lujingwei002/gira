@@ -6,6 +6,10 @@ type GateConn interface {
 	ID() uint64
 	Close() error
 	Kick(reason string)
+	SendServerSuspend(reason string)
+	SendServerResume(reason string)
+	SendServerMaintain(reason string)
+	SendServerDown(reason string)
 	Recv(ctx context.Context) (GateRequest, error)
 	Push(route string, data []byte) error
 	Response(mid uint64, data []byte) error

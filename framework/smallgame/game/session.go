@@ -302,10 +302,6 @@ func (self *hall_sesssion) instead(ctx context.Context, reason string) (err erro
 	return self.sendPacketAndClose(ctx, hall_grpc.PacketType_USER_INSTEAD, reason)
 }
 
-func (self *hall_sesssion) serverDown(ctx context.Context, reason string) (err error) {
-	return self.sendPacketAndClose(ctx, hall_grpc.PacketType_SERVER_DOWN, reason)
-}
-
 // 推送消息
 func (self *hall_sesssion) Push(push gira.ProtoPush) (err error) {
 	var data []byte

@@ -21,7 +21,6 @@ type client_session struct {
 	client          gira.GateConn
 	stream          hall_grpc.Hall_ClientStreamClient
 	hall            *hall_server
-	hall1           *hall_server
 	pendingRequests []gira.GateRequest
 }
 
@@ -90,6 +89,7 @@ func (session *client_session) serve(client gira.GateConn, req gira.GateRequest,
 				}
 				log.Infow("上游连接关闭", "session_id", sessionId, "error", err)
 				session.stream = nil
+				client.SendServerSuspend("")
 				// 重新选择节点
 				for {
 					// log.Infow("重新选择节点", "session_id", sessionId)
@@ -109,6 +109,7 @@ func (session *client_session) serve(client gira.GateConn, req gira.GateRequest,
 							}
 						} else {
 							session.stream = stream
+							client.SendServerResume("")
 							log.Infow("重新选择节点, 连接成功", "session_id", sessionId, "full_name", server.FullName)
 							break
 						}
@@ -214,8 +215,6 @@ func (session *client_session) processStreamResponse(resp *hall_grpc.StreamDataR
 		}
 	case hall_grpc.PacketType_USER_INSTEAD:
 		session.client.Kick("账号在其他地方登录")
-	case hall_grpc.PacketType_SERVER_DOWN:
-		session.client.Kick("服务器关闭")
 	}
 	return nil
 }

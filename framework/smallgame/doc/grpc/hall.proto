@@ -97,8 +97,6 @@ enum PacketType {
     NONE = 0;
     DATA = 1;
     KICK = 5;
-    SERVER_DOWN = 6;
-    SERVER_MAINTAIN = 7;
     USER_INSTEAD = 8;
 }
 

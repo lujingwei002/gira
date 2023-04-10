@@ -78,6 +78,22 @@ func (s *Session) Kick(reason string) {
 	s.conn.close()
 }
 
+func (s *Session) SendServerSuspend(reason string) {
+	s.conn.sendServerSuspendPacket(reason)
+}
+
+func (s *Session) SendServerResume(reason string) {
+	s.conn.sendServerResumePacket(reason)
+}
+
+func (s *Session) SendServerMaintain(reason string) {
+	s.conn.sendServerMaintainPacket(reason)
+}
+
+func (s *Session) SendServerDown(reason string) {
+	s.conn.sendServerDownPacket(reason)
+}
+
 func (s *Session) Close() error {
 	return s.conn.close()
 }

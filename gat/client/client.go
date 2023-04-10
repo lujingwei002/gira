@@ -508,6 +508,14 @@ func (self *ClientConn) processPacket(p *packet.Packet) error {
 		self.chWrite <- self.heartbeatPacket
 	case packet.Kick:
 		log.Info("recv kick packet")
+	case packet.ServerSuspend:
+		log.Info("recv server suspend packet")
+	case packet.ServerResume:
+		log.Info("recv server resume packet")
+	case packet.ServerDown:
+		log.Info("recv server down packet")
+	case packet.ServerMaintain:
+		log.Info("recv server maintain packet")
 	}
 	self.lastAt = time.Now().Unix()
 	return nil
