@@ -8,6 +8,9 @@ import (
 type Config struct {
 	gira.Config
 	BgSaveInterval int64 `yaml:"bgsave-interval"`
+	FrameWork      struct {
+		GateReportInterval int64 `yaml:"gate-report-interval"`
+	} `yaml:"framework"`
 }
 
 func (c *Config) OnConfigLoad(config *gira.Config) error {

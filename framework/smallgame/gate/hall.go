@@ -7,12 +7,9 @@ import (
 
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
-	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/account/jwt"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 )
 
 type hall_server struct {
@@ -25,101 +22,6 @@ type hall_server struct {
 	connectionCount int64 // 连接数量
 	handler         GateHandler
 	config          *Config
-}
-
-type upstream_peer struct {
-	Id           int32
-	FullName     string
-	Address      string
-	client       hall_grpc.HallClient
-	clientStream hall_grpc.Hall_ClientStreamClient
-	ctx          context.Context
-	cancelFunc   context.CancelFunc
-	playerCount  int64
-	isSuspend    bool
-}
-
-func (peer *upstream_peer) close() {
-	peer.cancelFunc()
-}
-
-func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_grpc.Hall_ClientStreamClient, err error) {
-	if client := server.client; client == nil {
-		err = gira.ErrNullPonter
-		return
-	} else if stream, err = client.ClientStream(ctx); err != nil {
-		return
-	} else {
-		return
-	}
-}
-
-func (server *upstream_peer) serve() error {
-	defer func() {
-		log.Infow("server upstream exit")
-	}()
-
-	f := func(address string) error {
-		var conn *grpc.ClientConn
-		var client hall_grpc.HallClient
-		var stream hall_grpc.Hall_GateStreamClient
-		var err error
-		// 连接hall
-		conn, err = grpc.Dial(address, grpc.WithInsecure())
-		if err != nil {
-			log.Errorw("server dail fail", "error", err, "full_name", server.FullName, "address", server.Address)
-			return err
-		}
-		defer func() {
-			conn.Close()
-		}()
-		client = hall_grpc.NewHallClient(conn)
-		log.Infow("server dial success", "full_name", server.FullName)
-		// 创建stream
-		streamCtx, streamCancelFunc := context.WithCancel(server.ctx)
-		defer func() {
-			streamCancelFunc()
-		}()
-		stream, err = client.GateStream(streamCtx)
-		if err != nil {
-			log.Errorw("server create gate stream fail", "error", err, "full_name", server.FullName, "address", server.Address)
-			return err
-		}
-		log.Infow("server create gate stream success", "full_name", server.FullName)
-		server.client = client
-		for {
-			var resp *hall_grpc.GateDataResponse
-			if resp, err = stream.Recv(); err != nil {
-				log.Warnw("gate recv fail", "error", err)
-				return err
-			} else {
-				log.Infow("gate recv", "resp", resp)
-				switch resp.Type {
-				case hall_grpc.GateDataType_SERVER_SUSPEND:
-					server.isSuspend = true
-				case hall_grpc.GateDataType_SERVER_RESUME:
-					server.isSuspend = false
-				}
-			}
-		}
-	}
-	errGroup, _ := errgroup.WithContext(server.ctx)
-	errGroup.Go(func() error {
-		for {
-			if err := f(server.Address); err != nil {
-			} else {
-			}
-			select {
-			case <-server.ctx.Done():
-				return server.ctx.Err()
-			default:
-				//expect
-				time.Sleep(1 * time.Second)
-			}
-		}
-	})
-	err := errGroup.Wait()
-	return err
 }
 
 func newHall(application *Framework, proto gira.Proto, config *Config) *hall_server {
@@ -141,20 +43,18 @@ func (hall *hall_server) OnAwake() error {
 	return nil
 }
 
+// 选择一个节点
 func (hall *hall_server) SelectPeer() *upstream_peer {
 	var minPlayerCount int64 = 0xffffffff
 	var selected *upstream_peer
 	hall.peers.Range(func(key any, value any) bool {
 		server := value.(*upstream_peer)
-		log.Println("ggggggggggggggggg", server, server.client)
 		if server.client != nil && server.playerCount < minPlayerCount {
-			log.Println("qqqq")
 			minPlayerCount = server.playerCount
 			selected = server
 		}
 		return true
 	})
-	log.Println("ffffffff", selected)
 	return selected
 }
 
@@ -240,15 +140,10 @@ func (hall *hall_server) OnPeerAdd(peer *gira.Peer) {
 	if peer.Name != hall.config.Upstream.Name {
 		return
 	}
-	// if peer.Id != hall.config.Upstream.Id {
-	// 	return
-	// }
+	if peer.Id < hall.config.Upstream.MinId || peer.Id > hall.config.Upstream.MaxId {
+		return
+	}
 	log.Infow("add upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
-	// conn, err := grpc.Dial(peer.GrpcAddr, grpc.WithInsecure())
-	// if err != nil {
-	// 	log.Errorw("dial upstream fail", "error", err)
-	// 	return
-	// }
 	ctx, cancelFUnc := context.WithCancel(hall.ctx)
 	server := &upstream_peer{
 		Id:         peer.Id,
@@ -256,25 +151,37 @@ func (hall *hall_server) OnPeerAdd(peer *gira.Peer) {
 		Address:    peer.GrpcAddr,
 		ctx:        ctx,
 		cancelFunc: cancelFUnc,
+		isAlive:    true,
 	}
-	if v, loaded := hall.peers.LoadOrStore(peer.Id, server); loaded {
+	if v, ok := hall.peers.Load(peer.Id); ok {
 		lastServer := v.(*upstream_peer)
-		lastServer.close()
+		if lastServer.isSuspend {
+			lastServer.Resume()
+		} else {
+			lastServer.close()
+		}
+	} else {
+		hall.peers.Store(peer.Id, server)
+		go server.serve()
 	}
-	go server.serve()
 }
 
 func (hall *hall_server) OnPeerDelete(peer *gira.Peer) {
 	if peer.Name != hall.config.Upstream.Name {
 		return
 	}
-	// if peer.Id != hall.config.Upstream.Id {
-	// 	return
-	// }
+	if peer.Id < hall.config.Upstream.MinId || peer.Id > hall.config.Upstream.MaxId {
+		return
+	}
 	log.Infow("remove upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
-	if v, loaded := hall.peers.LoadAndDelete(peer.Id); loaded {
+	if v, ok := hall.peers.Load(peer.Id); ok {
 		lastServer := v.(*upstream_peer)
-		lastServer.close()
+		if lastServer.isSuspend {
+			lastServer.Suspend()
+		} else {
+			hall.peers.Delete(peer.Id)
+			lastServer.close()
+		}
 	}
 }
 
@@ -282,9 +189,9 @@ func (hall *hall_server) OnPeerUpdate(peer *gira.Peer) {
 	if peer.Name != hall.config.Upstream.Name {
 		return
 	}
-	// if peer.Id != hall.config.Upstream.Id {
-	// 	return
-	// }
+	if peer.Id < hall.config.Upstream.MinId || peer.Id > hall.config.Upstream.MaxId {
+		return
+	}
 	log.Infow("update upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
 	if v, ok := hall.peers.Load(peer.Id); ok {
 		lastServer := v.(*upstream_peer)

@@ -241,16 +241,65 @@ func (h grpc_hall_server) SayHello(ctx context.Context, in *hall_grpc.HelloReque
 }
 
 func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) error {
-	for {
-		req, err := client.Recv()
-		if err != nil {
-			log.Infow("gate recv fail", "error", err)
-			// 连接关闭，返回错误，会触发errCtx的cancel
-			return err
-		} else {
-			log.Infow("gate recv", "req", req)
+	ticker := time.NewTicker(time.Duration(self.hall.config.FrameWork.GateReportInterval) * time.Second)
+	defer func() {
+		ticker.Stop()
+		log.Infow("gate stream exit")
+	}()
+	errGroup, errCtx := errgroup.WithContext(self.hall.ctx)
+	errGroup.Go(func() error {
+		// 停服通知
+		select {
+		case <-self.hall.ctx.Done():
+			break
 		}
-	}
+		resp := &hall_grpc.GateDataResponse{}
+		resp.Type = hall_grpc.GateDataType_SERVER_SUSPEND
+		if err := client.Send(resp); err != nil {
+			log.Infow("gate send fail", "error", err)
+			return err
+		}
+		return nil
+	})
+	// 定时发送在线人数
+	errGroup.Go(func() error {
+		for {
+			resp := &hall_grpc.GateDataResponse{}
+			resp.Type = hall_grpc.GateDataType_SERVER_ONLINE
+			resp.OnlineResponse = &hall_grpc.GateOnlineResponse{
+				SessionCount: self.hall.SessionCount,
+			}
+			if err := client.Send(resp); err != nil {
+				log.Infow("gate send fail", "error", err)
+				return err
+			}
+			select {
+			case <-errCtx.Done():
+				return errCtx.Err()
+			case <-ticker.C:
+				continue
+			}
+		}
+	})
+	errGroup.Go(func() error {
+		for {
+			req, err := client.Recv()
+			if err != nil {
+				log.Infow("gate recv fail", "error", err)
+				// 连接关闭，返回错误，会触发errCtx的cancel
+				return err
+			} else {
+				log.Infow("gate recv", "req", req)
+			}
+			select {
+			case <-errCtx.Done():
+				return errCtx.Err()
+			default:
+				//expect
+			}
+		}
+	})
+	return errGroup.Wait()
 }
 
 // client.Recv无法解除阻塞，要通知网送开断开连接

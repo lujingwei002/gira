@@ -8,8 +8,9 @@ import (
 type Config struct {
 	gira.Config
 	Upstream struct {
-		Id   int32  `yaml:"id"`
-		Name string `yaml:"name"`
+		MinId int32  `yaml:"min-id"`
+		MaxId int32  `yaml:"max-id"`
+		Name  string `yaml:"name"`
 	} `yaml:"upstream"`
 
 	FrameWork struct {

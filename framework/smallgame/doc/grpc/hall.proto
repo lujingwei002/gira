@@ -44,6 +44,11 @@ message GateDataRequest {
 //stream返回结构
 message GateDataResponse {
     GateDataType Type = 1;
+    GateOnlineResponse OnlineResponse = 2;
+
+}
+message GateOnlineResponse {
+    int64 SessionCount = 1;
 }
 
 message StreamDataRequest {
@@ -121,7 +126,7 @@ enum PacketType {
 
 enum GateDataType {
     SERVER_SUSPEND = 0;
-    SERVER_RESUME = 1;
+    SERVER_ONLINE = 1;
 }
 
 
