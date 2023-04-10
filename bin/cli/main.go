@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 
@@ -174,20 +175,18 @@ func execCommandLine(line string) error {
 	for _, v := range arr {
 		pats := strings.Fields(v)
 		name := pats[0]
-		args := strings.Replace(v, name, "", 1)
-		log.Println("fff", name)
-		log.Println("fff", args)
+		args := pats[1:]
 		switch name {
 		case "cd":
 			if len(args) > 0 {
-				os.Chdir(args)
+				os.Chdir(args[0])
 			} else {
 				os.Chdir("")
 			}
 			log.Printf("[OK] %s", v)
 		default:
 			log.Printf("%s", v)
-			if err := execCommand(name, args); err != nil {
+			if err := execCommandArgv(name, args); err != nil {
 				log.Printf("[FAIL] %s", v)
 				return err
 			} else {
@@ -198,8 +197,60 @@ func execCommandLine(line string) error {
 	return nil
 }
 
-func execCommand(name string, arg string) error {
-	cmd := exec.Command(name, arg)
+func execCommand(command proj.CommandConfig) error {
+	lastWd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		os.Chdir(lastWd)
+	}()
+	if command.WorkDir != "" {
+		os.Chdir(command.WorkDir)
+	}
+	line := fmt.Sprintf("%s %s", command.Name, strings.Join(command.Args, " "))
+	log.Printf("%s", line)
+	if err := execCommandArgv(command.Name, command.Args); err != nil {
+		log.Printf("[FAIL] %s", line)
+		return err
+	} else {
+		log.Printf("[OK] %s", line)
+	}
+	return nil
+}
+
+func execCommandLineOutput(line string) (output string, err error) {
+	pats := strings.Fields(line)
+	name := pats[0]
+	argv := pats[1:]
+	cmd := exec.Command(name, argv...)
+	var out strings.Builder
+	cmd.Stdout = &out
+	err = cmd.Run()
+	if err != nil {
+		return
+	}
+	output = out.String()
+	return
+}
+
+func execCommandArgv(name string, argv []string) error {
+	re := regexp.MustCompile(`\$\((.*?)\)`) // 匹配 $() 括号中的内容
+	for index, arg := range argv {
+		matchesArr := re.FindAllStringSubmatch(arg, -1)
+		for _, matches := range matchesArr {
+			if len(matches) > 1 {
+				if v, err := execCommandLineOutput(matches[1]); err == nil {
+					v = strings.Trim(v, "\r\n")
+					arg = strings.Replace(arg, fmt.Sprintf("$(%s)", matches[1]), v, 1)
+				}
+			}
+		}
+		if len(matchesArr) > 0 {
+			argv[index] = arg
+		}
+	}
+	cmd := exec.Command(name, argv...)
 	// 获取命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -501,6 +552,11 @@ func buildAction(c *cli.Context) error {
 			log.Printf(build.Description)
 			for _, v := range build.Run {
 				if err := execCommandLine(v); err != nil {
+					return err
+				}
+			}
+			for _, v := range build.Command {
+				if err := execCommand(v); err != nil {
 					return err
 				}
 			}

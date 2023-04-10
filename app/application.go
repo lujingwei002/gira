@@ -28,6 +28,15 @@ func (application *BaseApplication) OnFrameworkGrpcServerStart(server *grpc.Serv
 	return nil
 }
 
+func (application *BaseApplication) GetBuildVersion() string {
+	return application.runtime.BuildVersion
+
+}
+
+func (application *BaseApplication) GetBuildTime() int64 {
+	return application.runtime.BuildTime
+}
+
 func (application *BaseApplication) GetAppId() int32 {
 	return application.runtime.appId
 }

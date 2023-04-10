@@ -17,17 +17,24 @@ var (
 	Config *ProjectConfig
 )
 
-type BuildConfig struct {
-	Run         []string `yaml:"run"`
-	Dependency  []string `yaml:"dependency"`
-	Description string   `yaml:"description"`
+type CommandConfig struct {
+	WorkDir string   `yaml:"workdir"`
+	Name    string   `yaml:"name"`
+	Args    []string `yaml:"args"`
 }
+
+type BuildConfig struct {
+	Run         []string        `yaml:"run"`
+	Dependency  []string        `yaml:"dependency"`
+	Description string          `yaml:"description"`
+	Command     []CommandConfig `yaml:"command"`
+}
+
 type ProjectConfig struct {
 	Version         string `yaml:"version"`
 	Module          string `yaml:"module"`
 	GenResourceHash string `yaml:"gen_resource_hash"`
-	Applications    []struct {
-		Name string `yaml:"name"`
+	Applications    map[string]struct {
 	} `yaml:"application"`
 	Run                  map[string][]string    `yaml:"run"`
 	Build                map[string]BuildConfig `yaml:"build"`

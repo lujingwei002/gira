@@ -2,6 +2,7 @@ package app
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/lujingwei002/gira/log"
 
@@ -10,7 +11,7 @@ import (
 )
 
 // 需要两个系参数 xx -id 1 start|stop|restart
-func Cli(name string, facade gira.Application) error {
+func Cli(name string, buildVersion string, buildTime string, application gira.Application) error {
 	app := &cli.App{
 		Name: "gira service",
 		//app.Author = "lujingwei"
@@ -26,8 +27,10 @@ func Cli(name string, facade gira.Application) error {
 		},
 		Action: runAction,
 		Metadata: map[string]interface{}{
-			"facade": facade,
-			"name":   name,
+			"application":  application,
+			"name":         name,
+			"buildTime":    buildTime,
+			"buildVersion": buildVersion,
 		},
 		Commands: []*cli.Command{
 			{
@@ -65,24 +68,35 @@ func Cli(name string, facade gira.Application) error {
 	return nil
 }
 
-func Start(facade gira.Application, appId int32, appType string) error {
-	application := newRuntime(ApplicationArgs{
+func Start(application gira.Application, appId int32, appType string) error {
+	runtime := newRuntime(ApplicationArgs{
 		AppType: appType,
 		AppId:   appId,
-	}, facade)
-	return application.start()
+	}, application)
+	return runtime.start()
 }
 
 func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	facade, _ := args.App.Metadata["facade"].(gira.Application)
+	application, _ := args.App.Metadata["application"].(gira.Application)
 	appType, _ := args.App.Metadata["name"].(string)
+	buildVersion, _ := args.App.Metadata["buildVersion"].(string)
+	var buildTime int64
+	if v, ok := args.App.Metadata["buildTime"].(string); ok {
+		if t, err := strconv.Atoi(v); err != nil {
+			return err
+		} else {
+			buildTime = int64(t)
+		}
+	}
 	log.Infof("%s %d starting...", appType, appId)
-	application := newRuntime(ApplicationArgs{
-		AppType: appType,
-		AppId:   appId,
-	}, facade)
-	return application.serve()
+	runtime := newRuntime(ApplicationArgs{
+		AppType:      appType,
+		AppId:        appId,
+		BuildVersion: buildVersion,
+		BuildTime:    buildTime,
+	}, application)
+	return runtime.serve()
 }
 
 func stopAction(args *cli.Context) error {

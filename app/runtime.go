@@ -27,8 +27,10 @@ import (
 )
 
 type ApplicationArgs struct {
-	AppType string /// 服务名
-	AppId   int32  /// 服务id
+	AppType      string /// 服务名
+	AppId        int32  /// 服务id
+	BuildTime    int64
+	BuildVersion string
 }
 
 type RunnableApplication interface {
@@ -38,6 +40,8 @@ type RunnableApplication interface {
 // / @Component
 type Runtime struct {
 	gira.BaseComponent
+	BuildVersion      string
+	BuildTime         int64
 	zone              string // 区名 wc|qq|hw|quick
 	env               string // dev|local|qa|prd
 	appId             int32
@@ -80,15 +84,17 @@ func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
 	cancelCtx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(cancelCtx)
 	runtime := &Runtime{
-		appId:       args.AppId,
-		Application: application,
-		Frameworks:  make([]gira.Framework, 0),
-		appType:     args.AppType,
-		appName:     fmt.Sprintf("%s_%d", args.AppType, args.AppId),
-		ctx:         cancelCtx,
-		cancelFunc:  cancelFunc,
-		errCtx:      errCtx,
-		errGroup:    errGroup,
+		BuildVersion: args.BuildVersion,
+		BuildTime:    args.BuildTime,
+		appId:        args.AppId,
+		Application:  application,
+		Frameworks:   make([]gira.Framework, 0),
+		appType:      args.AppType,
+		appName:      fmt.Sprintf("%s_%d", args.AppType, args.AppId),
+		ctx:          cancelCtx,
+		cancelFunc:   cancelFunc,
+		errCtx:       errCtx,
+		errGroup:     errGroup,
 	}
 	return runtime
 }

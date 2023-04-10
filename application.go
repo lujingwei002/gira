@@ -23,6 +23,8 @@ type Application interface {
 	GetAppFullName() string
 	GetAppId() int32
 	GetLogDir() string
+	GetBuildVersion() string
+	GetBuildTime() int64
 
 	// ======= 同步接口 ===========
 	Wait() error

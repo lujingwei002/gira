@@ -15,8 +15,6 @@ import (
 	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type hall_server struct {
@@ -383,9 +381,8 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			close(session.chResponse)
 			return cancelCtx.Err()
 		case <-errCtx.Done():
-			//expect
+			return errCtx.Err()
 		}
-		return nil
 	})
 	err = errGroup.Wait()
 	// 尝试关闭 response channel
@@ -395,9 +392,5 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 		close(session.chResponse)
 	}
 	log.Infow("stream exit", "error", err, "session_id", sessionId, "member_id", memberId)
-	if err == gira.ErrServerDown {
-		return status.Error(codes.Code(333), gira.ErrMsg(err))
-	} else {
-		return err
-	}
+	return err
 }
