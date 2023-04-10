@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime/debug"
 	"sync/atomic"
+	"time"
 
 	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
@@ -13,57 +14,67 @@ import (
 )
 
 type client_session struct {
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	sessionId  uint64
-	memberId   string
-	client     gira.GateConn
-	stream     hall_grpc.Hall_ClientStreamClient
-	hall       *hall_server
-	hall1      *hall_server
+	ctx             context.Context
+	cancelFunc      context.CancelFunc
+	sessionId       uint64
+	memberId        string
+	client          gira.GateConn
+	stream          hall_grpc.Hall_ClientStreamClient
+	hall            *hall_server
+	hall1           *hall_server
+	pendingRequests []gira.GateRequest
 }
 
 func newSession(hall *hall_server, sessionId uint64, memberId string) *client_session {
 	return &client_session{
-		hall:      hall,
-		sessionId: sessionId,
-		memberId:  memberId,
+		hall:            hall,
+		sessionId:       sessionId,
+		memberId:        memberId,
+		pendingRequests: make([]gira.GateRequest, 0),
 	}
 }
 
-func (session *client_session) serve(server *upstream_peer, client gira.GateConn, req gira.GateRequest, dataReq gira.ProtoRequest) error {
+func (session *client_session) serve(client gira.GateConn, req gira.GateRequest, dataReq gira.ProtoRequest) error {
 	sessionId := session.sessionId
 	var err error
+	var stream hall_grpc.Hall_ClientStreamClient
+	hall := session.hall
 	log.Infow("session open", "session_id", sessionId)
-	ctx := server.ctx
-
-	streamCtx, streamCancelFunc := context.WithCancel(ctx)
-	defer streamCancelFunc()
-	stream, err := server.NewClientStream(streamCtx)
+	server := hall.SelectPeer()
+	if server == nil {
+		hall.loginErrResponse(req, dataReq, gira.ErrUpstreamUnavailable)
+		return gira.ErrUpstreamUnavailable
+	}
+	// stream绑定server
+	streamCtx, streamCancelFunc := context.WithCancel(server.ctx)
+	defer func() {
+		streamCancelFunc()
+	}()
+	stream, err = server.NewClientStream(streamCtx)
 	if err != nil {
 		session.hall.loginErrResponse(req, dataReq, gira.ErrUpstreamUnreachable)
 		return err
 	}
 	session.stream = stream
 	session.client = client
-	session.ctx, session.cancelFunc = context.WithCancel(ctx)
-	errGroup, _ := errgroup.WithContext(ctx)
+	// session 绑定 hall
+	session.ctx, session.cancelFunc = context.WithCancel(hall.ctx)
+	errGroup, _ := errgroup.WithContext(session.ctx)
 	atomic.AddInt64(&session.hall.sessionCount, 1)
 	defer func() {
 		log.Infow("session close", "session_id", sessionId)
 		atomic.AddInt64(&session.hall.sessionCount, -1)
-		stream.CloseSend()
 		session.cancelFunc()
 	}()
 	// 将上游消息转发到客户端
 	errGroup.Go(func() (err error) {
 		defer func() {
-			log.Infow("upstream=>client goroutine close", "session_id", sessionId)
+			log.Infow("upstream=>client goroutine exit", "session_id", sessionId)
 			if e := recover(); e != nil {
 				log.Error(e)
 				debug.PrintStack()
 				err = e.(error)
-				client.Close()
+				session.cancelFunc()
 			}
 		}()
 		for {
@@ -72,36 +83,94 @@ func (session *client_session) serve(server *upstream_peer, client gira.GateConn
 			if resp, err = stream.Recv(); err == nil {
 				session.processStreamResponse(resp)
 			} else {
+				select {
+				case <-session.ctx.Done():
+					return session.ctx.Err()
+				default:
+				}
 				log.Infow("上游连接关闭", "session_id", sessionId, "error", err)
-				client.Close()
-				return
+				session.stream = nil
+				// 重新选择节点
+				for {
+					// log.Infow("重新选择节点", "session_id", sessionId)
+					server = hall.SelectPeer()
+					if server != nil {
+						// log.Infow("重新选择节点", "session_id", sessionId, "full_name", server.FullName)
+						streamCancelFunc()
+						streamCtx, streamCancelFunc = context.WithCancel(server.ctx)
+						stream, err = server.NewClientStream(streamCtx)
+						if err != nil {
+							streamCancelFunc()
+							select {
+							case <-session.ctx.Done():
+								return session.ctx.Err()
+							default:
+								time.Sleep(1 * time.Second)
+							}
+						} else {
+							session.stream = stream
+							log.Infow("重新选择节点, 连接成功", "session_id", sessionId, "full_name", server.FullName)
+							break
+						}
+					} else {
+						select {
+						case <-session.ctx.Done():
+							return session.ctx.Err()
+						default:
+							time.Sleep(1 * time.Second)
+						}
+					}
+				}
 			}
+		}
+	})
+	errGroup.Go(func() (err error) {
+		select {
+		case <-session.ctx.Done():
+			client.Close()
+			streamCancelFunc()
+			return session.ctx.Err()
 		}
 	})
 	// 转发消息协程
 	errGroup.Go(func() (err error) {
 		defer func() {
-			log.Infow("client=>upstream goroutine close", "session_id", sessionId)
+			log.Infow("client=>upstream goroutine exit", "session_id", sessionId)
 			if e := recover(); e != nil {
 				log.Error(e)
 				debug.PrintStack()
 				err = e.(error)
-				client.Close()
+				session.cancelFunc()
 			}
 		}()
 		// 接收客户端消息
 		if err = session.processClientRequest(req); err != nil {
-			log.Infow("request fail", "session_id", sessionId, "error", err)
+			log.Infow("client=>upstream request fail", "session_id", sessionId, "error", err)
+			session.pendingRequests = append(session.pendingRequests, req)
 		}
 		for {
 			req, err = client.Recv(session.ctx)
 			if err != nil {
 				log.Infow("recv fail", "session_id", sessionId, "error", err)
-				stream.CloseSend()
+				session.cancelFunc()
 				return err
 			}
+			for len(session.pendingRequests) > 0 {
+				p := session.pendingRequests[0]
+				if err = session.processClientRequest(p); err != nil {
+					break
+				} else {
+					log.Infow("补发消息", "session_id", sessionId, "req_id", req.ReqId())
+					session.pendingRequests = session.pendingRequests[1:]
+				}
+			}
+			if len(session.pendingRequests) > 0 {
+				session.pendingRequests = append(session.pendingRequests, req)
+				continue
+			}
 			if err = session.processClientRequest(req); err != nil {
-				log.Warnw("request fail", "session_id", sessionId, "error", err)
+				log.Warnw("client=>upstream request fail", "session_id", sessionId, "error", err)
+				session.pendingRequests = append(session.pendingRequests, req)
 			}
 		}
 	})
@@ -116,16 +185,16 @@ func (self *client_session) processClientRequest(req gira.GateRequest) error {
 	memberId := self.memberId
 	log.Infow("client=>upstream", "session_id", sessionId, "len", len(req.Payload()), "req_id", req.ReqId())
 	if self.stream == nil {
-		log.Warnw("当前服务器不可以用，无法转发")
-		return nil
+		log.Warnw("当前服务器不可以用，无法转发", "req_id", req.ReqId())
+		return gira.ErrTodo
 	} else {
-		if err := self.stream.Send(&hall_grpc.StreamDataRequest{
+		data := &hall_grpc.StreamDataRequest{
 			MemberId:  memberId,
 			SessionId: sessionId,
 			ReqId:     req.ReqId(),
 			Data:      req.Payload(),
-		}); err != nil {
-			log.Errorw("client=>upstream fail", "session_id", sessionId, "error", err)
+		}
+		if err := self.stream.Send(data); err != nil {
 			return err
 		}
 		return nil

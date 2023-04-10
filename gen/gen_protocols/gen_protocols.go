@@ -350,7 +350,10 @@ func (self *Client) <<.StructName>>(ctx context.Context, req *<<.Request.StructN
 	if err := self.conn.Request("", reqId, data); err != nil {
 		return nil, err
 	}
-	defer close(wait.caller)
+	defer func() {
+		self.requestDict.Delete(reqId)
+		close(wait.caller)
+	}()
 	select {
 		case v := <- wait.caller:
 			if v.err != nil {

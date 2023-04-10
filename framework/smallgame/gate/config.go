@@ -7,17 +7,17 @@ import (
 
 type Config struct {
 	gira.Config
-	Upstream struct {
-		MinId int32  `yaml:"min-id"`
-		MaxId int32  `yaml:"max-id"`
-		Name  string `yaml:"name"`
-	} `yaml:"upstream"`
 
-	FrameWork struct {
+	Framework struct {
 		// 登录超时
 		WaitLoginTimeout int64 `yaml:"wait-login-timeout"`
 		// 最大会话数量
 		MaxSessionCount int64 `yaml:"max-session-count"`
+		Upstream        struct {
+			MinId int32  `yaml:"min-id"`
+			MaxId int32  `yaml:"max-id"`
+			Name  string `yaml:"name"`
+		} `yaml:"upstream"`
 	} `yaml:"framework"`
 }
 

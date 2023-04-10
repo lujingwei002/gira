@@ -139,8 +139,8 @@ func (c *hallClient) GateStream(ctx context.Context, opts ...grpc.CallOption) (H
 }
 
 type Hall_GateStreamClient interface {
-	Send(*GateDataRequest) error
-	Recv() (*GateDataResponse, error)
+	Send(*GateDataPush) error
+	Recv() (*HallDataPush, error)
 	grpc.ClientStream
 }
 
@@ -148,12 +148,12 @@ type hallGateStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *hallGateStreamClient) Send(m *GateDataRequest) error {
+func (x *hallGateStreamClient) Send(m *GateDataPush) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *hallGateStreamClient) Recv() (*GateDataResponse, error) {
-	m := new(GateDataResponse)
+func (x *hallGateStreamClient) Recv() (*HallDataPush, error) {
+	m := new(HallDataPush)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -298,8 +298,8 @@ func _Hall_GateStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Hall_GateStreamServer interface {
-	Send(*GateDataResponse) error
-	Recv() (*GateDataRequest, error)
+	Send(*HallDataPush) error
+	Recv() (*GateDataPush, error)
 	grpc.ServerStream
 }
 
@@ -307,12 +307,12 @@ type hallGateStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *hallGateStreamServer) Send(m *GateDataResponse) error {
+func (x *hallGateStreamServer) Send(m *HallDataPush) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *hallGateStreamServer) Recv() (*GateDataRequest, error) {
-	m := new(GateDataRequest)
+func (x *hallGateStreamServer) Recv() (*GateDataPush, error) {
+	m := new(GateDataPush)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -354,132 +354,5 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "doc/grpc/hall.proto",
-}
-
-const (
-	Gate_HallSuspend_FullMethodName = "/hall_grpc.Gate/HallSuspend"
-	Gate_HallRestart_FullMethodName = "/hall_grpc.Gate/HallRestart"
-)
-
-// GateClient is the client API for Gate service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type GateClient interface {
-	HallSuspend(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-	HallRestart(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-}
-
-type gateClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewGateClient(cc grpc.ClientConnInterface) GateClient {
-	return &gateClient{cc}
-}
-
-func (c *gateClient) HallSuspend(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
-	out := new(UserInsteadResponse)
-	err := c.cc.Invoke(ctx, Gate_HallSuspend_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *gateClient) HallRestart(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
-	out := new(UserInsteadResponse)
-	err := c.cc.Invoke(ctx, Gate_HallRestart_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// GateServer is the server API for Gate service.
-// All implementations must embed UnimplementedGateServer
-// for forward compatibility
-type GateServer interface {
-	HallSuspend(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error)
-	HallRestart(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error)
-	mustEmbedUnimplementedGateServer()
-}
-
-// UnimplementedGateServer must be embedded to have forward compatible implementations.
-type UnimplementedGateServer struct {
-}
-
-func (UnimplementedGateServer) HallSuspend(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method HallSuspend not implemented")
-}
-func (UnimplementedGateServer) HallRestart(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method HallRestart not implemented")
-}
-func (UnimplementedGateServer) mustEmbedUnimplementedGateServer() {}
-
-// UnsafeGateServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GateServer will
-// result in compilation errors.
-type UnsafeGateServer interface {
-	mustEmbedUnimplementedGateServer()
-}
-
-func RegisterGateServer(s grpc.ServiceRegistrar, srv GateServer) {
-	s.RegisterService(&Gate_ServiceDesc, srv)
-}
-
-func _Gate_HallSuspend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserInsteadRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GateServer).HallSuspend(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Gate_HallSuspend_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GateServer).HallSuspend(ctx, req.(*UserInsteadRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Gate_HallRestart_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserInsteadRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GateServer).HallRestart(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Gate_HallRestart_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GateServer).HallRestart(ctx, req.(*UserInsteadRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// Gate_ServiceDesc is the grpc.ServiceDesc for Gate service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var Gate_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "hall_grpc.Gate",
-	HandlerType: (*GateServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "HallSuspend",
-			Handler:    _Gate_HallSuspend_Handler,
-		},
-		{
-			MethodName: "HallRestart",
-			Handler:    _Gate_HallRestart_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "doc/grpc/hall.proto",
 }

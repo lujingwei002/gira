@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 type GateHandler struct {
 }
 
-func (self *GateHandler) OnGateStream(s gira.GateConn) {
+func (self *GateHandler) OnClientStream(s gira.GateConn) {
 	//var req gira.GateRequest
 	var err error
 	for {
@@ -134,7 +134,7 @@ func TestManyClient(t *testing.T) {
 type GateHandler1 struct {
 }
 
-func (self *GateHandler1) OnGateStream(s gira.GateConn) {
+func (self *GateHandler1) OnClientStream(s gira.GateConn) {
 	var req gira.GateRequest
 	var err error
 	for {
@@ -197,7 +197,7 @@ func TestClientClose1(t *testing.T) {
 type GateHandler2 struct {
 }
 
-func (self *GateHandler2) OnGateStream(s gira.GateConn) {
+func (self *GateHandler2) OnClientStream(s gira.GateConn) {
 	var req gira.GateRequest
 	var err error
 	req, err = s.Recv(context.TODO())
@@ -259,7 +259,7 @@ func TestClientClose2(t *testing.T) {
 type GateHandler3 struct {
 }
 
-func (self *GateHandler3) OnGateStream(s gira.GateConn) {
+func (self *GateHandler3) OnClientStream(s gira.GateConn) {
 	var req gira.GateRequest
 	var err error
 	req, err = s.Recv(context.TODO())
@@ -319,7 +319,7 @@ func TestClientClose3(t *testing.T) {
 type GateHandler4 struct {
 }
 
-func (self *GateHandler4) OnGateStream(s gira.GateConn) {
+func (self *GateHandler4) OnClientStream(s gira.GateConn) {
 	var req gira.GateRequest
 	var err error
 	req, err = s.Recv(context.TODO())

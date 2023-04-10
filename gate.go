@@ -27,7 +27,7 @@ type GateClient interface {
 }
 
 type GateHandler interface {
-	OnGateStream(conn GateConn)
+	OnClientStream(conn GateConn)
 }
 
 type GateRequest interface {

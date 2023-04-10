@@ -48,7 +48,7 @@ func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
 	return framework.Config.OnConfigLoad(c)
 }
 
-func (framework *Framework) OnGateStream(conn gira.GateConn) {
+func (framework *Framework) OnClientStream(conn gira.GateConn) {
 	framework.hall.OnClientStream(conn)
 }
 

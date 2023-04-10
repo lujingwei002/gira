@@ -46,9 +46,6 @@ func newHall(framework *Framework, proto gira.Proto, config *Config, hallHandler
 func (hall *hall_server) Register() error {
 	// 注册grpc
 	facade.RegisterGrpc(func(server *grpc.Server) error {
-		// hall_grpc.RegisterUpstreamServer(server, grpc_upstream_server{
-		// 	hall: hall,
-		// })
 		hall_grpc.RegisterHallServer(server, &grpc_hall_server{
 			hall: hall,
 		})
@@ -172,6 +169,7 @@ func (self grpc_hall_server) UserInstead(ctx context.Context, req *hall_grpc.Use
 	}
 }
 
+// push消息流
 func (self grpc_hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error {
 	for {
 		req, err := server.Recv()
@@ -233,69 +231,50 @@ func (self grpc_hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPu
 // 	hall *hall_server
 // }
 
-func (h grpc_hall_server) SayHello(ctx context.Context, in *hall_grpc.HelloRequest) (*hall_grpc.HelloResponse, error) {
-	resp := new(hall_grpc.HelloResponse)
-	resp.Replay = in.Name
-	log.Debugw("upstream server recv", "name", in.Name)
-	return resp, nil
-}
-
 func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) error {
-	ticker := time.NewTicker(time.Duration(self.hall.config.FrameWork.GateReportInterval) * time.Second)
+	ticker := time.NewTicker(time.Duration(self.hall.config.Framework.GateReportInterval) * time.Second)
 	defer func() {
 		ticker.Stop()
 		log.Infow("gate stream exit")
 	}()
 	errGroup, errCtx := errgroup.WithContext(self.hall.ctx)
-	errGroup.Go(func() error {
-		// 停服通知
-		select {
-		case <-self.hall.ctx.Done():
-			break
-		}
-		resp := &hall_grpc.GateDataResponse{}
-		resp.Type = hall_grpc.GateDataType_SERVER_SUSPEND
-		if err := client.Send(resp); err != nil {
-			log.Infow("gate send fail", "error", err)
-			return err
-		}
-		return nil
-	})
 	// 定时发送在线人数
 	errGroup.Go(func() error {
 		for {
-			resp := &hall_grpc.GateDataResponse{}
-			resp.Type = hall_grpc.GateDataType_SERVER_ONLINE
-			resp.OnlineResponse = &hall_grpc.GateOnlineResponse{
-				SessionCount: self.hall.SessionCount,
-			}
-			if err := client.Send(resp); err != nil {
-				log.Infow("gate send fail", "error", err)
-				return err
-			}
 			select {
+			case <-self.hall.ctx.Done():
+				return self.hall.ctx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
 			case <-ticker.C:
-				continue
+				resp := &hall_grpc.HallDataPush{}
+				resp.Type = hall_grpc.HallDataType_SERVER_REPORT
+				resp.Report = &hall_grpc.HallReportPush{
+					PlayerCount: self.hall.SessionCount,
+				}
+				if err := client.Send(resp); err != nil {
+					log.Infow("gate send fail", "error", err)
+					return err
+				}
 			}
 		}
 	})
 	errGroup.Go(func() error {
 		for {
-			req, err := client.Recv()
-			if err != nil {
-				log.Infow("gate recv fail", "error", err)
-				// 连接关闭，返回错误，会触发errCtx的cancel
-				return err
-			} else {
-				log.Infow("gate recv", "req", req)
-			}
 			select {
+			case <-self.hall.ctx.Done():
+				return self.hall.ctx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
 			default:
-				//expect
+				req, err := client.Recv()
+				if err != nil {
+					log.Infow("gate recv fail", "error", err)
+					// 连接关闭，返回错误，会触发errCtx的cancel
+					return err
+				} else {
+					log.Infow("gate recv", "req", req)
+				}
 			}
 		}
 	})
@@ -403,8 +382,6 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			// 关闭response管道，不再接收消息
 			close(session.chResponse)
 			return cancelCtx.Err()
-		// case <-self.hall.ctx.Done():
-		// 	return gira.ErrServerDown
 		case <-errCtx.Done():
 			//expect
 		}

@@ -14,41 +14,20 @@ service Hall {
     rpc PushStream (stream PushStreamRequest) returns (PushStreamResponse) {}
     rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
     rpc ClientStream (stream StreamDataRequest) returns (stream StreamDataResponse){}
-    rpc GateStream (stream GateDataRequest) returns (stream GateDataResponse){}
+    rpc GateStream (stream GateDataPush) returns (stream HallDataPush){}
 }
 
-service Gate {
-    rpc HallSuspend (UserInsteadRequest) returns (UserInsteadResponse) {}
-    rpc HallRestart (UserInsteadRequest) returns (UserInsteadResponse) {}
-}
-
-message HallSuspendRequest {
-
-}
-
-message HallSuspendResponse {
-
-}
-
-message HallRestartRequest {
-
-}
-
-message HallRestartResponse {
-
-}
-
-message GateDataRequest {
+message GateDataPush {
 }
 
 //stream返回结构
-message GateDataResponse {
-    GateDataType Type = 1;
-    GateOnlineResponse OnlineResponse = 2;
+message HallDataPush {
+    HallDataType Type = 1;
+    HallReportPush Report = 2;
 
 }
-message GateOnlineResponse {
-    int64 SessionCount = 1;
+message HallReportPush {
+    int64 PlayerCount = 1;
 }
 
 message StreamDataRequest {
@@ -124,9 +103,9 @@ enum PacketType {
 }
 
 
-enum GateDataType {
+enum HallDataType {
     SERVER_SUSPEND = 0;
-    SERVER_ONLINE = 1;
+    SERVER_REPORT = 1;
 }
 
 

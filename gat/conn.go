@@ -474,7 +474,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 
 	if self.gate.handler != nil {
 		//处理消息
-		self.gate.handler.OnGateStream(self.session)
+		self.gate.handler.OnClientStream(self.session)
 	}
 	// 主动关闭
 	if self.errCtx.Err() == nil {

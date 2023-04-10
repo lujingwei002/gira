@@ -7,9 +7,9 @@ import (
 
 type Config struct {
 	gira.Config
-	BgSaveInterval int64 `yaml:"bgsave-interval"`
-	FrameWork      struct {
+	Framework struct {
 		GateReportInterval int64 `yaml:"gate-report-interval"`
+		BgSaveInterval     int64 `yaml:"bgsave-interval"`
 	} `yaml:"framework"`
 }
 
