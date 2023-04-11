@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -41,7 +42,7 @@ func newHall(framework *Framework, proto gira.Proto, config *Config, hallHandler
 	}
 }
 
-func (hall *hall_server) Register() error {
+func (hall *hall_server) OnAwake() error {
 	// 注册grpc
 	facade.RegisterGrpc(func(server *grpc.Server) error {
 		hall_grpc.RegisterHallServer(server, &grpc_hall_server{
@@ -54,11 +55,16 @@ func (hall *hall_server) Register() error {
 }
 
 func (hall *hall_server) serve() {
+	//
+	// 1.服务器关闭时保存数据后再退出
+	// 2.处理actor调用
+	//
 	hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
 	defer hall.cancelFunc()
 	facade.Go(func() error {
 		select {
 		case <-hall.ctx.Done():
+			// 服务器停止，保存数据
 			for {
 				log.Infow("hall停止中", "session_count", hall.SessionCount)
 				if hall.SessionCount <= 0 {
@@ -71,6 +77,7 @@ func (hall *hall_server) serve() {
 	})
 	for {
 		select {
+		// 处理actor请求
 		case r := <-hall.Inbox():
 			r.Call()
 		case <-hall.ctx.Done():
@@ -81,52 +88,68 @@ func (hall *hall_server) serve() {
 }
 
 // 推送消息给其他玩家
-func (hall *hall_server) Push(ctx context.Context, userId string, req gira.ProtoPush) error {
-	var err error
+func (hall *hall_server) Push(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
+	defer func() {
+		log.Warnw("hall_server push panic", "user_id", userId, "route", push.GetPushName())
+		if e := recover(); e != nil {
+			log.Error(e)
+			debug.PrintStack()
+			err = e.(error)
+		}
+	}()
+
 	if v, ok := hall.SessionDict.Load(userId); !ok {
 		var data []byte
 		var peer *gira.Peer
-		data, err = hall.proto.PushEncode(req)
+		data, err = hall.proto.PushEncode(push)
 		if err != nil {
-			return err
+			return
 		}
 		peer, err = facade.WhereIsUser(userId)
 		if err != nil {
-			return err
+			return
 		}
 		if err = rpc.Hall.Push(ctx, peer, userId, data); err != nil {
-			return err
+			return
 		}
-		return nil
+		return
 	} else {
 		session, _ := v.(*hall_sesssion)
-		session.chPush <- req
-		return nil
+		// WARN: chPush有可能已经关闭
+		session.chPush <- push
+		return
 	}
 }
 
 // 推送消息给其他玩家
-func (hall *hall_server) MustPush(ctx context.Context, userId string, req gira.ProtoPush) error {
-	var err error
+func (hall *hall_server) MustPush(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
+	defer func() {
+		log.Warnw("hall_server must push panic", "user_id", userId, "route", push.GetPushName())
+		if e := recover(); e != nil {
+			log.Error(e)
+			debug.PrintStack()
+			err = e.(error)
+		}
+	}()
 	if v, ok := hall.SessionDict.Load(userId); !ok {
 		var data []byte
 		var peer *gira.Peer
-		data, err = hall.proto.PushEncode(req)
+		data, err = hall.proto.PushEncode(push)
 		if err != nil {
-			return err
+			return
 		}
 		peer, err = facade.WhereIsUser(userId)
 		if err != nil {
-			return err
+			return
 		}
 		if _, err = rpc.Hall.MustPush(ctx, peer, userId, data); err != nil {
-			return err
+			return
 		}
-		return nil
+		return
 	} else {
 		session, _ := v.(*hall_sesssion)
-		session.chPush <- req
-		return nil
+		session.chPush <- push
+		return
 	}
 }
 

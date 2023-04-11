@@ -9,7 +9,8 @@ type Config struct {
 	gira.Config
 	Framework struct {
 		GateReportInterval int64 `yaml:"gate-report-interval"`
-		BgSaveInterval     int64 `yaml:"bgsave-interval"`
+		// 玩家数据保存间隔
+		BgSaveInterval int64 `yaml:"bgsave-interval"`
 	} `yaml:"framework"`
 }
 

@@ -10,13 +10,16 @@ import (
 
 // 玩家接口
 type Player interface {
+	// 加载数据
 	Load(ctx context.Context, memberId string, userId string) error
+	// 断开连接,登出
 	Logout(ctx context.Context) error
-	Update()
+	// 保存数据
 	Save(ctx context.Context) error
+	Update()
 }
 
-// 大厅
+// 大厅接口
 type Hall interface {
 	// 将消息推送给玩家, 不保证消息已经被处理，如果玩家当前不在线，消息将会推送失败，但不会返回错误
 	Push(ctx context.Context, userId string, req gira.ProtoPush) error
@@ -25,6 +28,7 @@ type Hall interface {
 }
 
 type Session interface {
+	// 推送消息给当前session
 	Push(resp gira.ProtoPush) (err error)
 }
 
@@ -41,10 +45,11 @@ type UserAvatar interface {
 
 // 应用
 type Framework struct {
-	Config        *Config
+	Config *Config
+	Hall   Hall
+	// 由application设置
 	Proto         gira.Proto
 	PlayerHandler gira.ProtoHandler
-	Hall          Hall
 }
 
 func (framework *Framework) OnFrameworkAwake(application gira.Application) error {
@@ -53,7 +58,7 @@ func (framework *Framework) OnFrameworkAwake(application gira.Application) error
 	} else {
 		hall := newHall(framework, framework.Proto, framework.Config, handler, framework.PlayerHandler)
 		framework.Hall = hall
-		if err := hall.Register(); err != nil {
+		if err := hall.OnAwake(); err != nil {
 			return err
 		}
 		rpc.OnAwake()
@@ -61,6 +66,7 @@ func (framework *Framework) OnFrameworkAwake(application gira.Application) error
 	}
 }
 
+// 框架启动
 func (framework *Framework) OnFrameworkStart() error {
 	return nil
 }
