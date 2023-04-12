@@ -2,7 +2,7 @@ package gira
 
 import "context"
 
-type GateConn interface {
+type GatewayConn interface {
 	ID() uint64
 	Close() error
 	Kick(reason string)
@@ -10,39 +10,37 @@ type GateConn interface {
 	SendServerResume(reason string)
 	SendServerMaintain(reason string)
 	SendServerDown(reason string)
-	Recv(ctx context.Context) (GateRequest, error)
+	Recv(ctx context.Context) (GatewayMessage, error)
 	Push(route string, data []byte) error
 	Response(mid uint64, data []byte) error
-
 	Value(key string) interface{}
 	Set(key string, value interface{})
 	Uint64(key string) uint64
 	Int32(key string) int32
-
 	SetUserData(value interface{})
 	UserData() interface{}
 }
 
-type GateClient interface {
+type GatewayClient interface {
 	Recv(ctx context.Context) (typ int, route string, reqId uint64, data []byte, err error)
 	Notify(route string, data []byte) error
 	Request(route string, reqId uint64, data []byte) error
 	Close() error
 }
 
-type GateHandler interface {
-	OnClientStream(conn GateConn)
+type GatewayHandler interface {
+	OnClientStream(conn GatewayConn)
 }
 
-type GateRequest interface {
+type GatewayMessage interface {
 	Response(data []byte) error
 	Payload() []byte
 	ReqId() uint64
-	Session() GateConn
+	Session() GatewayConn
 	Push(route string, data []byte) error
 }
 
 const (
-	GateMessageType_RESPONSE = 2
-	GateMessageType_PUSH     = 3
+	GatewayMessageType_RESPONSE = 2
+	GatewayMessageType_PUSH     = 3
 )

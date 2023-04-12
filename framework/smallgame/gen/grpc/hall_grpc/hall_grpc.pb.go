@@ -108,8 +108,8 @@ func (c *hallClient) ClientStream(ctx context.Context, opts ...grpc.CallOption) 
 }
 
 type Hall_ClientStreamClient interface {
-	Send(*StreamDataRequest) error
-	Recv() (*StreamDataResponse, error)
+	Send(*ClientMessageRequest) error
+	Recv() (*ClientMessageResponse, error)
 	grpc.ClientStream
 }
 
@@ -117,12 +117,12 @@ type hallClientStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *hallClientStreamClient) Send(m *StreamDataRequest) error {
+func (x *hallClientStreamClient) Send(m *ClientMessageRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *hallClientStreamClient) Recv() (*StreamDataResponse, error) {
-	m := new(StreamDataResponse)
+func (x *hallClientStreamClient) Recv() (*ClientMessageResponse, error) {
+	m := new(ClientMessageResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -272,8 +272,8 @@ func _Hall_ClientStream_Handler(srv interface{}, stream grpc.ServerStream) error
 }
 
 type Hall_ClientStreamServer interface {
-	Send(*StreamDataResponse) error
-	Recv() (*StreamDataRequest, error)
+	Send(*ClientMessageResponse) error
+	Recv() (*ClientMessageRequest, error)
 	grpc.ServerStream
 }
 
@@ -281,12 +281,12 @@ type hallClientStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *hallClientStreamServer) Send(m *StreamDataResponse) error {
+func (x *hallClientStreamServer) Send(m *ClientMessageResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *hallClientStreamServer) Recv() (*StreamDataRequest, error) {
-	m := new(StreamDataRequest)
+func (x *hallClientStreamServer) Recv() (*ClientMessageRequest, error) {
+	m := new(ClientMessageRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

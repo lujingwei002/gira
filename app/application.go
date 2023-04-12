@@ -10,7 +10,7 @@ import (
 // 负载实现gira声明的接口和启动的模块
 type BaseApplication struct {
 	runtime     *Runtime
-	gateHandler gira.GateHandler
+	gateHandler gira.GatewayHandler
 }
 
 func (application *BaseApplication) OnFrameworkStart() error {

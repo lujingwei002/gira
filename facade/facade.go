@@ -11,6 +11,14 @@ func Context() context.Context {
 	return gira.App().Context()
 }
 
+func GetBuildVersion() string {
+	return gira.App().GetBuildVersion()
+}
+
+func GetBuildTime() int64 {
+	return gira.App().GetBuildTime()
+}
+
 func GetAppId() int32 {
 	return gira.App().GetAppId()
 }

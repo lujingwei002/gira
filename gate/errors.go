@@ -1,4 +1,4 @@
-package gat
+package gate
 
 import "errors"
 

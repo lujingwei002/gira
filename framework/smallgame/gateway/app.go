@@ -1,4 +1,4 @@
-package gate
+package gateway
 
 import (
 	"github.com/lujingwei002/gira"
@@ -12,7 +12,7 @@ type Framework struct {
 }
 
 // 需要实现的接口
-type GateHandler interface {
+type GatewayHandler interface {
 }
 
 // 登录后，第一个登录消息
@@ -48,7 +48,7 @@ func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
 	return framework.Config.OnConfigLoad(c)
 }
 
-func (framework *Framework) OnClientStream(conn gira.GateConn) {
+func (framework *Framework) OnClientStream(conn gira.GatewayConn) {
 	framework.hall.OnClientStream(conn)
 }
 

@@ -1,7 +1,7 @@
-package gat
+package gate
 
 type MiddleWareInterface interface {
-	ServeMessage(r *Request)
+	ServeMessage(r *Message)
 	OnSessionOpen(s *Session)
 	OnSessionClose(s *Session)
 }

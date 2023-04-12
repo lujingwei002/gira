@@ -1,4 +1,4 @@
-package gate
+package gateway
 
 import (
 	"context"
@@ -18,10 +18,10 @@ type client_session struct {
 	cancelFunc      context.CancelFunc
 	sessionId       uint64
 	memberId        string
-	client          gira.GateConn
+	client          gira.GatewayConn
 	stream          hall_grpc.Hall_ClientStreamClient
 	hall            *hall_server
-	pendingRequests []gira.GateRequest
+	pendingMessages []gira.GatewayMessage
 }
 
 func newSession(hall *hall_server, sessionId uint64, memberId string) *client_session {
@@ -29,11 +29,11 @@ func newSession(hall *hall_server, sessionId uint64, memberId string) *client_se
 		hall:            hall,
 		sessionId:       sessionId,
 		memberId:        memberId,
-		pendingRequests: make([]gira.GateRequest, 0),
+		pendingMessages: make([]gira.GatewayMessage, 0),
 	}
 }
 
-func (session *client_session) serve(client gira.GateConn, req gira.GateRequest, dataReq gira.ProtoRequest) error {
+func (session *client_session) serve(client gira.GatewayConn, message gira.GatewayMessage, dataReq gira.ProtoRequest) error {
 	sessionId := session.sessionId
 	var err error
 	var stream hall_grpc.Hall_ClientStreamClient
@@ -41,7 +41,7 @@ func (session *client_session) serve(client gira.GateConn, req gira.GateRequest,
 	log.Infow("session open", "session_id", sessionId)
 	server := hall.SelectPeer()
 	if server == nil {
-		hall.loginErrResponse(req, dataReq, gira.ErrUpstreamUnavailable)
+		hall.loginErrResponse(message, dataReq, gira.ErrUpstreamUnavailable)
 		return gira.ErrUpstreamUnavailable
 	}
 	// stream绑定server
@@ -51,7 +51,7 @@ func (session *client_session) serve(client gira.GateConn, req gira.GateRequest,
 	}()
 	stream, err = server.NewClientStream(streamCtx)
 	if err != nil {
-		session.hall.loginErrResponse(req, dataReq, gira.ErrUpstreamUnreachable)
+		session.hall.loginErrResponse(message, dataReq, gira.ErrUpstreamUnreachable)
 		return err
 	}
 	session.stream = stream
@@ -77,10 +77,10 @@ func (session *client_session) serve(client gira.GateConn, req gira.GateRequest,
 			}
 		}()
 		for {
-			var resp *hall_grpc.StreamDataResponse
+			var resp *hall_grpc.ClientMessageResponse
 			// 上游关闭时，stream并不会返回，会一直阻塞
 			if resp, err = stream.Recv(); err == nil {
-				session.processStreamResponse(resp)
+				session.processStreamMessage(resp)
 			} else {
 				select {
 				case <-session.ctx.Done():
@@ -145,33 +145,33 @@ func (session *client_session) serve(client gira.GateConn, req gira.GateRequest,
 			}
 		}()
 		// 接收客户端消息
-		if err = session.processClientRequest(req); err != nil {
+		if err = session.processClientMessage(message); err != nil {
 			log.Infow("client=>upstream request fail", "session_id", sessionId, "error", err)
-			session.pendingRequests = append(session.pendingRequests, req)
+			session.pendingMessages = append(session.pendingMessages, message)
 		}
 		for {
-			req, err = client.Recv(session.ctx)
+			message, err = client.Recv(session.ctx)
 			if err != nil {
 				log.Infow("recv fail", "session_id", sessionId, "error", err)
 				session.cancelFunc()
 				return err
 			}
-			for len(session.pendingRequests) > 0 {
-				p := session.pendingRequests[0]
-				if err = session.processClientRequest(p); err != nil {
+			for len(session.pendingMessages) > 0 {
+				p := session.pendingMessages[0]
+				if err = session.processClientMessage(p); err != nil {
 					break
 				} else {
-					log.Infow("补发消息", "session_id", sessionId, "req_id", req.ReqId())
-					session.pendingRequests = session.pendingRequests[1:]
+					log.Infow("补发消息", "session_id", sessionId, "req_id", message.ReqId())
+					session.pendingMessages = session.pendingMessages[1:]
 				}
 			}
-			if len(session.pendingRequests) > 0 {
-				session.pendingRequests = append(session.pendingRequests, req)
+			if len(session.pendingMessages) > 0 {
+				session.pendingMessages = append(session.pendingMessages, message)
 				continue
 			}
-			if err = session.processClientRequest(req); err != nil {
+			if err = session.processClientMessage(message); err != nil {
 				log.Warnw("client=>upstream request fail", "session_id", sessionId, "error", err)
-				session.pendingRequests = append(session.pendingRequests, req)
+				session.pendingMessages = append(session.pendingMessages, message)
 			}
 		}
 	})
@@ -181,19 +181,19 @@ func (session *client_session) serve(client gira.GateConn, req gira.GateRequest,
 }
 
 // 处理客户端的消息
-func (self *client_session) processClientRequest(req gira.GateRequest) error {
+func (self *client_session) processClientMessage(message gira.GatewayMessage) error {
 	sessionId := self.sessionId
 	memberId := self.memberId
-	log.Infow("client=>upstream", "session_id", sessionId, "len", len(req.Payload()), "req_id", req.ReqId())
+	log.Infow("client=>upstream", "session_id", sessionId, "len", len(message.Payload()), "req_id", message.ReqId())
 	if self.stream == nil {
-		log.Warnw("当前服务器不可以用，无法转发", "req_id", req.ReqId())
+		log.Warnw("当前服务器不可以用，无法转发", "req_id", message.ReqId())
 		return gira.ErrTodo
 	} else {
-		data := &hall_grpc.StreamDataRequest{
+		data := &hall_grpc.ClientMessageRequest{
 			MemberId:  memberId,
 			SessionId: sessionId,
-			ReqId:     req.ReqId(),
-			Data:      req.Payload(),
+			ReqId:     message.ReqId(),
+			Data:      message.Payload(),
 		}
 		if err := self.stream.Send(data); err != nil {
 			return err
@@ -203,15 +203,15 @@ func (self *client_session) processClientRequest(req gira.GateRequest) error {
 }
 
 // 处理上游的消息
-func (session *client_session) processStreamResponse(resp *hall_grpc.StreamDataResponse) error {
+func (session *client_session) processStreamMessage(message *hall_grpc.ClientMessageResponse) error {
 	sessionId := session.sessionId
-	log.Infow("upstream=>client", "session_id", sessionId, "type", resp.Type, "route", resp.Route, "len", len(resp.Data), "req_id", resp.ReqId)
-	switch resp.Type {
+	log.Infow("upstream=>client", "session_id", sessionId, "type", message.Type, "route", message.Route, "len", len(message.Data), "req_id", message.ReqId)
+	switch message.Type {
 	case hall_grpc.PacketType_DATA:
-		if resp.ReqId != 0 {
-			session.client.Response(resp.ReqId, resp.Data)
+		if message.ReqId != 0 {
+			session.client.Response(message.ReqId, message.Data)
 		} else {
-			session.client.Push("", resp.Data)
+			session.client.Push("", message.Data)
 		}
 	case hall_grpc.PacketType_USER_INSTEAD:
 		session.client.Kick("账号在其他地方登录")

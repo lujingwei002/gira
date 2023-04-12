@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -26,9 +27,9 @@ type hall_sesssion struct {
 	userId           string
 	avatar           UserAvatar
 	player           Player
-	chResponse       chan *hall_grpc.StreamDataResponse // 由stream负责关闭
-	chRequest        chan *hall_grpc.StreamDataRequest  // 由stream负责关闭
-	chPush           chan gira.ProtoPush                // 由session负责关闭
+	chClientResponse chan *hall_grpc.ClientMessageResponse // 由stream负责关闭
+	chClientRequest  chan *hall_grpc.ClientMessageRequest  // 由stream负责关闭
+	chPeerPush       chan gira.ProtoPush                   // 其他节点，或者自己节点转发来的的push消息，由session负责关闭
 	streamCancelFunc context.CancelFunc
 	isClosed         int32
 }
@@ -91,7 +92,7 @@ func newSession(hall *hall_server, sessionId uint64, memberId string) (session *
 		userId:    userId,
 		memberId:  memberId,
 		avatar:    avatar,
-		Actor:     actor.NewActor(16),
+		Actor:     actor.NewActor(hall.config.Framework.Game.SessionActorBuffSize),
 	}
 	session.ctx, session.cancelFunc = context.WithCancel(ctx)
 
@@ -117,12 +118,13 @@ func newSession(hall *hall_server, sessionId uint64, memberId string) (session *
 // 主要的业务逻辑的主协程
 func (session *hall_sesssion) serve() {
 	ticker := time.NewTicker(1 * time.Second)
-	saveTicker := time.NewTicker(time.Duration(session.hall.config.Framework.BgSaveInterval) * time.Second)
-	session.chPush = make(chan gira.ProtoPush, 10)
+	hall := session.hall
+	saveTicker := time.NewTicker(time.Duration(session.hall.config.Framework.Game.BgSaveInterval) * time.Second)
+	session.chPeerPush = make(chan gira.ProtoPush, hall.config.Framework.Game.PushBufferSize)
 	defer func() {
 		ticker.Stop()
 		saveTicker.Stop()
-		close(session.chPush)
+		close(session.chPeerPush)
 	}()
 	sessionId := session.sessionId
 	for {
@@ -135,18 +137,18 @@ func (session *hall_sesssion) serve() {
 			if session.player != nil && session.isClosed == 0 {
 				session.player.Update()
 			}
-		case req := <-session.chRequest:
+		case req := <-session.chClientRequest:
 			if req != nil {
 				if session.isClosed == 0 {
-					if err := session.request(req); err != nil {
+					if err := session.processClientMessage(req); err != nil {
 						log.Infow("request fail", "session_id", sessionId, "error", err)
 					}
 				}
 			}
-		case req := <-session.chPush:
+		case req := <-session.chPeerPush:
 			if req != nil {
 				if session.isClosed == 0 {
-					if err := session.processPush(req); err != nil {
+					if err := session.processPeerPush(req); err != nil {
 						log.Infow("push fail", "session_id", sessionId, "error", err, "name", req.GetPushName())
 					}
 				}
@@ -180,21 +182,23 @@ func (self *hall_sesssion) sendPacketAndClose(ctx context.Context, typ hall_grpc
 	defer func() {
 		if e := recover(); e != nil {
 			log.Errorw("sendPacketAndClose", "type", typ, "reason", reason)
-			err = gira.ErrBrokenChannel
+			log.Error(e)
+			debug.PrintStack()
+			err = e.(error)
 		}
 	}()
-	resp := &hall_grpc.StreamDataResponse{}
+	resp := &hall_grpc.ClientMessageResponse{}
 	resp.Type = typ
 	resp.SessionId = self.sessionId
 	resp.ReqId = 0
 	resp.Data = []byte(reason)
-	self.chResponse <- resp
+	self.chClientResponse <- resp
 	err = self.close(ctx)
 	return nil
 }
 
-// 处理processPush请求
-func (session *hall_sesssion) processPush(req gira.ProtoPush) error {
+// 处理peer的push消息
+func (session *hall_sesssion) processPeerPush(req gira.ProtoPush) error {
 	sessionId := session.sessionId
 	var err error
 	var name string = req.GetPushName()
@@ -210,54 +214,58 @@ func (session *hall_sesssion) processPush(req gira.ProtoPush) error {
 	return nil
 }
 
-// 处理请求
-func (session *hall_sesssion) request(req *hall_grpc.StreamDataRequest) (err error) {
+// 处理客户端的消息
+func (session *hall_sesssion) processClientMessage(message *hall_grpc.ClientMessageRequest) (err error) {
 	sessionId := session.sessionId
 	var name string
 	var reqId int32
-	var dataReq interface{}
-	var dataResp []byte
+	var req interface{}
+	var resp []byte
 	var pushArr []gira.ProtoPush
-	name, reqId, dataReq, err = session.hall.proto.RequestDecode(req.Data)
+	name, reqId, req, err = session.hall.proto.RequestDecode(message.Data)
 	if err != nil {
 		log.Errorw("request decode fail", "session_id", sessionId, "error", err)
 		return
 	}
-	log.Infow("request ", "session_id", sessionId, "name", name, "req_id", reqId)
+	log.Infow("request ", "session_id", sessionId, "name", name, "req_id", reqId, "data", message.Data)
 
 	timeoutCtx, timeoutFunc := context.WithTimeout(session.ctx, 10*time.Second)
 	defer timeoutFunc()
-	dataResp, pushArr, err = session.hall.proto.RequestDispatch(timeoutCtx, session.hall.playerHandler, session.player, name, reqId, dataReq)
+	resp, pushArr, err = session.hall.proto.RequestDispatch(timeoutCtx, session.hall.playerHandler, session.player, name, reqId, req)
 	if err != nil {
 		log.Errorw("request dispatch fail", "session_id", sessionId, "error", err)
 		return
 	}
 	defer func() {
 		if e := recover(); e != nil {
-			err = gira.ErrBrokenChannel
+			// err = gira.ErrBrokenChannel
+			log.Error(e)
+			debug.PrintStack()
+			err = e.(error)
 		}
 	}()
 
-	// log.Debugw("data resp", "session_id", sessionId, "data resp", len(dataResp))
-	resp := &hall_grpc.StreamDataResponse{}
-	resp.Type = hall_grpc.PacketType_DATA
-	resp.SessionId = req.SessionId
-	resp.ReqId = req.ReqId
-	resp.Data = dataResp
-	resp.Route = name
-	session.chResponse <- resp
+	// log.Debugw("data response", "session_id", sessionId, "data response", len(dataResp))
+	response := &hall_grpc.ClientMessageResponse{}
+	response.Type = hall_grpc.PacketType_DATA
+	response.SessionId = message.SessionId
+	response.ReqId = message.ReqId
+	response.Data = resp
+	response.Route = name
+	session.chClientResponse <- response
 	if pushArr != nil {
 		for _, push := range pushArr {
 			if dataPush, err := session.hall.proto.PushEncode(push); err != nil {
+				log.Errorw("push fail", "session_id", sessionId, "error", err)
 			} else {
-				log.Debugw("data push", "session_id", sessionId, "data resp", dataPush)
-				resp := &hall_grpc.StreamDataResponse{}
-				resp.Type = hall_grpc.PacketType_DATA
-				resp.SessionId = req.SessionId
-				resp.ReqId = 0
-				resp.Data = dataPush
-				resp.Route = push.GetPushName()
-				session.chResponse <- resp
+				log.Debugw("push to client", "session_id", sessionId, "data resp", dataPush)
+				response := &hall_grpc.ClientMessageResponse{}
+				response.Type = hall_grpc.PacketType_DATA
+				response.SessionId = message.SessionId
+				response.ReqId = 0
+				response.Data = dataPush
+				response.Route = push.GetPushName()
+				session.chClientResponse <- response
 			}
 		}
 	}
@@ -310,29 +318,32 @@ func (self *hall_sesssion) Push(push gira.ProtoPush) (err error) {
 	} else {
 		defer func() {
 			if e := recover(); e != nil {
-				err = gira.ErrBrokenChannel
+				log.Error(e)
+				debug.PrintStack()
+				err = e.(error)
 			}
 		}()
-		resp := &hall_grpc.StreamDataResponse{}
+		resp := &hall_grpc.ClientMessageResponse{}
 		resp.Type = hall_grpc.PacketType_DATA
 		resp.SessionId = self.sessionId
 		resp.ReqId = 0
 		resp.Data = data
 		resp.Route = push.GetPushName()
-		self.chResponse <- resp
+		// WARN: chResponse有可能已经关闭
+		self.chClientResponse <- resp
 		return
 	}
 }
 
-func (self *hall_sesssion) Notify(userId string, resp gira.ProtoPush) error {
-	if v, ok := self.hall.SessionDict.Load(userId); !ok {
-		return gira.ErrNoSession
-	} else {
-		otherSession, _ := v.(*hall_sesssion)
-		return otherSession.Push(resp)
-	}
-}
-
+// func (self *hall_sesssion) Notify(userId string, resp gira.ProtoPush) error {
+// 	if v, ok := self.hall.SessionDict.Load(userId); !ok {
+// 		return gira.ErrNoSession
+// 	} else {
+// 		otherSession, _ := v.(*hall_sesssion)
+// 		return otherSession.Push(resp)
+// 	}
+// }
+//
 /// 宏展开的地方，不要在文件末尾添加代码============// afafa
 
 type hall_sesssioncloseArgument struct {

@@ -15,7 +15,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/db"
-	"github.com/lujingwei002/gira/gat"
+	"github.com/lujingwei002/gira/gate"
 	"github.com/lujingwei002/gira/grpc"
 	"github.com/lujingwei002/gira/http"
 	"github.com/lujingwei002/gira/proj"
@@ -75,7 +75,7 @@ type Runtime struct {
 	AccountCacheClient *db.AccountCacheClient
 	adminDbClient      *db.AdminDbClient
 	Sdk                *sdk.Sdk
-	Gate               *gat.Gate
+	Gate               *gate.Gateway
 	GrpcServer         *grpc.GrpcServer
 	adminClient        gira.AdminClient
 }
@@ -209,7 +209,7 @@ func (runtime *Runtime) onStart() error {
 	}
 	// admin服务
 	runtime.adminClient = admin_service.NewAdminClient()
-	if runtime.Config.Admin != nil {
+	if runtime.Config.Module.Admin != nil {
 		if runtime.GrpcServer == nil {
 			return gira.ErrGrpcServerNotOpen
 		}
@@ -227,7 +227,7 @@ func (runtime *Runtime) onStart() error {
 		return err
 	}
 	// 开始侦听
-	if runtime.Config.Grpc != nil {
+	if runtime.Config.Module.Grpc != nil {
 		if err := runtime.GrpcServer.OnStart(runtime.Application, runtime.errGroup, runtime.errCtx); err != nil {
 			return err
 		}
@@ -239,63 +239,63 @@ func (runtime *Runtime) onAwake() error {
 	// log.Info("application", app.FullName, "start")
 	application := runtime.Application
 	// ====内置的服务=============
-	if runtime.Config.Sdk != nil {
-		runtime.Sdk = sdk.NewConfigSdk(*runtime.Config.Sdk)
+	if runtime.Config.Module.Sdk != nil {
+		runtime.Sdk = sdk.NewConfigSdk(*runtime.Config.Module.Sdk)
 	}
-	if runtime.Config.Etcd != nil {
-		if r, err := registry.NewConfigRegistry(runtime.Config.Etcd, application); err != nil {
+	if runtime.Config.Module.Etcd != nil {
+		if r, err := registry.NewConfigRegistry(runtime.Config.Module.Etcd, application); err != nil {
 			return err
 		} else {
 			runtime.Registry = r
 		}
 	}
-	if runtime.Config.AccountCache != nil {
+	if runtime.Config.Module.AccountCache != nil {
 		runtime.AccountCacheClient = db.NewAccountCacheClient()
-		if err := runtime.AccountCacheClient.OnAwake(runtime.ctx, *runtime.Config.AccountCache); err != nil {
+		if err := runtime.AccountCacheClient.OnAwake(runtime.ctx, *runtime.Config.Module.AccountCache); err != nil {
 			return err
 		}
 	}
-	if runtime.Config.Grpc != nil {
-		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.Config.Grpc)
+	if runtime.Config.Module.Grpc != nil {
+		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.Config.Module.Grpc)
 	}
-	if runtime.Config.GameDb != nil {
-		if client, err := db.ConfigGameDbClient(runtime.ctx, *runtime.Config.GameDb); err != nil {
+	if runtime.Config.Module.GameDb != nil {
+		if client, err := db.ConfigGameDbClient(runtime.ctx, *runtime.Config.Module.GameDb); err != nil {
 			return err
 		} else {
 			runtime.GameDbClient = client
 		}
 	}
-	if runtime.Config.AccountDb != nil {
-		if client, err := db.ConfigAccountDbClient(runtime.ctx, *runtime.Config.AccountDb); err != nil {
+	if runtime.Config.Module.AccountDb != nil {
+		if client, err := db.ConfigAccountDbClient(runtime.ctx, *runtime.Config.Module.AccountDb); err != nil {
 			return err
 		} else {
 			runtime.AccountDbClient = client
 		}
 	}
-	if runtime.Config.StatDb != nil {
+	if runtime.Config.Module.StatDb != nil {
 		runtime.StatDbClient = db.NewStatDbClient()
-		if err := runtime.StatDbClient.OnAwake(runtime.ctx, *runtime.Config.StatDb); err != nil {
+		if err := runtime.StatDbClient.OnAwake(runtime.ctx, *runtime.Config.Module.StatDb); err != nil {
 			return err
 		}
 	}
-	if runtime.Config.AdminDb != nil {
+	if runtime.Config.Module.AdminDb != nil {
 		runtime.adminDbClient = db.NewAdminDbClient()
-		if err := runtime.adminDbClient.OnAwake(runtime.ctx, *runtime.Config.AdminDb); err != nil {
+		if err := runtime.adminDbClient.OnAwake(runtime.ctx, *runtime.Config.Module.AdminDb); err != nil {
 			return err
 		}
 	}
-	if runtime.Config.ResourceDb != nil {
+	if runtime.Config.Module.ResourceDb != nil {
 		runtime.ResourceDbClient = db.NewResourceDbClient()
-		if err := runtime.ResourceDbClient.OnAwake(runtime.ctx, *runtime.Config.ResourceDb); err != nil {
+		if err := runtime.ResourceDbClient.OnAwake(runtime.ctx, *runtime.Config.Module.ResourceDb); err != nil {
 			return err
 		}
 	}
-	if runtime.Config.Http != nil {
+	if runtime.Config.Module.Http != nil {
 		if handler, ok := application.(http.HttpHandler); !ok {
 			return gira.ErrHttpHandlerNotImplement
 		} else {
 			router := handler.HttpHandler()
-			if httpServer, err := http.NewConfigHttpServer(application, *runtime.Config.Http, router); err != nil {
+			if httpServer, err := http.NewConfigHttpServer(application, *runtime.Config.Module.Http, router); err != nil {
 				return err
 			} else {
 				runtime.HttpServer = httpServer
@@ -303,13 +303,13 @@ func (runtime *Runtime) onAwake() error {
 			}
 		}
 	}
-	if runtime.Config.Gate != nil {
-		var handler gira.GateHandler
-		if h, ok := application.(gira.GateHandler); ok {
+	if runtime.Config.Module.Gateway != nil {
+		var handler gira.GatewayHandler
+		if h, ok := application.(gira.GatewayHandler); ok {
 			handler = h
 		} else {
 			for _, fw := range runtime.Frameworks {
-				if h, ok = fw.(gira.GateHandler); ok {
+				if h, ok = fw.(gira.GatewayHandler); ok {
 					handler = h
 					break
 				}
@@ -318,7 +318,7 @@ func (runtime *Runtime) onAwake() error {
 		if handler == nil {
 			return gira.ErrGateHandlerNotImplement
 		}
-		if gate, err := gat.NewConfigGate(runtime.Application, handler, *runtime.Config.Gate); err != nil {
+		if gate, err := gate.NewConfigGateway(runtime.Application, handler, *runtime.Config.Module.Gateway); err != nil {
 			return err
 		} else {
 			runtime.Gate = gate

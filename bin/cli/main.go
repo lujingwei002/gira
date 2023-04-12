@@ -324,7 +324,7 @@ func resourcePushAction(args *cli.Context) error {
 	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
 		return err
 	} else {
-		dbConfig := config.ResourceDb
+		dbConfig := config.Module.ResourceDb
 		uri := dbConfig.Uri()
 		bin := "bin/resource"
 		return command(bin, "push", uri)

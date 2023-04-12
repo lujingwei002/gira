@@ -39,7 +39,7 @@ func (stat *GateStat) String() string {
 		stat.SessionCount, stat.PacketTotalCount, stat.PacketAvgCount)
 }
 
-func (stat *GateStat) ServeMessage(r *gat.Request) {
+func (stat *GateStat) ServeMessage(r *gat.Message) {
 	atomic.AddUint64(&stat.packetCount, 1)
 	atomic.AddUint64(&stat.PacketTotalCount, 1)
 }

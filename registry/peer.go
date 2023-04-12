@@ -58,7 +58,7 @@ type PeerRegistry struct {
 func newConfigPeerRegistry(r *Registry) (*PeerRegistry, error) {
 	self := &PeerRegistry{
 		Prefix:     "/peer/",
-		SelfPrefix: fmt.Sprintf("/peer/%s/", r.FullName),
+		SelfPrefix: fmt.Sprintf("/peer/%s/", r.fullName),
 	}
 	self.cancelCtx, self.cancelFunc = context.WithCancel(r.cancelCtx)
 	// 注册自己
@@ -106,7 +106,7 @@ func (self *PeerRegistry) notify(r *Registry) error {
 
 func (self *PeerRegistry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 	log.Debugw("============ peer add ==================", "full_name", peer.FullName)
-	if peer.FullName == r.FullName {
+	if peer.FullName == r.fullName {
 		self.SelfPeer = peer
 	}
 	for _, fw := range r.application.Frameworks() {
@@ -130,7 +130,7 @@ func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 	if handler, ok := r.application.(gira.PeerHandler); ok {
 		handler.OnPeerDelete(peer)
 	}
-	if peer.FullName == r.FullName {
+	if peer.FullName == r.fullName {
 		log.Errorw("delete myself???", "is_normal", self.isNormalUnregisterSelf)
 		if self.isNormalUnregisterSelf {
 			self.cancelFunc()
@@ -312,7 +312,7 @@ func (r *PeerRegistry) onKvAdd(kv *mvccpb.KeyValue) error {
 }
 
 func (self *PeerRegistry) watchPeers(r *Registry) error {
-	client := r.Client
+	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
 	var err error
@@ -354,7 +354,7 @@ func (self *PeerRegistry) watchPeers(r *Registry) error {
 }
 
 func (self *PeerRegistry) unregisterSelf(r *Registry) error {
-	client := r.Client
+	client := r.client
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(self.cancelCtx, 10*time.Second)
 	defer cancelFunc()
@@ -367,7 +367,7 @@ func (self *PeerRegistry) unregisterSelf(r *Registry) error {
 	var err error
 	txn := kv.Txn(ctx)
 	key := fmt.Sprintf("%s%s", self.SelfPrefix, GRPC_KEY)
-	value := r.Config.Address
+	value := r.config.Address
 
 	txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
 		Then(clientv3.OpGet(key)).
@@ -397,11 +397,11 @@ func (self *PeerRegistry) unregisterSelf(r *Registry) error {
 }
 
 func (self *PeerRegistry) registerSelf(r *Registry) error {
-	client := r.Client
+	client := r.client
 	var err error
 	var lease clientv3.Lease
 	var leaseID clientv3.LeaseID
-	if r.Config.LeaseTimeout > 0 {
+	if r.config.LeaseTimeout > 0 {
 		// 申请一个租约 lease
 		lease = clientv3.Lease(client)
 		var leaseGrantResp *clientv3.LeaseGrantResponse
@@ -415,8 +415,8 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 
 	// 需要同步的键值对
 	advertises := make(map[string]string, 0)
-	advertises[GRPC_KEY] = r.Config.Address
-	for _, v := range r.Config.Advertise {
+	advertises[GRPC_KEY] = r.config.Address
+	for _, v := range r.config.Advertise {
 		advertises[v.Name] = v.Value
 	}
 	kv := clientv3.NewKV(client)

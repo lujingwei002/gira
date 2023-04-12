@@ -31,59 +31,56 @@ import (
 const GRPC_KEY string = "grpc"
 
 type Registry struct {
-	Config         gira.EtcdConfig
-	FullName       string // 节点全名
-	Name           string // 节点名
-	Client         *clientv3.Client
+	config         gira.EtcdConfig
+	fullName       string // 节点全名
+	name           string // 节点名
+	client         *clientv3.Client
 	cancelCtx      context.Context
 	cancelFunc     context.CancelFunc
 	application    gira.Application
-	PeerRegistry   *PeerRegistry
-	PlayerRegistry *PlayerRegistry
+	peerRegistry   *PeerRegistry
+	playerRegistry *player_registry
 }
 
 func (r *Registry) OnStart() error {
-	return r.notify()
-}
-
-func (r *Registry) notify() error {
-	if err := r.PeerRegistry.notify(r); err != nil {
+	if err := r.peerRegistry.notify(r); err != nil {
 		return err
 	}
-	if err := r.PlayerRegistry.notify(r); err != nil {
+	if err := r.playerRegistry.notify(r); err != nil {
 		return err
 	}
 	return nil
+
 }
 
 func (r *Registry) RangePeers(f func(k any, v any) bool) {
-	r.PeerRegistry.RangePeers(f)
+	r.peerRegistry.RangePeers(f)
 }
 
 func (r *Registry) GetPeer(fullName string) *gira.Peer {
-	return r.PeerRegistry.getPeer(r, fullName)
+	return r.peerRegistry.getPeer(r, fullName)
 }
 
 func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
 	r := &Registry{
-		Config: *config,
+		config: *config,
 	}
 	r.cancelCtx, r.cancelFunc = context.WithCancel(context.Background())
-	r.FullName = application.GetAppFullName()
-	r.Name = application.GetAppType()
+	r.fullName = application.GetAppFullName()
+	r.name = application.GetAppType()
 	r.application = application
 
 	// 配置endpoints
 	endpoints := make([]string, 0)
-	for _, v := range r.Config.Endpoints {
+	for _, v := range r.config.Endpoints {
 		endpoints = append(endpoints, fmt.Sprintf("http://%s:%d", v.Host, v.Port))
 	}
 	c := clientv3.Config{
 		Endpoints:   endpoints,                                         // 节点信息
-		DialTimeout: time.Duration(r.Config.DialTimeout) * time.Second, // 超时时间
+		DialTimeout: time.Duration(r.config.DialTimeout) * time.Second, // 超时时间
 		DialOptions: []grpc.DialOption{grpc.WithBlock()},               // 使用阻塞模式，确认启动时etcd是可用的
-		Username:    r.Config.Username,
-		Password:    r.Config.Password,
+		Username:    r.config.Username,
+		Password:    r.config.Password,
 		Context:     r.cancelCtx,
 	}
 	var client *clientv3.Client
@@ -94,31 +91,31 @@ func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*
 		log.Infof("connect to etcd failed, err:%v\n", err)
 		return nil, err
 	}
-	r.Client = client
+	r.client = client
 	log.Info("connect to etcd success")
 	if v, err := newConfigPeerRegistry(r); err != nil {
 		return nil, err
 	} else {
-		r.PeerRegistry = v
+		r.peerRegistry = v
 	}
 	if v, err := newConfigPlayerRegistry(r); err != nil {
 		return nil, err
 	} else {
-		r.PlayerRegistry = v
+		r.playerRegistry = v
 	}
 	return r, nil
 }
 
 func (r *Registry) LockLocalUser(userId string) (*gira.Peer, error) {
-	return r.PlayerRegistry.LockLocalUser(r, userId)
+	return r.playerRegistry.LockLocalUser(r, userId)
 }
 
 func (r *Registry) UnlockLocalUser(userId string) (*gira.Peer, error) {
-	return r.PlayerRegistry.UnlockLocalUser(r, userId)
+	return r.playerRegistry.UnlockLocalUser(r, userId)
 }
 
 func (r *Registry) WhereIsUser(userId string) (*gira.Peer, error) {
-	return r.PlayerRegistry.WhereIsUser(r, userId)
+	return r.playerRegistry.WhereIsUser(r, userId)
 }
 
 func explodeServerFullName(fullName string) (name string, id int32, err error) {

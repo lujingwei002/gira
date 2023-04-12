@@ -1,4 +1,4 @@
-package gat
+package gate
 
 import (
 	"context"
@@ -29,7 +29,7 @@ type Session struct {
 
 func newSession(agent *Conn) *Session {
 	return &Session{
-		id:       atomic.AddUint64(&sid, 1) + agent.gate.sessionModifer,
+		id:       atomic.AddUint64(&sid, 1) + agent.gateway.sessionModifer,
 		conn:     agent,
 		data:     make(map[string]interface{}),
 		lastTime: time.Now().Unix(),
@@ -49,7 +49,7 @@ func (s *Session) Push(route string, data []byte) error {
 	return s.conn.push(route, data)
 }
 
-func (s *Session) Recv(ctx context.Context) (gira.GateRequest, error) {
+func (s *Session) Recv(ctx context.Context) (gira.GatewayMessage, error) {
 	return s.conn.recv(ctx)
 }
 

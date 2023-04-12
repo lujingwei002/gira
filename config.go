@@ -123,7 +123,7 @@ type HttpConfig struct {
 }
 
 // 网关模块配置
-type GateConfig struct {
+type GatewayConfig struct {
 	Bind    string `yaml:"bind"`
 	Address string `yaml:"address"`
 	Debug   bool   `yaml:"debug"`
@@ -145,24 +145,26 @@ type GrpcConfig struct {
 }
 
 type Config struct {
-	Raw          []byte
-	Thread       int `yaml:"thread"`
-	Env          string
-	Zone         string
-	Http         *HttpConfig         `yaml:"http,omitempty"`
-	GameDb       *GameDbConfig       `yaml:"gamedb"`
-	AccountDb    *AccountDbConfig    `yaml:"accountdb"`
-	ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
-	AdminDb      *AdminDbConfig      `yaml:"admindb"`
-	StatDb       *StatDbConfig       `yaml:"statdb"`
-	AccountCache *AccountCacheConfig `yaml:"account-cache"`
-	Etcd         *EtcdConfig         `yaml:"etcd"`
-	Grpc         *GrpcConfig         `yaml:"grpc"`
-	Sdk          *SdkConfig          `yaml:"sdk"`
-	Jwt          *JwtConfig          `yaml:"jwt"`
-	Gate         *GateConfig         `yaml:"gate"`
-	Log          *LogConfig          `yaml:"log"`
-	Admin        *AdminConfig        `yaml:"admin"`
+	Raw    []byte
+	Thread int `yaml:"thread"`
+	Env    string
+	Zone   string
+	Log    *LogConfig `yaml:"log"`
+	Module struct {
+		ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
+		GameDb       *GameDbConfig       `yaml:"gamedb"`
+		AccountDb    *AccountDbConfig    `yaml:"accountdb"`
+		StatDb       *StatDbConfig       `yaml:"statdb"`
+		AdminDb      *AdminDbConfig      `yaml:"admindb"`
+		AccountCache *AccountCacheConfig `yaml:"account-cache"`
+		Http         *HttpConfig         `yaml:"http,omitempty"`
+		Etcd         *EtcdConfig         `yaml:"etcd"`
+		Grpc         *GrpcConfig         `yaml:"grpc"`
+		Sdk          *SdkConfig          `yaml:"sdk"`
+		Jwt          *JwtConfig          `yaml:"jwt"`
+		Gateway      *GatewayConfig      `yaml:"gateway"`
+		Admin        *AdminConfig        `yaml:"admin"`
+	} `yaml:"module"`
 }
 
 type AdminConfig struct {
@@ -322,7 +324,7 @@ func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
 	var configFilePath = filepath.Join(dir, fmt.Sprintf("%s.yaml", c.appType))
 	sb := strings.Builder{}
 	// 预处理
-	if err := c.preprocess(&sb, configFilePath); err != nil {
+	if err := c.preprocess(&sb, "", configFilePath); err != nil {
 		return nil, err
 	}
 	// log.Infof("配置预处理后\n%v\n", sb.String())
@@ -389,7 +391,7 @@ func (c *config_reader) readEnv(filePath string, dotEnvFilePath string) (map[str
 	if _, err := os.Stat(filePath); err != nil {
 		return envData, err
 	}
-	if err := c.preprocess(&sb, filePath); err != nil {
+	if err := c.preprocess(&sb, "", filePath); err != nil {
 		return envData, err
 	}
 	if err := yaml.Unmarshal([]byte(sb.String()), envData); err != nil {
@@ -410,7 +412,7 @@ func (c *config_reader) readEnv(filePath string, dotEnvFilePath string) (map[str
 }
 
 // 执行include指令
-func (c *config_reader) preprocess(sb *strings.Builder, filePath string) error {
+func (c *config_reader) preprocess(sb *strings.Builder, indent string, filePath string) error {
 	dir := path.Dir(filePath)
 	lines, err := os.Open(filePath)
 	if err != nil {
@@ -424,8 +426,9 @@ func (c *config_reader) preprocess(sb *strings.Builder, filePath string) error {
 	instruction := config_instruction_type_none
 	for scanner.Scan() {
 		line := scanner.Text()
+		sline := strings.TrimSpace(line)
 		if instruction == config_instruction_type_none {
-			if strings.HasPrefix(line, `$include:`) {
+			if strings.HasPrefix(sline, `$include:`) {
 				instruction = config_instruction_type_include
 			} else {
 				// 循环匹配所有环境变量
@@ -436,6 +439,7 @@ func (c *config_reader) preprocess(sb *strings.Builder, filePath string) error {
 					line = re.ReplaceAllString(line, envValue)
 				}
 				// 循环匹配所有环境变量
+				sb.WriteString(indent)
 				sb.WriteString(line)
 				sb.WriteString("\n")
 			}
@@ -443,7 +447,7 @@ func (c *config_reader) preprocess(sb *strings.Builder, filePath string) error {
 		if instruction == config_instruction_type_include {
 			var includeFilePath string
 			var found bool = false
-			if strings.HasPrefix(line, `$include:`) {
+			if strings.HasPrefix(sline, `$include:`) {
 				pats := strings.SplitN(line, ":", 2)
 				if len(pats) == 2 {
 					includeFilePath = strings.TrimSpace(pats[1])
@@ -458,12 +462,14 @@ func (c *config_reader) preprocess(sb *strings.Builder, filePath string) error {
 				}
 			}
 			if len(includeFilePath) > 0 {
-				if err := c.preprocess(sb, path.Join(dir, includeFilePath)); err != nil {
+				indent2 := strings.Replace(line, sline, "", 1) + indent
+				if err := c.preprocess(sb, indent2, path.Join(dir, includeFilePath)); err != nil {
 					return err
 				}
 			}
 			if !found {
 				instruction = config_instruction_type_none
+				sb.WriteString(indent)
 				sb.WriteString(line)
 				sb.WriteString("\n")
 			}

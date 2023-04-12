@@ -1,4 +1,4 @@
-package gat
+package gate
 
 import (
 	"sync"
@@ -15,14 +15,14 @@ const (
 type SessionFilter func(*Session) bool
 
 type Group struct {
-	gate     *Gate
+	gate     *Gateway
 	mu       sync.RWMutex
 	status   int32
 	name     string
 	sessions map[uint64]*Session
 }
 
-func newGroup(gate *Gate, name string) *Group {
+func newGroup(gate *Gateway, name string) *Group {
 	return &Group{
 		gate:     gate,
 		status:   groupStatusWorking,

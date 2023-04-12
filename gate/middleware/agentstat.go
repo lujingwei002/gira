@@ -26,7 +26,7 @@ func newAgentStat(sid uint64) *agentStat {
 	return self
 }
 
-func (self *agentStat) inpack(r *gat.Request) {
+func (self *agentStat) inpack(r *gat.Message) {
 	self.packetCount++
 	self.packetTotalCount++
 	if self.lastTime.Add(5 * time.Second).Before(time.Now()) {
@@ -41,7 +41,7 @@ func (self *agentStat) String() string {
 	return fmt.Sprintf("[agentstat] sid:%d, total:%d, avg:%d", self.sid, self.packetTotalCount, self.packetAvgCount)
 }
 
-func (self *AgentStat) ServeMessage(r *gat.Request) {
+func (self *AgentStat) ServeMessage(r *gat.Message) {
 	session := r.Session()
 	var stat *agentStat
 	if ok := session.HasKey("stat"); !ok {

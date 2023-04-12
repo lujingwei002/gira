@@ -196,7 +196,7 @@ var Protocols []*gosproto.Protocol = []*gosproto.Protocol {
 
 type Client struct {
 	proto			gira.Proto
-	conn			gira.GateClient
+	conn			gira.GatewayClient
 	reqId			uint64
 	ctx				context.Context
 	requestDict     sync.Map
@@ -256,7 +256,7 @@ type waitPush struct {
 	resp    interface{}
 }
 
-func NewClient(ctx context.Context, conn gira.GateClient, sproto gira.Proto) *Client {
+func NewClient(ctx context.Context, conn gira.GatewayClient, sproto gira.Proto) *Client {
 	self := &Client{
 		proto:		sproto,
 		conn:		conn,
@@ -288,7 +288,7 @@ func (self *Client) readRoutine() error {
 			return err
 		}
 		switch typ {
-			case gira.GateMessageType_RESPONSE:
+			case gira.GatewayMessageType_RESPONSE:
 				if v, ok := self.requestDict.Load(reqId); ok {
 					self.requestDict.Delete(reqId)
 					wait := v.(*waitRequest)	
@@ -300,7 +300,7 @@ func (self *Client) readRoutine() error {
 					wait.name, wait.session, wait.resp, wait.err = self.proto.ResponseDecode(data)
 					wait.caller <- wait
 				}
-			case gira.GateMessageType_PUSH:
+			case gira.GatewayMessageType_PUSH:
 				name, _, resp, err := self.proto.PushDecode(data)
 				log.Infow("recv push message", "name", name, "data", resp)
 				handlerCount := 0

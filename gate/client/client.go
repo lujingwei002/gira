@@ -19,10 +19,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/gat/crypto"
-	"github.com/lujingwei002/gira/gat/message"
-	"github.com/lujingwei002/gira/gat/packet"
-	"github.com/lujingwei002/gira/gat/ws"
+	"github.com/lujingwei002/gira/gate/crypto"
+	"github.com/lujingwei002/gira/gate/message"
+	"github.com/lujingwei002/gira/gate/packet"
+	"github.com/lujingwei002/gira/gate/ws"
 )
 
 const (
@@ -203,7 +203,7 @@ func WithRSAPublicKey(keyFile string) opt {
 	}
 }
 
-func Dial(addr string, opts ...opt) (gira.GateClient, error) {
+func Dial(addr string, opts ...opt) (gira.GatewayClient, error) {
 	conn := newClientConn()
 	for _, v := range opts {
 		v(conn)

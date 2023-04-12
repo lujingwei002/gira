@@ -14,10 +14,8 @@ import (
 func Cli(name string, buildVersion string, buildTime string, application gira.Application) error {
 	app := &cli.App{
 		Name: "gira service",
-		//app.Author = "lujingwei"
-		///app.Email = "lujingwei@xx.org"
+		// Authors:     []*cli.Author{&cli.Author{Name: "lujingwei", Email: "lujingwei002@qq.com"}},
 		Description: "gira service",
-		// flags
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "id",

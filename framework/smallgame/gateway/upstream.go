@@ -1,4 +1,4 @@
-package gate
+package gateway
 
 import (
 	"context"
@@ -19,7 +19,8 @@ type upstream_peer struct {
 	ctx          context.Context
 	cancelFunc   context.CancelFunc
 	playerCount  int64
-	isSuspend    bool
+	buildTime    int64
+	buildVersion string
 }
 
 func (peer *upstream_peer) close() {
@@ -100,6 +101,10 @@ func (server *upstream_peer) serve() error {
 			case hall_grpc.HallDataType_SERVER_REPORT:
 				log.Infow("在线人数", "full_name", server.FullName, "session_count", resp.Report.PlayerCount)
 				server.playerCount = resp.Report.PlayerCount
+			case hall_grpc.HallDataType_SERVER_INIT:
+				log.Infow("server init", "full_name", server.FullName, "build_time", resp.Init.BuildTime, "build_versioin", resp.Init.BuildVersion)
+				server.buildTime = resp.Init.BuildTime
+				server.buildVersion = resp.Init.BuildVersion
 			}
 		}
 	}

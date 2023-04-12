@@ -1,4 +1,4 @@
-package gat
+package gate
 
 import (
 	"context"
@@ -16,10 +16,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/gat/packet"
-	"github.com/lujingwei002/gira/gat/serialize"
-	"github.com/lujingwei002/gira/gat/serialize/protobuf"
-	"github.com/lujingwei002/gira/gat/ws"
+	"github.com/lujingwei002/gira/gate/packet"
+	"github.com/lujingwei002/gira/gate/serialize"
+	"github.com/lujingwei002/gira/gate/serialize/protobuf"
+	"github.com/lujingwei002/gira/gate/ws"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -41,7 +41,7 @@ func init() {
 	}
 }
 
-type Gate struct {
+type Gateway struct {
 	ClientAddr string
 	Host       string
 	Port       int32
@@ -72,7 +72,7 @@ type Gate struct {
 	startAt       time.Time
 	mu            sync.RWMutex
 	sessions      map[uint64]*Session
-	handler       gira.GateHandler
+	handler       gira.GatewayHandler
 	middlewareArr []MiddleWareInterface
 	listener      net.Listener
 	server        *http.Server
@@ -85,8 +85,8 @@ type Stat struct {
 	CumulativeConnectionCount int64 // 累计连接数量
 }
 
-func newGate() *Gate {
-	gate := &Gate{
+func newGateway() *Gateway {
+	gate := &Gateway{
 		state:              gate_status_start,
 		heartbeat:          30 * time.Second,
 		debug:              false,
@@ -103,13 +103,13 @@ func newGate() *Gate {
 	return gate
 }
 
-func NewConfigGate(facade gira.Application, handler gira.GateHandler, config gira.GateConfig) (*Gate, error) {
+func NewConfigGateway(facade gira.Application, handler gira.GatewayHandler, config gira.GatewayConfig) (*Gateway, error) {
 	opts := []Option{
 		WithDebugMode(config.Debug),
 		WithIsWebsocket(true),
 		WithSessionModifer(uint64(facade.GetAppId()) << 48),
 	}
-	var server *Gate
+	var server *Gateway
 	var err error
 	if server, err = Listen(facade.Context(), config.Bind, opts...); err != nil {
 		return nil, err
@@ -119,83 +119,83 @@ func NewConfigGate(facade gira.Application, handler gira.GateHandler, config gir
 	return server, nil
 }
 
-type Option func(gate *Gate)
+type Option func(gateway *Gateway)
 
 func WithSessionModifer(v uint64) Option {
-	return func(gate *Gate) {
-		gate.sessionModifer = v
+	return func(gateway *Gateway) {
+		gateway.sessionModifer = v
 	}
 }
 
 func WithHandshakeValidator(fn func([]byte) error) Option {
-	return func(gate *Gate) {
-		gate.handshakeValidator = fn
+	return func(gateway *Gateway) {
+		gateway.handshakeValidator = fn
 	}
 }
 
 func WithSerializer(serializer serialize.Serializer) Option {
-	return func(gate *Gate) {
-		gate.serializer = serializer
+	return func(gateway *Gateway) {
+		gateway.serializer = serializer
 	}
 }
 
 func WithDebugMode(v bool) Option {
-	return func(gate *Gate) {
-		gate.debug = v
+	return func(gateway *Gateway) {
+		gateway.debug = v
 	}
 }
 
 func WithCheckOriginFunc(fn func(*http.Request) bool) Option {
-	return func(gate *Gate) {
-		gate.checkOrigin = fn
+	return func(gateway *Gateway) {
+		gateway.checkOrigin = fn
 	}
 }
 
 func WithHeartbeatInterval(d time.Duration) Option {
-	return func(gate *Gate) {
-		gate.heartbeat = d
+	return func(gateway *Gateway) {
+		gateway.heartbeat = d
 	}
 }
 
 func WithRecvBuffSize(v int) Option {
-	return func(gate *Gate) {
-		gate.recvBuffSize = v
+	return func(gateway *Gateway) {
+		gateway.recvBuffSize = v
 	}
 }
 
 func WithSendBacklog(v int) Option {
-	return func(gate *Gate) {
-		gate.sendBacklog = v
+	return func(gateway *Gateway) {
+		gateway.sendBacklog = v
 	}
 }
 
 func WithRecvBacklog(v int) Option {
-	return func(gate *Gate) {
-		gate.recvBacklog = v
+	return func(gateway *Gateway) {
+		gateway.recvBacklog = v
 	}
 }
 
 func WithDictionary(dict map[string]uint16) Option {
-	return func(gate *Gate) {
+	return func(gateway *Gateway) {
 	}
 }
 
 func WithWSPath(path string) Option {
-	return func(gate *Gate) {
-		gate.wsPath = path
+	return func(gateway *Gateway) {
+		gateway.wsPath = path
 	}
 }
 
 func WithIsWebsocket(enableWs bool) Option {
-	return func(gate *Gate) {
-		gate.isWebsocket = enableWs
+	return func(gateway *Gateway) {
+		gateway.isWebsocket = enableWs
 	}
 }
 
 func WithTSLConfig(certificate, key string) Option {
-	return func(gate *Gate) {
-		gate.tslCertificate = certificate
-		gate.tslKey = key
+	return func(gateway *Gateway) {
+		gateway.tslCertificate = certificate
+		gateway.tslKey = key
 	}
 }
 
@@ -205,162 +205,162 @@ func WithRSAPrivateKey(keyFile string) Option {
 		log.Info(err)
 		return nil
 	}
-	return func(gate *Gate) {
-		gate.rsaPrivateKey = string(data)
+	return func(gateway *Gateway) {
+		gateway.rsaPrivateKey = string(data)
 	}
 }
 
-func Listen(ctx context.Context, addr string, opts ...Option) (*Gate, error) {
-	gate := newGate()
+func Listen(ctx context.Context, addr string, opts ...Option) (*Gateway, error) {
+	gateway := newGateway()
 	for _, opt := range opts {
 		if opt != nil {
-			opt(gate)
+			opt(gateway)
 		}
 	}
-	gate.startAt = time.Now()
-	if gate.ctx == nil {
-		gate.ctx = context.Background()
+	gateway.startAt = time.Now()
+	if gateway.ctx == nil {
+		gateway.ctx = context.Background()
 	}
-	gate.ctx, gate.cancelFunc = context.WithCancel(ctx)
-	gate.errGroup, gate.errCtx = errgroup.WithContext(gate.ctx)
+	gateway.ctx, gateway.cancelFunc = context.WithCancel(ctx)
+	gateway.errGroup, gateway.errCtx = errgroup.WithContext(gateway.ctx)
 	addrPat := strings.SplitN(addr, ":", 2)
-	if gate.isWebsocket {
-		if len(gate.tslCertificate) != 0 {
-			gate.Host = fmt.Sprintf("wss://%s", addrPat[0])
+	if gateway.isWebsocket {
+		if len(gateway.tslCertificate) != 0 {
+			gateway.Host = fmt.Sprintf("wss://%s", addrPat[0])
 		} else {
-			gate.Host = fmt.Sprintf("ws://%s", addrPat[0])
+			gateway.Host = fmt.Sprintf("ws://%s", addrPat[0])
 		}
 	} else {
-		gate.Host = addrPat[0]
+		gateway.Host = addrPat[0]
 	}
 	if port, err := strconv.Atoi(addrPat[1]); err != nil {
 		return nil, ErrInvalidAddress
 	} else {
-		gate.Port = int32(port)
+		gateway.Port = int32(port)
 	}
 	if len(addrPat) < 2 {
 		return nil, ErrInvalidAddress
 	}
-	gate.ClientAddr = fmt.Sprintf(":%d", gate.Port)
-	return gate, nil
+	gateway.ClientAddr = fmt.Sprintf(":%d", gateway.Port)
+	return gateway, nil
 }
 
-func (gate *Gate) Serve(h gira.GateHandler) error {
-	gate.handler = h
-	gate.setStatus(gate_status_working)
-	if gate.isWebsocket {
-		if len(gate.tslCertificate) != 0 {
-			return gate.listenAndServeWSTLS()
+func (gateway *Gateway) Serve(h gira.GatewayHandler) error {
+	gateway.handler = h
+	gateway.setStatus(gate_status_working)
+	if gateway.isWebsocket {
+		if len(gateway.tslCertificate) != 0 {
+			return gateway.listenAndServeWSTLS()
 		} else {
-			return gate.listenAndServeWS()
+			return gateway.listenAndServeWS()
 		}
 	} else {
-		return gate.listenAndServe()
+		return gateway.listenAndServe()
 	}
 }
 
-func (gate *Gate) UseMiddleware(m MiddleWareInterface) {
-	gate.middlewareArr = append(gate.middlewareArr, m)
+func (gateway *Gateway) UseMiddleware(m MiddleWareInterface) {
+	gateway.middlewareArr = append(gateway.middlewareArr, m)
 }
 
-func (gate *Gate) NewGroup(name string) *Group {
-	return newGroup(gate, name)
+func (gateway *Gateway) NewGroup(name string) *Group {
+	return newGroup(gateway, name)
 }
 
-func (gate *Gate) Maintain(m bool) {
-	status := gate.status()
+func (gateway *Gateway) Maintain(m bool) {
+	status := gateway.status()
 	if status != gate_status_maintain && status != gate_status_working {
 		return
 	}
 	if m {
-		gate.setStatus(gate_status_maintain)
+		gateway.setStatus(gate_status_maintain)
 	} else {
-		gate.setStatus(gate_status_working)
+		gateway.setStatus(gate_status_working)
 	}
 }
 
-func (gate *Gate) Shutdown() {
-	if gate.status() == gate_status_closed {
+func (gateway *Gateway) Shutdown() {
+	if gateway.status() == gate_status_closed {
 		return
 	}
-	gate.setStatus(gate_status_closed)
-	if gate.server != nil {
-		timeoutCtx, timeoutFunc := context.WithTimeout(gate.ctx, 5*time.Second)
+	gateway.setStatus(gate_status_closed)
+	if gateway.server != nil {
+		timeoutCtx, timeoutFunc := context.WithTimeout(gateway.ctx, 5*time.Second)
 		defer timeoutFunc()
 		// shutdown 会关闭listener,拒绝新的连接， 但并不会关闭websocket连接
-		gate.server.Shutdown(timeoutCtx)
-	} else if gate.listener != nil {
-		gate.listener.Close()
+		gateway.server.Shutdown(timeoutCtx)
+	} else if gateway.listener != nil {
+		gateway.listener.Close()
 	}
-	gate.Kick("shutdown")
-	gate.cancelFunc()
+	gateway.Kick("shutdown")
+	gateway.cancelFunc()
 	var err error
-	err = gate.errGroup.Wait()
+	err = gateway.errGroup.Wait()
 	log.Infow("gate shutdown", "error", err)
 }
 
-func (gate *Gate) status() int32 {
-	return atomic.LoadInt32(&gate.state)
+func (gateway *Gateway) status() int32 {
+	return atomic.LoadInt32(&gateway.state)
 }
 
-func (gate *Gate) setStatus(state int32) {
-	atomic.StoreInt32(&gate.state, state)
+func (gateway *Gateway) setStatus(state int32) {
+	atomic.StoreInt32(&gateway.state, state)
 }
 
-func (gate *Gate) Kick(reason string) {
+func (gateway *Gateway) Kick(reason string) {
 	//断开已有的链接
-	gate.mu.RLock()
-	for _, s := range gate.sessions {
+	gateway.mu.RLock()
+	for _, s := range gateway.sessions {
 		s.Kick(reason)
 	}
-	gate.mu.RUnlock()
+	gateway.mu.RUnlock()
 	now := time.Now().Unix()
 	for {
-		if len(gate.sessions) <= 0 {
+		if len(gateway.sessions) <= 0 {
 			break
 		}
 		if time.Now().Unix()-now >= 120 {
-			log.Info(fmt.Sprintf("[gate] some session not close, count=%d", len(gate.sessions)))
+			log.Info(fmt.Sprintf("[gate] some session not close, count=%d", len(gateway.sessions)))
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func (gate *Gate) listenAndServe() error {
-	listener, err := net.Listen("tcp", gate.ClientAddr)
+func (gateway *Gateway) listenAndServe() error {
+	listener, err := net.Listen("tcp", gateway.ClientAddr)
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-	gate.listener = listener
+	gateway.listener = listener
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Info(err)
 			return err
 		}
-		go gate.handleConn(conn)
+		go gateway.handleConn(conn)
 	}
 }
 
-func (gate *Gate) listenAndServeWS() error {
+func (gateway *Gateway) listenAndServeWS() error {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin:     gate.checkOrigin,
+		CheckOrigin:     gateway.checkOrigin,
 	}
-	http.HandleFunc("/"+strings.TrimPrefix(gate.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/"+strings.TrimPrefix(gateway.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		log.Infow("gate listen and server ws")
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Infof("[gate] Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
 			return
 		}
-		gate.serveWsConn(conn)
+		gateway.serveWsConn(conn)
 	})
-	server := &http.Server{Addr: gate.ClientAddr}
-	gate.server = server
+	server := &http.Server{Addr: gateway.ClientAddr}
+	gateway.server = server
 	if err := server.ListenAndServe(); err != nil {
 		log.Info(err)
 		return err
@@ -368,53 +368,53 @@ func (gate *Gate) listenAndServeWS() error {
 	return nil
 }
 
-func (gate *Gate) listenAndServeWSTLS() error {
+func (gateway *Gateway) listenAndServeWSTLS() error {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin:     gate.checkOrigin,
+		CheckOrigin:     gateway.checkOrigin,
 	}
-	http.HandleFunc("/"+strings.TrimPrefix(gate.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/"+strings.TrimPrefix(gateway.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Infof("[gate] Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
 			return
 		}
-		gate.serveWsConn(conn)
+		gateway.serveWsConn(conn)
 	})
-	if err := http.ListenAndServeTLS(gate.ClientAddr, gate.tslCertificate, gate.tslKey, nil); err != nil {
+	if err := http.ListenAndServeTLS(gateway.ClientAddr, gateway.tslCertificate, gateway.tslKey, nil); err != nil {
 		log.Info(err)
 		return err
 	}
 	return nil
 }
 
-func (gate *Gate) findSession(sid uint64) *Session {
-	gate.mu.RLock()
-	s := gate.sessions[sid]
-	gate.mu.RUnlock()
+func (gateway *Gateway) findSession(sid uint64) *Session {
+	gateway.mu.RLock()
+	s := gateway.sessions[sid]
+	gateway.mu.RUnlock()
 	return s
 }
 
-func (gate *Gate) handleConn(conn net.Conn) {
-	if gate.status() != gate_status_working {
+func (gateway *Gateway) handleConn(conn net.Conn) {
+	if gateway.status() != gate_status_working {
 		log.Info("[gate] gate is not running")
 		conn.Close()
 		return
 	}
-	atomic.AddInt64(&gate.Stat.CumulativeConnectionCount, 1)
-	c := newConn(gate)
-	if gate.debug {
+	atomic.AddInt64(&gateway.Stat.CumulativeConnectionCount, 1)
+	c := newConn(gateway)
+	if gateway.debug {
 		log.Infow("accept a client", "session_id", c.session.ID(), "remote_addr", conn.RemoteAddr())
 	}
-	err := c.serve(gate.ctx, conn)
-	if gate.debug {
+	err := c.serve(gateway.ctx, conn)
+	if gateway.debug {
 		log.Infow("gate conn serve exit", "error", err)
 	}
 }
 
-func (gate *Gate) serveWsConn(conn *websocket.Conn) {
-	if gate.status() != gate_status_working {
+func (gateway *Gateway) serveWsConn(conn *websocket.Conn) {
+	if gateway.status() != gate_status_working {
 		log.Info("[gate] gate is not running")
 		conn.Close()
 		return
@@ -424,21 +424,21 @@ func (gate *Gate) serveWsConn(conn *websocket.Conn) {
 		log.Info(err)
 		return
 	}
-	gate.errGroup.Go(func() error {
-		gate.handleConn(c)
+	gateway.errGroup.Go(func() error {
+		gateway.handleConn(c)
 		return nil
 	})
 }
 
-func (gate *Gate) storeSession(s *Session) {
-	gate.mu.Lock()
-	gate.sessions[s.ID()] = s
-	gate.mu.Unlock()
+func (gateway *Gateway) storeSession(s *Session) {
+	gateway.mu.Lock()
+	gateway.sessions[s.ID()] = s
+	gateway.mu.Unlock()
 }
 
-func (gate *Gate) sessionClosed(s *Session) error {
-	gate.mu.Lock()
-	delete(gate.sessions, s.ID())
-	gate.mu.Unlock()
+func (gateway *Gateway) sessionClosed(s *Session) error {
+	gateway.mu.Lock()
+	delete(gateway.sessions, s.ID())
+	gateway.mu.Unlock()
 	return nil
 }
