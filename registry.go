@@ -29,6 +29,7 @@ type PeerHandler interface {
 	OnPeerUpdate(peer *Peer)
 }
 
+// 玩家位置的回调
 type LocalPlayerHandler interface {
 	OnLocalPlayerAdd(player *LocalPlayer)
 	OnLocalPlayerDelete(player *LocalPlayer)
