@@ -82,7 +82,7 @@ func startAction(args *cli.Context) error {
 	var buildTime int64
 	if v, ok := args.App.Metadata["buildTime"].(string); ok {
 		if t, err := strconv.Atoi(v); err != nil {
-			return err
+			buildTime = 0
 		} else {
 			buildTime = int64(t)
 		}
