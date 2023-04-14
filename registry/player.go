@@ -258,7 +258,7 @@ func (self *player_registry) unregisterSelf(r *Registry) error {
 // 锁定玩家
 func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Peer, error) {
 	if _, ok := self.localPlayers.Load(userId); ok {
-		return r.peerRegistry.SelfPeer, nil
+		//return r.peerRegistry.SelfPeer, nil
 	}
 	client := r.client
 	// 到etcd抢占localKey
