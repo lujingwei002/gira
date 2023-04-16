@@ -38,14 +38,13 @@ type GateHandler struct {
 
 func (self *GateHandler) OnClientStream(s gira.GatewayConn) {
 	//var req gira.GateRequest
-	var err error
 	for {
-		_, err = s.Recv(context.TODO())
+		req, err := s.Recv(context.TODO())
 		if err != nil {
 			//log.Infow("recv", "error", err)
 			break
 		} else {
-			//	log.Infow("recv", "data", string(req.Payload()))
+			log.Infow("recv", "data", string(req.Payload()))
 		}
 	}
 }
@@ -53,7 +52,7 @@ func (self *GateHandler) OnClientStream(s gira.GatewayConn) {
 // 模拟很多个客户端连接
 func TestManyClient(t *testing.T) {
 	var err error
-	var gateway *Gateway
+	var gateway *Server
 	gateway, err = Listen(context.TODO(), ":1234",
 		//WithDebugMode(),
 		WithIsWebsocket(true),
@@ -151,7 +150,7 @@ func (self *GateHandler1) OnClientStream(s gira.GatewayConn) {
 // 客户端连接上服务器后，每隔1秒发送1次消息，然后主动关闭
 func TestClientClose1(t *testing.T) {
 	var err error
-	var gateway *Gateway
+	var gateway *Server
 	gateway, err = Listen(context.TODO(), ":1234", WithDebugMode(true), WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
@@ -214,7 +213,7 @@ func (self *GateHandler2) OnClientStream(s gira.GatewayConn) {
 // 客户端连接上服务器后，每隔1秒发送1次消息，然后由服务器主动关闭链接
 func TestClientClose2(t *testing.T) {
 	var err error
-	var gateway *Gateway
+	var gateway *Server
 	gateway, err = Listen(context.TODO(), ":1234", WithDebugMode(true), WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
@@ -273,7 +272,7 @@ func (self *GateHandler3) OnClientStream(s gira.GatewayConn) {
 // 客户端连接上服务器后，每隔1秒发送1次消息，然后由服务器主动关闭链接（通过函数返回的方式）
 func TestClientClose3(t *testing.T) {
 	var err error
-	var gateway *Gateway
+	var gateway *Server
 	gateway, err = Listen(context.TODO(), ":1234", WithDebugMode(true), WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
@@ -335,7 +334,7 @@ func (self *GateHandler4) OnClientStream(s gira.GatewayConn) {
 // 客户端连接上服务器后，不进行握手
 func TestClientClose4(t *testing.T) {
 	var err error
-	var gateway *Gateway
+	var gateway *Server
 	gateway, err = Listen(context.TODO(), ":1234", WithDebugMode(true))
 	if err != nil {
 		t.Fatal(err)

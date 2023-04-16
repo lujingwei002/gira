@@ -19,10 +19,10 @@ const (
 )
 
 const (
-	msgRouteCompressMask = 0x01
-	msgTypeMask          = 0x07
-	msgRouteLengthMask   = 0xFF
-	msgHeadLength        = 0x02
+	ROUTE_COMPRESS_MASK = 0x01
+	TYPE_MASK           = 0x07
+	ROUTE_LENGTH_MASK   = 0xFF
+	HEAD_LENGTH         = 0x02
 )
 
 var types = map[Type]string{
@@ -50,7 +50,7 @@ var (
 
 type Message struct {
 	Type       Type
-	ID         uint64
+	Id         uint64
 	Route      string
 	Data       []byte
 	compressed bool
@@ -93,11 +93,11 @@ func Encode(m *Message) ([]byte, error) {
 	flag := byte(m.Type) << 1
 	code, compressed := routes[m.Route]
 	if compressed {
-		flag |= msgRouteCompressMask
+		flag |= ROUTE_COMPRESS_MASK
 	}
 	buf = append(buf, flag)
 	if m.Type == Request || m.Type == Response {
-		n := m.ID
+		n := m.Id
 		// variant length encode
 		for {
 			b := byte(n % 128)
@@ -124,13 +124,13 @@ func Encode(m *Message) ([]byte, error) {
 }
 
 func Decode(data []byte) (*Message, error) {
-	if len(data) < msgHeadLength {
+	if len(data) < HEAD_LENGTH {
 		return nil, ErrInvalidMessage
 	}
 	m := NewMessage()
 	flag := data[0]
 	offset := 1
-	m.Type = Type((flag >> 1) & msgTypeMask)
+	m.Type = Type((flag >> 1) & TYPE_MASK)
 	if invalidType(m.Type) {
 		return nil, ErrWrongMessageType
 	}
@@ -147,13 +147,13 @@ func Decode(data []byte) (*Message, error) {
 				break
 			}
 		}
-		m.ID = id
+		m.Id = id
 	}
 	if offset >= len(data) {
 		return nil, ErrWrongMessage
 	}
 	if routable(m.Type) {
-		if flag&msgRouteCompressMask == 1 {
+		if flag&ROUTE_COMPRESS_MASK == 1 {
 			m.compressed = true
 			code := binary.BigEndian.Uint16(data[offset:(offset + 2)])
 			route, ok := codes[code]

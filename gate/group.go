@@ -15,14 +15,14 @@ const (
 type SessionFilter func(*Session) bool
 
 type Group struct {
-	gate     *Gateway
+	gate     *Server
 	mu       sync.RWMutex
 	status   int32
 	name     string
 	sessions map[uint64]*Session
 }
 
-func newGroup(gate *Gateway, name string) *Group {
+func newGroup(gate *Server, name string) *Group {
 	return &Group{
 		gate:     gate,
 		status:   groupStatusWorking,

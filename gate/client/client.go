@@ -539,7 +539,7 @@ func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId 
 		typ = int(msg.Type)
 		switch msg.Type {
 		case message.Response:
-			reqId = msg.ID
+			reqId = msg.Id
 			if s, ok := self.responseRouter.Load(reqId); ok {
 				route = s.(string)
 				self.responseRouter.Delete(reqId)
@@ -573,7 +573,7 @@ func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data 
 		Type:  typ,
 		Data:  data,
 		Route: route,
-		ID:    reqId,
+		Id:    reqId,
 	}
 	em, err := m.Encode()
 	if err != nil {

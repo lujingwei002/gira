@@ -75,7 +75,7 @@ type Runtime struct {
 	AccountCacheClient *db.AccountCacheClient
 	adminDbClient      *db.AdminDbClient
 	Sdk                *sdk.Sdk
-	Gate               *gate.Gateway
+	Gate               *gate.Server
 	GrpcServer         *grpc.GrpcServer
 	adminClient        gira.AdminClient
 }
@@ -318,7 +318,7 @@ func (runtime *Runtime) onAwake() error {
 		if handler == nil {
 			return gira.ErrGateHandlerNotImplement
 		}
-		if gate, err := gate.NewConfigGateway(runtime.Application, handler, *runtime.Config.Module.Gateway); err != nil {
+		if gate, err := gate.NewConfigServer(runtime.Application, handler, *runtime.Config.Module.Gateway); err != nil {
 			return err
 		} else {
 			runtime.Gate = gate

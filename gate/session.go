@@ -29,7 +29,7 @@ type Session struct {
 
 func newSession(agent *Conn) *Session {
 	return &Session{
-		id:       atomic.AddUint64(&sid, 1) + agent.gateway.sessionModifer,
+		id:       atomic.AddUint64(&sid, 1) + agent.server.sessionModifer,
 		conn:     agent,
 		data:     make(map[string]interface{}),
 		lastTime: time.Now().Unix(),

@@ -25,24 +25,20 @@ const (
 )
 
 type Conn struct {
-	session *Session
-	conn    net.Conn
-	state   int32
-	lastAt  int64
-	decoder *packet.Decoder
-	gateway *Gateway
-
-	chSend    chan []byte
-	chMessage chan *Message
-
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	errGroup   *errgroup.Group
-	errCtx     context.Context
-
+	session        *Session
+	conn           net.Conn
+	state          int32
+	lastAt         int64
+	decoder        *packet.Decoder
+	server         *Server
+	chSend         chan []byte
+	chMessage      chan *Message
+	ctx            context.Context
+	cancelFunc     context.CancelFunc
+	errGroup       *errgroup.Group
+	errCtx         context.Context
 	ctrlCtx        context.Context
 	ctrlCancelFunc context.CancelFunc
-	lastErr        error
 }
 type handShake_request struct {
 	Sys struct {
@@ -53,9 +49,9 @@ type handShake_request struct {
 }
 
 // Create new agent instance
-func newConn(gateway *Gateway) *Conn {
+func newConn(server *Server) *Conn {
 	self := &Conn{
-		gateway: gateway,
+		server:  server,
 		state:   conn_status_start,
 		lastAt:  time.Now().Unix(),
 		decoder: packet.NewDecoder(),
@@ -74,50 +70,37 @@ func (a *Conn) send(data []byte) (err error) {
 	return
 }
 
+// 如果链接已关闭,则返回ErrBrokenPipe
 func (self *Conn) push(route string, data []byte) error {
-	if self.gateway.debug {
-		log.Infow("gate conn push", "session_id", self.session.ID(), "route", route, "len", len(data))
-	}
-	if self.status() != conn_status_working {
-		return ErrNotWorking
-	}
-	if self.lastErr != nil {
-		return self.lastErr
+	if self.server.debug {
+		log.Debugw("conn push", "session_id", self.session.ID(), "route", route, "len", len(data))
 	}
 	var err error
 	payload, err := self.serialize(data)
 	if err != nil {
-		log.Infow("gate conn push fail", "session_id", self.session.ID(), "route", route, "error", err)
+		log.Errorw("conn push fail", "session_id", self.session.ID(), "route", route, "error", err)
 	}
-	m := &message.Message{
+	msg := &message.Message{
 		Type:  message.Push,
 		Data:  payload,
 		Route: "",
-		ID:    0,
+		Id:    0,
 	}
-	em, err := m.Encode()
+	em, err := msg.Encode()
 	if err != nil {
-		log.Info(err.Error())
 		return err
 	}
 	p, err := packet.Encode(packet.Data, em)
 	if err != nil {
-		log.Info(err)
 		return err
 	}
-
 	return self.send(p)
 }
 
+// 如果链接已关闭,则返回ErrBrokenPipe
 func (self *Conn) response(mid uint64, data []byte) error {
-	if self.gateway.debug {
-		log.Infow("gate conn response", "session_id", self.session.ID(), "req_id", mid, "len", len(data))
-	}
-	if self.lastErr != nil {
-		return self.lastErr
-	}
-	if self.status() != conn_status_working {
-		return ErrBrokenPipe
+	if self.server.debug {
+		log.Debugw("conn response", "session_id", self.session.ID(), "req_id", mid, "len", len(data))
 	}
 	if mid <= 0 {
 		return ErrSessionOnNotify
@@ -125,15 +108,15 @@ func (self *Conn) response(mid uint64, data []byte) error {
 	var err error
 	payload, err := self.serialize(data)
 	if err != nil {
-		log.Infow("gate conn response fail", "session_id", self.session.ID(), "req_id", mid, "error", err)
+		log.Errorw("conn response fail", "session_id", self.session.ID(), "req_id", mid, "error", err)
 	}
-	m := &message.Message{
+	msg := &message.Message{
 		Type:  message.Response,
 		Data:  payload,
 		Route: "",
-		ID:    mid,
+		Id:    mid,
 	}
-	em, err := m.Encode()
+	em, err := msg.Encode()
 	if err != nil {
 		return err
 	}
@@ -189,8 +172,8 @@ func (self *Conn) close() error {
 		return nil
 	}
 	self.setStatus(conn_status_closed)
-	if self.gateway.debug {
-		log.Infow("close gate conn", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
+	if self.server.debug {
+		log.Infow("close conn", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
 	}
 	self.cancelFunc()
 	return nil
@@ -216,7 +199,7 @@ func (self *Conn) serialize(v interface{}) ([]byte, error) {
 	if data, ok := v.([]byte); ok {
 		return data, nil
 	}
-	data, err := self.gateway.serializer.Marshal(v)
+	data, err := self.server.serializer.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
@@ -232,14 +215,13 @@ func (self *Conn) serialize(v interface{}) ([]byte, error) {
 
 func (self *Conn) recvHandShake(ctx context.Context) error {
 	buf := make([]byte, 2048)
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, self.gateway.handshakeTimeout)
-	defer cancelFunc()
-
+	timeoutCtx, timeoutFunc := context.WithTimeout(ctx, self.server.handshakeTimeout)
+	defer timeoutFunc()
 	go func() {
 		select {
-		case <-cancelCtx.Done():
-			if cancelCtx.Err() == context.DeadlineExceeded {
-				log.Info("recv handshake timeout", cancelCtx.Err())
+		case <-timeoutCtx.Done():
+			if timeoutCtx.Err() == context.DeadlineExceeded {
+				log.Errorw("recv handshake timeout", "error", timeoutCtx.Err())
 				self.conn.Close()
 			}
 		}
@@ -252,7 +234,6 @@ func (self *Conn) recvHandShake(ctx context.Context) error {
 		}
 		packets, err := self.decoder.Decode(buf[:n])
 		if err != nil {
-			log.Info(err.Error())
 			return err
 		}
 		if len(packets) < 1 {
@@ -270,20 +251,20 @@ func (self *Conn) recvHandShake(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if self.gateway.rsaPrivateKey != "" {
-			token, err := crypto.RsaDecryptWithSha1Base64(msg.Sys.Token, self.gateway.rsaPrivateKey)
+		if self.server.rsaPrivateKey != "" {
+			token, err := crypto.RsaDecryptWithSha1Base64(msg.Sys.Token, self.server.rsaPrivateKey)
 			if err != nil {
 				return err
 			}
 			self.session.setSecret(token)
 		}
-		if err := self.gateway.handshakeValidator(p.Data); err != nil {
+		if err := self.server.handshakeValidator(p.Data); err != nil {
 			return err
 		}
 		data, err := json.Marshal(map[string]interface{}{
 			"code": 200,
 			"sys": map[string]interface{}{
-				"heartbeat": self.gateway.heartbeat.Seconds(),
+				"heartbeat": self.server.heartbeat.Seconds(),
 				"session":   self.session.ID(),
 			},
 		})
@@ -297,15 +278,15 @@ func (self *Conn) recvHandShake(ctx context.Context) error {
 		if _, err := self.conn.Write(handsharkResponse); err != nil {
 			return err
 		}
-		if self.gateway.debug {
-			log.Infow("handshake success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr(), "secret", self.session.getSecret())
+		if self.server.debug {
+			log.Debugw("handshake success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr(), "secret", self.session.getSecret())
 		}
 		return nil
 	}
 }
 
 func (self *Conn) recvHandShakeAck(ctx context.Context) ([]*packet.Packet, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, self.gateway.handshakeTimeout)
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, self.server.handshakeTimeout)
 	defer cancelFunc()
 	go func() {
 		select {
@@ -320,7 +301,7 @@ func (self *Conn) recvHandShakeAck(ctx context.Context) ([]*packet.Packet, error
 	for {
 		n, err := self.conn.Read(buf)
 		if err != nil {
-			log.Infow("gate conn read fail", "err", err, "session_id", self.session.ID())
+			log.Debugw("conn read fail", "err", err, "session_id", self.session.ID())
 			return nil, err
 		}
 		packets, err := self.decoder.Decode(buf[:n])
@@ -336,8 +317,8 @@ func (self *Conn) recvHandShakeAck(ctx context.Context) ([]*packet.Packet, error
 			return nil, ErrInvalidPacket
 		}
 		self.setStatus(conn_status_working)
-		if self.gateway.debug {
-			log.Infow("recv handshake ack success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
+		if self.server.debug {
+			log.Debugw("recv handshake ack success", "session_id", self.session.ID(), "remote_addr", self.conn.RemoteAddr())
 		}
 		return packets[1:], nil
 	}
@@ -348,17 +329,17 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 	var packets []*packet.Packet
 	self.conn = conn
 	sessionId := self.session.ID()
-	if self.gateway.debug {
-		log.Infow("session established", "session_id", sessionId)
+	if self.server.debug {
+		log.Debugw("conn established", "session_id", sessionId)
 	}
 	defer func() {
-		if self.gateway.debug {
-			log.Infow("gate conn session goroutine exit", "session_id", sessionId)
+		if self.server.debug {
+			log.Debugw("conn closed", "session_id", sessionId)
 		}
 		self.setStatus(conn_status_closed)
 		self.conn.Close()
 	}()
-	if self.gateway.handler == nil {
+	if self.server.handler == nil {
 		return ErrInvalidHandler
 	}
 	self.ctx, self.cancelFunc = context.WithCancel(ctx)
@@ -373,8 +354,8 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 	self.setStatus(conn_status_working)
 
 	// 握手成功，开始收发消息
-	self.chMessage = make(chan *Message, self.gateway.recvBacklog)
-	self.chSend = make(chan []byte, self.gateway.sendBacklog)
+	self.chMessage = make(chan *Message, self.server.recvBacklog)
+	self.chSend = make(chan []byte, self.server.sendBacklog)
 
 	errGroup, errCtx := errgroup.WithContext(self.ctx)
 	self.errGroup, self.errCtx = errGroup, errCtx
@@ -383,38 +364,31 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 	//开启读协程
 	errGroup.Go(func() (err error) {
 		defer func() {
-			if err != nil && self.lastErr == nil {
-				self.lastErr = err
-			}
-			if self.gateway.debug {
-				log.Infow("gate conn recv goroutine exit", "sessionid", sessionId)
+			if self.server.debug {
+				log.Infow("conn recv goroutine exit", "sessionid", sessionId)
 			}
 		}()
 		// 处理一些多接收到的消息
 		for i := range packets {
 			if err = self.processPacket(packets[i]); err != nil {
-				log.Info(err)
+				log.Error(err)
 				return
 			}
 		}
 		var n int
 		// 持续读数据
-		buf := make([]byte, self.gateway.recvBuffSize)
+		buf := make([]byte, self.server.recvBuffSize)
 		var packets []*packet.Packet
 		for {
 			n, err = self.conn.Read(buf)
 			if err != nil {
-				if self.gateway.debug {
-					log.Infow("gate conn read fail", "err", err, "session_id", self.session.ID())
+				if self.server.debug {
+					log.Debugw("conn read fail", "err", err, "session_id", self.session.ID())
 				}
 				return
 			}
-			if self.lastErr != nil {
-				return self.lastErr
-			}
 			packets, err = self.decoder.Decode(buf[:n])
 			if err != nil {
-				log.Info(err)
 				return err
 			}
 			if len(packets) < 1 {
@@ -430,22 +404,20 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 	})
 	//开启写协程
 	errGroup.Go(func() (err error) {
-		ticker := time.NewTicker(self.gateway.heartbeat)
+		ticker := time.NewTicker(self.server.heartbeat)
 		// clean func
 		defer func() {
-			if err != nil && self.lastErr == nil {
-				self.lastErr = err
-			}
+			ticker.Stop()
 			// 发送完数据后，可以关闭socket了，使recv可以解除阻塞
 			self.conn.Close()
-			if self.gateway.debug {
-				log.Infow("gate conn send goroutine exit", "session_id", sessionId)
+			if self.server.debug {
+				log.Debugw("conn send goroutine exit", "session_id", sessionId)
 			}
 		}()
 		for {
 			select {
 			case <-ticker.C:
-				deadline := time.Now().Add(-2 * self.gateway.heartbeat).Unix()
+				deadline := time.Now().Add(-2 * self.server.heartbeat).Unix()
 				if atomic.LoadInt64(&self.lastAt) < deadline {
 					log.Infof("gate connection heartbeat timeout, sessionid=%d, lastTime=%d, deadline=%d\n", sessionId, atomic.LoadInt64(&self.lastAt), deadline)
 					err = ErrHeartbeatTimeout
@@ -463,6 +435,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 						return
 					}
 				}
+			// 主动关闭连接
 			case <-errCtx.Done():
 				// 关闭心跳
 				ticker.Stop()
@@ -472,6 +445,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 				goto TIMEOUT_SEND
 			}
 		}
+		//主动关闭连接时, 发送完剩下的数据
 	TIMEOUT_SEND:
 		for {
 			select {
@@ -489,34 +463,34 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 		}
 	})
 
-	atomic.AddInt64(&self.gateway.Stat.ActiveSessionCount, 1)
-	atomic.AddInt64(&self.gateway.Stat.CumulativeSessionCount, 1)
+	atomic.AddInt64(&self.server.Stat.ActiveSessionCount, 1)
+	atomic.AddInt64(&self.server.Stat.CumulativeSessionCount, 1)
 
-	self.gateway.storeSession(self.session)
-	defer self.gateway.sessionClosed(self.session)
+	self.server.storeSession(self.session)
+	defer self.server.sessionClosed(self.session)
 	// middleware
-	for _, middleware := range self.gateway.middlewareArr {
+	for _, middleware := range self.server.middlewareArr {
 		middleware.OnSessionOpen(self.session)
 	}
 	defer func() {
-		for _, middleware := range self.gateway.middlewareArr {
+		for _, middleware := range self.server.middlewareArr {
 			middleware.OnSessionClose(self.session)
 		}
 	}()
 
-	if self.gateway.handler != nil {
+	if self.server.handler != nil {
 		//处理消息
-		self.gateway.handler.OnClientStream(self.session)
+		self.server.handler.OnClientStream(self.session)
 	}
 	// 主动关闭
 	if self.errCtx.Err() == nil {
 		self.cancelFunc()
 	}
 	err = errGroup.Wait()
-	if self.gateway.debug {
-		log.Infow("gate conn wait group exit", "last_error", self.lastErr, "error", err)
+	if self.server.debug {
+		log.Infow("gate conn wait group exit", "error", err)
 	}
-	atomic.AddInt64(&self.gateway.Stat.ActiveSessionCount, -1)
+	atomic.AddInt64(&self.server.Stat.ActiveSessionCount, -1)
 	return err
 }
 
@@ -524,9 +498,6 @@ func (self *Conn) processPacket(p *packet.Packet) error {
 	self.lastAt = time.Now().Unix()
 	switch p.Type {
 	case packet.Data:
-		if self.status() < conn_status_working {
-			return ErrNotHandshake
-		}
 		msg, err := message.Decode(p.Data)
 		if err != nil {
 			return err
@@ -543,18 +514,18 @@ func (self *Conn) processPacket(p *packet.Packet) error {
 func (self *Conn) processMessage(msg *message.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Info("process message panic", e)
+			log.Errorw("process message panic", "error", e)
 			err = ErrBrokenPipe
 		}
 	}()
 	var reqId uint64
 	switch msg.Type {
 	case message.Request:
-		reqId = msg.ID
+		reqId = msg.Id
 	case message.Notify:
 		reqId = 0
 	default:
-		log.Info("[gate conn] invalid message type: " + msg.Type.String())
+		log.Warnw("recv invalid message type", "type", msg.Type.String())
 		err = ErrInvalidMessage
 		return
 	}
@@ -565,12 +536,12 @@ func (self *Conn) processMessage(msg *message.Message) (err error) {
 	if session.getSecret() != "" {
 		payload, err = crypto.DesDecrypt(payload, session.getSecret())
 		if err != nil {
-			log.Infof("[gate conn] des decrypt failed, error:%s, payload:(%v)\n", err.Error(), payload)
+			log.Errorw("des decrypt fail", "error", err)
 			return
 		}
 	}
-	if self.gateway.handler == nil {
-		log.Infof("[gate conn] handler not found, route:%s\n", msg.Route)
+	if self.server.handler == nil {
+		log.Warnw("handler not found", "route", msg.Route)
 		err = ErrInvalidHandler
 	}
 	r := &Message{
@@ -580,24 +551,34 @@ func (self *Conn) processMessage(msg *message.Message) (err error) {
 		reqId:   reqId,
 	}
 	// 处理request
-	for _, middleware := range self.gateway.middlewareArr {
+	for _, middleware := range self.server.middlewareArr {
 		middleware.ServeMessage(r)
 	}
 	self.chMessage <- r
 	return
 }
 
-func (self *Conn) recv(ctx context.Context) (*Message, error) {
+// 返回接收到的消息
+// 即使链接已经关闭,也会返回已经接收到的消息,直到没有可处理的消息为止,则返回ErrBrokenPipe
+// Returns:
+// msg - 返回接收到的消息
+// err - 如果连接已关闭, 且没有消息了, 则返回ErrBrokenPipe
+func (self *Conn) recv(ctx context.Context) (msg *Message, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = ErrBrokenPipe
+			return
+		}
+	}()
 	select {
-	case r := <-self.chMessage:
-		if self.lastErr != nil {
-			return nil, self.lastErr
+	case msg = <-self.chMessage:
+		if msg == nil {
+			err = ErrBrokenPipe
+			return
 		}
-		if r == nil {
-			return nil, ErrBrokenPipe
-		}
-		return r, nil
+		return
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		err = ctx.Err()
+		return
 	}
 }
