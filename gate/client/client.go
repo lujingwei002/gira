@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira/log"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/gorilla/websocket"
 	"github.com/lujingwei002/gira"
@@ -73,28 +74,25 @@ type ClientConn struct {
 	debug              bool
 	wsPath             string
 	rsaPublicKey       string
-
-	serverAddr      string
-	heartbeatPacket []byte
-	sessionId       uint64
-	conn            net.Conn
-	decoder         *packet.Decoder
-	secretKey       string
-	dialTimeout     time.Duration
-
-	responseRouter sync.Map
-	lastAt         int64
-	chWrite        chan []byte
-	state          int32
-	// 接收到的packet
-	chRecvMessage chan *message.Message
-	ctx           context.Context
-	cancelFunc    context.CancelFunc
-	errCtx        context.Context
-	sendBacklog   int
-	recvBacklog   int
-	lastErr       error
-	recvBuffSize  int
+	serverAddr         string
+	heartbeatPacket    []byte
+	sessionId          uint64
+	conn               net.Conn
+	decoder            *packet.Decoder
+	secretKey          string
+	dialTimeout        time.Duration
+	responseRouter     sync.Map
+	lastAt             int64
+	chWrite            chan []byte
+	state              int32
+	chMessage          chan *message.Message
+	ctx                context.Context
+	cancelFunc         context.CancelFunc
+	errCtx             context.Context
+	sendBacklog        int
+	recvBacklog        int
+	lastErr            error
+	recvBuffSize       int
 }
 
 func newClientConn() *ClientConn {
@@ -212,7 +210,7 @@ func Dial(addr string, opts ...opt) (gira.GatewayClient, error) {
 		conn.ctx, conn.cancelFunc = context.WithCancel(context.Background())
 	}
 	conn.chWrite = make(chan []byte, conn.recvBacklog)
-	conn.chRecvMessage = make(chan *message.Message, conn.recvBacklog)
+	conn.chMessage = make(chan *message.Message, conn.recvBacklog)
 	if err := conn.dial(addr); err != nil {
 		return nil, err
 	}
@@ -244,20 +242,90 @@ func (self *ClientConn) dial(addr string) error {
 	}
 	self.conn = conn
 	self.setStatus(client_status_handshake)
-	err = self.sendHandShake()
+	err = self.sendHandshake()
 	if err != nil {
 		log.Info(fmt.Sprintf("[agent] client sendHandShake error: %s", err.Error()))
 		conn.Close()
 		return err
 	}
-	if err := self.recvHandShakeAck(self.ctx); err != nil {
+	if err := self.recvHandshakeAck(self.ctx); err != nil {
 		conn.Close()
 		return err
 	}
 	self.setStatus(client_status_working)
-	go self.readRoutine()
-	go self.writeRoutine()
+	go self.serve()
 	return nil
+}
+
+func (self *ClientConn) serve() {
+	defer func() {
+		if self.debug {
+			log.Debugw("client serve exit", "session_id", self.sessionId)
+		}
+	}()
+	errGroup, errCtx := errgroup.WithContext(self.ctx)
+	errGroup.Go(func() error {
+		ticker := time.NewTicker(self.heartbeat)
+		defer func() {
+			ticker.Stop()
+			close(self.chWrite)
+			self.conn.Close()
+			if self.debug {
+				log.Debugw("client write goroutine exit", "session_id", self.sessionId)
+			}
+		}()
+		for {
+			select {
+			case <-ticker.C:
+				deadline := time.Now().Add(-2 * self.heartbeat).Unix()
+				if atomic.LoadInt64(&self.lastAt) < deadline {
+					log.Debugw("client heartbeat timeout", "sessionid", self.sessionId, "lastTime", atomic.LoadInt64(&self.lastAt), "deadline", deadline)
+					return ErrHeartbeatTimeout
+				}
+			case data := <-self.chWrite:
+				if _, err := self.conn.Write(data); err != nil {
+					log.Debugw("client write fail", "error", err)
+					return err
+				}
+			case <-errCtx.Done():
+				return errCtx.Err()
+			}
+		}
+	})
+	errGroup.Go(func() error {
+		defer func() {
+			close(self.chMessage)
+			if self.debug {
+				log.Debugw("client read goroutine exit", "session_id", self.sessionId)
+			}
+		}()
+		buf := make([]byte, 2048)
+		for {
+			n, err := self.conn.Read(buf)
+			if err != nil {
+				if self.debug {
+					log.Debugw("client read fail", "err", err, "session_id", self.sessionId)
+				}
+				return err
+			}
+			packets, err := self.decoder.Decode(buf[:n])
+			if err != nil {
+				return err
+			}
+			if len(packets) < 1 {
+				continue
+			}
+			for _, p := range packets {
+				if err := self.processPacket(p); err != nil {
+					return err
+				}
+			}
+		}
+	})
+	err := errGroup.Wait()
+	if self.debug {
+		log.Debugw("client wait group", "session_id", self.sessionId, "error", err)
+	}
 }
 
 func (self *ClientConn) dialTcp() (net.Conn, error) {
@@ -305,7 +373,7 @@ func (self *ClientConn) getSecretKey() string {
 	return self.secretKey
 }
 
-func (self *ClientConn) sendHandShake() error {
+func (self *ClientConn) sendHandshake() error {
 	tokenByte := make([]byte, 8)
 	_, err := rand.Read(tokenByte)
 	if err != nil {
@@ -339,12 +407,12 @@ func (self *ClientConn) sendHandShake() error {
 		return err
 	}
 	if self.debug {
-		log.Infow("send handshake", "token", token)
+		log.Debugw("send handshake", "token", token)
 	}
 	return nil
 }
 
-func (self *ClientConn) recvHandShakeAck(ctx context.Context) error {
+func (self *ClientConn) recvHandshakeAck(ctx context.Context) error {
 	buf := make([]byte, self.recvBuffSize)
 	for {
 		var n int
@@ -390,7 +458,7 @@ func (self *ClientConn) recvHandShakeAck(ctx context.Context) error {
 		}
 		self.sessionId = msg.Sys.Session
 		if self.debug {
-			log.Infow("handshake success", "session_id", self.sessionId, "remote_addr", self.conn.RemoteAddr())
+			log.Debugw("handshake success", "session_id", self.sessionId, "remote_addr", self.conn.RemoteAddr())
 		}
 		if _, err := self.conn.Write(data); err != nil {
 			return err
@@ -399,71 +467,9 @@ func (self *ClientConn) recvHandShakeAck(ctx context.Context) error {
 	}
 }
 
-func (self *ClientConn) writeRoutine() error {
-	ticker := time.NewTicker(self.heartbeat)
-	defer func() {
-		ticker.Stop()
-		close(self.chWrite)
-		if self.debug {
-			log.Infow("write goroutine exit", "session_id", self.sessionId)
-		}
-	}()
-	for {
-		select {
-		case <-ticker.C:
-			deadline := time.Now().Add(-2 * self.heartbeat).Unix()
-			if atomic.LoadInt64(&self.lastAt) < deadline {
-				log.Info(fmt.Sprintf("[agent] session heartbeat timeout, sessionid=%d, lastTime=%d, deadline=%d",
-					self.sessionId, atomic.LoadInt64(&self.lastAt), deadline))
-				return ErrHeartbeatTimeout
-			}
-		case data := <-self.chWrite:
-			if _, err := self.conn.Write(data); err != nil {
-				log.Info(fmt.Sprintf("[agent] conn write failed, error:%s", err.Error()))
-				return err
-			}
-		case <-self.ctx.Done():
-			return self.ctx.Err()
-		}
-	}
-}
-
-func (self *ClientConn) readRoutine() error {
-	defer func() {
-		close(self.chRecvMessage)
-		if self.debug {
-			log.Infow("read goroutine exit", "session_id", self.sessionId)
-		}
-	}()
-	buf := make([]byte, 2048)
-	for {
-		n, err := self.conn.Read(buf)
-		if err != nil {
-			if self.debug {
-				log.Infow("client read fail", "err", err, "session_id", self.sessionId)
-			}
-			return err
-		}
-		packets, err := self.decoder.Decode(buf[:n])
-		if err != nil {
-			log.Info(err.Error())
-			return err
-		}
-		if len(packets) < 1 {
-			continue
-		}
-		for _, p := range packets {
-			if err := self.processPacket(p); err != nil {
-				log.Info(err.Error())
-				return err
-			}
-		}
-	}
-}
-
 func (self *ClientConn) processMessage(msg *message.Message) {
 	if self.debug {
-		log.Infow("got message", "type", msg.Type)
+		// log.Debugw("got message", "type", msg.Type)
 	}
 
 	switch msg.Type {
@@ -485,13 +491,13 @@ func (self *ClientConn) processMessage(msg *message.Message) {
 	data := msg.Data
 	msg.Data = make([]byte, len(msg.Data))
 	copy(msg.Data, data)
-	self.chRecvMessage <- msg
+	self.chMessage <- msg
 }
 
 // 处理内部消息包
 func (self *ClientConn) processPacket(p *packet.Packet) error {
 	if self.debug {
-		log.Infow("got packet", "type", p.Type)
+		// log.Debugw("got packet", "type", p.Type)
 	}
 	switch p.Type {
 	case packet.Data:
@@ -531,7 +537,7 @@ func (self *ClientConn) setStatus(state int32) {
 
 func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId uint64, data []byte, err error) {
 	select {
-	case msg := <-self.chRecvMessage:
+	case msg := <-self.chMessage:
 		if msg == nil {
 			err = gira.ErrReadOnClosedClient
 			return
@@ -556,15 +562,23 @@ func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId 
 	}
 }
 
-func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data []byte) error {
+func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data []byte) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			// log.Error(e)
+			// debug.PrintStack()
+			err = e.(error)
+		}
+	}()
 	if self.status() == client_status_closed {
-		return ErrBrokenPipe
+		err = ErrBrokenPipe
+		return
 	}
 	// if len(self.chSend) >= self.sendBacklog {
 	// 	return ErrBufferExceed
 	// }
 	if self.debug {
-		log.Infow("send", "type", typ, "sessioni_id", self.sessionId, "req_id", reqId, "route", route, "len", len(data))
+		log.Debugw("send", "type", typ, "sessioni_id", self.sessionId, "req_id", reqId, "route", route, "len", len(data))
 	}
 	if typ == message.Request {
 		self.responseRouter.Store(reqId, route)
@@ -575,18 +589,21 @@ func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data 
 		Route: route,
 		Id:    reqId,
 	}
-	em, err := m.Encode()
+	var em []byte
+	var p []byte
+	em, err = m.Encode()
 	if err != nil {
-		return err
+		return
 	}
-	p, err := packet.Encode(packet.Data, em)
+	p, err = packet.Encode(packet.Data, em)
 	if err != nil {
-		return err
+		return
 	}
-	if _, err := self.conn.Write(p); err != nil {
-		return err
-	}
-	return nil
+	self.chWrite <- p
+	// if _, err := self.conn.Write(p); err != nil {
+	// 	return err
+	// }
+	return
 }
 
 // / 发送通知
@@ -604,15 +621,7 @@ func (self *ClientConn) Close() error {
 		return ErrCloseClosedSession
 	} else {
 		self.setStatus(client_status_closed)
-		if self.conn != nil {
-			self.conn.Close()
-		}
-		select {
-		case <-self.ctx.Done():
-			// expect
-		default:
-			self.cancelFunc()
-		}
+		self.cancelFunc()
 		return nil
 	}
 }

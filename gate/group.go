@@ -67,7 +67,7 @@ func (self *Group) Multicast(route string, v interface{}, filter SessionFilter) 
 			continue
 		}
 		if err = s.Push(route, data); err != nil {
-			log.Infof("[group] Multicast message error, ID=%d, UID=%d, Error=%s", s.ID(), s.UID(), err.Error())
+			log.Infof("[group] Multicast message error, ID=%d, UID=%d, Error=%s", s.Id(), s.UID(), err.Error())
 		}
 	}
 	return nil
@@ -85,7 +85,7 @@ func (self *Group) Broadcast(route string, v interface{}) error {
 			continue
 		}
 		if err = s.Push(route, data); err != nil {
-			log.Infof("[group] Broadcast message error, ID=%d, UID=%d, Error=%s", s.ID(), s.UID(), err.Error())
+			log.Infof("[group] Broadcast message error, ID=%d, UID=%d, Error=%s", s.Id(), s.UID(), err.Error())
 		}
 	}
 	return nil
@@ -101,12 +101,12 @@ func (self *Group) Add(session *Session) error {
 		return ErrClosedGroup
 	}
 	if self.gate.debug {
-		log.Infof("[group] Add session to group %s, ID=%d, UID=%d", self.name, session.ID(), session.UID())
+		log.Infof("[group] Add session to group %s, ID=%d, UID=%d", self.name, session.Id(), session.UID())
 	}
 	self.mu.Lock()
 	defer self.mu.Unlock()
-	id := session.ID()
-	_, ok := self.sessions[session.ID()]
+	id := session.Id()
+	_, ok := self.sessions[session.Id()]
 	if ok {
 		return ErrSessionDuplication
 	}
@@ -124,7 +124,7 @@ func (self *Group) Leave(s *Session) error {
 	}
 	self.mu.Lock()
 	defer self.mu.Unlock()
-	delete(self.sessions, s.ID())
+	delete(self.sessions, s.Id())
 	return nil
 }
 

@@ -66,23 +66,22 @@ type Server struct {
 	sendBacklog        int
 	recvBacklog        int
 	recvBuffSize       int
-
-	// 状态
-	state         int32
-	startAt       time.Time
-	mu            sync.RWMutex
-	sessions      map[uint64]*Session
-	handler       gira.GatewayHandler
-	middlewareArr []MiddleWareInterface
-	listener      net.Listener
-	httpServer    *http.Server
-	Stat          Stat
+	state              int32
+	mu                 sync.RWMutex
+	sessions           map[uint64]*Session
+	handler            gira.GatewayHandler
+	middlewareArr      []MiddleWareInterface
+	listener           net.Listener
+	httpServer         *http.Server
+	Stat               Stat
 }
 
 type Stat struct {
 	ActiveSessionCount        int64 // 当前会话数量
 	CumulativeSessionCount    int64 // 累计会话数量
 	CumulativeConnectionCount int64 // 累计连接数量
+	ActiveConnectionCount     int64 // 当前连接数量
+	HandshakeErrorCount       int64
 }
 
 func newServer() *Server {
@@ -217,7 +216,6 @@ func Listen(ctx context.Context, addr string, opts ...Option) (*Server, error) {
 			opt(server)
 		}
 	}
-	server.startAt = time.Now()
 	if server.ctx == nil {
 		server.ctx = context.Background()
 	}
@@ -297,7 +295,9 @@ func (server *Server) Shutdown() {
 	server.cancelFunc()
 	var err error
 	err = server.errGroup.Wait()
-	log.Infow("gate shutdown", "error", err)
+	if server.debug {
+		log.Debugw("gate shutdown", "error", err)
+	}
 }
 
 func (server *Server) status() int32 {
@@ -350,7 +350,6 @@ func (server *Server) listenAndServeWS() error {
 		CheckOrigin:     server.checkOrigin,
 	}
 	http.HandleFunc("/"+strings.TrimPrefix(server.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
-		log.Infow("gate listen and server ws")
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Errorw("Upgrade failure", "request_uri", r.RequestURI, "error", err)
@@ -361,7 +360,6 @@ func (server *Server) listenAndServeWS() error {
 	httpServer := &http.Server{Addr: server.BindAddr}
 	server.httpServer = httpServer
 	if err := httpServer.ListenAndServe(); err != nil {
-		log.Info(err)
 		return err
 	}
 	return nil
@@ -395,13 +393,17 @@ func (server *Server) handleConn(conn net.Conn) {
 		return
 	}
 	atomic.AddInt64(&server.Stat.CumulativeConnectionCount, 1)
+	atomic.AddInt64(&server.Stat.ActiveConnectionCount, 1)
+	defer func() {
+		atomic.AddInt64(&server.Stat.ActiveConnectionCount, -1)
+	}()
 	c := newConn(server)
 	if server.debug {
-		log.Debugw("accept a client", "session_id", c.session.ID(), "remote_addr", conn.RemoteAddr())
+		log.Debugw("accept a conn", "session_id", c.session.Id(), "remote_addr", conn.RemoteAddr())
 	}
 	err := c.serve(server.ctx, conn)
 	if server.debug {
-		log.Debugw("gate conn serve exit", "error", err)
+		log.Debugw("conn serve exit", "session_id", c.session.Id(), "error", err)
 	}
 }
 
@@ -431,13 +433,13 @@ func (server *Server) findSession(sid uint64) *Session {
 
 func (server *Server) storeSession(s *Session) {
 	server.mu.Lock()
-	server.sessions[s.ID()] = s
+	server.sessions[s.Id()] = s
 	server.mu.Unlock()
 }
 
 func (server *Server) sessionClosed(s *Session) error {
 	server.mu.Lock()
-	delete(server.sessions, s.ID())
+	delete(server.sessions, s.Id())
 	server.mu.Unlock()
 	return nil
 }

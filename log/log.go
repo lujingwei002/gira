@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/proj"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -29,6 +30,61 @@ type Logger interface {
 	Debugf(template string, args ...interface{})
 	Fatalf(template string, args ...interface{})
 	Warnf(template string, args ...interface{})
+}
+
+func ConfigCliLog() error {
+	// 配置日志输出
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+	consoleCore := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(encoderConfig), // 控制台输出格式
+		zapcore.AddSync(os.Stdout),               // 输出到控制台
+		zap.NewAtomicLevelAt(zap.DebugLevel),
+	)
+	// 滚动日志配置
+	rollingCfg := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+	rollingCore := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(rollingCfg), // 滚动日志输出格式
+		// zapcore.NewJSONEncoder(rollingCfg), // 滚动日志输出格式
+		zapcore.AddSync(&lumberjack.Logger{
+			Filename:   filepath.Join(proj.Config.LogDir, fmt.Sprintf("cli.log")), // 日志文件路径
+			MaxSize:    10 * 1024,                                                 // 每个日志文件的最大大小，单位为 MB
+			MaxBackups: 10,                                                        // 保留的旧日志文件的最大个数
+			MaxAge:     30,                                                        // 保留的旧日志文件的最大天数
+			Compress:   true,                                                      // 是否压缩旧日志文件
+		}),
+		zap.NewAtomicLevelAt(zap.DebugLevel),
+	)
+
+	// 创建日志对象
+	logger := zap.New(zapcore.NewTee(consoleCore, rollingCore))
+	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(1))
+	sugar := logger.Sugar()
+	defaultLogger = sugar
+	return nil
 }
 
 func ConfigLog(facade gira.Application, config gira.LogConfig) error {

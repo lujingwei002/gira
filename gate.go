@@ -3,7 +3,7 @@ package gira
 import "context"
 
 type GatewayConn interface {
-	ID() uint64
+	Id() uint64
 	Close() error
 	Kick(reason string)
 	SendServerSuspend(reason string)

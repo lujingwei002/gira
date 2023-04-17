@@ -12,7 +12,6 @@ import (
 	"strings"
 	"syscall"
 
-	//https://cli.urfave.org/v2/examples/full-api-example/
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
 	"github.com/urfave/cli/v2"
@@ -183,14 +182,11 @@ func execCommandLine(line string) error {
 			} else {
 				os.Chdir("")
 			}
-			log.Printf("[OK] %s", v)
 		default:
 			log.Printf("%s", v)
 			if err := execCommandArgv(name, args); err != nil {
-				log.Printf("[FAIL] %s", v)
+				log.Error(v)
 				return err
-			} else {
-				log.Printf("[OK] %s", v)
 			}
 		}
 	}
@@ -406,6 +402,11 @@ func envListAction(args *cli.Context) error {
 	return nil
 }
 func beforeAction(args *cli.Context) error {
+	if err := log.ConfigCliLog(); err != nil {
+		return err
+	}
+	log.Println()
+	log.Println("*************", strings.Join(os.Args, " "), "***************")
 	return nil
 }
 
@@ -512,7 +513,6 @@ func runAction(c *cli.Context) error {
 	}
 	name := c.Args().First()
 	args := c.Args().Tail()
-	log.Println(args)
 	if arr, ok := proj.Config.Run[name]; !ok {
 		return nil
 	} else {

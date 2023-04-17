@@ -86,7 +86,7 @@ func (hall *hall_server) loginErrResponse(r gira.GatewayMessage, req gira.ProtoR
 
 // 客户端流数据
 func (hall *hall_server) OnClientStream(client gira.GatewayConn) {
-	sessionId := client.ID()
+	sessionId := client.Id()
 	// 最大人数判断
 	if hall.config.Framework.Gateway.MaxSessionCount == -1 {
 		log.Infow("client stream close", "session_id", sessionId)

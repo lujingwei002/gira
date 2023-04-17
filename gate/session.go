@@ -46,18 +46,18 @@ func (s *Session) setSecret(key string) {
 }
 
 func (s *Session) Push(route string, data []byte) error {
-	return s.conn.push(route, data)
+	return s.conn.Push(route, data)
 }
 
 func (s *Session) Recv(ctx context.Context) (gira.GatewayMessage, error) {
-	return s.conn.recv(ctx)
+	return s.conn.Recv(ctx)
 }
 
 func (s *Session) Response(mid uint64, data []byte) error {
-	return s.conn.response(mid, data)
+	return s.conn.Response(mid, data)
 }
 
-func (s *Session) ID() uint64 {
+func (s *Session) Id() uint64 {
 	return s.id
 }
 
@@ -74,32 +74,32 @@ func (s *Session) Bind(uid int64) error {
 }
 
 func (s *Session) Kick(reason string) {
-	s.conn.kick(reason)
-	s.conn.close()
+	s.conn.Kick(reason)
+	s.conn.Close()
 }
 
 func (s *Session) SendServerSuspend(reason string) {
-	s.conn.sendServerSuspendPacket(reason)
+	s.conn.SendServerSuspendPacket(reason)
 }
 
 func (s *Session) SendServerResume(reason string) {
-	s.conn.sendServerResumePacket(reason)
+	s.conn.SendServerResumePacket(reason)
 }
 
 func (s *Session) SendServerMaintain(reason string) {
-	s.conn.sendServerMaintainPacket(reason)
+	s.conn.SendServerMaintainPacket(reason)
 }
 
 func (s *Session) SendServerDown(reason string) {
-	s.conn.sendServerDownPacket(reason)
+	s.conn.SendServerDownPacket(reason)
 }
 
 func (s *Session) Close() error {
-	return s.conn.close()
+	return s.conn.Close()
 }
 
 func (s *Session) RemoteAddr() net.Addr {
-	return s.conn.remoteAddr()
+	return s.conn.RemoteAddr()
 }
 
 func (s *Session) Remove(key string) {
