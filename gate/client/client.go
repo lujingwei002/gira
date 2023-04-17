@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/base32"
 	"encoding/json"
 	"errors"
@@ -184,9 +185,9 @@ func WithIsWebsocket(enableWs bool) opt {
 		conn.isWebsocket = enableWs
 	}
 }
-func WithDebugMode() opt {
+func WithDebugMode(debug bool) opt {
 	return func(conn *ClientConn) {
-		conn.debug = true
+		conn.debug = debug
 	}
 }
 
@@ -228,8 +229,9 @@ func (self *ClientConn) dial(addr string) error {
 	var conn net.Conn
 	if self.isWebsocket {
 		if len(self.tslCertificate) != 0 {
-			// TODO
-			return errors.New("tls certificate not implement")
+			if conn, err = self.dialWSTLS(); err != nil {
+				return err
+			}
 		} else {
 			if conn, err = self.dialWS(); err != nil {
 				return err
@@ -244,7 +246,7 @@ func (self *ClientConn) dial(addr string) error {
 	self.setStatus(client_status_handshake)
 	err = self.sendHandshake()
 	if err != nil {
-		log.Info(fmt.Sprintf("[agent] client sendHandShake error: %s", err.Error()))
+		log.Errorw("client sendHandshake fail", "error", err)
 		conn.Close()
 		return err
 	}
@@ -365,6 +367,41 @@ func (self *ClientConn) dialWS() (net.Conn, error) {
 	return wsconn, nil
 }
 
+func (self *ClientConn) dialWSTLS() (net.Conn, error) {
+	cert, err := tls.LoadX509KeyPair(self.tslCertificate, self.tslKey)
+	if err != nil {
+		return nil, err
+	}
+	tlsDialer := &tls.Dialer{
+		Config: &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		},
+	}
+	netDialer := &net.Dialer{}
+	if self.dialTimeout != 0 {
+		netDialer.Timeout = self.dialTimeout
+	}
+	tlsDialer.NetDialer = netDialer
+	// websocket.DefaultDialer
+	d := &websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: 45 * time.Second,
+		NetDial: func(network, addr string) (net.Conn, error) {
+			return tlsDialer.DialContext(self.ctx, network, addr)
+		},
+	}
+	u := url.URL{Scheme: "wss", Host: self.serverAddr, Path: self.wsPath}
+	conn, _, err := d.DialContext(self.ctx, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	wsconn, err := ws.NewConn(conn)
+	if err != nil {
+		return nil, err
+	}
+	return wsconn, nil
+}
+
 func (self *ClientConn) setSecretKey(key string) {
 	self.secretKey = key
 }
@@ -471,7 +508,6 @@ func (self *ClientConn) processMessage(msg *message.Message) {
 	if self.debug {
 		// log.Debugw("got message", "type", msg.Type)
 	}
-
 	switch msg.Type {
 	case message.Response:
 	case message.Push:
@@ -513,15 +549,15 @@ func (self *ClientConn) processPacket(p *packet.Packet) error {
 	case packet.Heartbeat:
 		self.chWrite <- self.heartbeatPacket
 	case packet.Kick:
-		log.Info("recv kick packet")
+		log.Info("client recv kick packet")
 	case packet.ServerSuspend:
-		log.Info("recv server suspend packet")
+		log.Info("client recv server suspend packet")
 	case packet.ServerResume:
-		log.Info("recv server resume packet")
+		log.Info("client recv server resume packet")
 	case packet.ServerDown:
-		log.Info("recv server down packet")
+		log.Info("client recv server down packet")
 	case packet.ServerMaintain:
-		log.Info("recv server maintain packet")
+		log.Info("client recv server maintain packet")
 	}
 	self.lastAt = time.Now().Unix()
 	return nil
@@ -539,7 +575,7 @@ func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId 
 	select {
 	case msg := <-self.chMessage:
 		if msg == nil {
-			err = gira.ErrReadOnClosedClient
+			err = ErrBrokenPipe
 			return
 		}
 		typ = int(msg.Type)
@@ -554,7 +590,6 @@ func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId 
 			reqId = 0
 		}
 		data = msg.Data
-
 		return
 	case <-ctx.Done():
 		err = ctx.Err()

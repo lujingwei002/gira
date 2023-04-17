@@ -491,7 +491,7 @@ func TestServerClose(t *testing.T) {
 	errGroup.Go(func() error {
 		time.Sleep(1 * time.Millisecond)
 		var conn gira.GatewayClient
-		conn, err = client.Dial("127.0.0.1:1234", client.WithDebugMode(), client.WithIsWebsocket(true))
+		conn, err = client.Dial("127.0.0.1:1234", client.WithDebugMode(true), client.WithIsWebsocket(true))
 		if err != nil {
 			t.Fatal(err)
 		}
