@@ -324,7 +324,7 @@ func TestClientClose1(t *testing.T) {
 	var err error
 	var gateway *Server
 	gateway, err = Listen(context.TODO(), ":1234",
-		// WithDebugMode(true),
+		WithDebugMode(false),
 		WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
@@ -366,7 +366,7 @@ func TestClientClose1(t *testing.T) {
 		time.Sleep(1 * time.Millisecond)
 		var conn gira.GatewayClient
 		conn, err = client.Dial("127.0.0.1:1234",
-			// client.WithDebugMode(),
+			client.WithDebugMode(false),
 			client.WithIsWebsocket(true))
 		if err != nil {
 			t.Fatal(err)
@@ -472,7 +472,9 @@ func (self *GateHandler_TestServerClose) OnClientStream(s gira.GatewayConn) {
 func TestServerClose(t *testing.T) {
 	var err error
 	var gateway *Server
-	gateway, err = Listen(context.TODO(), ":1234", WithDebugMode(true), WithIsWebsocket(true))
+	gateway, err = Listen(context.TODO(), ":1234",
+		WithDebugMode(false),
+		WithIsWebsocket(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -491,7 +493,9 @@ func TestServerClose(t *testing.T) {
 	errGroup.Go(func() error {
 		time.Sleep(1 * time.Millisecond)
 		var conn gira.GatewayClient
-		conn, err = client.Dial("127.0.0.1:1234", client.WithDebugMode(true), client.WithIsWebsocket(true))
+		conn, err = client.Dial("127.0.0.1:1234",
+			client.WithDebugMode(false),
+			client.WithIsWebsocket(true))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -663,6 +667,48 @@ func TestServeKick(t *testing.T) {
 	err = errGroup.Wait()
 	if err != nil {
 		log.Infow("errGroup", "error", err)
+	}
+	return
+}
+
+type GateHandler_TestClientHandshakeTimeout struct {
+}
+
+func (self *GateHandler_TestClientHandshakeTimeout) OnClientStream(s gira.GatewayConn) {
+	// var req gira.GatewayMessage
+	var err error
+	for {
+		_, err = s.Recv(context.TODO())
+		if err != nil {
+			// log.Infow("recv", "error", err)
+			break
+		} else {
+			// log.Infow("recv", "data", string(req.Payload()))
+		}
+	}
+}
+
+// 客户端连接上服务器后，每隔1秒发送1次消息，然后主动关闭
+func TestClientHandshakeTimeout(t *testing.T) {
+	gateway, err := Listen(context.TODO(), ":1234",
+		WithDebugMode(false),
+		WithIsWebsocket(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := &GateHandler_TestClientHandshakeTimeout{}
+	go func() {
+		gateway.Serve(handler)
+	}()
+	time.Sleep(1 * time.Millisecond)
+	_, err = client.Dial("127.0.0.1:1234",
+		// client.WithDebugMode(),
+		client.WithHandshakeTimeout(time.Duration(0)*time.Second),
+		client.WithIsWebsocket(true))
+	if err == nil {
+		t.Fatal("dail success")
+	} else {
+		log.Infow("dail fail", "error", err)
 	}
 	return
 }

@@ -304,7 +304,9 @@ func (self *Conn) recvHandshakeAck(ctx context.Context) ([]*packet.Packet, error
 	for {
 		n, err := self.conn.Read(buf)
 		if err != nil {
-			log.Debugw("conn read fail", "err", err, "session_id", self.session.Id())
+			if self.server.debug {
+				log.Debugw("conn read fail", "err", err, "session_id", self.session.Id())
+			}
 			return nil, err
 		}
 		packets, err := self.decoder.Decode(buf[:n])

@@ -416,6 +416,7 @@ func (self *<<.MongoDaoStructName>>) UpsertOne(ctx context.Context, filter inter
 <<- if .IsDeriveUser>>
 
 func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructName>>) error {
+	log.Infow("<<.CollName>> save", "dirty", doc.dirty, "id", doc.Id)
 	if !doc.dirty {
 		return nil
 	}
@@ -491,7 +492,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	// opts := options.Replace().SetUpsert(true)
-
+	log.Infow("<<.CollName>> save", "<<.CapCamelPrimaryKey>>", doc.<<.CamelPrimaryKey>>)
 	models := make([]mongo.WriteModel, 0)
 	if len(doc.del) > 0 {
 		for _, v := range(doc.del) {

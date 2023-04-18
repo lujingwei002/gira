@@ -37,27 +37,18 @@ const (
 
 // Errors that could be occurred during message handling.
 var (
-	ErrSessionOnNotify    = errors.New("current session working on notify mode")
 	ErrCloseClosedSession = errors.New("close closed session")
-	ErrInvalidRegisterReq = errors.New("invalid register request")
-	// ErrBrokenPipe represents the low-level connection has broken.
-	ErrBrokenPipe = errors.New("broken low-level pipe")
-	// ErrBufferExceed indicates that the current session buffer is full and
-	// can not receive more data.
-	ErrBufferExceed       = errors.New("session send buffer exceed")
-	ErrCloseClosedGroup   = errors.New("close closed group")
-	ErrClosedGroup        = errors.New("group closed")
-	ErrMemberNotFound     = errors.New("member not found in the group")
-	ErrSessionDuplication = errors.New("session has existed in the current group")
-	ErrSprotoRequestType  = errors.New("sproto request type")
-	ErrSprotoResponseType = errors.New("sproto response type")
-	ErrHandShake          = errors.New("handshake failed")
+	ErrBrokenPipe         = errors.New("broken low-level pipe")
+	ErrHandshake          = errors.New("handshake failed")
+	ErrHandshakeAck       = errors.New("handshake ack failed")
+	ErrHandshakeTimeout   = errors.New("handshake timeout failed")
 	ErrHeartbeatTimeout   = errors.New("heartbeat timeout")
 	ErrDialTimeout        = errors.New("dial timeout")
 	ErrDialInterrupt      = errors.New("dial interrupt")
+	ErrInvalidPacket      = errors.New("invalid packet")
 )
 
-type handShake_response struct {
+type handshake_response struct {
 	Sys struct {
 		Heartbeat int    `json:"heartbeat"`
 		Session   uint64 `json:"session"`
@@ -94,6 +85,7 @@ type ClientConn struct {
 	recvBacklog        int
 	lastErr            error
 	recvBuffSize       int
+	handshakeTimeout   time.Duration
 }
 
 func newClientConn() *ClientConn {
@@ -108,6 +100,7 @@ func newClientConn() *ClientConn {
 		lastAt:             time.Now().Unix(),
 		state:              client_status_start,
 		recvBuffSize:       4096,
+		handshakeTimeout:   2 * time.Second,
 	}
 	return self
 }
@@ -174,6 +167,12 @@ func WithDialTimeout(timeout time.Duration) opt {
 	}
 }
 
+func WithHandshakeTimeout(timeout time.Duration) opt {
+	return func(conn *ClientConn) {
+		conn.handshakeTimeout = timeout
+	}
+}
+
 func WithContext(ctx context.Context) opt {
 	return func(conn *ClientConn) {
 		conn.ctx, conn.cancelFunc = context.WithCancel(ctx)
@@ -210,82 +209,84 @@ func Dial(addr string, opts ...opt) (gira.GatewayClient, error) {
 	if conn.ctx == nil {
 		conn.ctx, conn.cancelFunc = context.WithCancel(context.Background())
 	}
-	conn.chWrite = make(chan []byte, conn.recvBacklog)
-	conn.chMessage = make(chan *message.Message, conn.recvBacklog)
+
 	if err := conn.dial(addr); err != nil {
 		return nil, err
 	}
 	return conn, nil
 }
 
-func (self *ClientConn) dial(addr string) error {
+func (conn *ClientConn) dial(addr string) error {
 	var err error
 	heartbeatPacket, err := packet.Encode(packet.Heartbeat, nil)
 	if err != nil {
 		return err
 	}
-	self.heartbeatPacket = heartbeatPacket
-	self.serverAddr = addr
-	var conn net.Conn
-	if self.isWebsocket {
-		if len(self.tslCertificate) != 0 {
-			if conn, err = self.dialWSTLS(); err != nil {
+	conn.heartbeatPacket = heartbeatPacket
+	conn.serverAddr = addr
+	var c net.Conn
+	if conn.isWebsocket {
+		if len(conn.tslCertificate) != 0 {
+			if c, err = conn.dialWSTLS(); err != nil {
 				return err
 			}
 		} else {
-			if conn, err = self.dialWS(); err != nil {
+			if c, err = conn.dialWS(); err != nil {
 				return err
 			}
 		}
 	} else {
-		if conn, err = self.dialTcp(); err != nil {
+		if c, err = conn.dialTcp(); err != nil {
 			return err
 		}
 	}
-	self.conn = conn
-	self.setStatus(client_status_handshake)
-	err = self.sendHandshake()
+	conn.conn = c
+	conn.setStatus(client_status_handshake)
+	err = conn.sendHandshake()
 	if err != nil {
 		log.Errorw("client sendHandshake fail", "error", err)
-		conn.Close()
-		return err
+		c.Close()
+		return ErrHandshake
 	}
-	if err := self.recvHandshakeAck(self.ctx); err != nil {
-		conn.Close()
-		return err
+	if err := conn.recvHandshakeAck(conn.ctx); err != nil {
+		c.Close()
+		return ErrHandshakeAck
 	}
-	self.setStatus(client_status_working)
-	go self.serve()
+	conn.setStatus(client_status_working)
+	conn.chWrite = make(chan []byte, conn.sendBacklog)
+	conn.chMessage = make(chan *message.Message, conn.recvBacklog)
+	go conn.serve()
 	return nil
 }
 
-func (self *ClientConn) serve() {
+func (conn *ClientConn) serve() {
 	defer func() {
-		if self.debug {
-			log.Debugw("client serve exit", "session_id", self.sessionId)
+		if conn.debug {
+			log.Debugw("client serve exit", "session_id", conn.sessionId)
 		}
 	}()
-	errGroup, errCtx := errgroup.WithContext(self.ctx)
+	errGroup, errCtx := errgroup.WithContext(conn.ctx)
+	// 写协程
 	errGroup.Go(func() error {
-		ticker := time.NewTicker(self.heartbeat)
+		ticker := time.NewTicker(conn.heartbeat)
 		defer func() {
 			ticker.Stop()
-			close(self.chWrite)
-			self.conn.Close()
-			if self.debug {
-				log.Debugw("client write goroutine exit", "session_id", self.sessionId)
+			close(conn.chWrite)
+			conn.conn.Close()
+			if conn.debug {
+				log.Debugw("client write goroutine exit", "session_id", conn.sessionId)
 			}
 		}()
 		for {
 			select {
 			case <-ticker.C:
-				deadline := time.Now().Add(-2 * self.heartbeat).Unix()
-				if atomic.LoadInt64(&self.lastAt) < deadline {
-					log.Debugw("client heartbeat timeout", "sessionid", self.sessionId, "lastTime", atomic.LoadInt64(&self.lastAt), "deadline", deadline)
+				deadline := time.Now().Add(-2 * conn.heartbeat).Unix()
+				if atomic.LoadInt64(&conn.lastAt) < deadline {
+					log.Debugw("client heartbeat timeout", "sessionid", conn.sessionId, "lastTime", atomic.LoadInt64(&conn.lastAt), "deadline", deadline)
 					return ErrHeartbeatTimeout
 				}
-			case data := <-self.chWrite:
-				if _, err := self.conn.Write(data); err != nil {
+			case data := <-conn.chWrite:
+				if _, err := conn.conn.Write(data); err != nil {
 					log.Debugw("client write fail", "error", err)
 					return err
 				}
@@ -296,21 +297,21 @@ func (self *ClientConn) serve() {
 	})
 	errGroup.Go(func() error {
 		defer func() {
-			close(self.chMessage)
-			if self.debug {
-				log.Debugw("client read goroutine exit", "session_id", self.sessionId)
+			close(conn.chMessage)
+			if conn.debug {
+				log.Debugw("client read goroutine exit", "session_id", conn.sessionId)
 			}
 		}()
-		buf := make([]byte, 2048)
+		buf := make([]byte, conn.recvBuffSize)
 		for {
-			n, err := self.conn.Read(buf)
+			n, err := conn.conn.Read(buf)
 			if err != nil {
-				if self.debug {
-					log.Debugw("client read fail", "err", err, "session_id", self.sessionId)
+				if conn.debug {
+					log.Debugw("client read fail", "err", err, "session_id", conn.sessionId)
 				}
 				return err
 			}
-			packets, err := self.decoder.Decode(buf[:n])
+			packets, err := conn.decoder.Decode(buf[:n])
 			if err != nil {
 				return err
 			}
@@ -318,57 +319,57 @@ func (self *ClientConn) serve() {
 				continue
 			}
 			for _, p := range packets {
-				if err := self.processPacket(p); err != nil {
+				if err := conn.processPacket(p); err != nil {
 					return err
 				}
 			}
 		}
 	})
 	err := errGroup.Wait()
-	if self.debug {
-		log.Debugw("client wait group", "session_id", self.sessionId, "error", err)
+	if conn.debug {
+		log.Debugw("client wait group", "session_id", conn.sessionId, "error", err)
 	}
 }
 
-func (self *ClientConn) dialTcp() (net.Conn, error) {
+func (conn *ClientConn) dialTcp() (net.Conn, error) {
 	netDialer := net.Dialer{}
-	if self.dialTimeout != 0 {
-		netDialer.Timeout = self.dialTimeout
+	if conn.dialTimeout != 0 {
+		netDialer.Timeout = conn.dialTimeout
 	}
-	conn, err := netDialer.DialContext(self.ctx, "tcp", self.serverAddr)
+	c, err := netDialer.DialContext(conn.ctx, "tcp", conn.serverAddr)
 	if err != nil {
 		return nil, err
 	}
-	return conn, nil
+	return c, nil
 }
 
-func (self *ClientConn) dialWS() (net.Conn, error) {
+func (conn *ClientConn) dialWS() (net.Conn, error) {
 	netDialer := &net.Dialer{}
-	if self.dialTimeout != 0 {
-		netDialer.Timeout = self.dialTimeout
+	if conn.dialTimeout != 0 {
+		netDialer.Timeout = conn.dialTimeout
 	}
 	// websocket.DefaultDialer
 	d := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
 		NetDial: func(network, addr string) (net.Conn, error) {
-			return netDialer.DialContext(self.ctx, network, addr)
+			return netDialer.DialContext(conn.ctx, network, addr)
 		},
 	}
-	u := url.URL{Scheme: "ws", Host: self.serverAddr, Path: self.wsPath}
-	conn, _, err := d.DialContext(self.ctx, u.String(), nil)
+	u := url.URL{Scheme: "ws", Host: conn.serverAddr, Path: conn.wsPath}
+	c, _, err := d.DialContext(conn.ctx, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-	wsconn, err := ws.NewConn(conn)
+	wsconn, err := ws.NewConn(c)
 	if err != nil {
 		return nil, err
 	}
 	return wsconn, nil
 }
 
-func (self *ClientConn) dialWSTLS() (net.Conn, error) {
-	cert, err := tls.LoadX509KeyPair(self.tslCertificate, self.tslKey)
+func (conn *ClientConn) dialWSTLS() (net.Conn, error) {
+	cert, err := tls.LoadX509KeyPair(conn.tslCertificate, conn.tslKey)
 	if err != nil {
 		return nil, err
 	}
@@ -378,8 +379,8 @@ func (self *ClientConn) dialWSTLS() (net.Conn, error) {
 		},
 	}
 	netDialer := &net.Dialer{}
-	if self.dialTimeout != 0 {
-		netDialer.Timeout = self.dialTimeout
+	if conn.dialTimeout != 0 {
+		netDialer.Timeout = conn.dialTimeout
 	}
 	tlsDialer.NetDialer = netDialer
 	// websocket.DefaultDialer
@@ -387,40 +388,41 @@ func (self *ClientConn) dialWSTLS() (net.Conn, error) {
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
 		NetDial: func(network, addr string) (net.Conn, error) {
-			return tlsDialer.DialContext(self.ctx, network, addr)
+			return tlsDialer.DialContext(conn.ctx, network, addr)
 		},
 	}
-	u := url.URL{Scheme: "wss", Host: self.serverAddr, Path: self.wsPath}
-	conn, _, err := d.DialContext(self.ctx, u.String(), nil)
+	u := url.URL{Scheme: "wss", Host: conn.serverAddr, Path: conn.wsPath}
+	c, _, err := d.DialContext(conn.ctx, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-	wsconn, err := ws.NewConn(conn)
+	wsconn, err := ws.NewConn(c)
 	if err != nil {
 		return nil, err
 	}
 	return wsconn, nil
 }
 
-func (self *ClientConn) setSecretKey(key string) {
-	self.secretKey = key
+func (conn *ClientConn) setSecretKey(key string) {
+	conn.secretKey = key
 }
 
-func (self *ClientConn) getSecretKey() string {
-	return self.secretKey
+func (conn *ClientConn) getSecretKey() string {
+	return conn.secretKey
 }
 
-func (self *ClientConn) sendHandshake() error {
+// 发送握手协议
+func (conn *ClientConn) sendHandshake() error {
 	tokenByte := make([]byte, 8)
 	_, err := rand.Read(tokenByte)
 	if err != nil {
 		return err
 	}
 	token := ""
-	if self.rsaPublicKey != "" {
+	if conn.rsaPublicKey != "" {
 		token = base32.StdEncoding.EncodeToString(tokenByte)[:8]
-		self.setSecretKey(token)
-		token, err = crypto.RsaEncryptWithSha1Base64(token, self.rsaPublicKey)
+		conn.setSecretKey(token)
+		token, err = crypto.RsaEncryptWithSha1Base64(token, conn.rsaPublicKey)
 		if err != nil {
 			return err
 		}
@@ -440,50 +442,62 @@ func (self *ClientConn) sendHandshake() error {
 	if err != nil {
 		return err
 	}
-	if _, err := self.conn.Write(data); err != nil {
+	if _, err := conn.conn.Write(data); err != nil {
 		return err
 	}
-	if self.debug {
+	if conn.debug {
 		log.Debugw("send handshake", "token", token)
 	}
 	return nil
 }
 
-func (self *ClientConn) recvHandshakeAck(ctx context.Context) error {
-	buf := make([]byte, self.recvBuffSize)
+// 等待握手确认
+func (conn *ClientConn) recvHandshakeAck(ctx context.Context) (err error) {
+	buf := make([]byte, conn.recvBuffSize)
+	timeoutCtx, timeoutFunc := context.WithTimeout(ctx, conn.handshakeTimeout)
+	defer timeoutFunc()
+	go func() {
+		select {
+		case <-timeoutCtx.Done():
+			if timeoutCtx.Err() == context.DeadlineExceeded {
+				log.Errorw("recv handshake timeout", "error", timeoutCtx.Err())
+				// 关闭链接，便read返回
+				conn.conn.Close()
+				err = ErrHandshake
+			}
+		}
+	}()
 	for {
 		var n int
-		var err error
-		n, err = self.conn.Read(buf)
+		n, err = conn.conn.Read(buf)
 		if err != nil {
-			if self.debug {
-				log.Info(fmt.Sprintf("[agent] read message error: %s, session will be closed immediately, sessionid=%d", err.Error(), self.sessionId))
+			if conn.debug {
+				log.Info(fmt.Sprintf("[agent] read message error: %s, session will be closed immediately, sessionid=%d", err.Error(), conn.sessionId))
 			}
 			return err
 		}
-		packets, err := self.decoder.Decode(buf[:n])
+		packets, err := conn.decoder.Decode(buf[:n])
 		if err != nil {
 			log.Info(err)
 			return err
 		}
 		if len(packets) < 1 {
-			// TODO 增加timeout功能
 			continue
 		}
 		if len(packets) != 1 {
-			return errors.New("unexpect packet count")
+			return ErrInvalidPacket
 		}
 		p := packets[0]
 		if p.Type != packet.Handshake {
-			return errors.New("expect handshake packet")
+			return ErrInvalidPacket
 		}
-		msg := &handShake_response{}
+		msg := &handshake_response{}
 		err = json.Unmarshal(p.Data, msg)
 		if err != nil {
 			return err
 		}
 		if msg.Code != 200 {
-			return ErrHandShake
+			return ErrHandshake
 		}
 		payload, err := json.Marshal(map[string]interface{}{})
 		if err != nil {
@@ -493,61 +507,36 @@ func (self *ClientConn) recvHandshakeAck(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		self.sessionId = msg.Sys.Session
-		if self.debug {
-			log.Debugw("handshake success", "session_id", self.sessionId, "remote_addr", self.conn.RemoteAddr())
+		conn.sessionId = msg.Sys.Session
+		conn.heartbeat = time.Duration(msg.Sys.Heartbeat)
+		if conn.debug {
+			log.Debugw("handshake success", "session_id", conn.sessionId, "remote_addr", conn.conn.RemoteAddr())
 		}
-		if _, err := self.conn.Write(data); err != nil {
+		if _, err := conn.conn.Write(data); err != nil {
 			return err
 		}
 		return nil
 	}
 }
 
-func (self *ClientConn) processMessage(msg *message.Message) {
-	if self.debug {
-		// log.Debugw("got message", "type", msg.Type)
-	}
-	switch msg.Type {
-	case message.Response:
-	case message.Push:
-	default:
-		log.Info("Invalid message type: " + msg.Type.String())
-		return
-	}
-	if self.getSecretKey() != "" {
-		payload, err := crypto.DesDecrypt(msg.Data, self.getSecretKey())
-		if err != nil {
-			log.Info(fmt.Sprintf("crypto.DesDecrypt failed: %+v (%v)", err, payload))
-			return
-		}
-		msg.Data = payload
-	}
-	// WARN: 当前data是指向缓冲区的，如果交给其他协程处理，要复制一次
-	data := msg.Data
-	msg.Data = make([]byte, len(msg.Data))
-	copy(msg.Data, data)
-	self.chMessage <- msg
-}
-
 // 处理内部消息包
-func (self *ClientConn) processPacket(p *packet.Packet) error {
-	if self.debug {
+func (conn *ClientConn) processPacket(p *packet.Packet) error {
+	if conn.debug {
 		// log.Debugw("got packet", "type", p.Type)
 	}
 	switch p.Type {
 	case packet.Data:
-		if self.status() < client_status_working {
+		if conn.status() < client_status_working {
 			return fmt.Errorf("receive data on socket which not yet ACK, session will be closed immediately, sessionid=%d, remote=%s, status=%d",
-				self.sessionId, self.conn.RemoteAddr().String(), self.status())
+				conn.sessionId, conn.conn.RemoteAddr().String(), conn.status())
 		}
 		msg, err := message.Decode(p.Data)
 		if err != nil {
 			return err
 		}
-		self.processMessage(msg)
+		conn.processMessage(msg)
 	case packet.Heartbeat:
-		self.chWrite <- self.heartbeatPacket
+		conn.chWrite <- conn.heartbeatPacket
 	case packet.Kick:
 		log.Info("client recv kick packet")
 	case packet.ServerSuspend:
@@ -559,21 +548,47 @@ func (self *ClientConn) processPacket(p *packet.Packet) error {
 	case packet.ServerMaintain:
 		log.Info("client recv server maintain packet")
 	}
-	self.lastAt = time.Now().Unix()
+	conn.lastAt = time.Now().Unix()
 	return nil
 }
 
-func (self *ClientConn) status() int32 {
-	return atomic.LoadInt32(&self.state)
+func (conn *ClientConn) processMessage(msg *message.Message) {
+	if conn.debug {
+		// log.Debugw("got message", "type", msg.Type)
+	}
+	switch msg.Type {
+	case message.Response:
+	case message.Push:
+	default:
+		log.Info("Invalid message type: " + msg.Type.String())
+		return
+	}
+	if conn.getSecretKey() != "" {
+		payload, err := crypto.DesDecrypt(msg.Data, conn.getSecretKey())
+		if err != nil {
+			log.Info(fmt.Sprintf("crypto.DesDecrypt failed: %+v (%v)", err, payload))
+			return
+		}
+		msg.Data = payload
+	}
+	// WARN: 当前data是指向缓冲区的，如果交给其他协程处理，要复制一次
+	data := msg.Data
+	msg.Data = make([]byte, len(msg.Data))
+	copy(msg.Data, data)
+	conn.chMessage <- msg
 }
 
-func (self *ClientConn) setStatus(state int32) {
-	atomic.StoreInt32(&self.state, state)
+func (conn *ClientConn) status() int32 {
+	return atomic.LoadInt32(&conn.state)
 }
 
-func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId uint64, data []byte, err error) {
+func (conn *ClientConn) setStatus(state int32) {
+	atomic.StoreInt32(&conn.state, state)
+}
+
+func (conn *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId uint64, data []byte, err error) {
 	select {
-	case msg := <-self.chMessage:
+	case msg := <-conn.chMessage:
 		if msg == nil {
 			err = ErrBrokenPipe
 			return
@@ -582,9 +597,9 @@ func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId 
 		switch msg.Type {
 		case message.Response:
 			reqId = msg.Id
-			if s, ok := self.responseRouter.Load(reqId); ok {
+			if s, ok := conn.responseRouter.Load(reqId); ok {
 				route = s.(string)
-				self.responseRouter.Delete(reqId)
+				conn.responseRouter.Delete(reqId)
 			}
 		case message.Push:
 			reqId = 0
@@ -597,26 +612,24 @@ func (self *ClientConn) Recv(ctx context.Context) (typ int, route string, reqId 
 	}
 }
 
-func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data []byte) (err error) {
+func (conn *ClientConn) send(typ message.Type, reqId uint64, route string, data []byte) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			// log.Error(e)
-			// debug.PrintStack()
-			err = e.(error)
+			err = ErrBrokenPipe
 		}
 	}()
-	if self.status() == client_status_closed {
+	if conn.status() == client_status_closed {
 		err = ErrBrokenPipe
 		return
 	}
 	// if len(self.chSend) >= self.sendBacklog {
 	// 	return ErrBufferExceed
 	// }
-	if self.debug {
-		log.Debugw("send", "type", typ, "sessioni_id", self.sessionId, "req_id", reqId, "route", route, "len", len(data))
+	if conn.debug {
+		log.Debugw("send", "type", typ, "sessioni_id", conn.sessionId, "req_id", reqId, "route", route, "len", len(data))
 	}
 	if typ == message.Request {
-		self.responseRouter.Store(reqId, route)
+		conn.responseRouter.Store(reqId, route)
 	}
 	m := &message.Message{
 		Type:  typ,
@@ -634,7 +647,7 @@ func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data 
 	if err != nil {
 		return
 	}
-	self.chWrite <- p
+	conn.chWrite <- p
 	// if _, err := self.conn.Write(p); err != nil {
 	// 	return err
 	// }
@@ -642,21 +655,22 @@ func (self *ClientConn) send(typ message.Type, reqId uint64, route string, data 
 }
 
 // / 发送通知
-func (self *ClientConn) Notify(route string, data []byte) error {
-	return self.send(message.Notify, 0, route, data)
+func (conn *ClientConn) Notify(route string, data []byte) error {
+	return conn.send(message.Notify, 0, route, data)
 }
 
 // / 发送请求
-func (self *ClientConn) Request(route string, reqId uint64, data []byte) error {
-	return self.send(message.Request, reqId, route, data)
+func (conn *ClientConn) Request(route string, reqId uint64, data []byte) error {
+	return conn.send(message.Request, reqId, route, data)
 }
 
-func (self *ClientConn) Close() error {
-	if self.status() == client_status_closed {
+// 关闭链接，使recv等阻塞操作立刻返回
+func (conn *ClientConn) Close() error {
+	if conn.status() == client_status_closed {
 		return ErrCloseClosedSession
 	} else {
-		self.setStatus(client_status_closed)
-		self.cancelFunc()
+		conn.setStatus(client_status_closed)
+		conn.cancelFunc()
 		return nil
 	}
 }
