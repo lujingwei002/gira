@@ -129,6 +129,13 @@ func (self *<<.StructName>>) IsDirty() bool {
 	return self.dirty
 }
 
+func (self *<<.StructName>>) SetDirty() {
+	if self.dirty {
+		return
+	}
+	self.dirty = true
+}
+
 /// 是否为空，即数据库还没有数据
 func (self *<<.StructName>>) IsNone() bool {
 	return self.none

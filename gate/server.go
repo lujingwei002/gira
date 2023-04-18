@@ -261,10 +261,6 @@ func (server *Server) UseMiddleware(m MiddleWareInterface) {
 	server.middlewareArr = append(server.middlewareArr, m)
 }
 
-func (server *Server) NewGroup(name string) *Group {
-	return newGroup(server, name)
-}
-
 // 设置成维持状态,不接受新的连接
 func (server *Server) Maintain(m bool) {
 	status := server.status()

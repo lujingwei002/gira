@@ -1,4 +1,4 @@
-package game
+package hall
 
 import (
 	"context"
@@ -24,7 +24,7 @@ type hall_server struct {
 	ctx           context.Context
 	cancelFunc    context.CancelFunc
 	SessionDict   sync.Map
-	SessionCount  int64
+	sessionCount  int64
 	hallHandler   HallHandler
 	playerHandler gira.ProtoHandler
 	proto         gira.Proto
@@ -66,8 +66,8 @@ func (hall *hall_server) serve() {
 		case <-hall.ctx.Done():
 			// 服务器停止，保存数据
 			for {
-				log.Infow("hall停止中", "session_count", hall.SessionCount)
-				if hall.SessionCount <= 0 {
+				log.Infow("hall停止中", "session_count", hall.sessionCount)
+				if hall.sessionCount <= 0 {
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
@@ -85,6 +85,10 @@ func (hall *hall_server) serve() {
 			return
 		}
 	}
+}
+
+func (hall *hall_server) SessionCount() int64 {
+	return hall.sessionCount
 }
 
 // 推送消息给其他玩家
@@ -266,7 +270,7 @@ func (self grpc_hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPu
 // }
 
 func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) error {
-	ticker := time.NewTicker(time.Duration(self.hall.config.Framework.Game.GatewayReportInterval) * time.Second)
+	ticker := time.NewTicker(time.Duration(self.hall.config.Framework.Hall.GatewayReportInterval) * time.Second)
 	defer func() {
 		ticker.Stop()
 		log.Infow("gate stream exit")
@@ -296,7 +300,7 @@ func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) 
 				push := &hall_grpc.HallDataPush{
 					Type: hall_grpc.HallDataType_SERVER_REPORT,
 					Report: &hall_grpc.HallReportPush{
-						PlayerCount: self.hall.SessionCount,
+						PlayerCount: self.hall.sessionCount,
 					},
 				}
 				if err := client.Send(push); err != nil {
@@ -336,7 +340,6 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 	var req *hall_grpc.ClientMessageRequest
 	var err error
 	var memberId string
-
 	if req, err = client.Recv(); err != nil {
 		log.Errorw("recv fail", "error", err)
 		return err
@@ -361,17 +364,17 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 
 	// 建立成功， 函数结束后通知释放
 	// response管理
-	session.chClientResponse = make(chan *hall_grpc.ClientMessageResponse, hall.config.Framework.Game.ResponseBufferSize)
-	session.chClientRequest = make(chan *hall_grpc.ClientMessageRequest, hall.config.Framework.Game.RequestBufferSize)
+	session.chClientResponse = make(chan *hall_grpc.ClientMessageResponse, hall.config.Framework.Hall.ResponseBufferSize)
+	session.chClientRequest = make(chan *hall_grpc.ClientMessageRequest, hall.config.Framework.Hall.RequestBufferSize)
 
 	// 绑定到hall
 	errGroup, errCtx := errgroup.WithContext(self.hall.ctx)
 	// 绑定到hall
-	streamCtx, streamCancelFunc := context.WithCancel(self.hall.ctx)
-	session.streamCancelFunc = streamCancelFunc
+	clientCtx, clientCancelFunc := context.WithCancel(self.hall.ctx)
+	session.clientCancelFunc = clientCancelFunc
 	// recv ctrl context
 	defer func() {
-		streamCancelFunc()
+		clientCancelFunc()
 		if err := session.Call_close(self.hall.ctx, actor.WithCallTimeOut(5*time.Second)); err != nil {
 			log.Errorw("session close fail", "error", err)
 		}
@@ -413,7 +416,7 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			if err != nil {
 				log.Infow("client recv fail", "error", err, "session_id", sessionId)
 				// 关闭response channel, 回复完消息再结束
-				streamCancelFunc()
+				clientCancelFunc()
 				return
 			} else {
 				session.chClientRequest <- req
@@ -426,12 +429,14 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			log.Infow("ctrl goroutine exit", "session_id", sessionId)
 		}()
 		select {
-		case <-streamCtx.Done():
+		case <-clientCtx.Done():
+			log.Println("aaaaaaaaaaaaaaa1")
 			// 只有这里可以关闭errgroup
 			// 关闭response管道，不再接收消息
 			close(session.chClientResponse)
-			return streamCtx.Err()
+			return clientCtx.Err()
 		case <-errCtx.Done():
+			log.Println("aaaaaaaaaaaaaaa2")
 			return errCtx.Err()
 		}
 	})

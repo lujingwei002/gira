@@ -461,7 +461,7 @@ func (conn *ClientConn) recvHandshakeAck(ctx context.Context) (err error) {
 		case <-timeoutCtx.Done():
 			if timeoutCtx.Err() == context.DeadlineExceeded {
 				log.Errorw("recv handshake timeout", "error", timeoutCtx.Err())
-				// 关闭链接，便read返回
+				// 关闭链接，使read解除阻塞
 				conn.conn.Close()
 				err = ErrHandshake
 			}
@@ -508,7 +508,7 @@ func (conn *ClientConn) recvHandshakeAck(ctx context.Context) (err error) {
 			return err
 		}
 		conn.sessionId = msg.Sys.Session
-		conn.heartbeat = time.Duration(msg.Sys.Heartbeat)
+		conn.heartbeat = time.Duration(msg.Sys.Heartbeat) * time.Second
 		if conn.debug {
 			log.Debugw("handshake success", "session_id", conn.sessionId, "remote_addr", conn.conn.RemoteAddr())
 		}

@@ -144,12 +144,18 @@ type GrpcConfig struct {
 	Address string `yaml:"address"`
 }
 
+type PprofConfig struct {
+	Port int    `yaml:"port"`
+	Bind string `yaml:"bind"`
+}
+
 type Config struct {
 	Raw    []byte
 	Thread int `yaml:"thread"`
 	Env    string
 	Zone   string
-	Log    *LogConfig `yaml:"log"`
+	Log    *LogConfig  `yaml:"log"`
+	Pprof  PprofConfig `yaml:"pprof"`
 	Module struct {
 		ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
 		GameDb       *GameDbConfig       `yaml:"gamedb"`
@@ -237,7 +243,7 @@ func application_field(reader *config_reader, env map[string]interface{}, key st
 			}
 		}
 	}
-	return "none"
+	return ""
 }
 
 func other_application_field(reader *config_reader, otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
@@ -253,7 +259,7 @@ func other_application_field(reader *config_reader, otherAppType string, otherAp
 			}
 		}
 	}
-	return "none"
+	return ""
 }
 
 func host_field(reader *config_reader, env map[string]interface{}, key string) interface{} {
@@ -270,7 +276,7 @@ func host_field(reader *config_reader, env map[string]interface{}, key string) i
 		}
 	}
 	if !hostFound {
-		return "none"
+		return ""
 	}
 	if v, ok := env["host"]; ok {
 		if hosts, ok := v.(map[string]interface{}); ok {
@@ -283,7 +289,7 @@ func host_field(reader *config_reader, env map[string]interface{}, key string) i
 			}
 		}
 	}
-	return "none"
+	return ""
 }
 
 func other_host_field(reader *config_reader, otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
@@ -301,7 +307,7 @@ func other_host_field(reader *config_reader, otherAppType string, otherAppId int
 		}
 	}
 	if !hostFound {
-		return "none"
+		return ""
 	}
 	if v, ok := env["host"]; ok {
 		if hosts, ok := v.(map[string]interface{}); ok {
@@ -314,7 +320,7 @@ func other_host_field(reader *config_reader, otherAppType string, otherAppId int
 			}
 		}
 	}
-	return "none"
+	return ""
 
 }
 

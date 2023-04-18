@@ -1,4 +1,4 @@
-package game
+package hall
 
 import (
 	"github.com/lujingwei002/gira"
@@ -8,7 +8,7 @@ import (
 type Config struct {
 	gira.Config
 	Framework struct {
-		Game struct {
+		Hall struct {
 			GatewayReportInterval int64 `yaml:"gateway-report-interval"`
 			// 玩家数据保存间隔
 			BgSaveInterval       int64 `yaml:"bgsave-interval"`
@@ -16,7 +16,7 @@ type Config struct {
 			ResponseBufferSize   int   `yaml:"response-buffer-size"`
 			PushBufferSize       int   `yaml:"push-buffer-size"`
 			SessionActorBuffSize int   `yaml:"session-actor-buffer-size"`
-		} `yaml:"game"`
+		} `yaml:"hall"`
 	} `yaml:"framework"`
 }
 

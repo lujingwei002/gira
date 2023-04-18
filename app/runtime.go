@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -11,17 +12,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lujingwei002/gira/gins"
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/db"
 	"github.com/lujingwei002/gira/gate"
 	"github.com/lujingwei002/gira/grpc"
-	"github.com/lujingwei002/gira/http"
 	"github.com/lujingwei002/gira/proj"
 	"github.com/lujingwei002/gira/registry"
 	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
+
+	_ "net/http/pprof"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -66,7 +69,7 @@ type Runtime struct {
 	errGroup           *errgroup.Group
 	Config             *gira.Config
 	MainScene          *gira.Scene
-	HttpServer         *http.HttpServer
+	HttpServer         *gins.HttpServer
 	Registry           *registry.Registry
 	GameDbClient       *db.GameDbClient
 	AccountDbClient    *db.AccountDbClient
@@ -239,6 +242,12 @@ func (runtime *Runtime) onAwake() error {
 	// log.Info("application", app.FullName, "start")
 	application := runtime.Application
 	// ====内置的服务=============
+	if runtime.Config.Pprof.Port != 0 {
+		go func() {
+			log.Infof("pprof start at http://%s:%d/debug", runtime.Config.Pprof.Bind, runtime.Config.Pprof.Port)
+			http.ListenAndServe(fmt.Sprintf("%s:%d", runtime.Config.Pprof.Bind, runtime.Config.Pprof.Port), nil)
+		}()
+	}
 	if runtime.Config.Module.Sdk != nil {
 		runtime.Sdk = sdk.NewConfigSdk(*runtime.Config.Module.Sdk)
 	}
@@ -291,11 +300,11 @@ func (runtime *Runtime) onAwake() error {
 		}
 	}
 	if runtime.Config.Module.Http != nil {
-		if handler, ok := application.(http.HttpHandler); !ok {
+		if handler, ok := application.(gira.HttpHandler); !ok {
 			return gira.ErrHttpHandlerNotImplement
 		} else {
 			router := handler.HttpHandler()
-			if httpServer, err := http.NewConfigHttpServer(application, *runtime.Config.Module.Http, router); err != nil {
+			if httpServer, err := gins.NewConfigHttpServer(application, *runtime.Config.Module.Http, router); err != nil {
 				return err
 			} else {
 				runtime.HttpServer = httpServer

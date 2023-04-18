@@ -100,7 +100,7 @@ func TestManyClient(t *testing.T) {
 				}
 			}()
 			switch rand.Intn(8) {
-			case -1:
+			case 0:
 				// 不握手，不关连接
 				netDialer := &net.Dialer{}
 				netDialer.Timeout = 10 * time.Second

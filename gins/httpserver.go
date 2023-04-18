@@ -1,4 +1,4 @@
-package http
+package gins
 
 /// 参考 https://juejin.cn/post/6844903833273892871
 
@@ -87,10 +87,6 @@ type HttpServer struct {
 	server     *http.Server
 	cancelCtx  context.Context
 	cancelFunc context.CancelFunc
-}
-
-type HttpHandler interface {
-	HttpHandler() http.Handler
 }
 
 func NewConfigHttpServer(facade gira.Application, config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
