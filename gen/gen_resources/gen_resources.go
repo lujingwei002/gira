@@ -433,7 +433,10 @@ type <<.ObjectTypeName>> struct {
 	<<$resource := .>>
 	<<- range .ValueArr>>
 	<<- $v := index . $resource.ObjectKeyIndex>>
+	<<- if eq $v "">>
+	<<- else>>
 	<< camelString $v>> *<<$resource.StructName>>
+	<<- end>>
 	<<- end>>
 }
 
@@ -462,9 +465,12 @@ func (self *<<.WrapStructName>>) Make(arr <<.ArrTypeName>>) error {
 	var ok bool
 	<<- range .ValueArr>>
 		<<- $v := index . $resource.ObjectKeyIndex>>
+		<<- if eq $v "">>
+		<<- else>>
 	if self.<<- camelString $v>>, ok = dict["<<$v>>"]; !ok {
 		return fmt.Errorf("<<$resource.StructName>> <<$v>> key not found")
 	}
+		<<- end>>
 	<<- end>>
 	return nil
 }

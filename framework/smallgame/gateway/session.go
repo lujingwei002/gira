@@ -216,7 +216,7 @@ func (session *client_session) processStreamMessage(message *hall_grpc.ClientMes
 	case hall_grpc.PacketType_USER_INSTEAD:
 		session.client.Kick("账号在其他地方登录")
 	case hall_grpc.PacketType_KICK:
-		session.client.Kick("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+		session.client.Kick(string(message.Data))
 	}
 	return nil
 }

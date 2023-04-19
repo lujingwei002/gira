@@ -538,7 +538,7 @@ func (conn *ClientConn) processPacket(p *packet.Packet) error {
 	case packet.Heartbeat:
 		conn.chWrite <- conn.heartbeatPacket
 	case packet.Kick:
-		log.Info("client recv kick packet")
+		log.Info("client recv kick packet", string(p.Data))
 	case packet.ServerSuspend:
 		log.Info("client recv server suspend packet")
 	case packet.ServerResume:

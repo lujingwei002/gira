@@ -332,10 +332,6 @@ func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) 
 	return errGroup.Wait()
 }
 
-// client.Recv无法解除阻塞，要通知网送开断开连接
-// 有两种断开方式，
-// 网关连接断开，1.recv goroutine结束，2.recv ctrl goroutine结束 3.response goroutine马上结束, 4.ctrl goroutine马上结束 5.stream结束(释放session)
-// session自己主动断开, 1.ctrl goroutine结束, 关闭response channel, 2.response goroutine处理完剩余消息后结束, 3.recv ctrl goroutinue马上结束 4.stream结束(释放session) 5.recv goroutinue结束
 func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) error {
 	var req *hall_grpc.ClientMessageRequest
 	var err error
@@ -368,8 +364,6 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 	session.chClientRequest = make(chan *hall_grpc.ClientMessageRequest, hall.config.Framework.Hall.RequestBufferSize)
 
 	// 绑定到hall
-	errGroup, errCtx := errgroup.WithContext(self.hall.ctx)
-	// 绑定到hall
 	clientCtx, clientCancelFunc := context.WithCancel(self.hall.ctx)
 	session.clientCancelFunc = clientCancelFunc
 	// recv ctrl context
@@ -379,32 +373,7 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			log.Errorw("session close fail", "error", err)
 		}
 	}()
-
-	// 将response消息转发给网关
-	errGroup.Go(func() error {
-		defer func() {
-			log.Infow("response goroutine exit", "session_id", sessionId)
-		}()
-		for {
-			select {
-			case resp := <-session.chClientResponse:
-				if resp == nil {
-					// session 要求关闭，返回错误，关闭stream
-					log.Infow("response chan close", "session_id", sessionId)
-					return nil
-				}
-				if err := client.Send(resp); err != nil {
-					log.Infow("client response fail", "session_id", sessionId, "error", err)
-				} else {
-					log.Infow("client response success", "session_id", sessionId, "data", len(resp.Data))
-				}
-			// 回复完response才断开，因此不侦听其他ctx
-			case <-errCtx.Done():
-				return nil
-			}
-		}
-	})
-
+	chRecvErr := make(chan struct{})
 	go func() {
 		defer func() {
 			defer close(session.chClientRequest)
@@ -413,40 +382,70 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 		session.chClientRequest <- req
 		for {
 			req, err = client.Recv()
+			if clientCtx.Err() != nil {
+				return
+			}
 			if err != nil {
 				log.Infow("client recv fail", "error", err, "session_id", sessionId)
 				// 关闭response channel, 回复完消息再结束
-				clientCancelFunc()
+				close(chRecvErr)
 				return
 			} else {
 				session.chClientRequest <- req
 			}
 		}
 	}()
-	errGroup.Go(func() error {
-		// 等待被动结束
+	// 将response消息转发给网关
+	func() {
 		defer func() {
-			log.Infow("ctrl goroutine exit", "session_id", sessionId)
+			select {
+			case <-session.chClientResponse:
+			default:
+				close(session.chClientResponse)
+			}
+			log.Infow("response goroutine exit", "session_id", sessionId)
 		}()
-		select {
-		case <-clientCtx.Done():
-			log.Println("aaaaaaaaaaaaaaa1")
-			// 只有这里可以关闭errgroup
-			// 关闭response管道，不再接收消息
-			close(session.chClientResponse)
-			return clientCtx.Err()
-		case <-errCtx.Done():
-			log.Println("aaaaaaaaaaaaaaa2")
-			return errCtx.Err()
+		for {
+			select {
+			case resp := <-session.chClientResponse:
+				if resp == nil {
+					log.Infow("response chan close", "session_id", sessionId)
+					return
+				}
+				if err := client.Send(resp); err != nil {
+					log.Infow("client response fail", "session_id", sessionId, "error", err)
+				} else {
+					log.Infow("client response success", "session_id", sessionId, "data", len(resp.Data))
+				}
+			case <-clientCtx.Done():
+				// 发完剩下的消息
+				close(session.chClientResponse)
+				goto FLUSH_RESPONSE
+			case <-chRecvErr:
+				// 已经断开了，马上结束
+				return
+			}
 		}
-	})
-	err = errGroup.Wait()
-	// 尝试关闭 response channel
-	select {
-	case <-session.chClientResponse:
-	default:
-		close(session.chClientResponse)
-	}
+	FLUSH_RESPONSE:
+		for {
+			select {
+			case resp := <-session.chClientResponse:
+				if resp == nil {
+					log.Infow("response chan close", "session_id", sessionId)
+					return
+				}
+				if err := client.Send(resp); err != nil {
+					log.Infow("client response fail", "session_id", sessionId, "error", err)
+				} else {
+					log.Infow("client response success", "session_id", sessionId, "data", len(resp.Data))
+				}
+			case <-chRecvErr:
+				// 已经断开了，马上结束
+				return
+			}
+		}
+	}()
+
 	log.Infow("stream exit", "error", err, "session_id", sessionId, "member_id", memberId)
 	return err
 }
