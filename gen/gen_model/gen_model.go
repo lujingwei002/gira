@@ -148,9 +148,11 @@ func (self* <<.StructName>>)MarshalBinary() (data []byte, err error) {
 <<- range .FieldDict>> 
 
 func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
+	<<- if .IsComparable >>
 	if self.<<.CamelName>> == v {
 		return
 	}
+	<<- end>>
 	self.<<.CamelName>> = v
 	self.dirty = true
 }
@@ -735,6 +737,21 @@ type Field struct {
 	Coll             *Collection
 	IsPrimaryKey     bool /// 是否主键，目前只对userarr类型的表格有效果
 	IsSecondaryKey   bool /// 是否次键，目前只对userarr类型的表格有效果
+}
+
+func (f *Field) IsComparable() bool {
+	switch f.GoTypeName {
+	case "int32":
+	case "int":
+	case "int64":
+	case "string":
+	case "bool":
+	case "primitive.ObjectID":
+		return true
+	default:
+		return false
+	}
+	return false
 }
 
 func (f *Field) IsStruct() bool {

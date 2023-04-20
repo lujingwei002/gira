@@ -165,6 +165,13 @@ func (session *hall_sesssion) serve() {
 
 // 加载数据
 func (session *hall_sesssion) load() (player Player, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error(e)
+			debug.PrintStack()
+			err = e.(error)
+		}
+	}()
 	// player的ctx和session的ctx平级，player并不和session绑定，player可以将自己缓存起来，下次相同玩家登录的时候再复用
 	player, err = session.hall.hallHandler.NewPlayer(session.hall.ctx, session, session.memberId, session.avatar)
 	if err != nil {
