@@ -155,6 +155,11 @@ func main() {
 				Usage:  "build command",
 				Action: buildAction,
 			},
+			{
+				Name:   "make",
+				Usage:  "make command",
+				Action: makeAction,
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -526,6 +531,54 @@ func runAction(c *cli.Context) error {
 			}
 		}
 	}
+	return nil
+}
+
+func makeAction(c *cli.Context) error {
+	var makeDir string
+	var matchCount int = -1
+	filepath.WalkDir(proj.Config.ProjectDir, func(path string, d os.DirEntry, err error) error {
+		if d.IsDir() && d.Name() == "gmake" {
+			var dir string = path
+			var lastDir string = path
+			match := -1
+			if _, err := os.Stat(filepath.Join(dir, "Makefile")); err == nil {
+				match = 0
+				lastDir = dir
+			}
+			for i := 0; i < c.Args().Len()-1; i++ {
+				arg := c.Args().Get(i)
+				dir = filepath.Join(dir, arg)
+				if _, err := os.Stat(filepath.Join(dir, "Makefile")); err == nil {
+					match = i + 1
+					lastDir = dir
+				} else {
+					break
+				}
+			}
+			if match >= 0 && match > matchCount {
+				matchCount = match
+				makeDir = lastDir
+			}
+		}
+		return nil
+	})
+	if len(makeDir) <= 0 {
+		log.Println("Makefile not found")
+		return nil
+	}
+	if c.Args().Len()-matchCount < 1 {
+		log.Println("Target not found")
+		return nil
+	}
+	args := c.Args().Slice()[matchCount:]
+	target := args[0]
+	args = args[1:]
+	lastWd, _ := os.Getwd()
+	os.Chdir(makeDir)
+	command := fmt.Sprintf("make -C %s %s %s", makeDir, target, strings.Join(args, " "))
+	os.Chdir(lastWd)
+	execCommandLine(command)
 	return nil
 }
 

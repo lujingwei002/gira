@@ -412,7 +412,6 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 		// 租约ID
 		leaseID = leaseGrantResp.ID
 	}
-
 	// 需要同步的键值对
 	advertises := make(map[string]string, 0)
 	advertises[GRPC_KEY] = r.config.Address
