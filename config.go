@@ -10,8 +10,6 @@ import (
 	"strings"
 	"text/template"
 
-	"log"
-
 	"github.com/joho/godotenv"
 
 	yaml "gopkg.in/yaml.v3"
@@ -214,7 +212,6 @@ func LoadConfig(configDir string, envDir string, appType string, appId int32) (*
 func (c *Config) unmarshal(data []byte) error {
 	// 解析yaml
 	if err := yaml.Unmarshal(data, c); err != nil {
-		log.Println(string(data))
 		return err
 	}
 	c.Raw = data

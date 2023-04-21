@@ -1104,6 +1104,9 @@ func Gen() error {
 	}
 	fileNameArr := make([]string, 0)
 	filepath.WalkDir(proj.Config.DocModelDir, func(path string, d os.DirEntry, err error) error {
+		if d == nil {
+			return nil
+		}
 		if d.IsDir() {
 			return nil
 		}
