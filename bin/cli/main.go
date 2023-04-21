@@ -1,16 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"regexp"
 	"strings"
-	"syscall"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
@@ -151,151 +147,16 @@ func main() {
 				Action: runAction,
 			},
 			{
-				Name:   "build",
-				Usage:  "build command",
-				Action: buildAction,
-			},
-			{
-				Name:   "make",
-				Usage:  "make command",
-				Action: makeAction,
+				Name:    "build",
+				Usage:   "build command",
+				Aliases: []string{"b"},
+				Action:  buildAction,
 			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Info(err)
 	}
-}
-
-func execCommandLine(line string) error {
-	lastWd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		os.Chdir(lastWd)
-	}()
-	arr := strings.Split(line, ";")
-	for _, v := range arr {
-		pats := strings.Fields(v)
-		name := pats[0]
-		args := pats[1:]
-		switch name {
-		case "cd":
-			if len(args) > 0 {
-				os.Chdir(args[0])
-			} else {
-				os.Chdir("")
-			}
-		default:
-			log.Printf("%s", v)
-			if err := execCommandArgv(name, args); err != nil {
-				log.Error(v)
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func execCommand(command proj.CommandConfig) error {
-	lastWd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		os.Chdir(lastWd)
-	}()
-	if command.WorkDir != "" {
-		os.Chdir(command.WorkDir)
-	}
-	line := fmt.Sprintf("%s %s", command.Name, strings.Join(command.Args, " "))
-	log.Printf("%s", line)
-	if err := execCommandArgv(command.Name, command.Args); err != nil {
-		log.Printf("[FAIL] %s", line)
-		return err
-	} else {
-		log.Printf("[OK] %s", line)
-	}
-	return nil
-}
-
-func execCommandLineOutput(line string) (output string, err error) {
-	pats := strings.Fields(line)
-	name := pats[0]
-	argv := pats[1:]
-	cmd := exec.Command(name, argv...)
-	var out strings.Builder
-	cmd.Stdout = &out
-	err = cmd.Run()
-	if err != nil {
-		return
-	}
-	output = out.String()
-	return
-}
-
-func execCommandArgv(name string, argv []string) error {
-	re := regexp.MustCompile(`\$\((.*?)\)`) // 匹配 $() 括号中的内容
-	for index, arg := range argv {
-		matchesArr := re.FindAllStringSubmatch(arg, -1)
-		for _, matches := range matchesArr {
-			if len(matches) > 1 {
-				if v, err := execCommandLineOutput(matches[1]); err == nil {
-					v = strings.Trim(v, "\r\n")
-					arg = strings.Replace(arg, fmt.Sprintf("$(%s)", matches[1]), v, 1)
-				}
-			}
-		}
-		if len(matchesArr) > 0 {
-			argv[index] = arg
-		}
-	}
-	cmd := exec.Command(name, argv...)
-	// 获取命令的标准输出管道
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-	// 启动命令
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	// 创建一个channel，用于接收信号
-	c := make(chan os.Signal, 1)
-	// 监听SIGINT信号
-	signal.Notify(c, os.Interrupt, syscall.SIGINT)
-	defer func() {
-		signal.Reset(os.Interrupt, syscall.SIGINT)
-	}()
-	// 创建一个 Scanner 对象，对命令的标准输出和标准错误输出进行扫描
-	scanner1 := bufio.NewScanner(stdout)
-	go func() {
-		for scanner1.Scan() {
-			// 输出命令的标准输出
-			log.Println(scanner1.Text())
-		}
-	}()
-	scanner2 := bufio.NewScanner(stderr)
-	go func() {
-		for scanner2.Scan() {
-			// 输出命令的标准错误输出
-			fmt.Fprintln(os.Stderr, scanner2.Text())
-		}
-	}()
-	go func() {
-		// 等待信号
-		<-c
-	}()
-	// 等待命令执行完成
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func beforeAction1(args *cli.Context) error {
@@ -518,68 +379,7 @@ func runAction(c *cli.Context) error {
 	}
 	name := c.Args().First()
 	args := c.Args().Tail()
-	if arr, ok := proj.Config.Run[name]; !ok {
-		return nil
-	} else {
-		for _, line := range arr {
-			// 替换命令中的变量
-			for k, v := range args {
-				line = strings.Replace(line, fmt.Sprintf("$(%d)", k+1), v, 1)
-			}
-			if err := execCommandLine(line); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func makeAction(c *cli.Context) error {
-	var makeDir string
-	var matchCount int = -1
-	filepath.WalkDir(proj.Config.ProjectDir, func(path string, d os.DirEntry, err error) error {
-		if d.IsDir() && d.Name() == "gmake" {
-			var dir string = path
-			var lastDir string = path
-			match := -1
-			if _, err := os.Stat(filepath.Join(dir, "Makefile")); err == nil {
-				match = 0
-				lastDir = dir
-			}
-			for i := 0; i < c.Args().Len()-1; i++ {
-				arg := c.Args().Get(i)
-				dir = filepath.Join(dir, arg)
-				if _, err := os.Stat(filepath.Join(dir, "Makefile")); err == nil {
-					match = i + 1
-					lastDir = dir
-				} else {
-					break
-				}
-			}
-			if match >= 0 && match > matchCount {
-				matchCount = match
-				makeDir = lastDir
-			}
-		}
-		return nil
-	})
-	if len(makeDir) <= 0 {
-		log.Println("Makefile not found")
-		return nil
-	}
-	if c.Args().Len()-matchCount < 1 {
-		log.Println("Target not found")
-		return nil
-	}
-	args := c.Args().Slice()[matchCount:]
-	target := args[0]
-	args = args[1:]
-	lastWd, _ := os.Getwd()
-	os.Chdir(makeDir)
-	command := fmt.Sprintf("make -C %s %s %s", makeDir, target, strings.Join(args, " "))
-	os.Chdir(lastWd)
-	execCommandLine(command)
-	return nil
+	return proj.Run(name, args)
 }
 
 func buildAction(c *cli.Context) error {
@@ -587,34 +387,5 @@ func buildAction(c *cli.Context) error {
 		return nil
 	}
 	name := c.Args().First()
-	var buildFunc func(target string) error
-	buildFunc = func(target string) error {
-		if build, ok := proj.Config.Build[target]; !ok {
-			return nil
-		} else {
-			if len(build.Dependency) > 0 {
-				for _, v := range build.Dependency {
-					if err := buildFunc(v); err != nil {
-						log.Printf("[FAIL] build %s\n", v)
-						return err
-					} else {
-						log.Printf("[OK] build %s\n", v)
-					}
-				}
-			}
-			log.Printf(build.Description)
-			for _, v := range build.Run {
-				if err := execCommandLine(v); err != nil {
-					return err
-				}
-			}
-			for _, v := range build.Command {
-				if err := execCommand(v); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}
-	return buildFunc(name)
+	return proj.Build(name)
 }

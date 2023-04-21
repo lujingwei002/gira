@@ -435,7 +435,7 @@ func (self *PeerRegistry) registerSelf(r *Registry) error {
 			return err
 		}
 		if txnResp.Succeeded {
-			log.Info("etcd register", key, "=>", value, "failed", "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
+			log.Errorw("etcd register fail", "key", key, "value", value, "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 			return gira.ErrRegisterServerFail
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {

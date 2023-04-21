@@ -59,12 +59,10 @@ func capUpperString(s string) string {
 }
 
 func parse(state *gen_state) error {
-	log.Println("eee")
 	if data, err := ioutil.ReadFile(state.applicationFilePath); err != nil {
 		return err
 	} else {
 		if err := yaml.Unmarshal(data, &state.applicationsFile); err != nil {
-			log.Println("eee")
 			return err
 		}
 	}

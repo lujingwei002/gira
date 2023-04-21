@@ -13,6 +13,7 @@ import (
 // 需要两个系参数 xx -id 1 start|stop|restart
 func Cli(name string, buildVersion string, buildTime string, application gira.Application) error {
 	log.Println("build version:", buildVersion)
+	log.Println("build time:", buildTime)
 	app := &cli.App{
 		Name: "gira service",
 		// Authors:     []*cli.Author{&cli.Author{Name: "lujingwei", Email: "lujingwei002@qq.com"}},
