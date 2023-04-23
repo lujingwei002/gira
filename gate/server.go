@@ -108,6 +108,9 @@ func NewConfigServer(facade gira.Application, handler gira.GatewayHandler, confi
 		WithIsWebsocket(true),
 		WithSessionModifer(uint64(facade.GetAppId()) << 48),
 	}
+	if config.Ssl && len(config.CertFile) > 0 && len(config.KeyFile) > 0 {
+		opts = append(opts, WithTSLConfig(config.CertFile, config.KeyFile))
+	}
 	var server *Server
 	var err error
 	if server, err = Listen(facade.Context(), config.Bind, opts...); err != nil {

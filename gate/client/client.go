@@ -59,6 +59,7 @@ type handshake_response struct {
 type ClientConn struct {
 	// options
 	isWebsocket        bool
+	tslInsecure        bool
 	tslCertificate     string
 	tslKey             string
 	handshakeValidator func([]byte) error
@@ -105,92 +106,96 @@ func newClientConn() *ClientConn {
 	return self
 }
 
-type opt func(conn *ClientConn)
+type Option func(conn *ClientConn)
 
-func WithSendBacklog(v int) opt {
+func WithSendBacklog(v int) Option {
 	return func(conn *ClientConn) {
 		conn.sendBacklog = v
 	}
 }
 
-func WithRecvBacklog(v int) opt {
+func WithRecvBacklog(v int) Option {
 	return func(conn *ClientConn) {
 		conn.recvBacklog = v
 	}
 }
 
-func WithHandshakeValidator(fn func([]byte) error) opt {
+func WithHandshakeValidator(fn func([]byte) error) Option {
 	return func(conn *ClientConn) {
 		conn.handshakeValidator = fn
 	}
 }
 
-func WithRecvBuffSize(v int) opt {
+func WithRecvBuffSize(v int) Option {
 	return func(conn *ClientConn) {
 		conn.recvBuffSize = v
 	}
 }
 
-func WithHeartbeatInterval(d time.Duration) opt {
+func WithHeartbeatInterval(d time.Duration) Option {
 	return func(conn *ClientConn) {
 		conn.heartbeat = d
 	}
 }
 
-func WithDictionary(dict map[string]uint16) opt {
+func WithDictionary(dict map[string]uint16) Option {
 	return func(conn *ClientConn) {
 	}
 }
 
-func WithWSPath(path string) opt {
+func WithWSPath(path string) Option {
 	return func(conn *ClientConn) {
 		conn.wsPath = path
 	}
 }
 
-func WithServerAdd(addr string) opt {
+func WithServerAdd(addr string) Option {
 	return func(conn *ClientConn) {
 		conn.serverAddr = addr
 	}
 }
 
-func WithTSLConfig(certificate, key string) opt {
+func WithTSLInsecure(insecureSkipVerify bool) Option {
+	return func(conn *ClientConn) {
+		conn.tslInsecure = insecureSkipVerify
+	}
+}
+func WithTSLConfig(certificate, key string) Option {
 	return func(conn *ClientConn) {
 		conn.tslCertificate = certificate
 		conn.tslKey = key
 	}
 }
-
-func WithDialTimeout(timeout time.Duration) opt {
+func WithDialTimeout(timeout time.Duration) Option {
 	return func(conn *ClientConn) {
 		conn.dialTimeout = timeout
 	}
 }
 
-func WithHandshakeTimeout(timeout time.Duration) opt {
+func WithHandshakeTimeout(timeout time.Duration) Option {
 	return func(conn *ClientConn) {
 		conn.handshakeTimeout = timeout
 	}
 }
 
-func WithContext(ctx context.Context) opt {
+func WithContext(ctx context.Context) Option {
 	return func(conn *ClientConn) {
 		conn.ctx, conn.cancelFunc = context.WithCancel(ctx)
 	}
 }
 
-func WithIsWebsocket(enableWs bool) opt {
+func WithIsWebsocket(enableWs bool) Option {
 	return func(conn *ClientConn) {
 		conn.isWebsocket = enableWs
 	}
 }
-func WithDebugMode(debug bool) opt {
+func WithDebugMode(debug bool) Option {
 	return func(conn *ClientConn) {
 		conn.debug = debug
 	}
 }
 
-func WithRSAPublicKey(keyFile string) opt {
+func WithRSAPublicKey(keyFile string) Option {
 	data, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		log.Info(err)
@@ -201,7 +206,7 @@ func WithRSAPublicKey(keyFile string) opt {
 	}
 }
 
-func Dial(addr string, opts ...opt) (gira.GatewayClient, error) {
+func Dial(addr string, opts ...Option) (gira.GatewayClient, error) {
 	conn := newClientConn()
 	for _, v := range opts {
 		v(conn)
@@ -226,7 +231,11 @@ func (conn *ClientConn) dial(addr string) error {
 	conn.serverAddr = addr
 	var c net.Conn
 	if conn.isWebsocket {
-		if len(conn.tslCertificate) != 0 {
+		if conn.tslInsecure {
+			if c, err = conn.dialWSTLSInsecure(); err != nil {
+				return err
+			}
+		} else if len(conn.tslCertificate) != 0 {
 			if c, err = conn.dialWSTLS(); err != nil {
 				return err
 			}
@@ -394,6 +403,35 @@ func (conn *ClientConn) dialWSTLS() (net.Conn, error) {
 	u := url.URL{Scheme: "wss", Host: conn.serverAddr, Path: conn.wsPath}
 	c, _, err := d.DialContext(conn.ctx, u.String(), nil)
 	if err != nil {
+		return nil, err
+	}
+	wsconn, err := ws.NewConn(c)
+	if err != nil {
+		return nil, err
+	}
+	return wsconn, nil
+}
+
+func (conn *ClientConn) dialWSTLSInsecure() (net.Conn, error) {
+	netDialer := &net.Dialer{}
+	if conn.dialTimeout != 0 {
+		netDialer.Timeout = conn.dialTimeout
+	}
+	// websocket.DefaultDialer
+	d := &websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: 45 * time.Second,
+		NetDial: func(network, addr string) (net.Conn, error) {
+			return netDialer.DialContext(conn.ctx, network, addr)
+		},
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	u := url.URL{Scheme: "wss", Host: conn.serverAddr, Path: conn.wsPath}
+	c, _, err := d.DialContext(conn.ctx, u.String(), nil)
+	if err != nil {
+		log.Println("ggggggggggg33", err)
 		return nil, err
 	}
 	wsconn, err := ws.NewConn(c)

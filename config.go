@@ -118,13 +118,19 @@ type HttpConfig struct {
 	Addr         string `yaml:"addr"`
 	ReadTimeout  int64  `yaml:"read-timeout"`
 	WriteTimeout int64  `yaml:"write-timeout"`
+	Ssl          bool   `yaml:"ssl"`
+	CertFile     string `yaml:"cert-file"`
+	KeyFile      string `yaml:"key-file"`
 }
 
 // 网关模块配置
 type GatewayConfig struct {
-	Bind    string `yaml:"bind"`
-	Address string `yaml:"address"`
-	Debug   bool   `yaml:"debug"`
+	Bind     string `yaml:"bind"`
+	Address  string `yaml:"address"`
+	Debug    bool   `yaml:"debug"`
+	Ssl      bool   `yaml:"ssl"`
+	CertFile string `yaml:"cert-file"`
+	KeyFile  string `yaml:"key-file"`
 }
 
 type TestSdkConfig struct {

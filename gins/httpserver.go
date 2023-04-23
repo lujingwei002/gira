@@ -104,11 +104,20 @@ func NewConfigHttpServer(facade gira.Application, config gira.HttpConfig, router
 	}
 	h.server = server
 	httpFunc := func() error {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Infof("http server shutdown, err: %s\n", err)
-			return err
+		if config.Ssl && len(config.CertFile) > 0 && len(config.KeyFile) > 0 {
+			if err := server.ListenAndServeTLS(config.CertFile, config.KeyFile); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("https server shutdown, err: %s\n", err)
+				return err
+			} else {
+				log.Infof("https server shutdown")
+			}
 		} else {
-			log.Infof("http server shutdown")
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Infof("http server shutdown, err: %s\n", err)
+				return err
+			} else {
+				log.Infof("http server shutdown")
+			}
 		}
 		return nil
 	}
