@@ -65,10 +65,6 @@ func newConfigPeerRegistry(r *Registry) (*PeerRegistry, error) {
 	if err := self.registerSelf(r); err != nil {
 		return nil, err
 	}
-	// 侦听伙伴信息
-	if err := self.watchPeers(r); err != nil {
-		return nil, err
-	}
 	r.application.Go(func() error {
 		select {
 		case <-r.application.Done():
@@ -84,13 +80,26 @@ func newConfigPeerRegistry(r *Registry) (*PeerRegistry, error) {
 	})
 	return self, nil
 }
+
 func (self *PeerRegistry) RangePeers(f func(k any, v any) bool) {
 	self.Peers.Range(f)
 }
+
 func (self *PeerRegistry) getPeer(r *Registry, fullName string) *gira.Peer {
 	if lastValue, ok := self.Peers.Load(fullName); ok {
 		lastPeer := lastValue.(*gira.Peer)
 		return lastPeer
+	}
+	return nil
+}
+
+func (self *PeerRegistry) onStart(r *Registry) error {
+	// 侦听伙伴信息
+	if err := self.watchPeers(r); err != nil {
+		return err
+	}
+	if err := self.notify(r); err != nil {
+		return err
 	}
 	return nil
 }

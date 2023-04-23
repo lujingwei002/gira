@@ -43,7 +43,7 @@ type Registry struct {
 }
 
 func (r *Registry) OnStart() error {
-	if err := r.peerRegistry.notify(r); err != nil {
+	if err := r.peerRegistry.onStart(r); err != nil {
 		return err
 	}
 	if err := r.playerRegistry.notify(r); err != nil {
