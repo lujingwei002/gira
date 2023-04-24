@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -12,20 +13,13 @@ import (
 
 // 需要两个系参数 xx -id 1 start|stop|restart
 func Cli(name string, buildVersion string, buildTime string, application gira.Application) error {
-	log.Println("build version:", buildVersion)
-	log.Println("build time:", buildTime)
+
 	app := &cli.App{
 		Name: "gira service",
 		// Authors:     []*cli.Author{&cli.Author{Name: "lujingwei", Email: "lujingwei002@qq.com"}},
 		Description: "gira service",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:     "id",
-				Usage:    "service id",
-				Required: true,
-			},
-		},
-		Action: runAction,
+		Flags:       []cli.Flag{},
+		Action:      runAction,
 		Metadata: map[string]interface{}{
 			"application":  application,
 			"name":         name,
@@ -38,6 +32,13 @@ func Cli(name string, buildVersion string, buildTime string, application gira.Ap
 				//Aliases: []string{"start"},
 				Usage:  "Start service",
 				Action: startAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "id",
+						Usage:    "service id",
+						Required: true,
+					},
+				},
 			},
 			{
 				Name:   "status",
@@ -59,9 +60,13 @@ func Cli(name string, buildVersion string, buildTime string, application gira.Ap
 				Usage:  "Reload config",
 				Action: reloadAction,
 			},
+			{
+				Name:   "version",
+				Usage:  "Build version",
+				Action: versionAction,
+			},
 		},
 	}
-	log.Info(os.Args)
 	if err := app.Run(os.Args); err != nil {
 		log.Fatalf("app run error %+v", err)
 	}
@@ -89,6 +94,8 @@ func startAction(args *cli.Context) error {
 			buildTime = int64(t)
 		}
 	}
+	log.Println("build version:", buildVersion)
+	log.Println("build time:", buildTime)
 	log.Infof("%s %d starting...", appType, appId)
 	runtime := newRuntime(ApplicationArgs{
 		AppType:      appType,
@@ -98,7 +105,11 @@ func startAction(args *cli.Context) error {
 	}, application)
 	return runtime.serve()
 }
-
+func versionAction(args *cli.Context) error {
+	buildVersion, _ := args.App.Metadata["buildVersion"].(string)
+	fmt.Println(buildVersion)
+	return nil
+}
 func stopAction(args *cli.Context) error {
 	return nil
 }

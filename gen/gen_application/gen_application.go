@@ -38,7 +38,9 @@ var _ = (gira.ResourceManager)(&{{.ApplicationName}}_app.Application{})
 func main() {
 	app := {{.ApplicationName}}_app.NewApplication()
 	err := gira_app.Cli("{{.ApplicationName}}", buildVersion, buildTime, app)
-	log.Info(err)
+	if err != nil {
+		log.Info(err)
+	}
 }
 
 `
