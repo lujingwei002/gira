@@ -179,7 +179,7 @@ func (p *ProjectConfig) load() error {
 }
 
 func (self *BuildConfigs) load() error {
-	buildConfigFilePath := filepath.Join(Config.ProjectDir, ".giraffe", "build.yaml")
+	buildConfigFilePath := filepath.Join(Config.ProjectDir, ".gira", "build.yaml")
 	if _, err := os.Stat(buildConfigFilePath); err == nil {
 		if data, err := ioutil.ReadFile(buildConfigFilePath); err != nil {
 			return err
@@ -193,7 +193,7 @@ func (self *BuildConfigs) load() error {
 }
 
 func (self *TaskConfigs) load() error {
-	taskConfigFilePath := filepath.Join(Config.ProjectDir, ".giraffe", "tasks.yaml")
+	taskConfigFilePath := filepath.Join(Config.ProjectDir, ".gira", "tasks.yaml")
 	if _, err := os.Stat(taskConfigFilePath); err == nil {
 		if data, err := ioutil.ReadFile(taskConfigFilePath); err != nil {
 			return err

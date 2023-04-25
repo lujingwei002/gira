@@ -65,6 +65,11 @@ func Cli(name string, buildVersion string, buildTime string, application gira.Ap
 				Usage:  "Build version",
 				Action: versionAction,
 			},
+			{
+				Name:   "time",
+				Usage:  "Build time",
+				Action: timeAction,
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -105,11 +110,19 @@ func startAction(args *cli.Context) error {
 	}, application)
 	return runtime.serve()
 }
+
 func versionAction(args *cli.Context) error {
 	buildVersion, _ := args.App.Metadata["buildVersion"].(string)
 	fmt.Println(buildVersion)
 	return nil
 }
+
+func timeAction(args *cli.Context) error {
+	buildTime, _ := args.App.Metadata["buildTime"].(string)
+	fmt.Println(buildTime)
+	return nil
+}
+
 func stopAction(args *cli.Context) error {
 	return nil
 }
