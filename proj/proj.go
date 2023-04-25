@@ -297,7 +297,6 @@ func execCommandLine(line string) error {
 				os.Chdir("")
 			}
 		default:
-			log.Printf("%s", v)
 			if err := execCommandArgv(name, args); err != nil {
 				log.Fatalln(v)
 				return err
@@ -350,6 +349,7 @@ func execCommandArgv(name string, argv []string) error {
 	}
 	// 启动命令
 	if err := cmd.Start(); err != nil {
+		log.Println(err)
 		return err
 	}
 	// 创建一个channel，用于接收信号
