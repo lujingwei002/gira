@@ -297,6 +297,7 @@ func execCommandLine(line string) error {
 				os.Chdir("")
 			}
 		default:
+			log.Printf("%s", v)
 			if err := execCommandArgv(name, args); err != nil {
 				log.Fatalln(v)
 				return err
@@ -337,30 +338,20 @@ func execCommandArgv(name string, argv []string) error {
 			argv[index] = arg
 		}
 	}
-	log.Println("ccc", name, argv)
-	args := make([]string, 0)
-	args = append(args, name)
-	args = append(args, argv...)
-	log.Println(args)
-	cmd := exec.Command("bash", "-c", strings.Join(args, " "))
+	cmd := exec.Command(name, argv...)
 	// 获取命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Println("ggg", err)
 		return err
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		log.Println("ggg", err)
-
 		return err
 	}
 	// 启动命令
 	if err := cmd.Start(); err != nil {
-		log.Println(err)
 		return err
 	}
-	log.Println("ddd")
 	// 创建一个channel，用于接收信号
 	c := make(chan os.Signal, 1)
 	// 监听SIGINT信号

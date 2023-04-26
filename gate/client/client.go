@@ -431,7 +431,6 @@ func (conn *ClientConn) dialWSTLSInsecure() (net.Conn, error) {
 	u := url.URL{Scheme: "wss", Host: conn.serverAddr, Path: conn.wsPath}
 	c, _, err := d.DialContext(conn.ctx, u.String(), nil)
 	if err != nil {
-		log.Println("ggggggggggg33", err)
 		return nil, err
 	}
 	wsconn, err := ws.NewConn(c)

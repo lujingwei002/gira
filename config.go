@@ -3,7 +3,6 @@ package gira
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -381,9 +380,6 @@ func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
 	t, err = t.Parse(sb.String())
 	if err != nil {
 		return nil, err
-	}
-	for k, v := range envData {
-		log.Println("gggg", k, v)
 	}
 	out := strings.Builder{}
 	t.Execute(&out, envData)
