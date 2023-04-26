@@ -3,6 +3,7 @@ package gira
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -339,7 +340,7 @@ func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
 	// log.Infof("配置预处理后\n%v\n", sb.String())
 	// 读环境变量
 	yamlEnvFilePath := path.Join(envDir, ".config.yaml")
-	dotEnvFilePath := path.Join(envDir, ".env")
+	dotEnvFilePath := path.Join(envDir, ".config.env")
 	envData, err := c.readEnv(yamlEnvFilePath, dotEnvFilePath)
 	if err != nil {
 		return nil, err
@@ -374,13 +375,15 @@ func (c *config_reader) read(dir string, envDir string) ([]byte, error) {
 			return c.appType
 		},
 	}
-
 	// 替换环境变量
 	t := template.New("config").Delims("<<", ">>")
 	t.Funcs(funcMap)
 	t, err = t.Parse(sb.String())
 	if err != nil {
 		return nil, err
+	}
+	for k, v := range envData {
+		log.Println("gggg", k, v)
 	}
 	out := strings.Builder{}
 	t.Execute(&out, envData)
@@ -443,7 +446,8 @@ func (c *config_reader) preprocess(sb *strings.Builder, indent string, filePath 
 				// 循环匹配所有环境变量
 				for _, match := range re.FindAllString(line, -1) {
 					// 获取环境变量的值
-					envValue := os.Getenv(match[2 : len(match)-1])
+					envName := match[2 : len(match)-1]
+					envValue := os.Getenv(envName)
 					// 将环境变量替换为其值
 					line = re.ReplaceAllString(line, envValue)
 				}
