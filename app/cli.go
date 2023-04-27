@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/proj"
 
 	"github.com/lujingwei002/gira"
 	"github.com/urfave/cli/v2"
@@ -70,6 +71,30 @@ func Cli(name string, buildVersion string, buildTime string, application gira.Ap
 				Usage:  "Build time",
 				Action: timeAction,
 			},
+			{
+				Name:   "env",
+				Usage:  "打印环境变量",
+				Action: envAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "id",
+						Usage:    "service id",
+						Required: true,
+					},
+				},
+			},
+			{
+				Name:   "config",
+				Usage:  "打印配置",
+				Action: configAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "id",
+						Usage:    "service id",
+						Required: true,
+					},
+				},
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -120,6 +145,30 @@ func versionAction(args *cli.Context) error {
 func timeAction(args *cli.Context) error {
 	buildTime, _ := args.App.Metadata["buildTime"].(string)
 	fmt.Println(buildTime)
+	return nil
+}
+
+func envAction(args *cli.Context) error {
+	appId := int32(args.Int("id"))
+	appType, _ := args.App.Metadata["name"].(string)
+	if _, err := gira.LoadConfig(proj.Config.ConfigDir, proj.Config.EnvDir, appType, appId); err != nil {
+		return err
+	} else {
+		for _, k := range os.Environ() {
+			fmt.Println(k, os.Getenv(k))
+		}
+	}
+	return nil
+}
+
+func configAction(args *cli.Context) error {
+	appId := int32(args.Int("id"))
+	appType, _ := args.App.Metadata["name"].(string)
+	if c, err := gira.LoadConfig(proj.Config.ConfigDir, proj.Config.EnvDir, appType, appId); err != nil {
+		return err
+	} else {
+		fmt.Println(string(c.Raw))
+	}
 	return nil
 }
 
