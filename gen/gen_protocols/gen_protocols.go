@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -484,6 +485,11 @@ type Field struct {
 	HasComment     bool
 	Message        *Message
 }
+type SortFieldByName []*Field
+
+func (self SortFieldByName) Len() int           { return len(self) }
+func (self SortFieldByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortFieldByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 type Message struct {
 	StructName string
@@ -659,6 +665,7 @@ func (m *Message) parse(attrs map[string]interface{}) error {
 		m.FieldDict[fieldName] = field
 		m.FieldArr = append(m.FieldArr, field)
 	}
+	sort.Sort(SortFieldByName(m.FieldArr))
 	return nil
 }
 

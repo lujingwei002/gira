@@ -551,6 +551,11 @@ type Field struct {
 	Comment         string
 	Default         interface{}
 }
+type SortFieldByName []*Field
+
+func (self SortFieldByName) Len() int           { return len(self) }
+func (self SortFieldByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortFieldByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 type Resource struct {
 	ResourceName   string
@@ -713,6 +718,9 @@ func (r *Resource) readExcel(filePath string) error {
 	}
 	// 获取 Sheet1 上所有单元格
 	rows, err := f.GetRows("Sheet1")
+	if err != nil {
+		return err
+	}
 	commentRow := rows[0]
 	nameRow := rows[3]
 	typeRow := rows[4]
@@ -775,6 +783,8 @@ func (r *Resource) readExcel(filePath string) error {
 		}
 		r.ValueArr = append(r.ValueArr, valueArr)
 	}
+	// sort.Sort(SortFieldByName(r.FieldArr))
+
 	return nil
 }
 
@@ -795,6 +805,8 @@ func getSrcFileHash(arr []string) string {
 func (resource *Resource) parseStruct(attrs map[string]interface{}) error {
 	spaceRegexp := regexp.MustCompile("[^\\s]+")
 	equalRegexp := regexp.MustCompile("[^=]+")
+	fileArr := make([]*Field, 0)
+
 	for valueStr, v := range attrs {
 		var tag int
 		var err error
@@ -856,15 +868,18 @@ func (resource *Resource) parseStruct(attrs map[string]interface{}) error {
 			}
 		} else {
 			resource.FieldDict[fieldName] = field
-			resource.FieldArr = append(resource.FieldArr, field)
+			fileArr = append(fileArr, field)
 
 		}
 	}
+	sort.Sort(SortFieldByName(fileArr))
+	resource.FieldArr = append(resource.FieldArr, fileArr...)
 	return nil
 }
+
 func parse(state *GenState) error {
-	srcFilePathArr := make([]string, 0)
-	srcFilePathArr = append(srcFilePathArr, proj.Config.DocResourceFilePath)
+	// srcFilePathArr := make([]string, 0)
+	// srcFilePathArr = append(srcFilePathArr, proj.Config.DocResourceFilePath)
 
 	if data, err := ioutil.ReadFile(proj.Config.DocResourceFilePath); err != nil {
 		return err

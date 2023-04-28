@@ -63,7 +63,7 @@ import (
 <<- range .CollectionArr>> 
 // <<.CollName>>模型字段 
 var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
-	<<- range .FieldDict>> 
+	<<- range .FieldArr>> 
 	/// <<.Comment>>
 	<<.CamelName>>: "<<.Name>>",
 	<<- end>>
@@ -74,7 +74,7 @@ var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
 
 <</* 模型字段 */>>
 type <<.StructName>>_Field struct {
-	<<- range .FieldDict>> 
+	<<- range .FieldArr>> 
 	/// <<.Comment>>
 	<<.CamelName>> string;
 	<<- end>>
@@ -82,14 +82,14 @@ type <<.StructName>>_Field struct {
 
 <</* 模型Data */>>
 type <<.DataStructName>> struct {
-	<<- range .FieldDict>> 
+	<<- range .FieldArr>> 
 	/// <<.Comment>>
 	<<.CamelName>> <<.GoTypeName>> <<quote>>bson:"<<.Name>>" json:"<<.Name>>"<<quote>>
 	<<- end>>
 }
 
 func (self *<<.DataStructName>>) MarshalProtobuf(pb *<<.PbStructName>>) error {
-	<<- range .FieldDict>> 
+	<<- range .FieldArr>> 
 	<<- if eq .TypeName "id" >>
 	pb.<<.CamelName>> = self.<<.CamelName>>.String()
 	<<- else if .IsStruct >>
@@ -146,7 +146,7 @@ func (self* <<.StructName>>)MarshalBinary() (data []byte, err error) {
 	data, err = json.Marshal(self)
 	return
 }
-<<- range .FieldDict>> 
+<<- range .FieldArr>> 
 
 func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
 	<<- if .IsComparable >>
@@ -187,7 +187,7 @@ func (self *<<.StructName>>) SetDirty() {
 	}
 }
 
-<<- range .FieldDict>> 
+<<- range .FieldArr>> 
 <<- if .IsPrimaryKey>>
 <<- else>>
 <<- if .IsSecondaryKey>>
@@ -743,7 +743,7 @@ type SortFieldByName []*Field
 
 func (self SortFieldByName) Len() int           { return len(self) }
 func (self SortFieldByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortFieldByName) Less(i, j int) bool { return self[i].Name < self[j].Name }
+func (self SortFieldByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 func (f *Field) IsComparable() bool {
 	switch f.GoTypeName {
