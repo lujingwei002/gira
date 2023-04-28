@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -738,6 +739,11 @@ type Field struct {
 	IsPrimaryKey     bool /// 是否主键，目前只对userarr类型的表格有效果
 	IsSecondaryKey   bool /// 是否次键，目前只对userarr类型的表格有效果
 }
+type SortFieldByName []*Field
+
+func (self SortFieldByName) Len() int           { return len(self) }
+func (self SortFieldByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortFieldByName) Less(i, j int) bool { return self[i].Name < self[j].Name }
 
 func (f *Field) IsComparable() bool {
 	switch f.GoTypeName {
@@ -800,6 +806,7 @@ type Collection struct {
 	KeyArr               []string
 	DataStructName       string
 	FieldDict            map[string]*Field
+	FieldArr             []*Field
 	SecondaryKey         string
 	CamelSecondaryKey    string
 	CapCamelSecondaryKey string
@@ -809,6 +816,11 @@ type Collection struct {
 	PrimaryKeyField      *Field
 	SecondaryKeyField    *Field
 }
+type SortCollectionByName []*Collection
+
+func (self SortCollectionByName) Len() int           { return len(self) }
+func (self SortCollectionByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortCollectionByName) Less(i, j int) bool { return self[i].CollName < self[j].CollName }
 
 type Database struct {
 	Module              string
@@ -824,7 +836,7 @@ type Database struct {
 
 // 生成协议的状态
 type gen_state struct {
-	databaseDict []*Database
+	databaseArr []*Database
 }
 
 func QuoteChar() interface{} {
@@ -841,6 +853,7 @@ func (descriptor *Collection) IsDeriveUserArr() bool {
 
 func (descriptor *Collection) parseStruct(attrs map[string]interface{}) error {
 	descriptor.FieldDict = make(map[string]*Field)
+	descriptor.FieldArr = make([]*Field, 0)
 	//commaRegexp := regexp.MustCompile("[^,]+")
 	spaceRegexp := regexp.MustCompile("[^\\s]+")
 	equalRegexp := regexp.MustCompile("[^=]+")
@@ -911,7 +924,9 @@ func (descriptor *Collection) parseStruct(attrs map[string]interface{}) error {
 		}
 
 		descriptor.FieldDict[fieldName] = field
+		descriptor.FieldArr = append(descriptor.FieldArr, field)
 	}
+	sort.Sort(SortFieldByName(descriptor.FieldArr))
 	return nil
 }
 
@@ -1017,13 +1032,14 @@ func parse(state *gen_state, filePathArr []string) error {
 				database.CollectionArr = append(database.CollectionArr, coll)
 			}
 		}
-		state.databaseDict = append(state.databaseDict, database)
+		sort.Sort(SortCollectionByName(database.CollectionArr))
+		state.databaseArr = append(state.databaseArr, database)
 	}
 	return nil
 }
 
 func genModel(protocolState *gen_state) error {
-	for _, db := range protocolState.databaseDict {
+	for _, db := range protocolState.databaseArr {
 
 		dir := path.Dir(db.GenModelFilePath)
 		if _, err := os.Stat(dir); err != nil {
@@ -1048,7 +1064,10 @@ func genModel(protocolState *gen_state) error {
 		tmpl := template.New("model").Delims("<<", ">>")
 		tmpl.Funcs(funcMap)
 		tmpl, err = tmpl.Parse(model_template)
-		if err := tmpl.Execute(file, db); err != nil {
+		if err != nil {
+			return err
+		}
+		if err = tmpl.Execute(file, db); err != nil {
 			return err
 		}
 		file.Close()
@@ -1057,7 +1076,7 @@ func genModel(protocolState *gen_state) error {
 }
 
 func genProtobuf(protocolState *gen_state) error {
-	for _, db := range protocolState.databaseDict {
+	for _, db := range protocolState.databaseArr {
 
 		dir := path.Dir(db.GenProtobufFilePath)
 		if _, err := os.Stat(dir); err != nil {
@@ -1082,7 +1101,10 @@ func genProtobuf(protocolState *gen_state) error {
 		tmpl := template.New("model").Delims("<<", ">>")
 		tmpl.Funcs(funcMap)
 		tmpl, err = tmpl.Parse(protobuf_template)
-		if err := tmpl.Execute(file, db); err != nil {
+		if err != nil {
+			return err
+		}
+		if err = tmpl.Execute(file, db); err != nil {
 			return err
 		}
 		file.Close()
@@ -1115,8 +1137,9 @@ func Gen() error {
 		}
 		return nil
 	})
+	sort.Strings(fileNameArr)
 	genState := &gen_state{
-		databaseDict: make([]*Database, 0),
+		databaseArr: make([]*Database, 0),
 	}
 	if err := parse(genState, fileNameArr); err != nil {
 		log.Info(err)
