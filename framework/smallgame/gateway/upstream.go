@@ -7,6 +7,7 @@ import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"github.com/lujingwei002/gira/log"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -21,6 +22,7 @@ type upstream_peer struct {
 	playerCount  int64
 	buildTime    int64
 	buildVersion string
+	hall         *hall_server
 }
 
 func (peer *upstream_peer) close() {
@@ -45,17 +47,19 @@ func (server *upstream_peer) serve() error {
 	var err error
 	address := server.Address
 	ticker := time.NewTicker(1 * time.Second)
+	heartbeatTicker := time.NewTicker(time.Duration(server.hall.framework.Config.Framework.Gateway.Upstream.HeartbeatInvertal) * time.Second)
 	streamCtx, streamCancelFunc := context.WithCancel(server.ctx)
 	defer func() {
 		streamCancelFunc()
 		ticker.Stop()
+		heartbeatTicker.Stop()
 		// 关闭链接
 		if conn != nil {
 			conn.Close()
 			conn = nil
 		}
 		server.client = nil
-		log.Infow("server upstream exit")
+		log.Infow("server upstream exit", "full_name", server.FullName, "address", server.Address)
 	}()
 	for {
 		// TODO: 有什么可选参数
@@ -66,6 +70,7 @@ func (server *upstream_peer) serve() error {
 			case <-server.ctx.Done():
 				return server.ctx.Err()
 			case <-ticker.C:
+				// 重连
 				continue
 			}
 		} else {
@@ -82,6 +87,7 @@ func (server *upstream_peer) serve() error {
 			case <-server.ctx.Done():
 				return server.ctx.Err()
 			case <-ticker.C:
+				// 重连
 				continue
 			}
 		} else {
@@ -89,23 +95,47 @@ func (server *upstream_peer) serve() error {
 			break
 		}
 	}
-	server.client = client
-	for {
-		var resp *hall_grpc.HallDataPush
-		if resp, err = stream.Recv(); err != nil {
-			log.Warnw("gate recv fail", "error", err)
+	// init
+	{
+		req := &hall_grpc.InfoRequest{}
+		resp, err := client.Info(server.ctx, req)
+		if err != nil {
+			log.Warnw("hall info fail", "error", err)
 			return err
-		} else {
-			log.Infow("gate recv", "resp", resp.Type)
-			switch resp.Type {
-			case hall_grpc.HallDataType_SERVER_REPORT:
-				log.Infow("在线人数", "full_name", server.FullName, "session_count", resp.Report.PlayerCount)
-				server.playerCount = resp.Report.PlayerCount
-			case hall_grpc.HallDataType_SERVER_INIT:
-				log.Infow("server init", "full_name", server.FullName, "build_time", resp.Init.BuildTime, "build_versioin", resp.Init.BuildVersion)
-				server.buildTime = resp.Init.BuildTime
-				server.buildVersion = resp.Init.BuildVersion
+		}
+		server.buildTime = resp.BuildTime
+		server.buildVersion = resp.BuildVersion
+		log.Infow("server init", "full_name", server.FullName, "build_time", resp.BuildTime, "build_versioin", resp.BuildVersion)
+	}
+	server.client = client
+	errGroup, errCtx := errgroup.WithContext(server.ctx)
+	errGroup.Go(func() error {
+		req := &hall_grpc.HeartbeatRequest{}
+		for {
+			select {
+			case <-errCtx.Done():
+				return errCtx.Err()
+			case <-heartbeatTicker.C:
+				resp, err := client.Heartbeat(server.ctx, req)
+				if err != nil {
+					log.Warnw("hall heartbeat fail", "error", err)
+				} else {
+					log.Infow("在线人数", "full_name", server.FullName, "session_count", resp.PlayerCount)
+					server.playerCount = resp.PlayerCount
+				}
 			}
 		}
-	}
+	})
+	errGroup.Go(func() error {
+		for {
+			var resp *hall_grpc.HallDataPush
+			if resp, err = stream.Recv(); err != nil {
+				log.Warnw("gate recv fail", "error", err)
+				return err
+			} else {
+				log.Infow("gate recv", "resp", resp)
+			}
+		}
+	})
+	return errGroup.Wait()
 }

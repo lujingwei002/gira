@@ -13,27 +13,34 @@ service Hall {
     rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
     rpc PushStream (stream PushStreamRequest) returns (PushStreamResponse) {}
     rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
+    // 转发client消息
     rpc ClientStream (stream ClientMessageRequest) returns (stream ClientMessageResponse){}
     rpc GateStream (stream GateDataPush) returns (stream HallDataPush){}
+    rpc Info (InfoRequest) returns (InfoResponse) {}
+    rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
 }
 
 message GateDataPush {
 }
 
-//stream返回结构
-message HallDataPush {
-    HallDataType Type = 1;
-    HallReportPush Report = 2;
-    HallInitPush Init = 3;
+message HeartbeatRequest {
 }
 
-message HallReportPush {
+message HeartbeatResponse {
     int64 PlayerCount = 1;
 }
 
-message HallInitPush {
+message InfoRequest {
+}
+
+message InfoResponse {
     int64 BuildTime = 1;
     string BuildVersion = 2;
+}
+
+
+//stream返回结构
+message HallDataPush {
 }
 
 message ClientMessageRequest {
@@ -106,10 +113,5 @@ enum PacketType {
     USER_INSTEAD = 8;
 }
 
-enum HallDataType {
-    SERVER_SUSPEND = 0;
-    SERVER_REPORT = 1;
-    SERVER_INIT = 2;
-}
 
 

@@ -159,6 +159,7 @@ func (hall *hall_server) OnPeerAdd(peer *gira.Peer) {
 		Address:    peer.GrpcAddr,
 		ctx:        ctx,
 		cancelFunc: cancelFUnc,
+		hall:       hall,
 	}
 	if v, loaded := hall.peers.LoadOrStore(peer.Id, server); loaded {
 		lastServer := v.(*upstream_peer)

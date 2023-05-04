@@ -24,9 +24,6 @@ func (self *BaseApplication) OnFrameworkAwake(application gira.Application) erro
 func (application *BaseApplication) OnFrameworkConfigLoad(c *gira.Config) error {
 	return nil
 }
-func (application *BaseApplication) OnFrameworkGrpcServerStart(server *grpc.Server) error {
-	return nil
-}
 
 func (application *BaseApplication) GetBuildVersion() string {
 	return application.runtime.BuildVersion
@@ -76,9 +73,11 @@ func (application *BaseApplication) OnApplicationRun(runtime *Runtime) {
 func (application *BaseApplication) GetWorkDir() string {
 	return application.runtime.WorkDir
 }
+
 func (application *BaseApplication) GetLogDir() string {
 	return application.runtime.LogDir
 }
+
 func (application *BaseApplication) Wait() error {
 	return application.runtime.wait()
 }
@@ -127,9 +126,11 @@ func (application *BaseApplication) UnlockLocalUser(userId string) (*gira.Peer, 
 func (application *BaseApplication) OnLocalPlayerAdd(player *gira.LocalPlayer) {
 
 }
+
 func (application *BaseApplication) OnLocalPlayerDelete(player *gira.LocalPlayer) {
 
 }
+
 func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer) {
 
 }

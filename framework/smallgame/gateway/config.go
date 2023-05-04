@@ -15,9 +15,10 @@ type Config struct {
 			// 最大会话数量
 			MaxSessionCount int64 `yaml:"max-session-count"`
 			Upstream        struct {
-				MinId int32  `yaml:"min-id"`
-				MaxId int32  `yaml:"max-id"`
-				Name  string `yaml:"name"`
+				HeartbeatInvertal int64  `yaml:"heartbeat-interval"`
+				MinId             int32  `yaml:"min-id"`
+				MaxId             int32  `yaml:"max-id"`
+				Name              string `yaml:"name"`
 			} `yaml:"upstream"`
 		} `yaml:"gateway"`
 	} `yaml:"framework"`

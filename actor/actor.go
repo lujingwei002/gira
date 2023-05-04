@@ -30,6 +30,7 @@ func (self *Actor) Inbox() chan Request {
 type CallOptions struct {
 	TimeOut time.Duration
 }
+
 type CallTimeOutOption time.Duration
 
 func WithCallTimeOut(timeout time.Duration) CallTimeOutOption {

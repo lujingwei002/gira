@@ -24,6 +24,8 @@ const (
 	Hall_MustPush_FullMethodName     = "/hall_grpc.Hall/MustPush"
 	Hall_ClientStream_FullMethodName = "/hall_grpc.Hall/ClientStream"
 	Hall_GateStream_FullMethodName   = "/hall_grpc.Hall/GateStream"
+	Hall_Info_FullMethodName         = "/hall_grpc.Hall/Info"
+	Hall_Heartbeat_FullMethodName    = "/hall_grpc.Hall/Heartbeat"
 )
 
 // HallClient is the client API for Hall service.
@@ -34,8 +36,11 @@ type HallClient interface {
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
 	PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error)
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
+	// 转发client消息
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
 	GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error)
+	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
+	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 }
 
 type hallClient struct {
@@ -160,6 +165,24 @@ func (x *hallGateStreamClient) Recv() (*HallDataPush, error) {
 	return m, nil
 }
 
+func (c *hallClient) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
+	out := new(InfoResponse)
+	err := c.cc.Invoke(ctx, Hall_Info_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+	out := new(HeartbeatResponse)
+	err := c.cc.Invoke(ctx, Hall_Heartbeat_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HallServer is the server API for Hall service.
 // All implementations must embed UnimplementedHallServer
 // for forward compatibility
@@ -168,8 +191,11 @@ type HallServer interface {
 	UserInstead(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error)
 	PushStream(Hall_PushStreamServer) error
 	MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error)
+	// 转发client消息
 	ClientStream(Hall_ClientStreamServer) error
 	GateStream(Hall_GateStreamServer) error
+	Info(context.Context, *InfoRequest) (*InfoResponse, error)
+	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
 	mustEmbedUnimplementedHallServer()
 }
 
@@ -191,6 +217,12 @@ func (UnimplementedHallServer) ClientStream(Hall_ClientStreamServer) error {
 }
 func (UnimplementedHallServer) GateStream(Hall_GateStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method GateStream not implemented")
+}
+func (UnimplementedHallServer) Info(context.Context, *InfoRequest) (*InfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Info not implemented")
+}
+func (UnimplementedHallServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
 }
 func (UnimplementedHallServer) mustEmbedUnimplementedHallServer() {}
 
@@ -319,6 +351,42 @@ func (x *hallGateStreamServer) Recv() (*GateDataPush, error) {
 	return m, nil
 }
 
+func _Hall_Info_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HallServer).Info(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Hall_Info_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HallServer).Info(ctx, req.(*InfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Hall_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HeartbeatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HallServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Hall_Heartbeat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HallServer).Heartbeat(ctx, req.(*HeartbeatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Hall_ServiceDesc is the grpc.ServiceDesc for Hall service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -333,6 +401,14 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MustPush",
 			Handler:    _Hall_MustPush_Handler,
+		},
+		{
+			MethodName: "Info",
+			Handler:    _Hall_Info_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _Hall_Heartbeat_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

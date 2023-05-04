@@ -60,6 +60,7 @@ const (
 	E_GRPC_SERVER_NOT_OPEN           = -49
 	E_ADMIN_CLIENT_NOT_IMPLEMENT     = -50
 	E_REGISTRY_NOT_IMPLEMENT         = -51
+	E_INVALID_MEMBER_ID              = -53
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -115,6 +116,7 @@ const (
 	E_MSG_GRPC_SERVER_NOT_OPEN           = "grpc模块未开启"
 	E_MSG_ADMIN_CLIENT_NOT_IMPLEMENT     = "admin client 接口末实现"
 	E_MSG_REGISTRY_NOT_IMPLEMENT         = "注册表功能未实现"
+	E_MSG_INVALID_MEMBER_ID              = "member id非法"
 )
 
 type Error struct {
@@ -185,6 +187,7 @@ var (
 	ErrGrpcServerNotOpen           = NewError(E_GRPC_SERVER_NOT_OPEN, E_MSG_GRPC_SERVER_NOT_OPEN)
 	ErrAdminClientNotImplement     = NewError(E_ADMIN_CLIENT_NOT_IMPLEMENT, E_MSG_ADMIN_CLIENT_NOT_IMPLEMENT)
 	ErrRegistryNOtImplement        = NewError(E_REGISTRY_NOT_IMPLEMENT, E_MSG_REGISTRY_NOT_IMPLEMENT)
+	ErrInvalidMemberId             = NewError(E_INVALID_MEMBER_ID, E_MSG_INVALID_MEMBER_ID)
 )
 
 func ErrCode(err error) int32 {

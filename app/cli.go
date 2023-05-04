@@ -111,6 +111,7 @@ func Start(application gira.Application, appId int32, appType string) error {
 	return runtime.start()
 }
 
+// 启动应用
 func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	application, _ := args.App.Metadata["application"].(gira.Application)
@@ -136,18 +137,21 @@ func startAction(args *cli.Context) error {
 	return runtime.serve()
 }
 
+// 打印应用构建版本
 func versionAction(args *cli.Context) error {
 	buildVersion, _ := args.App.Metadata["buildVersion"].(string)
 	fmt.Println(buildVersion)
 	return nil
 }
 
+// 打印应用构建时间
 func timeAction(args *cli.Context) error {
 	buildTime, _ := args.App.Metadata["buildTime"].(string)
 	fmt.Println(buildTime)
 	return nil
 }
 
+// 打印应用环境变量
 func envAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	appType, _ := args.App.Metadata["name"].(string)
@@ -161,6 +165,7 @@ func envAction(args *cli.Context) error {
 	return nil
 }
 
+// 打印应用配置
 func configAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	appType, _ := args.App.Metadata["name"].(string)

@@ -269,24 +269,27 @@ func (self grpc_hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPu
 // 	hall *hall_server
 // }
 
+func (self grpc_hall_server) Info(ctx context.Context, req *hall_grpc.InfoRequest) (*hall_grpc.InfoResponse, error) {
+	resp := &hall_grpc.InfoResponse{
+		BuildTime:    facade.GetBuildTime(),
+		BuildVersion: facade.GetBuildVersion(),
+	}
+	return resp, nil
+}
+
+func (self grpc_hall_server) Heartbeat(ctx context.Context, req *hall_grpc.HeartbeatRequest) (*hall_grpc.HeartbeatResponse, error) {
+	resp := &hall_grpc.HeartbeatResponse{
+		PlayerCount: self.hall.sessionCount,
+	}
+	return resp, nil
+}
+
 func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) error {
-	ticker := time.NewTicker(time.Duration(self.hall.config.Framework.Hall.GatewayReportInterval) * time.Second)
+	// ticker := time.NewTicker(time.Duration(self.hall.config.Framework.Hall.GatewayReportInterval) * time.Second)
 	defer func() {
-		ticker.Stop()
+		// ticker.Stop()
 		log.Infow("gate stream exit")
 	}()
-	{
-		push := &hall_grpc.HallDataPush{
-			Type: hall_grpc.HallDataType_SERVER_INIT,
-			Init: &hall_grpc.HallInitPush{
-				BuildTime:    facade.GetBuildTime(),
-				BuildVersion: facade.GetBuildVersion(),
-			},
-		}
-		if err := client.Send(push); err != nil {
-			log.Infow("gateway send fail", "error", err)
-		}
-	}
 	errGroup, errCtx := errgroup.WithContext(self.hall.ctx)
 	// 定时发送在线人数
 	errGroup.Go(func() error {
@@ -296,20 +299,10 @@ func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) 
 				return self.hall.ctx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
-			case <-ticker.C:
-				push := &hall_grpc.HallDataPush{
-					Type: hall_grpc.HallDataType_SERVER_REPORT,
-					Report: &hall_grpc.HallReportPush{
-						PlayerCount: self.hall.sessionCount,
-					},
-				}
-				if err := client.Send(push); err != nil {
-					log.Infow("gateway send fail", "error", err)
-					return err
-				}
 			}
 		}
 	})
+	// 循环接收gate的命令
 	errGroup.Go(func() error {
 		for {
 			select {
@@ -347,7 +340,7 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 	log.Infow("bind memberid", "session_id", sessionId, "member_id", memberId)
 	if memberId == "" {
 		log.Errorw("invalid memberid", "session_id", sessionId, "member_id", memberId)
-		return gira.ErrTodo
+		return gira.ErrInvalidMemberId
 	}
 	// 申请建立会话
 	var session *hall_sesssion
@@ -373,6 +366,7 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			log.Errorw("session close fail", "error", err)
 		}
 	}()
+	// 读取client消息，塞进管道
 	chRecvErr := make(chan struct{})
 	go func() {
 		defer func() {
@@ -387,7 +381,6 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			}
 			if err != nil {
 				log.Infow("client recv fail", "error", err, "session_id", sessionId)
-				// 关闭response channel, 回复完消息再结束
 				close(chRecvErr)
 				return
 			} else {
@@ -413,7 +406,7 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 					return
 				}
 				if err := client.Send(resp); err != nil {
-					log.Infow("client response fail", "session_id", sessionId, "error", err)
+					log.Warnw("client response fail", "session_id", sessionId, "error", err)
 				} else {
 					log.Infow("client response success", "session_id", sessionId, "data", len(resp.Data))
 				}
@@ -435,7 +428,7 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 					return
 				}
 				if err := client.Send(resp); err != nil {
-					log.Infow("client response fail", "session_id", sessionId, "error", err)
+					log.Warnw("client response fail", "session_id", sessionId, "error", err)
 				} else {
 					log.Infow("client response success", "session_id", sessionId, "data", len(resp.Data))
 				}
@@ -445,7 +438,6 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 			}
 		}
 	}()
-
-	log.Infow("stream exit", "error", err, "session_id", sessionId, "member_id", memberId)
+	log.Infow("client stream exit", "error", err, "session_id", sessionId, "member_id", memberId)
 	return err
 }
