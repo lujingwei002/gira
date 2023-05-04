@@ -363,7 +363,7 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 	defer func() {
 		clientCancelFunc()
 		if err := session.Call_close(self.hall.ctx, actor.WithCallTimeOut(5*time.Second)); err != nil {
-			log.Errorw("session close fail", "error", err)
+			log.Errorw("session close fail", "session_id", sessionId, "error", err)
 		}
 	}()
 	// 读取client消息，塞进管道
@@ -406,9 +406,9 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 					return
 				}
 				if err := client.Send(resp); err != nil {
-					log.Warnw("client response fail", "session_id", sessionId, "error", err)
+					log.Warnw("client response fail", "session_id", sessionId, "name", resp.Route, "error", err)
 				} else {
-					log.Infow("client response success", "session_id", sessionId, "data", len(resp.Data))
+					log.Infow("response", "session_id", sessionId, "name", resp.Route, "req_id", resp.ReqId, "data", len(resp.Data))
 				}
 			case <-clientCtx.Done():
 				// 发完剩下的消息
@@ -428,9 +428,9 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 					return
 				}
 				if err := client.Send(resp); err != nil {
-					log.Warnw("client response fail", "session_id", sessionId, "error", err)
+					log.Warnw("client response fail", "session_id", sessionId, "name", resp.Route, "error", err)
 				} else {
-					log.Infow("client response success", "session_id", sessionId, "data", len(resp.Data))
+					log.Infow("response", "session_id", sessionId, "name", resp.Route, "req_id", resp.ReqId, "data", len(resp.Data))
 				}
 			case <-chRecvErr:
 				// 已经断开了，马上结束
