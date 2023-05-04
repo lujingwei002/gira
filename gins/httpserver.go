@@ -19,11 +19,11 @@ type BaseJsonResponse struct {
 	Msg  string `json:"msg"`
 }
 
-func (self BaseJsonResponse) SetCode(v int32) {
+func (self *BaseJsonResponse) SetCode(v int32) {
 	self.Code = v
 }
 
-func (self BaseJsonResponse) SetMsg(v string) {
+func (self *BaseJsonResponse) SetMsg(v string) {
 	self.Msg = v
 }
 
