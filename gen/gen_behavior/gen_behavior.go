@@ -286,7 +286,7 @@ var type_name_dict = map[string]field_type{
 }
 
 var go_type_name_dict = map[field_type]string{
-	field_type_int:       "int64",
+	field_type_int:       "int",
 	field_type_int32:     "int32",
 	field_type_int64:     "int64",
 	field_type_string:    "string",
@@ -298,7 +298,7 @@ var go_type_name_dict = map[field_type]string{
 }
 
 var protobuf_type_name_dict = map[field_type]string{
-	field_type_int:       "int64",
+	field_type_int:       "int",
 	field_type_int32:     "int32",
 	field_type_int64:     "int64",
 	field_type_string:    "string",
