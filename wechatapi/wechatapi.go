@@ -100,8 +100,8 @@ type GetWxaCodeUnLimitResponse struct {
 }
 
 type GetWxaCodeUnLimitRequest struct {
-	Scene string `json:"scene"`
-	// Page       string `json:"page"`
+	Scene      string `json:"scene"`
+	Page       string `json:"page"`
 	EnvVersion string `json:"env_version"`
 }
 
@@ -113,8 +113,8 @@ func GetWxaCodeUnLimit(accessToken string, scene string, page string, envVersion
 	params.Set("access_token", accessToken)
 	url := fmt.Sprintf("%s/wxa/getwxacodeunlimit?%s", host, params.Encode())
 	req := &GetWxaCodeUnLimitRequest{
-		Scene: scene,
-		// Page:       page,
+		Scene:      scene,
+		Page:       page,
 		EnvVersion: envVersion,
 	}
 	var httpReq *http.Request
