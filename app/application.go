@@ -9,8 +9,11 @@ import (
 
 // 负载实现gira声明的接口和启动的模块
 type BaseApplication struct {
-	runtime     *Runtime
-	gateHandler gira.GatewayHandler
+	runtime *Runtime
+}
+
+func (application BaseApplication) GetConfig() *gira.Config {
+	return application.runtime.config
 }
 
 func (application *BaseApplication) OnFrameworkStart() error {
@@ -88,6 +91,10 @@ func (application *BaseApplication) GetAccountDbClient() gira.MongoClient {
 
 func (application *BaseApplication) GetGameDbClient() gira.MongoClient {
 	return application.runtime.GameDbClient
+}
+
+func (application *BaseApplication) GetBehaviorDbClient() gira.MongoClient {
+	return application.runtime.BehaviorDbClient
 }
 
 func (application *BaseApplication) GetStatDbClient() gira.MongoClient {

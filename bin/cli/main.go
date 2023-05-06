@@ -13,6 +13,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/lujingwei002/gira/gen/gen_application"
+	"github.com/lujingwei002/gira/gen/gen_behavior"
 	"github.com/lujingwei002/gira/gen/gen_const"
 	"github.com/lujingwei002/gira/gen/gen_macro"
 	"github.com/lujingwei002/gira/gen/gen_model"
@@ -67,6 +68,11 @@ func main() {
 						Name:   "app",
 						Usage:  "gen app",
 						Action: genAppAction,
+					},
+					{
+						Name:   "behavior",
+						Usage:  "gen behavior",
+						Action: genBehaviorAction,
 					},
 				},
 			},
@@ -308,6 +314,13 @@ func genAppAction(args *cli.Context) error {
 
 func genConstAction(args *cli.Context) error {
 	if err := gen_const.Gen(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func genBehaviorAction(args *cli.Context) error {
+	if err := gen_behavior.Gen(); err != nil {
 		return err
 	}
 	return nil

@@ -46,6 +46,17 @@ type GameDbConfig struct {
 	Db       string `yaml:"db"`
 }
 
+// 行为日志数据库配置
+type BehaviorDbConfig struct {
+	Host         string `yaml:"host"`
+	Port         int    `yaml:"port"`
+	User         string `yaml:"user"`
+	Password     string `yaml:"password"`
+	Db           string `yaml:"db"`
+	SyncInterval int64  `yaml:"sync-interval"`
+	BatchInsert  int    `yaml:"batch-insert"`
+}
+
 // 账号数据库配置
 type AccountCacheConfig struct {
 	Host     string `yaml:"host"`
@@ -77,6 +88,10 @@ func (self ResourceDbConfig) Uri() string {
 }
 
 func (self GameDbConfig) Uri() string {
+	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
+}
+
+func (self BehaviorDbConfig) Uri() string {
 	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
 }
 
@@ -164,6 +179,7 @@ type Config struct {
 	Module struct {
 		ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
 		GameDb       *GameDbConfig       `yaml:"gamedb"`
+		BehaviorDb   *BehaviorDbConfig   `yaml:"behaviordb"`
 		AccountDb    *AccountDbConfig    `yaml:"accountdb"`
 		StatDb       *StatDbConfig       `yaml:"statdb"`
 		AdminDb      *AdminDbConfig      `yaml:"admindb"`

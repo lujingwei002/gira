@@ -98,7 +98,7 @@ func Cli(name string, buildVersion string, buildTime string, application gira.Ap
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		log.Fatalf("app run error %+v", err)
+		log.Errorw("app run fail", "error", err)
 	}
 	return nil
 }

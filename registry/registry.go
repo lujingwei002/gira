@@ -88,7 +88,7 @@ func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*
 
 	// 建立连接
 	if client, err = clientv3.New(c); err != nil {
-		log.Infof("connect to etcd failed, err:%v\n", err)
+		log.Errorw("connect to etcd fail", "error", err)
 		return nil, err
 	}
 	r.client = client

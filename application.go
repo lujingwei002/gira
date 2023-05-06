@@ -18,6 +18,7 @@ type Application interface {
 	OnStart() error
 
 	// ======= 状态数据 ===========
+	GetConfig() *Config
 	GetAppType() string
 	GetAppName() string
 	GetAppFullName() string

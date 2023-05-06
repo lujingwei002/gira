@@ -77,12 +77,14 @@ type ProjectConfig struct {
 	SrcGenProtocolDir    string // src/gen/protocol/
 	SrcGenConstDir       string // src/gen/const/
 	SrcGenResourceDir    string // src/gen/resource/
+	SrcGenBehaviorDir    string // src/gen/behavior/
 	ExcelDir             string // doc/resource/
 	ConstDocFilePath     string // doc/const.yaml
 	DocResourceFilePath  string // doc/resource.yaml
 	DocProtocolFilePath  string // doc/protocol.yaml
 	DocProtocolDir       string // doc/protocol/
 	DocModelDir          string // doc/model/
+	DocBehaviorDir       string // doc/behavior/
 }
 
 func init() {
@@ -157,12 +159,14 @@ func (p *ProjectConfig) load() error {
 	p.SrcGenApplicationDir = path.Join(p.SrcGenDir, "application")
 	p.SrcGenResourceDir = path.Join(p.SrcGenDir, "resource")
 	p.SrcGenProtocolDir = path.Join(p.SrcGenDir, "protocol")
+	p.SrcGenBehaviorDir = path.Join(p.SrcGenDir, "behavior")
 	p.ExcelDir = path.Join(p.DocDir, "resource")
 	p.ConstDocFilePath = path.Join(p.DocDir, "const.yaml")
 	p.DocResourceFilePath = path.Join(p.DocDir, "resource.yaml")
 	p.DocProtocolFilePath = path.Join(p.DocDir, "protocol.yaml")
 	p.DocProtocolDir = path.Join(p.DocDir, "protocol")
 	p.DocModelDir = path.Join(p.DocDir, "model")
+	p.DocBehaviorDir = path.Join(p.DocDir, "behavior")
 	p.GenProtocolDir = path.Join(p.GenDir, "protocol")
 	if _, err := os.Stat(p.ProjectConfFilePath); err != nil && os.IsNotExist(err) {
 		return err

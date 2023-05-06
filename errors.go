@@ -60,7 +60,8 @@ const (
 	E_GRPC_SERVER_NOT_OPEN           = -49
 	E_ADMIN_CLIENT_NOT_IMPLEMENT     = -50
 	E_REGISTRY_NOT_IMPLEMENT         = -51
-	E_INVALID_MEMBER_ID              = -53
+	E_INVALID_MEMBER_ID              = -52
+	E_BEHAVIOR_DRIVER_NOT_INIT       = -53
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -117,6 +118,7 @@ const (
 	E_MSG_ADMIN_CLIENT_NOT_IMPLEMENT     = "admin client 接口末实现"
 	E_MSG_REGISTRY_NOT_IMPLEMENT         = "注册表功能未实现"
 	E_MSG_INVALID_MEMBER_ID              = "member id非法"
+	E_MSG_BEHAVIOR_DRIVER_NOT_INIT       = "behavior driver not init"
 )
 
 type Error struct {
@@ -188,6 +190,7 @@ var (
 	ErrAdminClientNotImplement     = NewError(E_ADMIN_CLIENT_NOT_IMPLEMENT, E_MSG_ADMIN_CLIENT_NOT_IMPLEMENT)
 	ErrRegistryNOtImplement        = NewError(E_REGISTRY_NOT_IMPLEMENT, E_MSG_REGISTRY_NOT_IMPLEMENT)
 	ErrInvalidMemberId             = NewError(E_INVALID_MEMBER_ID, E_MSG_INVALID_MEMBER_ID)
+	ErrBehaviorNotInit             = NewError(E_BEHAVIOR_DRIVER_NOT_INIT, E_MSG_BEHAVIOR_DRIVER_NOT_INIT)
 )
 
 func ErrCode(err error) int32 {

@@ -7,6 +7,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+func GetConfig() *gira.Config {
+	return gira.App().GetConfig()
+}
+
 func Context() context.Context {
 	return gira.App().Context()
 }
@@ -25,6 +29,10 @@ func GetAppId() int32 {
 
 func GetAppFullName() string {
 	return gira.App().GetAppFullName()
+}
+
+func GetAppType() string {
+	return gira.App().GetAppType()
 }
 
 func GetResourceDbClient() gira.MongoClient {
@@ -113,6 +121,15 @@ func GetAccountDbClient() gira.MongoClient {
 	}
 }
 
+func GetBehaviorDbClient() gira.MongoClient {
+	application := gira.App()
+	if h, ok := application.(gira.BehaviorDbClient); ok {
+		return h.GetBehaviorDbClient()
+	} else {
+		return nil
+	}
+}
+
 func GetAccountCacheClient() gira.RedisClient {
 	application := gira.App()
 	if h, ok := application.(gira.AccountCacheClient); ok {
@@ -133,6 +150,10 @@ func GetGameDbClient() gira.MongoClient {
 
 func Go(f func() error) {
 	gira.App().Go(f)
+}
+
+func Done() <-chan struct{} {
+	return gira.App().Done()
 }
 
 func RegisterGrpc(f func(server *grpc.Server) error) error {
