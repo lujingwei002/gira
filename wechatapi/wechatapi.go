@@ -2,6 +2,7 @@ package wechatapi
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,6 +29,10 @@ const (
 // https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html
 // 小程序登录
 func JsCode2Session(appId string, secret string, jsCode string, grantType string) (*JsCode2SessionResponse, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	host := "https://api.weixin.qq.com"
 	params := url.Values{}
 	params.Set("appid", appId)
@@ -37,7 +42,7 @@ func JsCode2Session(appId string, secret string, jsCode string, grantType string
 	url := fmt.Sprintf("%s/sns/jscode2session?%s", host, params.Encode())
 	var result *http.Response
 	var err error
-	result, err = http.Get(url)
+	result, err = client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +71,10 @@ const (
 // https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/mp-access-token/getAccessToken.html
 // 小程序登录
 func GetAccessToken(appId string, secret string, grantType string) (*GetAccessTokenResponse, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	host := "https://api.weixin.qq.com"
 	params := url.Values{}
 	params.Set("appid", appId)
@@ -74,7 +83,7 @@ func GetAccessToken(appId string, secret string, grantType string) (*GetAccessTo
 	url := fmt.Sprintf("%s/cgi-bin/token?%s", host, params.Encode())
 	var result *http.Response
 	var err error
-	result, err = http.Get(url)
+	result, err = client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +117,9 @@ type GetWxaCodeUnLimitRequest struct {
 // https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/qr-code/getUnlimitedQRCode.html
 // 小程序登录
 func GetWxaCodeUnLimit(accessToken string, scene string, page string, envVersion string) (*GetWxaCodeUnLimitResponse, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	host := "https://api.weixin.qq.com"
 	params := url.Values{}
 	params.Set("access_token", accessToken)
@@ -130,7 +142,7 @@ func GetWxaCodeUnLimit(accessToken string, scene string, page string, envVersion
 	if err != nil {
 		return nil, err
 	}
-	client := &http.Client{}
+	client := &http.Client{Transport: tr}
 	// Send the HTTP request
 	result, err = client.Do(httpReq)
 	if err != nil {
