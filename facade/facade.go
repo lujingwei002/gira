@@ -130,6 +130,15 @@ func GetBehaviorDbClient() gira.MongoClient {
 	}
 }
 
+func GetAdminCacheClient() gira.RedisClient {
+	application := gira.App()
+	if h, ok := application.(gira.AdminCacheClient); ok {
+		return h.GetAdminCacheClient()
+	} else {
+		return nil
+	}
+}
+
 func GetAccountCacheClient() gira.RedisClient {
 	application := gira.App()
 	if h, ok := application.(gira.AccountCacheClient); ok {

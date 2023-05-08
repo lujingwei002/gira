@@ -36,3 +36,6 @@ type AccountCacheClient interface {
 type BehaviorDbClient interface {
 	GetBehaviorDbClient() MongoClient
 }
+type AdminCacheClient interface {
+	GetAdminCacheClient() RedisClient
+}

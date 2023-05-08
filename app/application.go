@@ -105,6 +105,10 @@ func (application *BaseApplication) GetAccountCacheClient() gira.RedisClient {
 	return application.runtime.AccountCacheClient
 }
 
+func (application *BaseApplication) GetAdminCacheClient() gira.RedisClient {
+	return application.runtime.AdminCacheClient
+}
+
 func (application *BaseApplication) GetResourceDbClient() gira.MongoClient {
 	return application.runtime.ResourceDbClient
 }
