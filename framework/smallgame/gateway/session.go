@@ -206,6 +206,7 @@ func (self *client_session) processClientMessage(message gira.GatewayMessage) er
 func (session *client_session) processStreamMessage(message *hall_grpc.ClientMessageResponse) error {
 	sessionId := session.sessionId
 	log.Infow("upstream=>client", "session_id", sessionId, "type", message.Type, "route", message.Route, "len", len(message.Data), "req_id", message.ReqId)
+
 	switch message.Type {
 	case hall_grpc.PacketType_DATA:
 		if message.ReqId != 0 {

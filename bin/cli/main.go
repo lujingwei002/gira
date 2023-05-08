@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
@@ -78,7 +81,7 @@ func main() {
 			},
 			{
 				Name:   "resource",
-				Usage:  "resource [compress|migrate]",
+				Usage:  "resource [compress|push]",
 				Before: beforeAction1,
 				Subcommands: []*cli.Command{
 					{
@@ -97,6 +100,12 @@ func main() {
 						Action: resourceReloadAction,
 					},
 				},
+			},
+			{
+				Name:   "migrate",
+				Usage:  "migrate dbname",
+				Before: beforeAction1,
+				Action: migrateAction,
 			},
 			{
 				Name:   "env",
@@ -169,23 +178,79 @@ func beforeAction1(args *cli.Context) error {
 	return nil
 }
 
-func command(bin string, arg ...string) error {
-	if _, err := os.Stat(bin); err != nil && os.IsNotExist(err) {
-		return err
-	}
-	log.Infow("run command", "command", fmt.Sprint(arg))
-	cmd := exec.Command(bin, arg...)
-	output, err := cmd.CombinedOutput()
+func command(name string, argv []string) error {
+	cmd := exec.Command(name, argv...)
+	// 获取命令的标准输出管道
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
 	}
-	log.Info("output:\n", string(output))
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	// 启动命令
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	// 创建一个channel，用于接收信号
+	c := make(chan os.Signal, 1)
+	// 监听SIGINT信号
+	signal.Notify(c, os.Interrupt, syscall.SIGINT)
+	defer func() {
+		signal.Reset(os.Interrupt, syscall.SIGINT)
+	}()
+	// 创建一个 Scanner 对象，对命令的标准输出和标准错误输出进行扫描
+	scanner1 := bufio.NewScanner(stdout)
+	go func() {
+		for scanner1.Scan() {
+			// 输出命令的标准输出
+			log.Println(scanner1.Text())
+		}
+	}()
+	scanner2 := bufio.NewScanner(stderr)
+	go func() {
+		for scanner2.Scan() {
+			// 输出命令的标准错误输出
+			fmt.Fprintln(os.Stderr, scanner2.Text())
+		}
+	}()
+	go func() {
+		// 等待信号
+		<-c
+	}()
+	// 等待命令执行完成
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
 	return nil
+}
+
+func migrateAction(c *cli.Context) error {
+	if c.Args().Len() <= 0 {
+		cli.ShowAppHelp(c)
+		return nil
+	}
+	name := c.Args().First()
+	bin := fmt.Sprintf("bin/migrate-%s", name)
+	if _, err := os.Stat(bin); err != nil {
+		return err
+	}
+	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
+		return err
+	} else {
+		dbConfig := config.Module.BehaviorDb
+		uri := dbConfig.Uri()
+		argv := []string{"migrate", "--uri", uri}
+		argv = append(argv, c.Args().Tail()...)
+		return command(bin, argv)
+	}
 }
 
 func resourceCompressAction(args *cli.Context) error {
 	bin := "bin/resource"
-	return command(bin, "compress")
+	argv := []string{"compress"}
+	return command(bin, argv)
 }
 
 func resourcePushAction(args *cli.Context) error {
@@ -195,7 +260,8 @@ func resourcePushAction(args *cli.Context) error {
 		dbConfig := config.Module.ResourceDb
 		uri := dbConfig.Uri()
 		bin := "bin/resource"
-		return command(bin, "push", uri)
+		argv := []string{"push", uri}
+		return command(bin, argv)
 	}
 }
 

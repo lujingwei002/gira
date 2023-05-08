@@ -631,7 +631,7 @@ func (self SortLoaderByName) Swap(i, j int)      { self[i], self[j] = self[j], s
 func (self SortLoaderByName) Less(i, j int) bool { return self[i].LoaderName < self[j].LoaderName }
 
 // 生成协议的状态
-type GenState struct {
+type gen_state struct {
 	Config       Config
 	Module       string
 	ResourceDict map[string]*Resource
@@ -877,7 +877,7 @@ func (resource *Resource) parseStruct(attrs map[string]interface{}) error {
 	return nil
 }
 
-func parse(state *GenState) error {
+func parse(state *gen_state) error {
 	// srcFilePathArr := make([]string, 0)
 	// srcFilePathArr = append(srcFilePathArr, proj.Config.DocResourceFilePath)
 
@@ -1040,7 +1040,7 @@ func parse(state *GenState) error {
 	return nil
 }
 
-func genResourcesYamlAndGo(state *GenState) error {
+func genResourcesYamlAndGo(state *gen_state) error {
 	log.Info("生成yaml文件")
 	if _, err := os.Stat(proj.Config.ResourceDir); os.IsNotExist(err) {
 		if err := os.Mkdir(proj.Config.ResourceDir, 0755); err != nil {
@@ -1090,7 +1090,7 @@ func genResourcesYamlAndGo(state *GenState) error {
 	return nil
 }
 
-func genResourceCli(state *GenState) error {
+func genResourceCli(state *gen_state) error {
 	if _, err := os.Stat(path.Join(proj.Config.SrcGenResourceDir, "bin")); err != nil && os.IsNotExist(err) {
 		os.Mkdir(path.Join(proj.Config.SrcGenResourceDir, "bin"), 0755)
 	}
@@ -1120,7 +1120,7 @@ type Config struct {
 func Gen(config Config) error {
 	log.Info("===============gen resource start===============")
 	// 初始化
-	state := &GenState{
+	state := &gen_state{
 		Config:       config,
 		Module:       proj.Config.Module,
 		ResourceDict: make(map[string]*Resource, 0),
