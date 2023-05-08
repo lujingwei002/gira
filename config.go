@@ -57,6 +57,13 @@ type BehaviorDbConfig struct {
 	BatchInsert  int    `yaml:"batch-insert"`
 }
 
+type AdminCacheConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Password string `yaml:"password"`
+	Db       int    `yaml:"db"`
+}
+
 // 账号数据库配置
 type AccountCacheConfig struct {
 	Host     string `yaml:"host"`
@@ -184,6 +191,7 @@ type Config struct {
 		StatDb       *StatDbConfig       `yaml:"statdb"`
 		AdminDb      *AdminDbConfig      `yaml:"admindb"`
 		AccountCache *AccountCacheConfig `yaml:"account-cache"`
+		AdminCache   *AdminCacheConfig   `yaml:"admin-cache"`
 		Http         *HttpConfig         `yaml:"http,omitempty"`
 		Etcd         *EtcdConfig         `yaml:"etcd"`
 		Grpc         *GrpcConfig         `yaml:"grpc"`

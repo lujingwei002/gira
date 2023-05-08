@@ -77,6 +77,7 @@ type Runtime struct {
 	StatDbClient       *db.StatDbClient
 	ResourceDbClient   *db.ResourceDbClient
 	AccountCacheClient *db.AccountCacheClient
+	AdminCacheClient   *db.AdminCacheClient
 	adminDbClient      *db.AdminDbClient
 	Sdk                *sdk.Sdk
 	Gate               *gate.Server
@@ -257,6 +258,12 @@ func (runtime *Runtime) onAwake() error {
 			return err
 		} else {
 			runtime.Registry = r
+		}
+	}
+	if runtime.config.Module.AdminCache != nil {
+		runtime.AdminCacheClient = db.NewAdminCacheClient()
+		if err := runtime.AdminCacheClient.OnAwake(runtime.ctx, *runtime.config.Module.AdminCache); err != nil {
+			return err
 		}
 	}
 	if runtime.config.Module.AccountCache != nil {
