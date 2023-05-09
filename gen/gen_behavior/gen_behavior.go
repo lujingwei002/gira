@@ -37,6 +37,7 @@ import (
 
 var enabledDropIndex bool
 var uri string
+var connectTimeout int64
 
 func main() {
 	app := &cli.App{
@@ -64,6 +65,12 @@ func main() {
 						Required: true,
 						Usage: "database uri",
 						Destination: &uri,
+					},
+					&cli.Int64Flag{
+						Name: "connect-timeout",
+						Value: 5,
+						Usage: "connect database timeout",
+						Destination: &connectTimeout,
 					},
 				},
 			},
@@ -117,16 +124,14 @@ import (
 
 
 <<- range .CollectionArr>> 
-
-
 <</* 模型Data */>>
+// <<.Comment>>
 type <<.StructName>> struct {
 	<<- range .FieldArr>> 
 	/// <<.Comment>>
 	<<.CamelName>> <<.GoTypeName>> <<quote>>bson:"<<.Name>>" json:"<<.Name>>"<<quote>>
 	<<- end>>
 }
-
 <<- end>> 
 
 
@@ -134,7 +139,8 @@ type <<.StructName>> struct {
 type <<.MongoDriverStructName>> struct {
 	client		*mongo.Client
 	database	*mongo.Database
-	<<- range .CollectionArr>> 
+	<<range .CollectionArr>> 
+	// <<.Comment>>
 	<<.StructName>>  *<<.MongoDaoStructName>>
 	<<- end>>
 }
@@ -153,9 +159,14 @@ func NewMongo() *<<.MongoDriverStructName>> {
 }
 
 func Migrate(ctx context.Context, uri string, opts ...behavior.MigrateOption) error {
+	migrateOptions := &behavior.MigrateOptions {
+	}
+	for _, v := range opts {
+		v.ConfigMigrateOptions(migrateOptions)
+	}
 	u, err := url.Parse(uri)
     if err != nil {
-        log.Infow("parsing mongodb uri fail", "error", err)
+        log.Errorw("parsing uri fail", "uri", uri, "error", err)
         return err
     }
     path := strings.TrimPrefix(u.Path, "/")
@@ -163,20 +174,19 @@ func Migrate(ctx context.Context, uri string, opts ...behavior.MigrateOption) er
 	log.Info(uri, path)
 
 	clientOpts := options.Client().ApplyURI(uri)
-	ctx1, cancelFunc1 := context.WithTimeout(ctx, 3*time.Second)
+	ctx1, cancelFunc1 := context.WithTimeout(ctx, time.Duration(migrateOptions.ConnectTimeout)*time.Second)
 	defer cancelFunc1()
 	client, err := mongo.Connect(ctx1, clientOpts)
 	if err != nil {
-		log.Infow("connect database fail", "error", err)
+		log.Errorw("connect database fail", "uri", uri, "error", err)
 		return err
 	}
-	ctx2, cancelFunc2 := context.WithTimeout(ctx, 3*time.Second)
+	ctx2, cancelFunc2 := context.WithTimeout(ctx, time.Duration(migrateOptions.ConnectTimeout)*time.Second)
 	defer cancelFunc2()
 	if err = client.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Info("connect database fail", "error", err)
+		log.Errorw("connect database fail", "uri", uri, "error", err)
 		return err
 	}
-	log.Info("connect database success")
 	database := client.Database(path)
 
 	driver := NewMongo()
@@ -199,13 +209,6 @@ func UseMongo(ctx context.Context, client gira.MongoClient, config gira.Behavior
 	return nil
 }
 
-func Serve(ctx context.Context, config gira.BehaviorDbConfig) error {
-	if globalDriver == nil {
-		return gira.ErrBehaviorNotInit
-	}
-	return globalDriver.Serve(ctx, config)
-}
-
 func Sync(ctx context.Context, opts ...behavior.SyncOption) error {
 	if globalDriver == nil {
 		return gira.ErrBehaviorNotInit
@@ -214,6 +217,9 @@ func Sync(ctx context.Context, opts ...behavior.SyncOption) error {
 }
 
 func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
+	if self.client != nil {
+		return gira.ErrTodo
+	}
 	self.client = client.GetMongoClient()
 	self.database = client.GetMongoDatabase()
 	return nil
@@ -263,6 +269,7 @@ func (self *<<.MongoDriverStructName>>) Sync(ctx context.Context, opts ...behavi
 
 <<- range .CollectionArr>> 
 
+// <<.Comment>>
 type <<.MongoDaoStructName>> struct {
 	db 		*<<$.MongoDriverStructName>>
 	models	[]mongo.WriteModel
@@ -277,7 +284,9 @@ func Log<<.StructName>>(doc *<<.StructName>>) error {
 // <<.Comment>>
 func (self *<<.MongoDaoStructName>>) Log(doc *<<.StructName>>) error {
 	doc.Id = primitive.NewObjectID()
+	<<- if .HasLogTimeField>>
 	doc.LogTime = time.Now().Unix()
+	<<- end>>
 	log.Infow("<<.CollName>>",
 	<<- range .FieldArr>> 
 		"<<.Name>>", doc.<<.CamelName>>, // <<.Comment>>
@@ -376,11 +385,13 @@ func (self *<<.MongoDaoStructName>>) Sync(ctx context.Context, opts ...behavior.
 		self.models = make([]mongo.WriteModel, 0)
 	}
 	self.mu.Unlock()
+	<<- if .HasCreateTimeField>>
 	for _, model := range models {
 		v := model.(*mongo.InsertOneModel)
 		doc := v.Document.(*<<.StructName>>)
 		doc.CreateTime = time.Now().Unix()
 	}
+	<<- end>>
 	writeOpts := options.BulkWrite().SetOrdered(false)
 	_, err = coll.BulkWrite(ctx, models, writeOpts)
 	if err != nil {
@@ -480,16 +491,6 @@ var go_type_name_dict = map[field_type]string{
 	field_type_int64_arr: "[]int64",
 }
 
-type message_type int
-
-const (
-	message_type_struct message_type = iota
-	message_type_request
-	message_type_response
-	message_type_notify
-	message_type_push
-)
-
 type Field struct {
 	Tag        int
 	Name       string
@@ -520,10 +521,6 @@ func (f *Field) IsComparable() bool {
 		return false
 	}
 	return false
-}
-
-func (f *Field) IsStruct() bool {
-	return f.Type == field_type_struct
 }
 
 func capLowerString(s string) string {
@@ -584,6 +581,8 @@ type Collection struct {
 	FieldArr           []*Field
 	IndexDict          map[string]*Index
 	IndexArr           []*Index
+	HasLogTimeField    bool
+	HasCreateTimeField bool
 }
 type SortCollectionByName []*Collection
 
@@ -754,6 +753,14 @@ func (coll *Collection) parseStruct(attrs map[string]interface{}) error {
 		}
 		coll.FieldDict[fieldName] = field
 		coll.FieldArr = append(coll.FieldArr, field)
+	}
+	for _, f := range coll.FieldArr {
+		if f.Name == "log_time" && f.Type == field_type_int64 {
+			f.Coll.HasLogTimeField = true
+		}
+		if f.Name == "create_time" && f.Type == field_type_int64 {
+			f.Coll.HasCreateTimeField = true
+		}
 	}
 	sort.Sort(SortFieldByName(coll.FieldArr))
 	return nil

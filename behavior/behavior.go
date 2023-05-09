@@ -38,6 +38,7 @@ func GetSeqId() int64 {
 
 type MigrateOptions struct {
 	EnabledDropIndex bool
+	ConnectTimeout   int64
 }
 type MigrateOption interface {
 	ConfigMigrateOptions(opts *MigrateOptions)
@@ -54,5 +55,19 @@ func (opt MigrateDropIndex) ConfigMigrateOptions(opts *MigrateOptions) {
 func WithMigrateDropIndex(enabled bool) MigrateDropIndex {
 	return MigrateDropIndex{
 		enabled: enabled,
+	}
+}
+
+type MigrateConnectTimeout struct {
+	timeout int64
+}
+
+func (opt MigrateConnectTimeout) ConfigMigrateOptions(opts *MigrateOptions) {
+	opts.ConnectTimeout = opt.timeout
+}
+
+func WithMigrateConnectTimeout(timeout int64) MigrateConnectTimeout {
+	return MigrateConnectTimeout{
+		timeout: timeout,
 	}
 }
