@@ -565,7 +565,7 @@ type Index struct {
 	Tag      int
 	FullName string
 }
-type SortIndexByName []*Field
+type SortIndexByName []*Index
 
 func (self SortIndexByName) Len() int           { return len(self) }
 func (self SortIndexByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
@@ -681,7 +681,7 @@ func (coll *Collection) parseIndex(attrs map[string]interface{}) error {
 		coll.IndexDict[indexName] = index
 		coll.IndexArr = append(coll.IndexArr, index)
 	}
-	sort.Sort(SortIndexByName(coll.FieldArr))
+	sort.Sort(SortIndexByName(coll.IndexArr))
 	return nil
 }
 
