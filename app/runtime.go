@@ -43,46 +43,48 @@ type RunnableApplication interface {
 // / @Component
 type Runtime struct {
 	gira.BaseComponent
-	BuildVersion      string
-	BuildTime         int64
-	zone              string // 区名 wc|qq|hw|quick
-	env               string // dev|local|qa|prd
-	appId             int32
-	appType           string /// 服务类型
-	appName           string /// 服务名
-	appFullName       string /// 完整的服务名 Name_Id
-	ProjectFilePath   string /// 配置文件绝对路径, gira.yaml
-	ConfigDir         string /// config目录
-	EnvDir            string /// env目录
-	ConfigFilePath    string /// 内置配置文件
-	RunConfigFilePath string /// 运行时的配置文件
-	WorkDir           string /// 工作目录
-	LogDir            string /// 日志目录
-	RunDir            string /// 运行目录
-	Application       gira.Application
-	Frameworks        []gira.Framework
 
-	cancelFunc         context.CancelFunc
-	ctx                context.Context
-	errCtx             context.Context
-	resourceLoader     gira.ResourceLoader
-	errGroup           *errgroup.Group
-	config             *gira.Config
+	zone           string // 区名 wc|qq|hw|quick
+	env            string // dev|local|qa|prd
+	appId          int32
+	appType        string /// 服务类型
+	appName        string /// 服务名
+	appFullName    string /// 完整的服务名 Name_Id
+	adminClient    gira.AdminClient
+	cancelFunc     context.CancelFunc
+	ctx            context.Context
+	errCtx         context.Context
+	resourceLoader gira.ResourceLoader
+	errGroup       *errgroup.Group
+	config         *gira.Config
+
+	BuildVersion       string
+	BuildTime          int64
+	ProjectFilePath    string /// 配置文件绝对路径, gira.yaml
+	ConfigDir          string /// config目录
+	EnvDir             string /// env目录
+	ConfigFilePath     string /// 内置配置文件
+	RunConfigFilePath  string /// 运行时的配置文件
+	WorkDir            string /// 工作目录
+	LogDir             string /// 日志目录
+	RunDir             string /// 运行目录
+	Application        gira.Application
+	Frameworks         []gira.Framework
 	MainScene          *gira.Scene
 	HttpServer         *gins.HttpServer
 	Registry           *registry.Registry
-	GameDbClient       *db.GameDbClient
-	BehaviorDbClient   *db.BehaviorDbClient
-	AccountDbClient    *db.AccountDbClient
-	StatDbClient       *db.StatDbClient
-	ResourceDbClient   *db.ResourceDbClient
-	AccountCacheClient *db.AccountCacheClient
-	AdminCacheClient   *db.AdminCacheClient
-	adminDbClient      *db.AdminDbClient
+	DbClients          map[string]gira.DbClient
+	GameDbClient       *db.MongoDbClient
+	GameLogDbClient    *db.MongoDbClient
+	AccountDbClient    *db.MongoDbClient
+	StatDbClient       *db.MongoDbClient
+	ResourceDbClient   *db.MongoDbClient
+	AccountCacheClient *db.RedisClient
+	AdminCacheClient   *db.RedisClient
+	AdminDbClient      *db.MysqlClient
 	Sdk                *sdk.Sdk
 	Gate               *gate.Server
 	GrpcServer         *grpc.GrpcServer
-	adminClient        gira.AdminClient
 }
 
 func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
@@ -260,60 +262,85 @@ func (runtime *Runtime) onAwake() error {
 			runtime.Registry = r
 		}
 	}
-	if runtime.config.Module.AdminCache != nil {
-		runtime.AdminCacheClient = db.NewAdminCacheClient()
-		if err := runtime.AdminCacheClient.OnAwake(runtime.ctx, *runtime.config.Module.AdminCache); err != nil {
+	runtime.DbClients = make(map[string]gira.DbClient)
+	for name, c := range runtime.config.Db {
+		if client, err := db.ConfigDbClient(runtime.ctx, name, *c); err != nil {
 			return err
+		} else {
+			runtime.DbClients[name] = client
+			if name == gira.GAMEDB_NAME && c.Driver == "mongo" {
+				runtime.GameDbClient = client.(*db.MongoDbClient)
+			} else if name == gira.RESOURCEDB_NAME && c.Driver == "mongo" {
+				runtime.ResourceDbClient = client.(*db.MongoDbClient)
+			} else if name == gira.STATDB_NAME && c.Driver == "mongo" {
+				runtime.StatDbClient = client.(*db.MongoDbClient)
+			} else if name == gira.ACCOUNTDB_NAME && c.Driver == "mongo" {
+				runtime.AccountDbClient = client.(*db.MongoDbClient)
+			} else if name == gira.GAMELOGDB_NAME && c.Driver == "mongo" {
+				runtime.GameLogDbClient = client.(*db.MongoDbClient)
+			} else if name == gira.ACCOUNTCACHE_NAME && c.Driver == "redis" {
+				runtime.AccountCacheClient = client.(*db.RedisClient)
+			} else if name == gira.ADMINCACHE_NAME && c.Driver == "redis" {
+				runtime.AdminCacheClient = client.(*db.RedisClient)
+			} else if name == gira.ADMINDB_NAME && c.Driver == "mysql" {
+				runtime.AdminDbClient = client.(*db.MysqlClient)
+			}
 		}
 	}
-	if runtime.config.Module.AccountCache != nil {
-		runtime.AccountCacheClient = db.NewAccountCacheClient()
-		if err := runtime.AccountCacheClient.OnAwake(runtime.ctx, *runtime.config.Module.AccountCache); err != nil {
-			return err
-		}
-	}
+	// if runtime.config.Module.AdminCache != nil {
+	// 	runtime.AdminCacheClient = db.NewAdminCacheClient()
+	// 	if err := runtime.AdminCacheClient.OnAwake(runtime.ctx, *runtime.config.Module.AdminCache); err != nil {
+	// 		return err
+	// 	}
+	// }
+	// if runtime.config.Module.AccountCache != nil {
+	// 	runtime.AccountCacheClient = db.NewAccountCacheClient()
+	// 	if err := runtime.AccountCacheClient.OnAwake(runtime.ctx, *runtime.config.Module.AccountCache); err != nil {
+	// 		return err
+	// 	}
+	// }
 	if runtime.config.Module.Grpc != nil {
 		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)
 	}
-	if runtime.config.Module.GameDb != nil {
-		if client, err := db.ConfigGameDbClient(runtime.ctx, *runtime.config.Module.GameDb); err != nil {
-			return err
-		} else {
-			runtime.GameDbClient = client
-		}
-	}
-	if runtime.config.Module.BehaviorDb != nil {
-		if client, err := db.ConfigBehaviorDbClient(runtime.ctx, *runtime.config.Module.BehaviorDb); err != nil {
-			return err
-		} else {
-			runtime.BehaviorDbClient = client
-		}
-	}
-	if runtime.config.Module.AccountDb != nil {
-		if client, err := db.ConfigAccountDbClient(runtime.ctx, *runtime.config.Module.AccountDb); err != nil {
-			return err
-		} else {
-			runtime.AccountDbClient = client
-		}
-	}
-	if runtime.config.Module.StatDb != nil {
-		runtime.StatDbClient = db.NewStatDbClient()
-		if err := runtime.StatDbClient.OnAwake(runtime.ctx, *runtime.config.Module.StatDb); err != nil {
-			return err
-		}
-	}
-	if runtime.config.Module.AdminDb != nil {
-		runtime.adminDbClient = db.NewAdminDbClient()
-		if err := runtime.adminDbClient.OnAwake(runtime.ctx, *runtime.config.Module.AdminDb); err != nil {
-			return err
-		}
-	}
-	if runtime.config.Module.ResourceDb != nil {
-		runtime.ResourceDbClient = db.NewResourceDbClient()
-		if err := runtime.ResourceDbClient.OnAwake(runtime.ctx, *runtime.config.Module.ResourceDb); err != nil {
-			return err
-		}
-	}
+	// if runtime.config.Module.GameDb != nil {
+	// 	if client, err := db.ConfigGameDbClient(runtime.ctx, *runtime.config.Module.GameDb); err != nil {
+	// 		return err
+	// 	} else {
+	// 		runtime.GameDbClient = client
+	// 	}
+	// }
+	// if runtime.config.Module.BehaviorDb != nil {
+	// 	if client, err := db.ConfigBehaviorDbClient(runtime.ctx, *runtime.config.Module.BehaviorDb); err != nil {
+	// 		return err
+	// 	} else {
+	// 		runtime.BehaviorDbClient = client
+	// 	}
+	// }
+	// if runtime.config.Module.AccountDb != nil {
+	// 	if client, err := db.ConfigAccountDbClient(runtime.ctx, *runtime.config.Module.AccountDb); err != nil {
+	// 		return err
+	// 	} else {
+	// 		runtime.AccountDbClient = client
+	// 	}
+	// }
+	// if runtime.config.Module.StatDb != nil {
+	// 	runtime.StatDbClient = db.NewStatDbClient()
+	// 	if err := runtime.StatDbClient.OnAwake(runtime.ctx, *runtime.config.Module.StatDb); err != nil {
+	// 		return err
+	// 	}
+	// }
+	// if runtime.config.Module.AdminDb != nil {
+	// 	runtime.adminDbClient = db.NewAdminDbClient()
+	// 	if err := runtime.adminDbClient.OnAwake(runtime.ctx, *runtime.config.Module.AdminDb); err != nil {
+	// 		return err
+	// 	}
+	// }
+	// if runtime.config.Module.ResourceDb != nil {
+	// 	runtime.ResourceDbClient = db.NewResourceDbClient()
+	// 	if err := runtime.ResourceDbClient.OnAwake(runtime.ctx, *runtime.config.Module.ResourceDb); err != nil {
+	// 		return err
+	// 	}
+	// }
 	if runtime.config.Module.Http != nil {
 		if handler, ok := application.(gira.HttpHandler); !ok {
 			return gira.ErrHttpHandlerNotImplement

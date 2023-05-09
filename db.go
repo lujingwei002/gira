@@ -1,8 +1,33 @@
 package gira
 
 import (
+	"database/sql"
+
+	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+type DbClient interface {
+}
+
+const (
+	GAMEDB_NAME       = "gamedb"
+	RESOURCEDB_NAME   = "resourcedb"
+	STATDB_NAME       = "statdb"
+	ACCOUNTDB_NAME    = "accountdb"
+	GAMELOGDB_NAME    = "gamelogdb"
+	ACCOUNTCACHE_NAME = "accountcache"
+	ADMINCACHE_NAME   = "admincache"
+	ADMINDB_NAME      = "admindb"
+)
+
+type RedisClient interface {
+	GetRedisClient() *redis.Client
+}
+
+type MysqlClient interface {
+	GetMysqlClient() *sql.DB
+}
 
 type MongoClient interface {
 	GetMongoClient() *mongo.Client
@@ -33,8 +58,8 @@ type AccountCacheClient interface {
 	GetAccountCacheClient() RedisClient
 }
 
-type BehaviorDbClient interface {
-	GetBehaviorDbClient() MongoClient
+type GameLogDbClient interface {
+	GetGameLogDbClient() MongoClient
 }
 type AdminCacheClient interface {
 	GetAdminCacheClient() RedisClient

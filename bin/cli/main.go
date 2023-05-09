@@ -227,11 +227,12 @@ func command(name string, argv []string) error {
 }
 
 func migrateAction(c *cli.Context) error {
-	if c.Args().Len() <= 0 {
+	if c.Args().Len() < 2 {
 		cli.ShowAppHelp(c)
 		return nil
 	}
-	name := c.Args().First()
+	name := c.Args().Get(0)
+	db := c.Args().Get(1)
 	bin := fmt.Sprintf("bin/migrate-%s", name)
 	if _, err := os.Stat(bin); err != nil {
 		return err
@@ -239,11 +240,15 @@ func migrateAction(c *cli.Context) error {
 	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
 		return err
 	} else {
-		dbConfig := config.Module.BehaviorDb
-		uri := dbConfig.Uri()
-		argv := []string{"migrate", "--uri", uri}
-		argv = append(argv, c.Args().Tail()...)
-		return command(bin, argv)
+		if dbConfig, ok := config.Db[db]; !ok {
+			log.Error("db config not found")
+			return nil
+		} else {
+			uri := dbConfig.MongoUri()
+			argv := []string{"migrate", "--uri", uri}
+			argv = append(argv, c.Args().Tail()...)
+			return command(bin, argv)
+		}
 	}
 }
 
@@ -257,10 +262,10 @@ func resourcePushAction(args *cli.Context) error {
 	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
 		return err
 	} else {
-		dbConfig := config.Module.ResourceDb
-		uri := dbConfig.Uri()
+		dbConfig := config.Db["resourcedb"]
+		uri := dbConfig.MongoUri()
 		bin := "bin/resource"
-		argv := []string{"push", uri}
+		argv := []string{"push", "--uri", uri}
 		return command(bin, argv)
 	}
 }

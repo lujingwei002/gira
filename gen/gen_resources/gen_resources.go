@@ -38,6 +38,8 @@ import (
 	"<<.Module>>/gen/resource"
 )
 
+var uri string
+
 func main() {
 	app := &cli.App{
 		Name: "gira-resource",
@@ -57,7 +59,14 @@ func main() {
 				Name:      "push",
 				Usage:     "push to database",
 				Action:    pushAction,
-				ArgsUsage: "[目标地址]",
+				Flags:       []cli.Flag{
+					&cli.StringFlag{
+						Name: "uri",
+						Required: true,
+						Usage: "database uri",
+						Destination: &uri,
+					},
+				},
 			},
 		},
 	}
@@ -76,11 +85,7 @@ func compressAction(args *cli.Context) error {
 }
 
 func pushAction(args *cli.Context) error {
-	if args.NArg() <= 0 {
-		cli.ShowAppHelp(args)
-		return nil
-	}
-	return resource.Push(context.Background(), args.Args().Get(0), "resource")
+	return resource.Push(context.Background(), uri, "resource")
 }
 `
 
@@ -122,7 +127,7 @@ func Push(ctx context.Context, uri string, dir string) error {
     }
     path := strings.TrimPrefix(u.Path, "/")
 	uri = strings.Replace(uri, u.Path, "", 1)
-	log.Info(uri, path)
+	log.Infow("connect database", "uri", uri, "path", path)
 
 	clientOpts := options.Client().ApplyURI(uri)
 	ctx1, cancelFunc1 := context.WithTimeout(ctx, 3*time.Second)
@@ -135,10 +140,9 @@ func Push(ctx context.Context, uri string, dir string) error {
 	ctx2, cancelFunc2 := context.WithTimeout(ctx, 3*time.Second)
 	defer cancelFunc2()
 	if err = client.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Info("connect accountdb fail", "error", err)
+		log.Errorw("connect database fail", "uri", uri, "error", err)
 		return err
 	}
-	log.Info("connect accountdb success")
 	database := client.Database(path)
 
 	<<- range .BundleArr>>

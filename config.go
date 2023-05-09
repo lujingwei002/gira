@@ -37,87 +37,104 @@ type JwtConfig struct {
 	RefreshExpiretime int64  `yaml:"refresh-expiretime"`
 }
 
-// 游戏数据库配置
-type GameDbConfig struct {
+type DbConfig struct {
+	Driver   string `yaml:"driver"`
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	Db       string `yaml:"db"`
 }
+
+// 游戏数据库配置
+// type GameDbConfig struct {
+// 	Host     string `yaml:"host"`
+// 	Port     int    `yaml:"port"`
+// 	User     string `yaml:"user"`
+// 	Password string `yaml:"password"`
+// 	Db       string `yaml:"db"`
+// }
 
 // 行为日志数据库配置
-type BehaviorDbConfig struct {
-	Host         string `yaml:"host"`
-	Port         int    `yaml:"port"`
-	User         string `yaml:"user"`
-	Password     string `yaml:"password"`
-	Db           string `yaml:"db"`
-	SyncInterval int64  `yaml:"sync-interval"`
-	BatchInsert  int    `yaml:"batch-insert"`
+//
+//	type BehaviorDbConfig struct {
+//		Host         string `yaml:"host"`
+//		Port         int    `yaml:"port"`
+//		User         string `yaml:"user"`
+//		Password     string `yaml:"password"`
+//		Db           string `yaml:"db"`
+//		SyncInterval int64  `yaml:"sync-interval"`
+//		BatchInsert  int    `yaml:"batch-insert"`
+//	}
+type BehaviorConfig struct {
+	SyncInterval int64 `yaml:"sync-interval"`
+	BatchInsert  int   `yaml:"batch-insert"`
 }
 
-type AdminCacheConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Password string `yaml:"password"`
-	Db       int    `yaml:"db"`
-}
-
-// 账号数据库配置
-type AccountCacheConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Password string `yaml:"password"`
-	Db       int    `yaml:"db"`
-}
+// type AdminCacheConfig struct {
+// 	Host     string `yaml:"host"`
+// 	Port     int    `yaml:"port"`
+// 	Password string `yaml:"password"`
+// 	Db       int    `yaml:"db"`
+// }
 
 // 账号数据库配置
-type AccountDbConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Db       string `yaml:"db"`
-}
+// type AccountCacheConfig struct {
+// 	Host     string `yaml:"host"`
+// 	Port     int    `yaml:"port"`
+// 	Password string `yaml:"password"`
+// 	Db       int    `yaml:"db"`
+// }
+
+// 账号数据库配置
+// type AccountDbConfig struct {
+// 	Host     string `yaml:"host"`
+// 	Port     int    `yaml:"port"`
+// 	User     string `yaml:"user"`
+// 	Password string `yaml:"password"`
+// 	Db       string `yaml:"db"`
+// }
 
 // 资源数据库配置
-type ResourceDbConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Db       string `yaml:"db"`
-}
+// type ResourceDbConfig struct {
+// 	Host     string `yaml:"host"`
+// 	Port     int    `yaml:"port"`
+// 	User     string `yaml:"user"`
+// 	Password string `yaml:"password"`
+// 	Db       string `yaml:"db"`
+// }
 
-func (self ResourceDbConfig) Uri() string {
+// func (self ResourceDbConfig) Uri() string {
+// 	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
+// }
+
+// func (self GameDbConfig) Uri() string {
+// 	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
+// }
+
+//	func (self BehaviorDbConfig) Uri() string {
+//		return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
+//	}
+func (self DbConfig) MongoUri() string {
 	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
 }
 
-func (self GameDbConfig) Uri() string {
-	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
-}
-
-func (self BehaviorDbConfig) Uri() string {
-	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
-}
-
-type AdminDbConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Db       string `yaml:"db"`
-}
+// type AdminDbConfig struct {
+// 	Host     string `yaml:"host"`
+// 	Port     int    `yaml:"port"`
+// 	User     string `yaml:"user"`
+// 	Password string `yaml:"password"`
+// 	Db       string `yaml:"db"`
+// }
 
 // 状态数据库配置
-type StatDbConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Db       string `yaml:"db"`
-}
+// type StatDbConfig struct {
+// 	Host     string `yaml:"host"`
+// 	Port     int    `yaml:"port"`
+// 	User     string `yaml:"user"`
+// 	Password string `yaml:"password"`
+// 	Db       string `yaml:"db"`
+// }
 
 // etcd配置
 type EtcdConfig struct {
@@ -183,22 +200,26 @@ type Config struct {
 	Zone   string
 	Log    *LogConfig  `yaml:"log"`
 	Pprof  PprofConfig `yaml:"pprof"`
+
+	Db     map[string]*DbConfig
 	Module struct {
-		ResourceDb   *ResourceDbConfig   `yaml:"resourcedb"`
-		GameDb       *GameDbConfig       `yaml:"gamedb"`
-		BehaviorDb   *BehaviorDbConfig   `yaml:"behaviordb"`
-		AccountDb    *AccountDbConfig    `yaml:"accountdb"`
-		StatDb       *StatDbConfig       `yaml:"statdb"`
-		AdminDb      *AdminDbConfig      `yaml:"admindb"`
-		AccountCache *AccountCacheConfig `yaml:"account-cache"`
-		AdminCache   *AdminCacheConfig   `yaml:"admin-cache"`
-		Http         *HttpConfig         `yaml:"http,omitempty"`
-		Etcd         *EtcdConfig         `yaml:"etcd"`
-		Grpc         *GrpcConfig         `yaml:"grpc"`
-		Sdk          *SdkConfig          `yaml:"sdk"`
-		Jwt          *JwtConfig          `yaml:"jwt"`
-		Gateway      *GatewayConfig      `yaml:"gateway"`
-		Admin        *AdminConfig        `yaml:"admin"`
+		// ResourceDb   *DbConfig `yaml:"resourcedb"`
+		// GameDb       *DbConfig `yaml:"gamedb"`
+		// BehaviorDb   *DbConfig `yaml:"behaviordb"`
+		// AccountDb    *DbConfig `yaml:"accountdb"`
+		// StatDb       *DbConfig `yaml:"statdb"`
+		// AdminDb      *DbConfig `yaml:"admindb"`
+		// AccountCache *DbConfig `yaml:"account-cache"`
+		// AdminCache   *DbConfig `yaml:"admin-cache"`
+
+		Behavior *BehaviorConfig `yaml:"behavior"`
+		Http     *HttpConfig     `yaml:"http,omitempty"`
+		Etcd     *EtcdConfig     `yaml:"etcd"`
+		Grpc     *GrpcConfig     `yaml:"grpc"`
+		Sdk      *SdkConfig      `yaml:"sdk"`
+		Jwt      *JwtConfig      `yaml:"jwt"`
+		Gateway  *GatewayConfig  `yaml:"gateway"`
+		Admin    *AdminConfig    `yaml:"admin"`
 	} `yaml:"module"`
 }
 

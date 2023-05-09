@@ -83,7 +83,7 @@ func main() {
 
 func migrateAction(args *cli.Context) error {
 	opts := make([]behavior.MigrateOption, 0)
-	opts = append(opts, behavior.WithMigrateDropIndex(enabledDropIndex))
+	opts = append(opts, behavior.WithMigrateDropIndex(enabledDropIndex), behavior.WithMigrateConnectTimeout(connectTimeout))
 	return <<.DbName>>.Migrate(context.Background(), uri, opts...)
 }
 
@@ -171,7 +171,7 @@ func Migrate(ctx context.Context, uri string, opts ...behavior.MigrateOption) er
     }
     path := strings.TrimPrefix(u.Path, "/")
 	uri = strings.Replace(uri, u.Path, "", 1)
-	log.Info(uri, path)
+	log.Infow("connect database", "uri", uri, "path", path, "timeout", migrateOptions.ConnectTimeout, "enabled-drop-index", migrateOptions.EnabledDropIndex)
 
 	clientOpts := options.Client().ApplyURI(uri)
 	ctx1, cancelFunc1 := context.WithTimeout(ctx, time.Duration(migrateOptions.ConnectTimeout)*time.Second)
@@ -195,7 +195,7 @@ func Migrate(ctx context.Context, uri string, opts ...behavior.MigrateOption) er
 	return driver.Migrate(ctx, opts...)
 }
 
-func UseMongo(ctx context.Context, client gira.MongoClient, config gira.BehaviorDbConfig) error {
+func UseMongo(ctx context.Context, client gira.MongoClient, config gira.BehaviorConfig) error {
 	if globalDriver != nil {
 		return gira.ErrTodo
 	}
@@ -234,7 +234,7 @@ func (self *<<.MongoDriverStructName>>) Migrate(ctx context.Context, opts ...beh
 	return nil
 }
 
-func (self *<<.MongoDriverStructName>>) Serve(ctx context.Context, config gira.BehaviorDbConfig) (err error) {
+func (self *<<.MongoDriverStructName>>) Serve(ctx context.Context, config gira.BehaviorConfig) (err error) {
 	ticker := time.NewTicker(time.Duration(config.SyncInterval)*time.Second)
 	defer func() {
 		ticker.Stop()
