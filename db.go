@@ -15,7 +15,7 @@ const (
 	RESOURCEDB_NAME   = "resourcedb"
 	STATDB_NAME       = "statdb"
 	ACCOUNTDB_NAME    = "accountdb"
-	GAMELOGDB_NAME    = "gamelogdb"
+	LOGDB_NAME        = "logdb"
 	ACCOUNTCACHE_NAME = "accountcache"
 	ADMINCACHE_NAME   = "admincache"
 	ADMINDB_NAME      = "admindb"
@@ -58,8 +58,8 @@ type AccountCacheClient interface {
 	GetAccountCacheClient() RedisClient
 }
 
-type GameLogDbClient interface {
-	GetGameLogDbClient() MongoClient
+type LogDbClient interface {
+	GetLogDbClient() MongoClient
 }
 type AdminCacheClient interface {
 	GetAdminCacheClient() RedisClient

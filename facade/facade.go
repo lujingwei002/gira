@@ -121,10 +121,10 @@ func GetAccountDbClient() gira.MongoClient {
 	}
 }
 
-func GetGameLogDbClient() gira.MongoClient {
+func GetLogDbClient() gira.MongoClient {
 	application := gira.App()
-	if h, ok := application.(gira.GameLogDbClient); ok {
-		return h.GetGameLogDbClient()
+	if h, ok := application.(gira.LogDbClient); ok {
+		return h.GetLogDbClient()
 	} else {
 		return nil
 	}

@@ -93,8 +93,8 @@ func (application *BaseApplication) GetGameDbClient() gira.MongoClient {
 	return application.runtime.GameDbClient
 }
 
-func (application *BaseApplication) GetGameLogDbClient() gira.MongoClient {
-	return application.runtime.GameLogDbClient
+func (application *BaseApplication) GetLogDbClient() gira.MongoClient {
+	return application.runtime.LogDbClient
 }
 
 func (application *BaseApplication) GetStatDbClient() gira.MongoClient {

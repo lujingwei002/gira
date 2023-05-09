@@ -75,7 +75,7 @@ type Runtime struct {
 	Registry           *registry.Registry
 	DbClients          map[string]gira.DbClient
 	GameDbClient       *db.MongoDbClient
-	GameLogDbClient    *db.MongoDbClient
+	LogDbClient        *db.MongoDbClient
 	AccountDbClient    *db.MongoDbClient
 	StatDbClient       *db.MongoDbClient
 	ResourceDbClient   *db.MongoDbClient
@@ -276,8 +276,8 @@ func (runtime *Runtime) onAwake() error {
 				runtime.StatDbClient = client.(*db.MongoDbClient)
 			} else if name == gira.ACCOUNTDB_NAME && c.Driver == "mongo" {
 				runtime.AccountDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.GAMELOGDB_NAME && c.Driver == "mongo" {
-				runtime.GameLogDbClient = client.(*db.MongoDbClient)
+			} else if name == gira.LOGDB_NAME && c.Driver == "mongo" {
+				runtime.LogDbClient = client.(*db.MongoDbClient)
 			} else if name == gira.ACCOUNTCACHE_NAME && c.Driver == "redis" {
 				runtime.AccountCacheClient = client.(*db.RedisClient)
 			} else if name == gira.ADMINCACHE_NAME && c.Driver == "redis" {
