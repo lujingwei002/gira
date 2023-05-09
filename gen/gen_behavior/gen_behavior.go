@@ -316,10 +316,13 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...behavi
 	if err = cursor.All(ctx, &results); err != nil {
 		return err
 	}
+	collName := "<<.CollName>>"
+	log.Printf("%s migrate index", collName)
 	// 已经有的
 	own := make(map[string]bson.M)
 	for _, v := range results {
 		own[v["name"].(string)] = v
+		log.Printf("[*]%s.%s", collName, v["name"].(string))
 	}
 	// 配置的
 	indexes := map[string]bool {
@@ -327,8 +330,6 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...behavi
 		"<<.FullName>>": true,
 	<<- end>>
 	}
-	collName := "<<.CollName>>"
-	log.Printf("%s migrate index", collName)
 
 	// 新增索引
 	<<- range .IndexArr>> 
@@ -338,7 +339,7 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...behavi
 			{Key: "<<.Key>>", Value: <<.Value>>},
 			<<- end>>
 		}
-		log.Printf("*%s add index <<.FullName>>", collName)
+		log.Printf("[+]%s.<<.FullName>>", collName)
 		if _, err := indexView.CreateOne(ctx, mongo.IndexModel{
             Keys: keys,
         }); err != nil {
@@ -353,13 +354,14 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...behavi
 				continue
 			}
 			if _, ok := indexes[name]; !ok {
-				log.Printf("*%s drop index %s", collName, name)
+				log.Printf("*[-] %s.%s", collName, name)
 				if _, err := indexView.DropOne(ctx, name); err != nil {
 					return err
 				}
 			}
 		}
 	}
+	log.Println()
 	// log.Println(own)
 	return nil
 }
