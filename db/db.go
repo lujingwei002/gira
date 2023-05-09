@@ -89,7 +89,7 @@ func configMongoDbClient(ctx context.Context, name string, config gira.DbConfig)
 		return nil, err
 	}
 	client.client = conn
-	log.Info("connect database success", "name", name)
+	log.Infow("connect database success", "name", name)
 	return client, nil
 }
 
@@ -118,7 +118,7 @@ func configRedisClient(ctx context.Context, name string, config gira.DbConfig) (
 		return nil, err
 	}
 	client.client = rdb
-	log.Info("connect database success", "name", name)
+	log.Infow("connect database success", "name", name)
 	return client, nil
 }
 
@@ -141,6 +141,6 @@ func configMysqlClient(ctx context.Context, name string, config gira.DbConfig) (
 		return nil, err
 	}
 	client.client = db
-	log.Info("connect database success", "name", name)
+	log.Infow("connect database success", "name", name)
 	return client, nil
 }
