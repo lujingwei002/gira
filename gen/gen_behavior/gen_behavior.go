@@ -86,8 +86,6 @@ func migrateAction(args *cli.Context) error {
 	opts = append(opts, behavior.WithMigrateDropIndex(enabledDropIndex), behavior.WithMigrateConnectTimeout(connectTimeout))
 	return <<.DbName>>.Migrate(context.Background(), uri, opts...)
 }
-
-
 `
 
 var model_template = `
@@ -322,7 +320,7 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...behavi
 	own := make(map[string]bson.M)
 	for _, v := range results {
 		own[v["name"].(string)] = v
-		log.Printf("[*]%s.%s", collName, v["name"].(string))
+		log.Printf("[ ]%s.%s", collName, v["name"].(string))
 	}
 	// 配置的
 	indexes := map[string]bool {
@@ -348,16 +346,18 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...behavi
 	}
 	<<- end>>
 	// 删除索引
-	if migrateOptions.EnabledDropIndex {
-		for name, _ := range own {
-			if name == "_id_" {
-				continue
-			}
-			if _, ok := indexes[name]; !ok {
-				log.Printf("*[-] %s.%s", collName, name)
+	for name, _ := range own {
+		if name == "_id_" {
+			continue
+		}
+		if _, ok := indexes[name]; !ok {
+			if migrateOptions.EnabledDropIndex {
+				log.Printf("[-]%s.%s", collName, name)
 				if _, err := indexView.DropOne(ctx, name); err != nil {
 					return err
 				}
+			} else {
+				log.Printf("[*]%s.%s", collName, name)
 			}
 		}
 	}
@@ -874,7 +874,7 @@ func genModel(state *gen_state) error {
 	return nil
 }
 
-func genBehaviorCli(state *gen_state) error {
+func genCli(state *gen_state) error {
 	for _, db := range state.databaseArr {
 		if _, err := os.Stat(db.GenBinDir); err != nil && os.IsNotExist(err) {
 			if os.IsNotExist(err) {
@@ -891,7 +891,7 @@ func genBehaviorCli(state *gen_state) error {
 		}
 		file.Truncate(0)
 		defer file.Close()
-		tmpl := template.New("resource").Delims("<<", ">>")
+		tmpl := template.New("cli").Delims("<<", ">>")
 		if tmpl, err := tmpl.Parse(cli_code); err != nil {
 			return err
 		} else {
@@ -943,7 +943,7 @@ func Gen() error {
 		return err
 	}
 	// 生成cli程序
-	if err := genBehaviorCli(state); err != nil {
+	if err := genCli(state); err != nil {
 		return err
 	}
 	log.Info("===============gen behavior finished===============")
