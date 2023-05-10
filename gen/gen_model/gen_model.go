@@ -630,6 +630,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructNam
 func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, id primitive.ObjectID) (*<<.StructName>>, error) {
     doc := new<<.StructName>>()
 	database := self.db.database
+	log.Infow("<<.CollName>> load", "id", id)
 	coll := database.Collection("<<.CollName>>")
 	err := coll.FindOne(ctx, bson.D{{"_id", id}}).Decode(&doc.<<.DataStructName>>)
 	if err != nil {
@@ -729,6 +730,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimaryKey>> <<.PrimaryKeyField.GoTypeName>>) (*<<.ArrStructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
+	log.Infow("<<.CollName>> save", "<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>)
 	cursor, err := coll.Find(ctx, bson.D{{"<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>}})
 	if err != nil {
 		return nil, err
