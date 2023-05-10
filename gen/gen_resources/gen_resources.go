@@ -34,6 +34,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"github.com/lujingwei002/gira/db"
 	"github.com/urfave/cli/v2"
 	"<<.Module>>/gen/resource"
 )
@@ -85,7 +86,11 @@ func compressAction(args *cli.Context) error {
 }
 
 func pushAction(args *cli.Context) error {
-	return resource.Push(context.Background(), uri, "resource")
+	if client, err := db.DbClientFromUri(context.Background(), "resource", uri); err != nil {
+		return err
+	} else {
+		return resource.Push(context.Background(), client, "resource")
+	}
 }
 `
 
@@ -102,16 +107,11 @@ import (
 	"path/filepath"
 	"encoding/gob"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/bson"
-	"time"
 	"github.com/lujingwei002/gira/log"
 	"os"
 	"fmt"
 	"context"
-	"net/url"
-	"strings"
 )
 
 // 将Db类型的bundle推送覆盖到db上
@@ -119,37 +119,12 @@ import (
 // Parameters:
 // uri - mongodb://root:123456@192.168.1.200:3331/resourcedb
 // dir - bundle所在的目录
-func Push(ctx context.Context, uri string, dir string) error {
-	u, err := url.Parse(uri)
-    if err != nil {
-        log.Infow("parsing mongodb uri fail", "error", err)
-        return err
-    }
-    path := strings.TrimPrefix(u.Path, "/")
-	uri = strings.Replace(uri, u.Path, "", 1)
-	log.Infow("connect database", "uri", uri, "path", path)
-
-	clientOpts := options.Client().ApplyURI(uri)
-	ctx1, cancelFunc1 := context.WithTimeout(ctx, 3*time.Second)
-	defer cancelFunc1()
-	client, err := mongo.Connect(ctx1, clientOpts)
-	if err != nil {
-		log.Infow("connect accountdb fail", "error", err)
-		return err
-	}
-	ctx2, cancelFunc2 := context.WithTimeout(ctx, 3*time.Second)
-	defer cancelFunc2()
-	if err = client.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Errorw("connect database fail", "uri", uri, "error", err)
-		return err
-	}
-	database := client.Database(path)
-
+func Push(ctx context.Context, client gira.DbClient, dir string) error {
 	<<- range .BundleArr>>
 	<<- if  eq .BundleType "db">>
 	<<.CapBundleStructName>> := &<<.BundleStructName>>{}
 	// 推送<<.BundleName>>
-	if err := <<.CapBundleStructName>>.SaveToDb(ctx, database, dir); err != nil {
+	if err := <<.CapBundleStructName>>.SaveToDb(ctx, client, dir); err != nil {
         return err
 	}
 	<<- end>>
@@ -335,8 +310,17 @@ func (self *<<.BundleStructName>>) SaveToBin(dir string) error {
 	return nil
 }
 
+func (self *<<.BundleStructName>>) SaveToDb(ctx context.Context, client gira.DbClient, dir string) error {
+	switch c := client.(type) {
+	case gira.MongoClient:
+		return self.SaveToMongo(ctx, c.GetMongoDatabase(), dir)
+	default:
+		return gira.ErrDbNotSupport
+	}
+}
+
 // 将资源保存到db上
-func (self *<<.BundleStructName>>) SaveToDb(ctx context.Context, database *mongo.Database, dir string) error {
+func (self *<<.BundleStructName>>) SaveToMongo(ctx context.Context, database *mongo.Database, dir string) error {
 	<<- range .ResourceArr>>
 	// 加载<<.ResourceName>>
 	var <<.CapStructName>>filePath = filepath.Join(dir, "<<.YamlFileName>>")

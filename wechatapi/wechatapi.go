@@ -30,7 +30,7 @@ type JsCode2SessionResponse struct {
 }
 
 const (
-	JsCode2SessionGrantType_AuthorizationCode = "authorization_code "
+	JsCode2SessionGrantType_AuthorizationCode = "authorization_code"
 )
 
 // https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html
@@ -47,6 +47,7 @@ func JsCode2Session(appId string, secret string, jsCode string, grantType string
 	params.Set("js_code", jsCode)
 	params.Set("grant_type", grantType)
 	url := fmt.Sprintf("%s/sns/jscode2session?%s", host, params.Encode())
+	log.Println("fff", url)
 	var result *http.Response
 	var err error
 	result, err = client.Get(url)
@@ -292,6 +293,11 @@ func SmsSend(appId string, secretId string, secretKey string, region string, sig
 	 * 第二个参数是地域信息，可以直接填写字符串ap-guangzhou，支持的地域列表参考 https://cloud.tencent.com/document/api/382/52071#.E5.9C.B0.E5.9F.9F.E5.88.97.E8.A1.A8 */
 	client, _ := sms.NewClient(credential, region, cpf)
 
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client.WithHttpTransport(tr)
+
 	/* 实例化一个请求对象，根据调用的接口和实际情况，可以进一步设置请求参数
 	 * 你可以直接查询SDK源码确定接口有哪些属性可以设置
 	 * 属性可能是基本类型，也可能引用了另一个数据结构
@@ -345,6 +351,10 @@ func SmsSend(appId string, secretId string, secretKey string, region string, sig
 		return nil, err
 	}
 	b, _ := json.Marshal(resp.Response)
+	log.Println(templateId)
+	log.Println(signName)
+	log.Println(appId)
+	log.Println(templateParamSet)
 	// 打印返回的json字符串
 	fmt.Printf("%s", b)
 	response := &SmsSendResponse{}

@@ -127,7 +127,7 @@ func (self DbConfig) Uri() string {
 	case REDIS_NAME:
 		return fmt.Sprintf("redis://%s:%s@%s:%d?%s", self.User, self.Password, self.Host, self.Port, self.Query)
 	case MYSQL_NAME:
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", self.User, self.Password, self.Host, self.Port, self.Db, self.Query)
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&%s", self.User, self.Password, self.Host, self.Port, self.Db, self.Query)
 	default:
 		return fmt.Sprintf("%s not support", self.Driver)
 	}

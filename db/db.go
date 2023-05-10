@@ -126,6 +126,7 @@ func ConfigRedisClient(ctx context.Context, name string, config gira.DbConfig) (
 func ConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
+	log.Info(uri)
 	client := &MysqlClient{
 		config:     config,
 		cancelFunc: cancelFunc,
