@@ -109,7 +109,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/bson"
 	yaml "gopkg.in/yaml.v3"
 	"context"
@@ -118,8 +117,6 @@ import (
 	"sync"
 	"io"
 	"time"
-	"strings"
-	"net/url"
 )
 
 
