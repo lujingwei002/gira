@@ -7,9 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type DbClient interface {
-}
-
 const (
 	GAMEDB_NAME       = "gamedb"
 	RESOURCEDB_NAME   = "resourcedb"
@@ -20,47 +17,59 @@ const (
 	ADMINCACHE_NAME   = "admincache"
 	ADMINDB_NAME      = "admindb"
 )
+const (
+	MONGODB_NAME = "mongodb"
+	REDIS_NAME   = "redis"
+	MYSQL_NAME   = "mysql"
+)
+
+type DbClient interface {
+	Uri() string
+}
 
 type RedisClient interface {
+	DbClient
 	GetRedisClient() *redis.Client
 }
 
 type MysqlClient interface {
+	DbClient
 	GetMysqlClient() *sql.DB
 }
 
 type MongoClient interface {
+	DbClient
 	GetMongoClient() *mongo.Client
 	GetMongoDatabase() *mongo.Database
 }
 
 type GameDbClient interface {
-	GetGameDbClient() MongoClient
+	GetGameDbClient() DbClient
 }
 
 type StatDbClient interface {
-	GetStatDbClient() MongoClient
+	GetStatDbClient() DbClient
 }
 
 type AccountDbClient interface {
-	GetAccountDbClient() MongoClient
+	GetAccountDbClient() DbClient
 }
 
 type ResourceDbClient interface {
-	GetResourceDbClient() MongoClient
+	GetResourceDbClient() DbClient
 }
 
 type AdminDbClient interface {
-	GetAdminDbClient() MysqlClient
+	GetAdminDbClient() DbClient
 }
 
 type AccountCacheClient interface {
-	GetAccountCacheClient() RedisClient
+	GetAccountCacheClient() DbClient
 }
 
 type LogDbClient interface {
-	GetLogDbClient() MongoClient
+	GetLogDbClient() DbClient
 }
 type AdminCacheClient interface {
-	GetAdminCacheClient() RedisClient
+	GetAdminCacheClient() DbClient
 }

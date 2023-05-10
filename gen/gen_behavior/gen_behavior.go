@@ -31,6 +31,7 @@ import (
 	"log"
 	"os"
 	"github.com/lujingwei002/gira/behavior"
+	"github.com/lujingwei002/gira/db"
 	"github.com/urfave/cli/v2"
 	"<<.Module>>/gen/behavior/<<.DbName>>"
 )
@@ -84,7 +85,11 @@ func main() {
 func migrateAction(args *cli.Context) error {
 	opts := make([]behavior.MigrateOption, 0)
 	opts = append(opts, behavior.WithMigrateDropIndex(enabledDropIndex), behavior.WithMigrateConnectTimeout(connectTimeout))
-	return <<.DbName>>.Migrate(context.Background(), uri, opts...)
+	if client, err := db.DbClientFromUri(context.Background(), "<<.DbName>>", uri); err != nil {
+		return err
+	} else {
+		return <<.DbName>>.Migrate(context.Background(), client, opts...)
+	}
 }
 `
 
@@ -132,6 +137,13 @@ type <<.StructName>> struct {
 }
 <<- end>> 
 
+type <<.DriverInterfaceName>> interface {
+	Sync(ctx context.Context, opts ...behavior.SyncOption) (err error) 
+	Migrate(ctx context.Context, opts ...behavior.MigrateOption) error
+	<<- range .CollectionArr>> 
+	Log<<.StructName>>(doc *<<.StructName>>) error
+	<<- end>>
+}
 
 // mongo 
 type <<.MongoDriverStructName>> struct {
@@ -143,7 +155,7 @@ type <<.MongoDriverStructName>> struct {
 	<<- end>>
 }
 
-var globalDriver *<<.MongoDriverStructName>>
+var globalDriver <<.DriverInterfaceName>>
 
 func NewMongo() *<<.MongoDriverStructName>> {
 	self := &<<.MongoDriverStructName>>{}
@@ -156,53 +168,42 @@ func NewMongo() *<<.MongoDriverStructName>> {
 	return self
 }
 
-func Migrate(ctx context.Context, uri string, opts ...behavior.MigrateOption) error {
+func Migrate(ctx context.Context, client  gira.DbClient, opts ...behavior.MigrateOption) error {
 	migrateOptions := &behavior.MigrateOptions {
 	}
 	for _, v := range opts {
 		v.ConfigMigrateOptions(migrateOptions)
 	}
-	u, err := url.Parse(uri)
-    if err != nil {
-        log.Errorw("parsing uri fail", "uri", uri, "error", err)
-        return err
-    }
-    path := strings.TrimPrefix(u.Path, "/")
-	uri = strings.Replace(uri, u.Path, "", 1)
-	log.Infow("connect database", "uri", uri, "path", path, "timeout", migrateOptions.ConnectTimeout, "enabled-drop-index", migrateOptions.EnabledDropIndex)
-
-	clientOpts := options.Client().ApplyURI(uri)
-	ctx1, cancelFunc1 := context.WithTimeout(ctx, time.Duration(migrateOptions.ConnectTimeout)*time.Second)
-	defer cancelFunc1()
-	client, err := mongo.Connect(ctx1, clientOpts)
-	if err != nil {
-		log.Errorw("connect database fail", "uri", uri, "error", err)
-		return err
+	switch client2 := client.(type) {
+	case gira.MongoClient:
+		driver := NewMongo()
+		driver.Use(client2)
+		return driver.Migrate(ctx, opts...)
+	default:
+		return gira.ErrDbNotSupport
 	}
-	ctx2, cancelFunc2 := context.WithTimeout(ctx, time.Duration(migrateOptions.ConnectTimeout)*time.Second)
-	defer cancelFunc2()
-	if err = client.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Errorw("connect database fail", "uri", uri, "error", err)
-		return err
-	}
-	database := client.Database(path)
+}
 
-	driver := NewMongo()
-	driver.client = client
-	driver.database = database
-	return driver.Migrate(ctx, opts...)
+func Use(ctx context.Context, client gira.DbClient, config gira.BehaviorConfig) error {
+	switch client2 := client.(type) {
+	case gira.MongoClient:
+		return UseMongo(ctx, client2, config)
+	default:
+		return gira.ErrDbNotSupport
+	}
 }
 
 func UseMongo(ctx context.Context, client gira.MongoClient, config gira.BehaviorConfig) error {
 	if globalDriver != nil {
 		return gira.ErrTodo
 	}
-	globalDriver = NewMongo()
-	if err := globalDriver.Use(client); err != nil {
+	driver := NewMongo()
+	if err := driver.Use(client); err != nil {
 		return err
 	}
+	globalDriver = driver
 	facade.Go(func() error {
-		return globalDriver.Serve(ctx, config)
+		return driver.Serve(ctx, config)
 	})
 	return nil
 }
@@ -213,6 +214,13 @@ func Sync(ctx context.Context, opts ...behavior.SyncOption) error {
 	}
 	return globalDriver.Sync(ctx, opts...)
 }
+
+<<- range .CollectionArr>>
+// <<.Comment>>
+func Log<<.StructName>>(doc *<<.StructName>>) error {
+	return globalDriver.Log<<.StructName>>(doc)
+}
+<<- end>> 
 
 func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
 	if self.client != nil {
@@ -263,7 +271,12 @@ func (self *<<.MongoDriverStructName>>) Sync(ctx context.Context, opts ...behavi
 	return 
 }
 
-
+<<- range .CollectionArr>> 
+// <<.Comment>>
+func (self *<<.MongoDriverStructName>>) Log<<.StructName>>(doc *<<.StructName>>) error {
+	return self.<<.StructName>>.Log(doc)
+}
+<<- end>> 
 
 <<- range .CollectionArr>> 
 
@@ -274,10 +287,7 @@ type <<.MongoDaoStructName>> struct {
 	mu		sync.Mutex
 }
 
-// <<.Comment>>
-func Log<<.StructName>>(doc *<<.StructName>>) error {
-	return globalDriver.<<.StructName>>.Log(doc)
-}
+
 
 // <<.Comment>>
 func (self *<<.MongoDaoStructName>>) Log(doc *<<.StructName>>) error {
@@ -574,17 +584,18 @@ func (self SortIndexByName) Swap(i, j int)      { self[i], self[j] = self[j], se
 func (self SortIndexByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 type Collection struct {
-	CollName           string // 表名
-	StructName         string // 表名的驼峰格式
-	MongoDaoStructName string // mongo dao 结构的名称
-	Derive             string
-	Comment            string
-	FieldDict          map[string]*Field
-	FieldArr           []*Field
-	IndexDict          map[string]*Index
-	IndexArr           []*Index
-	HasLogTimeField    bool
-	HasCreateTimeField bool
+	CollName              string // 表名
+	StructName            string // 表名的驼峰格式
+	MongoDaoStructName    string // mongo dao 结构的名称
+	Derive                string
+	Comment               string
+	FieldDict             map[string]*Field
+	FieldArr              []*Field
+	IndexDict             map[string]*Index
+	IndexArr              []*Index
+	HasLogTimeField       bool
+	HasCreateTimeField    bool
+	MongoDriverStructName string
 }
 type SortCollectionByName []*Collection
 
@@ -597,6 +608,7 @@ type Database struct {
 	Driver                string
 	DbStructName          string // 数据库名的驼峰格式
 	MongoDriverStructName string // mongo 的 dao 结构名字
+	DriverInterfaceName   string
 	DbName                string
 	GenModelDir           string        // 生成的文件路径，在 gen/{{DbName}}
 	GenModelFilePath      string        // 生成的文件路径，在 gen/{{DbName}}/{{DbName}}.gen.go
@@ -813,6 +825,7 @@ func parse(state *gen_state, filePathArr []string) error {
 			DbName:                dbName,
 			DbStructName:          camelString(dbName),
 			MongoDriverStructName: fmt.Sprintf("%sMongoDriver", camelString(dbName)),
+			DriverInterfaceName:   fmt.Sprintf("%sDriver", camelString(dbName)),
 		}
 		result := make(map[string]interface{})
 		if err := yaml.Unmarshal(data, result); err != nil {
@@ -824,9 +837,10 @@ func parse(state *gen_state, filePathArr []string) error {
 			} else {
 				collName := k
 				coll := &Collection{
-					CollName:           collName,
-					StructName:         camelString(collName),
-					MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
+					MongoDriverStructName: database.MongoDriverStructName,
+					CollName:              collName,
+					StructName:            camelString(collName),
+					MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
 				}
 				if err := coll.Unmarshal(state, v); err != nil {
 					return err

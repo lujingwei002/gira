@@ -218,9 +218,9 @@ func (self *<<.LoaderStructName>>) LoadFromBin(dir string) error {
 }
 
 // 从db中加载资源
-func (self *<<.LoaderStructName>>) LoadFromDb(ctx context.Context, database *mongo.Database) error {
+func (self *<<.LoaderStructName>>) LoadFromDb(ctx context.Context, client gira.DbClient) error {
 	<<- range .BundleArr>>
-	if err := self.<<.BundleStructName>>.LoadFromDb(ctx, database); err != nil {
+	if err := self.<<.BundleStructName>>.LoadFromDb(ctx, client); err != nil {
 		return err
 	}
 	<<- end>>
@@ -228,10 +228,10 @@ func (self *<<.LoaderStructName>>) LoadFromDb(ctx context.Context, database *mon
 }
 
 // 根据bundle的类型，从相应的源中加载资源
-func (self *<<.LoaderStructName>>) Load(ctx context.Context, database *mongo.Database, dir string) error {
+func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClient, dir string) error {
 	<<- range .BundleArr>>
 	<<- if eq .BundleType "db">>
-	if err := self.<<.BundleStructName>>.LoadFromDb(ctx, database); err != nil {
+	if err := self.<<.BundleStructName>>.LoadFromDb(ctx, client); err != nil {
 		return err
 	}
 	<<- end>>
@@ -295,10 +295,10 @@ func (self* <<.BundleStructName>>) LoadFromYaml(dir string) error {
 }
 
 // 从db中加载资源
-func (self* <<.BundleStructName>>) LoadFromDb(ctx context.Context, database *mongo.Database) error {
+func (self* <<.BundleStructName>>) LoadFromDb(ctx context.Context, client gira.DbClient) error {
 	self.Clear()
 	<<- range .ResourceArr>>
-	if err := self.<<.WrapStructName>>.LoadFromDb(ctx, database); err != nil {
+	if err := self.<<.WrapStructName>>.LoadFromDb(ctx, client); err != nil {
 		return err
 	}
 	<<- end>>
@@ -391,7 +391,7 @@ func (self *<<.ArrTypeName>>) LoadFromYaml(filePath string) error {
 }
 
 // 从db中加载资源
-func (self *<<.ArrTypeName>>) LoadFromDb(ctx context.Context, database *mongo.Database) error {
+func (self *<<.ArrTypeName>>) LoadFromMongo(ctx context.Context, database *mongo.Database) error {
 	coll := database.Collection("<<.TableName>>")
 	if cursor, err := coll.Find(ctx, bson.D{}); err != nil {
 		return err
@@ -402,6 +402,15 @@ func (self *<<.ArrTypeName>>) LoadFromDb(ctx context.Context, database *mongo.Da
 		}
 	}
 	return nil
+}
+
+func (self *<<.ArrTypeName>>) LoadFromDb(ctx context.Context, client gira.DbClient) error {
+	switch c := client.(type) {
+	case gira.MongoClient:
+		return self.LoadFromMongo(ctx, c.GetMongoDatabase())
+	default:
+		panic(gira.ErrDbNotSupport)
+	}
 }
 
 /// 字典类型的配置,转换成字典格式
@@ -415,9 +424,18 @@ func (self *<<.WrapStructName>>) LoadFromYaml(filePath string) error {
 	return self.Make(arr)
 }
 
-func (self *<<.WrapStructName>>) LoadFromDb(ctx context.Context, database *mongo.Database) error {
+func (self *<<.WrapStructName>>) LoadFromDb(ctx context.Context, client gira.DbClient) error {
+	switch c := client.(type) {
+	case gira.MongoClient:
+		return self.LoadFromMongo(ctx, c.GetMongoDatabase())
+	default:
+		panic(gira.ErrDbNotSupport)
+	}
+}
+
+func (self *<<.WrapStructName>>) LoadFromMongo(ctx context.Context, database *mongo.Database) error {
 	var arr <<.ArrTypeName>>
-	if err := arr.LoadFromDb(ctx, database); err != nil {
+	if err := arr.LoadFromMongo(ctx, database); err != nil {
 		return err
 	}
 	return self.Make(arr)
@@ -453,9 +471,18 @@ func (self *<<.WrapStructName>>) LoadFromYaml(filePath string) error {
 }
 
 
-func (self *<<.WrapStructName>>) LoadFromDb(ctx context.Context, database *mongo.Database) error {
+func (self *<<.WrapStructName>>) LoadFromDb(ctx context.Context, client gira.DbClient) error {
+	switch c := client.(type) {
+	case gira.MongoClient:
+		return self.LoadFromMongo(ctx, c.GetMongoDatabase())
+	default:
+		panic(gira.ErrDbNotSupport)
+	}
+}
+
+func (self *<<.WrapStructName>>) LoadFromMongo(ctx context.Context, database *mongo.Database) error {
 	var arr <<.ArrTypeName>>
-	if err := arr.LoadFromDb(ctx, database); err != nil {
+	if err := arr.LoadFromMongo(ctx, database); err != nil {
 		return err
 	}
 	return self.Make(arr)

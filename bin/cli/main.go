@@ -244,7 +244,7 @@ func migrateAction(c *cli.Context) error {
 			log.Error("db config not found")
 			return nil
 		} else {
-			uri := dbConfig.MongoUri()
+			uri := dbConfig.Uri()
 			argv := []string{"migrate", "--uri", uri}
 			argv = append(argv, c.Args().Tail()...)
 			return command(bin, argv)
@@ -263,7 +263,7 @@ func resourcePushAction(args *cli.Context) error {
 		return err
 	} else {
 		dbConfig := config.Db["resourcedb"]
-		uri := dbConfig.MongoUri()
+		uri := dbConfig.Uri()
 		bin := "bin/resource"
 		argv := []string{"push", "--uri", uri}
 		return command(bin, argv)

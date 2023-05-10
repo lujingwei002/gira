@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -44,6 +46,7 @@ type DbConfig struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	Db       string `yaml:"db"`
+	Query    string `yaml:"query"`
 }
 
 // 游戏数据库配置
@@ -115,8 +118,77 @@ type BehaviorConfig struct {
 //	func (self BehaviorDbConfig) Uri() string {
 //		return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
 //	}
-func (self DbConfig) MongoUri() string {
-	return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", self.User, self.Password, self.Host, self.Port, self.Db)
+//
+// 完整的地址，包括path部分
+func (self DbConfig) Uri() string {
+	switch self.Driver {
+	case MONGODB_NAME:
+		return fmt.Sprintf("mongodb://%s:%s@%s:%d/?db=%s&%s", self.User, self.Password, self.Host, self.Port, self.Db, self.Query)
+	case REDIS_NAME:
+		return fmt.Sprintf("redis://%s:%s@%s:%d?%s", self.User, self.Password, self.Host, self.Port, self.Query)
+	case MYSQL_NAME:
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", self.User, self.Password, self.Host, self.Port, self.Db, self.Query)
+	default:
+		return fmt.Sprintf("%s not support", self.Driver)
+	}
+	//return fmt.Sprintf("%s://%s:%s@%s:%d/%s", self.Driver, self.User, self.Password, self.Host, self.Port, self.Db)
+}
+
+func (self DbConfig) GormUri() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", self.User, self.Password, self.Host, self.Port, self.Db)
+}
+
+func (self *DbConfig) Parse(uri string) error {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return err
+	}
+	switch u.Scheme {
+	case MONGODB_NAME:
+		self.Driver = u.Scheme
+	case REDIS_NAME:
+		self.Driver = u.Scheme
+	case MYSQL_NAME:
+		self.Driver = u.Scheme
+	default:
+		return ErrDbNotSupport
+	}
+	host2 := strings.Split(u.Host, ":")
+	if len(host2) == 2 {
+		self.Host = host2[0]
+		if v, err := strconv.Atoi(host2[1]); err != nil {
+			return err
+		} else {
+			self.Port = v
+		}
+	} else if len(host2) == 1 {
+		switch u.Scheme {
+		case MONGODB_NAME:
+			self.Port = 27017
+		case REDIS_NAME:
+			self.Port = 6379
+		case MYSQL_NAME:
+			self.Port = 3306
+		}
+	}
+	self.User = u.User.Username()
+	if v, set := u.User.Password(); set {
+		self.Password = v
+	} else {
+		self.Password = ""
+	}
+	switch u.Scheme {
+	case MONGODB_NAME:
+		self.Db = u.Query().Get("db")
+		query := u.Query()
+		query.Del("db")
+		self.Query = query.Encode()
+	default:
+		path := strings.TrimPrefix(u.Path, "/")
+		self.Db = path
+		self.Query = u.Query().Encode()
+	}
+	return nil
 }
 
 // type AdminDbConfig struct {

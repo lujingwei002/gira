@@ -85,35 +85,35 @@ func (application *BaseApplication) Wait() error {
 	return application.runtime.wait()
 }
 
-func (application *BaseApplication) GetAccountDbClient() gira.MongoClient {
+func (application *BaseApplication) GetAccountDbClient() gira.DbClient {
 	return application.runtime.AccountDbClient
 }
 
-func (application *BaseApplication) GetGameDbClient() gira.MongoClient {
+func (application *BaseApplication) GetGameDbClient() gira.DbClient {
 	return application.runtime.GameDbClient
 }
 
-func (application *BaseApplication) GetLogDbClient() gira.MongoClient {
+func (application *BaseApplication) GetLogDbClient() gira.DbClient {
 	return application.runtime.LogDbClient
 }
 
-func (application *BaseApplication) GetStatDbClient() gira.MongoClient {
+func (application *BaseApplication) GetStatDbClient() gira.DbClient {
 	return application.runtime.StatDbClient
 }
 
-func (application *BaseApplication) GetAccountCacheClient() gira.RedisClient {
+func (application *BaseApplication) GetAccountCacheClient() gira.DbClient {
 	return application.runtime.AccountCacheClient
 }
 
-func (application *BaseApplication) GetAdminCacheClient() gira.RedisClient {
+func (application *BaseApplication) GetAdminCacheClient() gira.DbClient {
 	return application.runtime.AdminCacheClient
 }
 
-func (application *BaseApplication) GetResourceDbClient() gira.MongoClient {
+func (application *BaseApplication) GetResourceDbClient() gira.DbClient {
 	return application.runtime.ResourceDbClient
 }
 
-func (application *BaseApplication) GetAdminDbClient() gira.MysqlClient {
+func (application *BaseApplication) GetAdminDbClient() gira.DbClient {
 	return application.runtime.AdminDbClient
 }
 

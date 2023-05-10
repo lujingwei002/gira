@@ -35,15 +35,6 @@ func GetAppType() string {
 	return gira.App().GetAppType()
 }
 
-func GetResourceDbClient() gira.MongoClient {
-	application := gira.App()
-	if h, ok := application.(gira.ResourceDbClient); ok {
-		return h.GetResourceDbClient()
-	} else {
-		return nil
-	}
-}
-
 func ReloadResource() error {
 	application := gira.App()
 	if s, ok := application.(gira.ResourceLoader); !ok {
@@ -61,7 +52,7 @@ func BroadcastReloadResource(ctx context.Context, name string) error {
 		return h.BroadcastReloadResource(ctx, name)
 	}
 }
-func GetAdminDbClient() gira.MysqlClient {
+func GetAdminDbClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.AdminDbClient); ok {
 		return h.GetAdminDbClient()
@@ -103,7 +94,16 @@ func RangePeers(f func(k any, v any) bool) {
 	}
 }
 
-func GetStatDbClient() gira.MongoClient {
+func GetResourceDbClient() gira.DbClient {
+	application := gira.App()
+	if h, ok := application.(gira.ResourceDbClient); ok {
+		return h.GetResourceDbClient()
+	} else {
+		return nil
+	}
+}
+
+func GetStatDbClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.StatDbClient); ok {
 		return h.GetStatDbClient()
@@ -112,7 +112,7 @@ func GetStatDbClient() gira.MongoClient {
 	}
 }
 
-func GetAccountDbClient() gira.MongoClient {
+func GetAccountDbClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.AccountDbClient); ok {
 		return h.GetAccountDbClient()
@@ -121,7 +121,7 @@ func GetAccountDbClient() gira.MongoClient {
 	}
 }
 
-func GetLogDbClient() gira.MongoClient {
+func GetLogDbClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.LogDbClient); ok {
 		return h.GetLogDbClient()
@@ -130,7 +130,7 @@ func GetLogDbClient() gira.MongoClient {
 	}
 }
 
-func GetAdminCacheClient() gira.RedisClient {
+func GetAdminCacheClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.AdminCacheClient); ok {
 		return h.GetAdminCacheClient()
@@ -139,7 +139,7 @@ func GetAdminCacheClient() gira.RedisClient {
 	}
 }
 
-func GetAccountCacheClient() gira.RedisClient {
+func GetAccountCacheClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.AccountCacheClient); ok {
 		return h.GetAccountCacheClient()
@@ -148,7 +148,7 @@ func GetAccountCacheClient() gira.RedisClient {
 	}
 }
 
-func GetGameDbClient() gira.MongoClient {
+func GetGameDbClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.GameDbClient); ok {
 		return h.GetGameDbClient()

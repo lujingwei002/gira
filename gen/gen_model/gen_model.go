@@ -84,7 +84,11 @@ func main() {
 func migrateAction(args *cli.Context) error {
 	opts := make([]db.MigrateOption, 0)
 	opts = append(opts, db.WithMigrateDropIndex(enabledDropIndex), db.WithMigrateConnectTimeout(connectTimeout))
-	return <<.DbName>>.Migrate(context.Background(), uri, opts...)
+	if client, err := db.DbClientFromUri(context.Background(), "<<.DbName>>", uri); err != nil {
+		return err
+	} else {
+		return <<.DbName>>.Migrate(context.Background(), client, opts...)
+	}
 }
 `
 
@@ -118,7 +122,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"github.com/go-redis/redis/v8"
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/db"
@@ -127,11 +130,75 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"strings"
-	"net/url"
 )
 
 
+
+type <<.DriverInterfaceName>> interface {
+	Migrate(ctx context.Context, opts ...db.MigrateOption) error
+}
+var globalDriver <<.DriverInterfaceName>>
+
+func Use(ctx context.Context, client gira.DbClient) (<<.DriverInterfaceName>>, error) {
+	switch c := client.(type) {
+	case gira.MongoClient:
+		return UseMongo(ctx, c)
+	default:
+		return nil, gira.ErrDbNotSupport
+	}
+}
+
+func NewMongo() *<<.MongoDriverStructName>> {
+	self := &<<.MongoDriverStructName>>{}
+	<<- range .CollectionArr>> 
+	self.<<.StructName>> = &<<.MongoDaoStructName>>{
+		db: self,
+	}
+	<<- end>> 
+	return self
+}
+
+func UseMongo(ctx context.Context, client gira.MongoClient) (*<<.MongoDriverStructName>>, error) {
+	driver := NewMongo()
+	if err := driver.Use(client); err != nil {
+		return nil, err
+	}
+	return driver, nil
+}
+
+func NewRedis() *<<.RedisDriverStructName>> {
+	self := &<<.RedisDriverStructName>>{}
+	<<- range .CollectionArr>> 
+	self.<<.StructName>> = &<<.RedisDaoStructName>>{
+		db: self,
+	}
+	<<- end>> 
+	return self
+}
+
+func UseRedis(ctx context.Context, client gira.RedisClient) (*<<.RedisDriverStructName>>, error) {
+	driver := NewRedis()
+	if err := driver.Use(client); err != nil {
+		return nil, err
+	}
+	return driver, nil
+}
+
+func Migrate(ctx context.Context, client  gira.DbClient, opts ...db.MigrateOption) error {
+	migrateOptions := &db.MigrateOptions {
+	}
+	for _, v := range opts {
+		v.ConfigMigrateOptions(migrateOptions)
+	}
+	switch client2 := client.(type) {
+	case gira.MongoClient:
+		driver := NewMongo()
+		driver.Use(client2)
+		return driver.Migrate(ctx, opts...)
+	default:
+		return gira.ErrDbNotSupport
+	}
+}
 
 <<- range .CollectionArr>> 
 // <<.CollName>>模型字段 
@@ -397,7 +464,6 @@ func (self *<<.ArrStructName>>) Get(<<.CapCamelSecondaryKey>> <<.SecondaryKeyFie
 <<- end>><</* range .CollectionArr*/>>
 
 
-var globalDriver *<<.MongoDriverStructName>>
 
 // mongo 
 type <<.MongoDriverStructName>> struct {
@@ -408,52 +474,13 @@ type <<.MongoDriverStructName>> struct {
 	<<- end>>
 }
 
-func UseMongo(client *mongo.Client, database *mongo.Database) *<<.MongoDriverStructName>> {
-	self := &<<.MongoDriverStructName>>{
-		client: client,
-		database: database,
+func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
+	if self.client != nil {
+		return gira.ErrTodo
 	}
-	<<- range .CollectionArr>> 
-	self.<<.StructName>> = &<<.MongoDaoStructName>>{
-		db: self,
-	}
-	<<- end>> 
-	return self
-}
-
-func Migrate(ctx context.Context, uri string, opts ...db.MigrateOption) error {
-	migrateOptions := &db.MigrateOptions {
-	}
-	for _, v := range opts {
-		v.ConfigMigrateOptions(migrateOptions)
-	}
-	u, err := url.Parse(uri)
-    if err != nil {
-        log.Errorw("parsing uri fail", "uri", uri, "error", err)
-        return err
-    }
-    path := strings.TrimPrefix(u.Path, "/")
-	uri = strings.Replace(uri, u.Path, "", 1)
-	log.Infow("connect database", "uri", uri, "path", path, "timeout", migrateOptions.ConnectTimeout, "enabled-drop-index", migrateOptions.EnabledDropIndex)
-
-	clientOpts := options.Client().ApplyURI(uri)
-	ctx1, cancelFunc1 := context.WithTimeout(ctx, time.Duration(migrateOptions.ConnectTimeout)*time.Second)
-	defer cancelFunc1()
-	client, err := mongo.Connect(ctx1, clientOpts)
-	if err != nil {
-		log.Errorw("connect database fail", "uri", uri, "error", err)
-		return err
-	}
-	ctx2, cancelFunc2 := context.WithTimeout(ctx, time.Duration(migrateOptions.ConnectTimeout)*time.Second)
-	defer cancelFunc2()
-	if err = client.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Errorw("connect database fail", "uri", uri, "error", err)
-		return err
-	}
-	database := client.Database(path)
-
-	driver := UseMongo(client, database)
-	return driver.Migrate(ctx, opts...)
+	self.client = client.GetMongoClient()
+	self.database = client.GetMongoDatabase()
+	return nil
 }
 
 func (self *<<.MongoDriverStructName>>) Migrate(ctx context.Context, opts ...db.MigrateOption) error {
@@ -730,7 +757,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimaryKey>> <<.PrimaryKeyField.GoTypeName>>) (*<<.ArrStructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
-	log.Infow("<<.CollName>> save", "<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>)
+	log.Infow("<<.CollName>> load", "<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>)
 	cursor, err := coll.Find(ctx, bson.D{{"<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>}})
 	if err != nil {
 		return nil, err
@@ -764,29 +791,27 @@ func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimar
 
 
 <</* redis操作 */>>
-type <<.RedisDbStructName>> struct {
+type <<.RedisDriverStructName>> struct {
 	client		*redis.Client
 	<<- range .CollectionArr>> 
 	<<.StructName>>  *<<.RedisDaoStructName>>
 	<<- end>>
 }
 
-func UseRedis(client *redis.Client) *<<.RedisDbStructName>> {
-	self := &<<.RedisDbStructName>>{
-		client: client,
-	}
-	<<- range .CollectionArr>> 
-	self.<<.StructName>> = &<<.RedisDaoStructName>>{
-		db: self,
-	}
-	<<- end>> 
-	return self
+
+
+func (self *<<.RedisDriverStructName>>) Migrate(ctx context.Context, opts ...db.MigrateOption) error {
+	return nil
 }
 
+func (self *<<.RedisDriverStructName>>) Use(client gira.RedisClient) error {
+	self.client = client.GetRedisClient()
+	return nil
+}
 <<- range .CollectionArr>> 
 
 type <<.RedisDaoStructName>> struct {
-	db *<<$.RedisDbStructName>>
+	db *<<$.RedisDriverStructName>>
 }
 
 func (self *<<.RedisDaoStructName>>) New() *<<.StructName>> {
@@ -993,27 +1018,28 @@ func (self SortIndexByName) Swap(i, j int)      { self[i], self[j] = self[j], se
 func (self SortIndexByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 type Collection struct {
-	CollName             string // 表名
-	StructName           string // 表名的驼峰格式
-	PbStructName         string
-	ArrStructName        string
-	MongoDaoStructName   string // mongo dao 结构的名称
-	RedisDaoStructName   string // redis dao 结构的名称
-	Derive               string
-	KeyArr               []string
-	DataStructName       string
-	FieldDict            map[string]*Field
-	FieldArr             []*Field
-	SecondaryKey         string
-	CamelSecondaryKey    string
-	CapCamelSecondaryKey string
-	PrimaryKey           string
-	CamelPrimaryKey      string
-	CapCamelPrimaryKey   string
-	PrimaryKeyField      *Field
-	SecondaryKeyField    *Field
-	IndexDict            map[string]*Index
-	IndexArr             []*Index
+	CollName              string // 表名
+	StructName            string // 表名的驼峰格式
+	PbStructName          string
+	ArrStructName         string
+	MongoDaoStructName    string // mongo dao 结构的名称
+	RedisDaoStructName    string // redis dao 结构的名称
+	Derive                string
+	KeyArr                []string
+	DataStructName        string
+	FieldDict             map[string]*Field
+	FieldArr              []*Field
+	SecondaryKey          string
+	CamelSecondaryKey     string
+	CapCamelSecondaryKey  string
+	PrimaryKey            string
+	CamelPrimaryKey       string
+	CapCamelPrimaryKey    string
+	PrimaryKeyField       *Field
+	SecondaryKeyField     *Field
+	IndexDict             map[string]*Index
+	IndexArr              []*Index
+	MongoDriverStructName string
 }
 
 type SortCollectionByName []*Collection
@@ -1027,7 +1053,7 @@ type Database struct {
 	Driver                string
 	DbStructName          string // 数据库名的驼峰格式
 	MongoDriverStructName string // mongo 的 dao 结构名字
-	RedisDbStructName     string // redis 的 dao 结构名字
+	RedisDriverStructName string // redis 的 dao 结构名字
 	DbName                string
 	GenBinFilePath        string        // 生成的文件路径，在 gen/model/{{DbName}}/bin/{{DbName}}.gen.go
 	GenBinDir             string        // 生成的文件路径，在 gen/model/{{DbName}}/bin
@@ -1035,6 +1061,7 @@ type Database struct {
 	GenModelFilePath      string        // 生成的文件路径，在 gen/model/{{DbName}}/{{DbName}}.gen.go
 	GenProtobufFilePath   string        // 生成的protobuf文件路径， 在gen/{{DbName}}/{{DbName}}.gen.proto
 	CollectionArr         []*Collection // 所有的模型
+	DriverInterfaceName   string
 }
 
 // 生成协议的状态
@@ -1283,7 +1310,8 @@ func parse(state *gen_state, filePathArr []string) error {
 			DbName:                dbName,
 			DbStructName:          camelString(dbName),
 			MongoDriverStructName: fmt.Sprintf("%sMongoDriver", camelString(dbName)),
-			RedisDbStructName:     fmt.Sprintf("%sRedisDriver", camelString(dbName)),
+			RedisDriverStructName: fmt.Sprintf("%sRedisDriver", camelString(dbName)),
+			DriverInterfaceName:   fmt.Sprintf("%sDriver", camelString(dbName)),
 		}
 		result := make(map[string]interface{})
 		if err := yaml.Unmarshal(data, result); err != nil {
@@ -1295,13 +1323,14 @@ func parse(state *gen_state, filePathArr []string) error {
 			} else {
 				collName := k
 				coll := &Collection{
-					CollName:           collName,
-					StructName:         camelString(collName),
-					PbStructName:       fmt.Sprintf("%sPb", camelString(collName)),
-					ArrStructName:      fmt.Sprintf("%sArr", camelString(collName)),
-					DataStructName:     fmt.Sprintf("%sData", camelString(collName)),
-					MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
-					RedisDaoStructName: fmt.Sprintf("%sRedisDao", camelString(collName)),
+					MongoDriverStructName: database.MongoDriverStructName,
+					CollName:              collName,
+					StructName:            camelString(collName),
+					PbStructName:          fmt.Sprintf("%sPb", camelString(collName)),
+					ArrStructName:         fmt.Sprintf("%sArr", camelString(collName)),
+					DataStructName:        fmt.Sprintf("%sData", camelString(collName)),
+					MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
+					RedisDaoStructName:    fmt.Sprintf("%sRedisDao", camelString(collName)),
 				}
 				if err := coll.Unmarshal(state, v); err != nil {
 					return err

@@ -74,14 +74,14 @@ type Runtime struct {
 	HttpServer         *gins.HttpServer
 	Registry           *registry.Registry
 	DbClients          map[string]gira.DbClient
-	GameDbClient       *db.MongoDbClient
+	GameDbClient       gira.DbClient
 	LogDbClient        *db.MongoDbClient
-	AccountDbClient    *db.MongoDbClient
-	StatDbClient       *db.MongoDbClient
-	ResourceDbClient   *db.MongoDbClient
-	AccountCacheClient *db.RedisClient
-	AdminCacheClient   *db.RedisClient
-	AdminDbClient      *db.MysqlClient
+	AccountDbClient    gira.DbClient
+	StatDbClient       gira.DbClient
+	ResourceDbClient   gira.DbClient
+	AccountCacheClient gira.DbClient
+	AdminCacheClient   gira.DbClient
+	AdminDbClient      gira.DbClient
 	Sdk                *sdk.Sdk
 	Gate               *gate.Server
 	GrpcServer         *grpc.GrpcServer
@@ -268,21 +268,21 @@ func (runtime *Runtime) onAwake() error {
 			return err
 		} else {
 			runtime.DbClients[name] = client
-			if name == gira.GAMEDB_NAME && c.Driver == "mongo" {
+			if name == gira.GAMEDB_NAME && c.Driver == gira.MONGODB_NAME {
 				runtime.GameDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.RESOURCEDB_NAME && c.Driver == "mongo" {
+			} else if name == gira.RESOURCEDB_NAME && c.Driver == gira.MONGODB_NAME {
 				runtime.ResourceDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.STATDB_NAME && c.Driver == "mongo" {
+			} else if name == gira.STATDB_NAME && c.Driver == gira.MONGODB_NAME {
 				runtime.StatDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.ACCOUNTDB_NAME && c.Driver == "mongo" {
+			} else if name == gira.ACCOUNTDB_NAME && c.Driver == gira.MONGODB_NAME {
 				runtime.AccountDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.LOGDB_NAME && c.Driver == "mongo" {
+			} else if name == gira.LOGDB_NAME && c.Driver == gira.MONGODB_NAME {
 				runtime.LogDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.ACCOUNTCACHE_NAME && c.Driver == "redis" {
+			} else if name == gira.ACCOUNTCACHE_NAME && c.Driver == gira.REDIS_NAME {
 				runtime.AccountCacheClient = client.(*db.RedisClient)
-			} else if name == gira.ADMINCACHE_NAME && c.Driver == "redis" {
+			} else if name == gira.ADMINCACHE_NAME && c.Driver == gira.REDIS_NAME {
 				runtime.AdminCacheClient = client.(*db.RedisClient)
-			} else if name == gira.ADMINDB_NAME && c.Driver == "mysql" {
+			} else if name == gira.ADMINDB_NAME && c.Driver == gira.MYSQL_NAME {
 				runtime.AdminDbClient = client.(*db.MysqlClient)
 			}
 		}
