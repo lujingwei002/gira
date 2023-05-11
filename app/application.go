@@ -146,11 +146,18 @@ func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer
 
 }
 
-func (application *BaseApplication) ReloadResource() error {
+func (application *BaseApplication) ReloadResource(dir string) error {
 	if application.runtime.resourceLoader == nil {
 		return gira.ErrResourceLoaderNotImplement
 	}
-	return application.runtime.resourceLoader.ReloadResource("resource")
+	return application.runtime.resourceLoader.ReloadResource(dir)
+}
+
+func (application *BaseApplication) LoadResource(dir string) error {
+	if application.runtime.resourceLoader == nil {
+		return gira.ErrResourceLoaderNotImplement
+	}
+	return application.runtime.resourceLoader.LoadResource(dir)
 }
 
 func (application *BaseApplication) RangePeers(f func(k any, v any) bool) {
