@@ -528,6 +528,7 @@ const (
 var type_name_dict = map[string]field_type{
 	"int":      field_type_int,
 	"int64":    field_type_int64,
+	"long":     field_type_int64,
 	"int32":    field_type_int32,
 	"string":   field_type_string,
 	"json":     field_type_json,
@@ -760,7 +761,7 @@ func (r *Resource) readExcel(filePath string) error {
 				r.FieldArr = append(r.FieldArr, field)
 				r.FieldDict[v] = field
 			} else {
-				log.Warnw("invalid type", "type", typeName, "field", v)
+				log.Warnw("invalid type", "file_path", filePath, "type", typeName, "field", v)
 				return fmt.Errorf("invalid type %s", typeName)
 			}
 		}
