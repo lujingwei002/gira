@@ -140,11 +140,10 @@ func (self *PeerRegistry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 		handler.OnPeerDelete(peer)
 	}
 	if peer.FullName == r.fullName {
-		log.Errorw("delete myself???", "is_normal", self.isNormalUnregisterSelf)
 		if self.isNormalUnregisterSelf {
 			self.cancelFunc()
 		} else {
-			log.Errorw("重新注册自己")
+			log.Errorw("delete myself???", "is_normal", self.isNormalUnregisterSelf)
 			if err := self.registerSelf(r); err != nil {
 				log.Errorw("register self fail", "error", err)
 				return err

@@ -25,11 +25,15 @@ const (
 
 // 日志配置
 type LogConfig struct {
+	Console    bool   `yaml:"console"`
+	File       bool   `yaml:"file"`
 	MaxSize    int    `yaml:"max-size"`
 	MaxBackups int    `yaml:"max-backups"`
 	MaxAge     int    `yaml:"max-age"`
 	Compress   bool   `yaml:"compress"`
 	Level      string `yaml:"level"`
+	DbLevel    string `yaml:"db-level"`
+	Db         bool   `yaml:"db"`
 }
 
 // jwt配置
@@ -151,7 +155,7 @@ func (self *DbConfig) Parse(uri string) error {
 	case MYSQL_NAME:
 		self.Driver = u.Scheme
 	default:
-		return ErrDbNotSupport
+		return TraceError(ErrDbNotSupport)
 	}
 	host2 := strings.Split(u.Host, ":")
 	if len(host2) == 2 {

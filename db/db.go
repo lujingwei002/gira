@@ -165,6 +165,6 @@ func ConfigDbClient(ctx context.Context, name string, config gira.DbConfig) (gir
 	case gira.MYSQL_NAME:
 		return ConfigMysqlClient(ctx, name, config)
 	default:
-		return nil, gira.ErrDbNotSupport
+		return nil, gira.TraceError(gira.ErrDbNotSupport)
 	}
 }

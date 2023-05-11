@@ -13,6 +13,7 @@ const (
 	STATDB_NAME       = "statdb"
 	ACCOUNTDB_NAME    = "accountdb"
 	LOGDB_NAME        = "logdb"
+	BEHAVIORDB_NAME   = "behaviordb"
 	ACCOUNTCACHE_NAME = "accountcache"
 	ADMINCACHE_NAME   = "admincache"
 	ADMINDB_NAME      = "admindb"
@@ -70,6 +71,11 @@ type AccountCacheClient interface {
 type LogDbClient interface {
 	GetLogDbClient() DbClient
 }
+
+type BehaviorDbClient interface {
+	GetBehaviorDbClient() DbClient
+}
+
 type AdminCacheClient interface {
 	GetAdminCacheClient() DbClient
 }

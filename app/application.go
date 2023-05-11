@@ -97,6 +97,10 @@ func (application *BaseApplication) GetLogDbClient() gira.DbClient {
 	return application.runtime.LogDbClient
 }
 
+func (application *BaseApplication) GetBehaviorDbClient() gira.DbClient {
+	return application.runtime.BehaviorDbClient
+}
+
 func (application *BaseApplication) GetStatDbClient() gira.DbClient {
 	return application.runtime.StatDbClient
 }

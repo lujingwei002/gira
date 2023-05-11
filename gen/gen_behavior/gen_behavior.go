@@ -177,7 +177,7 @@ func Migrate(ctx context.Context, client  gira.DbClient, opts ...behavior.Migrat
 		driver.Use(client2)
 		return driver.Migrate(ctx, opts...)
 	default:
-		return gira.ErrDbNotSupport
+		return gira.ErrDbNotSupport.Trace()
 	}
 }
 
@@ -186,7 +186,7 @@ func Use(ctx context.Context, client gira.DbClient, config gira.BehaviorConfig) 
 	case gira.MongoClient:
 		return UseMongo(ctx, client2, config)
 	default:
-		return gira.ErrDbNotSupport
+		return gira.ErrDbNotSupport.Trace()
 	}
 }
 

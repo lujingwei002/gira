@@ -65,6 +65,7 @@ const (
 	E_INVALID_MEMBER_ID              = -52
 	E_BEHAVIOR_DRIVER_NOT_INIT       = -53
 	E_DB_NOT_SUPPORT                 = -54
+	E_DB_NOT_CONFIG                  = -55
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -123,12 +124,17 @@ const (
 	E_MSG_INVALID_MEMBER_ID              = "member id非法"
 	E_MSG_BEHAVIOR_DRIVER_NOT_INIT       = "behavior driver not init"
 	E_MSG_DB_NOT_SUPPORT                 = "数据库类型不支持"
+	E_MSG_DB_NOT_CONFIG                  = "数据库配置异常"
 )
 
 type Error struct {
 	Code  int32
 	Msg   string
 	Stack []byte
+}
+
+func (e *Error) Trace() error {
+	return &Error{Code: e.Code, Msg: e.Msg, Stack: debug.Stack()}
 }
 
 func (e *Error) Error() string {
@@ -202,6 +208,7 @@ var (
 	ErrInvalidMemberId             = NewError(E_INVALID_MEMBER_ID, E_MSG_INVALID_MEMBER_ID)
 	ErrBehaviorNotInit             = NewError(E_BEHAVIOR_DRIVER_NOT_INIT, E_MSG_BEHAVIOR_DRIVER_NOT_INIT)
 	ErrDbNotSupport                = NewError(E_DB_NOT_SUPPORT, E_MSG_DB_NOT_SUPPORT)
+	ErrDbNotConfig                 = NewError(E_DB_NOT_CONFIG, E_MSG_DB_NOT_CONFIG)
 )
 
 func ErrCode(err error) int32 {
@@ -238,7 +245,7 @@ func ErrMsg(err error) string {
 
 func TraceError(err error) error {
 	if e, ok := err.(*Error); ok {
-		e.Stack = debug.Stack()
+		return &Error{Code: e.Code, Msg: e.Msg, Stack: debug.Stack()}
 	}
 	return err
 }

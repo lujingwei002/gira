@@ -75,7 +75,8 @@ type Runtime struct {
 	Registry           *registry.Registry
 	DbClients          map[string]gira.DbClient
 	GameDbClient       gira.DbClient
-	LogDbClient        *db.MongoDbClient
+	LogDbClient        gira.DbClient
+	BehaviorDbClient   gira.DbClient
 	AccountDbClient    gira.DbClient
 	StatDbClient       gira.DbClient
 	ResourceDbClient   gira.DbClient
@@ -268,22 +269,24 @@ func (runtime *Runtime) onAwake() error {
 			return err
 		} else {
 			runtime.DbClients[name] = client
-			if name == gira.GAMEDB_NAME && c.Driver == gira.MONGODB_NAME {
-				runtime.GameDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.RESOURCEDB_NAME && c.Driver == gira.MONGODB_NAME {
-				runtime.ResourceDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.STATDB_NAME && c.Driver == gira.MONGODB_NAME {
-				runtime.StatDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.ACCOUNTDB_NAME && c.Driver == gira.MONGODB_NAME {
-				runtime.AccountDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.LOGDB_NAME && c.Driver == gira.MONGODB_NAME {
-				runtime.LogDbClient = client.(*db.MongoDbClient)
-			} else if name == gira.ACCOUNTCACHE_NAME && c.Driver == gira.REDIS_NAME {
-				runtime.AccountCacheClient = client.(*db.RedisClient)
-			} else if name == gira.ADMINCACHE_NAME && c.Driver == gira.REDIS_NAME {
-				runtime.AdminCacheClient = client.(*db.RedisClient)
-			} else if name == gira.ADMINDB_NAME && c.Driver == gira.MYSQL_NAME {
-				runtime.AdminDbClient = client.(*db.MysqlClient)
+			if name == gira.GAMEDB_NAME {
+				runtime.GameDbClient = client
+			} else if name == gira.RESOURCEDB_NAME {
+				runtime.ResourceDbClient = client
+			} else if name == gira.STATDB_NAME {
+				runtime.StatDbClient = client
+			} else if name == gira.ACCOUNTDB_NAME {
+				runtime.AccountDbClient = client
+			} else if name == gira.LOGDB_NAME {
+				runtime.LogDbClient = client
+			} else if name == gira.BEHAVIORDB_NAME {
+				runtime.BehaviorDbClient = client
+			} else if name == gira.ACCOUNTCACHE_NAME {
+				runtime.AccountCacheClient = client
+			} else if name == gira.ADMINCACHE_NAME {
+				runtime.AdminCacheClient = client
+			} else if name == gira.ADMINDB_NAME {
+				runtime.AdminDbClient = client
 			}
 		}
 	}

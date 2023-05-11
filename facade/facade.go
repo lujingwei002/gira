@@ -130,6 +130,15 @@ func GetLogDbClient() gira.DbClient {
 	}
 }
 
+func GetBehaviorDbClient() gira.DbClient {
+	application := gira.App()
+	if h, ok := application.(gira.BehaviorDbClient); ok {
+		return h.GetBehaviorDbClient()
+	} else {
+		return nil
+	}
+}
+
 func GetAdminCacheClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.AdminCacheClient); ok {
