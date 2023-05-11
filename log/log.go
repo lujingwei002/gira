@@ -153,7 +153,6 @@ func ConfigLog(facade gira.Application, config gira.LogConfig) error {
 		enabler,
 		//zap.NewAtomicLevelAt(zap.DebugLevel),
 	)
-
 	// 创建日志对象
 	logger := zap.New(zapcore.NewTee(consoleCore, rollingCore))
 	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(1))

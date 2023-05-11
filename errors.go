@@ -1,6 +1,8 @@
 package gira
 
 import (
+	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
 )
@@ -124,17 +126,23 @@ const (
 )
 
 type Error struct {
-	Code int32
-	Msg  string
+	Code  int32
+	Msg   string
+	Stack []byte
 }
 
 func (e *Error) Error() string {
-	return e.Msg
+	if e.Stack == nil {
+		return fmt.Sprintf("%d:%s", e.Code, e.Msg)
+	} else {
+		return fmt.Sprintf("%d:%s\n%s", e.Code, e.Msg, string(e.Stack))
+	}
 }
+
 func NewError(code int32, msg string) *Error {
 	return &Error{
-		code,
-		msg,
+		Code: code,
+		Msg:  msg,
 	}
 }
 
@@ -226,4 +234,11 @@ func ErrMsg(err error) string {
 		return err.Error()
 	}
 	return s[1]
+}
+
+func TraceError(err error) error {
+	if e, ok := err.(*Error); ok {
+		e.Stack = debug.Stack()
+	}
+	return err
 }
