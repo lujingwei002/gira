@@ -120,6 +120,7 @@ type GetWxaCodeUnLimitRequest struct {
 	Scene      string `json:"scene"`
 	Page       string `json:"page"`
 	EnvVersion string `json:"env_version"`
+	CheckPath  bool   `json:"check_path"`
 }
 
 // https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/qr-code/getUnlimitedQRCode.html
@@ -136,6 +137,7 @@ func GetWxaCodeUnLimit(accessToken string, scene string, page string, envVersion
 		Scene:      scene,
 		Page:       page,
 		EnvVersion: envVersion,
+		CheckPath:  false,
 	}
 	var httpReq *http.Request
 	var result *http.Response
