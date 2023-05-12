@@ -245,6 +245,16 @@ func (self *<<.DataStructName>>) MarshalProtobuf(pb *<<.PbStructName>>) error {
 	return nil
 }
 
+func (self* <<.DataStructName>>)MarshalBinary() (data []byte, err error) {
+	data, err = json.Marshal(self)
+	return
+}
+
+<<- range .FieldArr>> 
+func (self *<<.Coll.DataStructName>>) Get<<.CamelName>>() <<.GoTypeName>> {
+	return self.<<.CamelName>> 
+}
+<<- end>> 
 
 <<- end>> 
 
@@ -282,10 +292,7 @@ func (self *<<.StructName>>) IsNone() bool {
 	return self.none
 }
 
-func (self* <<.StructName>>)MarshalBinary() (data []byte, err error) {
-	data, err = json.Marshal(self)
-	return
-}
+
 <<- range .FieldArr>> 
 
 func (self *<<.Coll.StructName>>) Set<<.CamelName>>(v <<.GoTypeName>>) {
@@ -498,8 +505,8 @@ type <<.MongoDaoStructName>> struct {
 	db *<<$.MongoDriverStructName>>
 }
 
-func (self *<<.MongoDaoStructName>>) New() *<<.StructName>> {
-	doc := &<<.StructName>>{}
+func (self *<<.MongoDaoStructName>>) New() *<<.DataStructName>> {
+	doc := &<<.DataStructName>>{}
 	doc.Id = primitive.NewObjectID()
 	return doc
 }
@@ -511,6 +518,15 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 		v.ConfigMigrateOptions(migrateOptions)
 	}
 	database := self.db.database
+	<<- if .IsCapped >>
+	createOpts := options.CreateCollection()
+	createOpts.SetCapped(true)
+	createOpts.SetMaxDocuments(<<.Capped>>)
+	createOpts.SetSizeInBytes(<<.Capped>>)
+	if err := database.CreateCollection(ctx, "<<.CollName>>", createOpts); err != nil {
+		log.Warn(err)
+	}
+	<<- end>>
 	coll := database.Collection("<<.CollName>>")
 	indexView := coll.Indexes()
 	listOpts := options.ListIndexes().SetMaxTime(2 * time.Second)
@@ -574,11 +590,11 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 	return nil
 }
 
-func (self *<<.MongoDaoStructName>>) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) (*<<.StructName>>, error) {
+func (self *<<.MongoDaoStructName>>) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) (*<<.DataStructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
-	doc := &<<.StructName>>{}
-	err := coll.FindOne(ctx, filter, opts...).Decode(&doc.<<.DataStructName>>)
+	doc := &<<.DataStructName>>{}
+	err := coll.FindOne(ctx, filter, opts...).Decode(doc)
 	if err != nil {
 		return nil, err
 	}
@@ -586,20 +602,20 @@ func (self *<<.MongoDaoStructName>>) FindOne(ctx context.Context, filter interfa
 }
 
 
-func (self *<<.MongoDaoStructName>>) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) ([]*<<.StructName>>, error) {
+func (self *<<.MongoDaoStructName>>) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) ([]*<<.DataStructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	cursor, err := coll.Find(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
 	}
-	var results []*<<.StructName>> = make([]*<<.StructName>>, 0)
+	var results []*<<.DataStructName>> = make([]*<<.DataStructName>>, 0)
 	for {
 		if !cursor.Next(ctx) {
 			break
 		}
-		v := &<<.StructName>>{}
-		if err := cursor.Decode(&v.<<.DataStructName>>); err != nil {
+		v := &<<.DataStructName>>{}
+		if err := cursor.Decode(v); err != nil {
 			return results, err
 		}
 		results = append(results, v)
@@ -607,25 +623,25 @@ func (self *<<.MongoDaoStructName>>) Find(ctx context.Context, filter interface{
 	return results, nil
 }
 
-func (self *<<.MongoDaoStructName>>) UpdateOne(ctx context.Context, filter interface{}, update *<<.StructName>>, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+func (self *<<.MongoDaoStructName>>) UpdateOne(ctx context.Context, filter interface{}, update *<<.DataStructName>>, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
-	result, err := coll.UpdateOne(ctx, filter, &update.<<.DataStructName>>, opts...)
+	result, err := coll.UpdateOne(ctx, filter, &update, opts...)
 	return result, err
 }
 
-func (self *<<.MongoDaoStructName>>) ReplaceOne(ctx context.Context, filter interface{}, replacement *<<.StructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
+func (self *<<.MongoDaoStructName>>) ReplaceOne(ctx context.Context, filter interface{}, replacement *<<.DataStructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
-	result, err := coll.ReplaceOne(ctx, filter, &replacement.<<.DataStructName>>, opts...)
+	result, err := coll.ReplaceOne(ctx, filter, &replacement, opts...)
 	return result, err
 }
 
-func (self *<<.MongoDaoStructName>>) UpsertOne(ctx context.Context, filter interface{}, replacement *<<.StructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
+func (self *<<.MongoDaoStructName>>) UpsertOne(ctx context.Context, filter interface{}, replacement *<<.DataStructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	opts = append(opts, options.Replace().SetUpsert(true))
-	result, err := coll.ReplaceOne(ctx, filter, &replacement.<<.DataStructName>>, opts...)
+	result, err := coll.ReplaceOne(ctx, filter, &replacement, opts...)
 	return result, err
 }
 <<- if .IsDeriveUser>>
@@ -814,20 +830,20 @@ type <<.RedisDaoStructName>> struct {
 	db *<<$.RedisDriverStructName>>
 }
 
-func (self *<<.RedisDaoStructName>>) New() *<<.StructName>> {
-	doc := &<<.StructName>>{}
+func (self *<<.RedisDaoStructName>>) New() *<<.DataStructName>> {
+	doc := &<<.DataStructName>>{}
 	doc.Id = primitive.NewObjectID()
 	return doc
 }
 
-<<- if .IsDeriveUser>>
-func (self *<<.RedisDaoStructName>>) Set(ctx context.Context, key primitive.ObjectID, value *<<.StructName>>, expiration time.Duration) *redis.StatusCmd {
+
+func (self *<<.RedisDaoStructName>>) Set(ctx context.Context, key primitive.ObjectID, value *<<.DataStructName>>, expiration time.Duration) *redis.StatusCmd {
 	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
 	result := self.db.client.Set(ctx, rkey, value, expiration)
 	return result
 }
 
-func (self *<<.RedisDaoStructName>>) Get(ctx context.Context, key primitive.ObjectID) (*<<.StructName>>, error) {
+func (self *<<.RedisDaoStructName>>) Get(ctx context.Context, key primitive.ObjectID) (*<<.DataStructName>>, error) {
 	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
 	result := self.db.client.Get(ctx, rkey)
 	if result.Err() != nil {
@@ -836,7 +852,7 @@ func (self *<<.RedisDaoStructName>>) Get(ctx context.Context, key primitive.Obje
 	if b, err := result.Bytes(); err != nil {
 		return nil, err
 	} else {
-		doc := new<<.StructName>>()
+		doc := &<<.DataStructName>>{}
 		if err := json.Unmarshal(b, doc); err != nil {
 			return nil, err
 		}
@@ -844,7 +860,7 @@ func (self *<<.RedisDaoStructName>>) Get(ctx context.Context, key primitive.Obje
 	}
 }
 
-<<- end>>
+
 
 
 <<- if .IsDeriveUserArr>>
@@ -1040,6 +1056,7 @@ type Collection struct {
 	IndexDict             map[string]*Index
 	IndexArr              []*Index
 	MongoDriverStructName string
+	Capped                int64
 }
 
 type SortCollectionByName []*Collection
@@ -1073,12 +1090,16 @@ func QuoteChar() interface{} {
 	return "`"
 }
 
-func (descriptor *Collection) IsDeriveUser() bool {
-	return descriptor.Derive == "user"
+func (coll *Collection) IsDeriveUser() bool {
+	return coll.Derive == "user"
 }
 
-func (descriptor *Collection) IsDeriveUserArr() bool {
-	return descriptor.Derive == "userarr"
+func (coll *Collection) IsDeriveUserArr() bool {
+	return coll.Derive == "userarr"
+}
+
+func (coll *Collection) IsCapped() bool {
+	return coll.Capped != 0
 }
 
 func (coll *Collection) parseIndex(attrs map[string]interface{}) error {
@@ -1227,12 +1248,14 @@ func (descriptor *Collection) parseStruct(attrs map[string]interface{}) error {
 
 func (coll *Collection) Unmarshal(genState *gen_state, v interface{}) error {
 	var derive string
+	keyArr := make([]string, 0)
 	row := v.(map[string]interface{})
 	if v, ok := row["derive"]; ok {
 		derive = v.(string)
-	} else {
-		return fmt.Errorf("collection %s derive part not found", coll.CollName)
 	}
+	// } else {
+	// 	return fmt.Errorf("collection %s derive part not found", coll.CollName)
+	// }
 	if _, ok := row["struct"]; !ok {
 		return fmt.Errorf("collection %s struct part not found", coll.CollName)
 	}
@@ -1240,17 +1263,19 @@ func (coll *Collection) Unmarshal(genState *gen_state, v interface{}) error {
 	if _, ok := structPart.(map[string]interface{}); !ok {
 		return fmt.Errorf("collection %s struct part not map", coll.CollName)
 	}
-	if _, ok := row["key"]; !ok {
-		return fmt.Errorf("collection %s key part not found", coll.CollName)
+	if _, ok := row["key"]; ok {
+		keyPart := row["key"]
+		if _, ok := keyPart.([]interface{}); !ok {
+			return fmt.Errorf("collection %s key part not array", coll.CollName)
+		}
+		for _, v := range keyPart.([]interface{}) {
+			keyArr = append(keyArr, v.(string))
+		}
 	}
-	keyPart := row["key"]
-	if _, ok := keyPart.([]interface{}); !ok {
-		return fmt.Errorf("collection %s key part not array", coll.CollName)
-	}
-	keyArr := make([]string, 0)
-	for _, v := range keyPart.([]interface{}) {
-		keyArr = append(keyArr, v.(string))
-	}
+	// } else {
+	// 	return fmt.Errorf("collection %s key part not found", coll.CollName)
+
+	// }
 	coll.Derive = derive
 	coll.KeyArr = keyArr
 	if err := coll.parseStruct(row["struct"].(map[string]interface{})); err != nil {
@@ -1286,6 +1311,9 @@ func (coll *Collection) Unmarshal(genState *gen_state, v interface{}) error {
 		} else {
 			return fmt.Errorf("collection %s derive userarr, but secondary key %s not found", coll.CollName, secondaryKey)
 		}
+	}
+	if v, ok := row["capped"]; ok {
+		coll.Capped = int64(v.(int))
 	}
 	return nil
 }
