@@ -644,6 +644,13 @@ func (self *<<.MongoDaoStructName>>) UpsertOne(ctx context.Context, filter inter
 	result, err := coll.ReplaceOne(ctx, filter, &replacement, opts...)
 	return result, err
 }
+
+func (self *<<.MongoDaoStructName>>) InsertOne(ctx context.Context, doc *<<.DataStructName>>, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
+	database := self.db.database
+	coll := database.Collection("<<.CollName>>")
+	result, err := coll.InsertOne(ctx, doc, opts...)
+	return result, err
+}
 <<- if .IsDeriveUser>>
 
 func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructName>>) error {
