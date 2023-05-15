@@ -66,6 +66,9 @@ const (
 	E_BEHAVIOR_DRIVER_NOT_INIT       = -53
 	E_DB_NOT_SUPPORT                 = -54
 	E_DB_NOT_CONFIG                  = -55
+	E_INVALID_SERVICE                = -56
+	E_SERVICE_NOT_FOUND              = -57
+	E_SERVICE_LOCKED                 = -58
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -125,6 +128,9 @@ const (
 	E_MSG_BEHAVIOR_DRIVER_NOT_INIT       = "behavior driver not init"
 	E_MSG_DB_NOT_SUPPORT                 = "数据库类型不支持"
 	E_MSG_DB_NOT_CONFIG                  = "数据库配置异常"
+	E_MSG_INVALID_SERVICE                = "service格式非法"
+	E_MSG_SERVICE_NOT_FOUND              = "查找不到service"
+	E_MSG_SERVICE_LOCKED                 = "注册service失败"
 )
 
 type Error struct {
@@ -209,6 +215,9 @@ var (
 	ErrBehaviorNotInit             = NewError(E_BEHAVIOR_DRIVER_NOT_INIT, E_MSG_BEHAVIOR_DRIVER_NOT_INIT)
 	ErrDbNotSupport                = NewError(E_DB_NOT_SUPPORT, E_MSG_DB_NOT_SUPPORT)
 	ErrDbNotConfig                 = NewError(E_DB_NOT_CONFIG, E_MSG_DB_NOT_CONFIG)
+	ErrInvalidService              = NewError(E_INVALID_SERVICE, E_MSG_INVALID_SERVICE)
+	ErrServiceNotFound             = NewError(E_SERVICE_NOT_FOUND, E_MSG_SERVICE_NOT_FOUND)
+	ErrServiceLocked               = NewError(E_SERVICE_LOCKED, E_MSG_SERVICE_LOCKED)
 )
 
 func ErrCode(err error) int32 {

@@ -2,6 +2,7 @@ package facade
 
 import (
 	"context"
+	"log"
 
 	"github.com/lujingwei002/gira"
 	"google.golang.org/grpc"
@@ -91,6 +92,34 @@ func RangePeers(f func(k any, v any) bool) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		h.RangePeers(f)
+	}
+}
+
+func RegisterService(serviceName string) (*gira.Peer, error) {
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		return h.RegisterService(serviceName)
+	} else {
+		log.Println("ffffffffffffff2")
+		return nil, gira.ErrRegistryNOtImplement
+	}
+}
+
+func UnregisterService(serviceName string) (*gira.Peer, error) {
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		return h.UnregisterService(serviceName)
+	} else {
+		return nil, gira.ErrRegistryNOtImplement
+	}
+}
+
+func WhereIsService(serviceName string) ([]*gira.Peer, error) {
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		return h.WhereIsService(serviceName)
+	} else {
+		return nil, gira.ErrRegistryNOtImplement
 	}
 }
 

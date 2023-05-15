@@ -150,6 +150,18 @@ func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer
 
 }
 
+func (application *BaseApplication) RegisterService(serviceName string) (*gira.Peer, error) {
+	return application.runtime.Registry.RegisterService(serviceName)
+}
+
+func (application *BaseApplication) WhereIsService(serviceName string) ([]*gira.Peer, error) {
+	return application.runtime.Registry.WhereIsService(serviceName)
+}
+
+func (application *BaseApplication) UnregisterService(serviceName string) (*gira.Peer, error) {
+	return application.runtime.Registry.UnregisterService(serviceName)
+}
+
 func (application *BaseApplication) ReloadResource(dir string) error {
 	if application.runtime.resourceLoader == nil {
 		return gira.ErrResourceLoaderNotImplement

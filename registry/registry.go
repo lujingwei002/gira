@@ -31,22 +31,26 @@ import (
 const GRPC_KEY string = "grpc"
 
 type Registry struct {
-	config         gira.EtcdConfig
-	fullName       string // 节点全名
-	name           string // 节点名
-	client         *clientv3.Client
-	cancelCtx      context.Context
-	cancelFunc     context.CancelFunc
-	application    gira.Application
-	peerRegistry   *PeerRegistry
-	playerRegistry *player_registry
+	config          gira.EtcdConfig
+	fullName        string // 节点全名
+	name            string // 节点名
+	client          *clientv3.Client
+	cancelCtx       context.Context
+	cancelFunc      context.CancelFunc
+	application     gira.Application
+	peerRegistry    *peer_registry
+	playerRegistry  *player_registry
+	serviceRegistry *service_registry
 }
 
 func (r *Registry) OnStart() error {
 	if err := r.peerRegistry.onStart(r); err != nil {
 		return err
 	}
-	if err := r.playerRegistry.notify(r); err != nil {
+	if err := r.playerRegistry.onStart(r); err != nil {
+		return err
+	}
+	if err := r.serviceRegistry.onStart(r); err != nil {
 		return err
 	}
 	return nil
@@ -59,6 +63,10 @@ func (r *Registry) RangePeers(f func(k any, v any) bool) {
 
 func (r *Registry) GetPeer(fullName string) *gira.Peer {
 	return r.peerRegistry.getPeer(r, fullName)
+}
+
+func (r *Registry) SelfPeer() *gira.Peer {
+	return r.peerRegistry.SelfPeer
 }
 
 func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
@@ -103,19 +111,42 @@ func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*
 	} else {
 		r.playerRegistry = v
 	}
+	if v, err := newConfigServiceRegistry(r); err != nil {
+		return nil, err
+	} else {
+		r.serviceRegistry = v
+	}
 	return r, nil
 }
 
+// 锁定玩家
 func (r *Registry) LockLocalUser(userId string) (*gira.Peer, error) {
 	return r.playerRegistry.LockLocalUser(r, userId)
 }
 
+// 解锁玩家
 func (r *Registry) UnlockLocalUser(userId string) (*gira.Peer, error) {
 	return r.playerRegistry.UnlockLocalUser(r, userId)
 }
 
+// 查找玩家
 func (r *Registry) WhereIsUser(userId string) (*gira.Peer, error) {
 	return r.playerRegistry.WhereIsUser(r, userId)
+}
+
+// 查找服务
+func (r *Registry) WhereIsService(serviceName string) ([]*gira.Peer, error) {
+	return r.serviceRegistry.WhereIsService(r, serviceName)
+}
+
+// 注册服务
+func (r *Registry) RegisterService(serviceName string) (*gira.Peer, error) {
+	return r.serviceRegistry.RegisterService(r, serviceName)
+}
+
+// 反注册服务
+func (r *Registry) UnregisterService(serviceName string) (*gira.Peer, error) {
+	return r.serviceRegistry.UnregisterService(r, serviceName)
 }
 
 func explodeServerFullName(fullName string) (name string, id int32, err error) {
