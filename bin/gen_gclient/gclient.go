@@ -16,6 +16,8 @@
  *
  */
 
+// from https://github.com/grpc/grpc-go/blob/cmd/protoc-gen-go-grpc/v1.3.0/cmd/protoc-gen-go-grpc/grpc.go
+
 package main
 
 import (
@@ -37,6 +39,7 @@ const (
 	syncPackage    = protogen.GoImportPath("sync")
 	giraPackage    = protogen.GoImportPath("github.com/lujingwei002/gira")
 	facadePackage  = protogen.GoImportPath("github.com/lujingwei002/gira/facade")
+	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/registry/service/options")
 )
 
 type serviceGenerateHelperInterface interface {
@@ -46,7 +49,7 @@ type serviceGenerateHelperInterface interface {
 	generateClientsStruct(g *protogen.GeneratedFile, clientsName string, clientName string)
 	generateClientsUnicastStruct(g *protogen.GeneratedFile, clientsUnicastName string, clientsName string)
 	generateClientsMulticastStruct(g *protogen.GeneratedFile, clientsMulticastName string, clientsName string)
-	generateNewClientDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string)
+	generateNewClientsDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string)
 	generateUnimplementedServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
 	generateServerFunctions(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, serverType string, serviceDescVar string)
 	formatHandlerFuncName(service *protogen.Service, hname string) string
@@ -100,15 +103,21 @@ func (serviceGenerateHelper) generateClientsUnicastStruct(g *protogen.GeneratedF
 func (serviceGenerateHelper) generateClientsMulticastStruct(g *protogen.GeneratedFile, clientsMulticastName string, clientsName string) {
 	g.P("type ", unexport(clientsMulticastName), " struct {")
 	// g.P("cc ", grpcPackage.Ident("ClientConnInterface"))
+	g.P("// 不变")
 	g.P("count 			int")
 	g.P("serviceName 	string")
+	g.P("// 可变")
+	g.P("regex 			string")
 	g.P("client 		*" + unexport(clientsName))
 	g.P("}")
 	g.P()
 }
 
-func (serviceGenerateHelper) generateNewClientDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string) {
-	g.P("return &", unexport(clientName), "{cc}")
+func (serviceGenerateHelper) generateNewClientsDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string) {
+	g.P("return &", unexport(clientName), "{")
+	g.P("	serviceName: ", service.GoName, "ServiceName,")
+	g.P("	clientPool:  make(map[string]*sync.Pool, 0),")
+	g.P("}")
 }
 
 func (serviceGenerateHelper) generateUnimplementedServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
@@ -211,6 +220,28 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 	g.P("// Requires gRPC-Go v1.32.0 or later.")
 	g.P("const _ = ", grpcPackage.Ident("SupportPackageIsVersion7")) // When changing, update version number above.
 	g.P()
+
+	// gen response multicast result
+	responses := make(map[string]*protogen.Message)
+	for _, service := range file.Services {
+		for _, method := range service.Methods {
+			name := g.QualifiedGoIdent(method.Output.GoIdent)
+			responses[name] = method.Output
+		}
+	}
+	for _, response := range responses {
+		structName := fmt.Sprintf("%s_MulticastResult", g.QualifiedGoIdent(response.GoIdent))
+		g.P("type ", structName, " struct {")
+		g.P("	PeerCount 		int")
+		g.P("	Errors 			[]error")
+		g.P("	Responses		[]*", g.QualifiedGoIdent(response.GoIdent))
+		g.P("}")
+
+		g.P("func (r *", structName, ") Error() error {")
+		g.P("	if len(r.Errors) <= 0 {return nil}")
+		g.P("	return r.Errors[0]")
+		g.P("}")
+	}
 	for _, service := range file.Services {
 		genService(gen, file, g, service)
 	}
@@ -254,6 +285,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P()
 
 	g.P("type ", clientsMulticastName, " interface {")
+	g.P("    WithRegex(regex string) " + clientsMulticastName)
 	for _, method := range service.Methods {
 		g.Annotate(clientsMulticastName+"."+method.GoName, method.Location)
 		if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
@@ -288,10 +320,11 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	if service.Desc.Options().(*descriptorpb.ServiceOptions).GetDeprecated() {
 		g.P(deprecationComment)
 	}
-	g.P("func New", clientsName, " (cc ", grpcPackage.Ident("ClientConnInterface"), ") ", clientName, " {")
-	helper.generateNewClientDefinitions(g, service, clientName)
+	g.P("func New", clientsName, " () ", clientsName, " {")
+	helper.generateNewClientsDefinitions(g, service, clientsName)
 	g.P("}")
 	g.P()
+	g.P("var Default", clientsName, " = New", clientsName, "()")
 
 	// func getClient
 	g.P("func (c *", unexport(service.GoName), "Clients) getClient(address string) (", clientName, ", error) {")
@@ -321,6 +354,18 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("} else {")
 	g.P("	return v.(", clientName, "), nil")
 	g.P("}")
+	g.P("}")
+	g.P()
+
+	// func putClient
+	g.P("func (c *", unexport(service.GoName), "Clients) putClient(address string, client ", clientName, ") {")
+	g.P("c.mu.Lock()")
+	g.P("var pool *sync.Pool")
+	g.P("var ok bool")
+	g.P("if pool, ok = c.clientPool[address]; ok {")
+	g.P("	pool.Put(client)")
+	g.P("}")
+	g.P("c.mu.Unlock()")
 	g.P("}")
 	g.P()
 
@@ -379,20 +424,29 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	helper.generateClientsUnicastStruct(g, clientsUnicastName, clientsName)
 	// func WithServiceName
 	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WithServiceName(serviceName string) ", clientsUnicastName, " {")
-	g.P("    c.serviceName = ", fmtPackage.Ident("Sprintf"), "(\"%s/%s\", c.client.serviceName, serviceName)")
-	g.P("    return c")
+	g.P("	u := &" + unexport(clientsUnicastName) + "{")
+	g.P("		client: c.client,")
+	g.P("    	serviceName: ", fmtPackage.Ident("Sprintf"), "(\"%s/%s\", c.client.serviceName, serviceName),")
+	g.P("	}")
+	g.P("	return u")
 	g.P("}")
 	g.P()
 	// func WithPeer
 	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WithPeer(peer *gira.Peer) ", clientsUnicastName, " {")
-	g.P("    c.peer = peer")
-	g.P("    return c")
+	g.P("	u := &" + unexport(clientsUnicastName) + "{")
+	g.P("		client: c.client,")
+	g.P("		peer: peer,")
+	g.P("	}")
+	g.P("	return u")
 	g.P("}")
 	g.P()
 	// func WithAddress
 	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WithAddress(address string) ", clientsUnicastName, " {")
-	g.P("    c.address = address")
-	g.P("    return c")
+	g.P("	u := &" + unexport(clientsUnicastName) + "{")
+	g.P("		client: c.client,")
+	g.P("		address: address,")
+	g.P("	}")
+	g.P("	return u")
 	g.P("}")
 	g.P()
 	methodIndex = 0
@@ -410,9 +464,34 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	}
 
 	// ClientsMulticast structure.
+	helper.generateClientsMulticastStruct(g, clientsMulticastName, clientsName)
+	// multicast result
+	for _, method := range service.Methods {
+		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
+			g.P("type ", method.Parent.GoName+"_"+method.GoName+"Client_MulticastResult", " struct {")
+			g.P("	PeerCount 		int")
+			g.P("	Errors 			[]error")
+			g.P("	Responses		[]", method.Parent.GoName+"_"+method.GoName+"Client")
+			g.P("}")
+			g.P("func (r *", method.Parent.GoName+"_"+method.GoName+"Client_MulticastResult", ") Error() error {")
+			g.P("	if len(r.Errors) <= 0 {return nil}")
+			g.P("	return r.Errors[0]")
+			g.P("}")
+
+		}
+	}
+	// func WithRegex
+	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) WithRegex(regex string) ", clientsMulticastName, " {")
+	g.P("	u := &" + unexport(clientsMulticastName) + "{")
+	g.P("		client: c.client,")
+	g.P("		count: c.count,")
+	g.P("		regex: regex,")
+	g.P("	}")
+	g.P("	return u")
+	g.P("}")
+	g.P()
 	methodIndex = 0
 	streamIndex = 0
-	helper.generateClientsMulticastStruct(g, clientsMulticastName, clientsName)
 	for _, method := range service.Methods {
 		if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 			// Unary RPC method
@@ -502,11 +581,11 @@ func clientsMulticastSignature(g *protogen.GeneratedFile, method *protogen.Metho
 	}
 	s += ", opts ..." + g.QualifiedGoIdent(grpcPackage.Ident("CallOption")) + ") ("
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-		s += "[]*" + g.QualifiedGoIdent(method.Output.GoIdent)
+		s += "*" + g.QualifiedGoIdent(method.Output.GoIdent) + "_MulticastResult"
 	} else {
-		s += "[]" + method.Parent.GoName + "_" + method.GoName + "Client"
+		s += "*" + method.Parent.GoName + "_" + method.GoName + "Client_MulticastResult"
 	}
-	s += ", error)"
+	s += ")"
 	return s
 }
 
@@ -535,6 +614,7 @@ func genClientsMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gen
 	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 		g.P("client, err := c.getClient(address)")
 		g.P("if err != nil { return nil, err }")
+		g.P("defer c.putClient(address, client)")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -544,6 +624,7 @@ func genClientsMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gen
 	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 		g.P("client, err := c.getClient(address)")
 		g.P("if err != nil { return nil, err }")
+		g.P("defer c.putClient(address, client)")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -553,6 +634,7 @@ func genClientsMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gen
 	} else {
 		g.P("client, err := c.getClient(address)")
 		g.P("if err != nil { return nil, err }")
+		g.P("defer c.putClient(address, client)")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -589,6 +671,7 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 		g.P("client, err := c.client.getClient(address)")
 		g.P("if err != nil { return nil, err }")
+		g.P("defer c.client.putClient(address, client)")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -598,6 +681,7 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 		g.P("client, err := c.client.getClient(address)")
 		g.P("if err != nil { return nil, err }")
+		g.P("defer c.client.putClient(address, client)")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -607,6 +691,7 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 	} else {
 		g.P("client, err := c.client.getClient(address)")
 		g.P("if err != nil { return nil, err }")
+		g.P("defer c.client.putClient(address, client)")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -624,42 +709,76 @@ func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *pro
 	}
 	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) ", clientsMulticastSignature(g, method), "{")
 	g.P("var peers []*gira.Peer")
-	g.P("peers, err := ", facadePackage.Ident("WhereIsService"), "(c.serviceName)")
-	g.P("if err != nil {return nil, err}")
+	g.P("var whereOpts []", optionsPackage.Ident("WhereOption"))
+	g.P("// 多播")
+	g.P("if c.count > 0 {whereOpts = append(whereOpts, options.WithWhereMaxCountOption(c.count))}")
+	g.P("if len(c.regex) > 0 {whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))}")
 	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("arr := make([]*", method.Output.GoIdent, ", 0)")
+		g.P("result := &", method.Output.GoIdent, "_MulticastResult{}")
+	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
+		g.P("result := &", method.Parent.GoName, "_", method.GoName, "Client_MulticastResult{}")
+	} else {
+		g.P("result := &", method.Parent.GoName, "_", method.GoName, "Client_MulticastResult{}")
+	}
+	g.P("peers, err := ", facadePackage.Ident("WhereIsService"), "(c.serviceName, whereOpts...)")
+	g.P("if err != nil {")
+	g.P("	result.Errors = append(result.Errors, err)")
+	g.P("	return result")
+	g.P("}")
+	g.P("result.PeerCount = len(peers)")
+	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 		g.P("for _, peer := range peers {")
 		g.P("	client, err := c.client.getClient(peer.GrpcAddr)")
-		g.P("	if err != nil { continue }")
+		g.P("	if err != nil { ")
+		g.P("		result.Errors = append(result.Errors, err)")
+		g.P("		continue")
+		g.P("	}")
 		g.P(`	out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("	if err != nil { continue }")
-		g.P("	arr = append(arr, out)")
+		g.P("	if err != nil { ")
+		g.P("		result.Errors = append(result.Errors, err)")
+		g.P("		c.client.putClient(peer.GrpcAddr, client)")
+		g.P("		continue")
+		g.P("	}")
+		g.P("	c.client.putClient(peer.GrpcAddr, client)")
+		g.P("	result.Responses = append(result.Responses, out)")
 		g.P("}")
-		g.P("return arr, nil")
+		g.P("return result")
 		g.P("}")
 		g.P()
 	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("arr := make([]", method.Parent.GoName+"_"+method.GoName+"Client", ", 0)")
 		g.P("for _, peer := range peers {")
 		g.P("	client, err := c.client.getClient(peer.GrpcAddr)")
-		g.P("	if err != nil { continue }")
+		g.P("	if err != nil { ")
+		g.P("		result.Errors = append(result.Errors, err)")
+		g.P("		continue")
+		g.P("	}")
 		g.P(`	out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("	if err != nil { continue }")
-		g.P("	arr = append(arr, out)")
+		g.P("	if err != nil { ")
+		g.P("		result.Errors = append(result.Errors, err)")
+		g.P("		c.client.putClient(peer.GrpcAddr, client)")
+		g.P("		continue")
+		g.P("	}")
+		g.P("	result.Responses = append(result.Responses, out)")
 		g.P("}")
-		g.P("return arr, nil")
+		g.P("return result")
 		g.P("}")
 		g.P()
 	} else {
-		g.P("arr := make([]", method.Parent.GoName+"_"+method.GoName+"Client", ", 0)")
 		g.P("for _, peer := range peers {")
 		g.P("	client, err := c.client.getClient(peer.GrpcAddr)")
-		g.P("	if err != nil { continue }")
+		g.P("	if err != nil { ")
+		g.P("		result.Errors = append(result.Errors, err)")
+		g.P("		continue")
+		g.P("	}")
 		g.P(`	out, err := client.`, method.Desc.Name(), `(ctx, opts...)`)
-		g.P("	if err != nil { continue }")
-		g.P("	arr = append(arr, out)")
+		g.P("	if err != nil { ")
+		g.P("		result.Errors = append(result.Errors, err)")
+		g.P("		c.client.putClient(peer.GrpcAddr, client)")
+		g.P("		continue")
+		g.P("	}")
+		g.P("	result.Responses = append(result.Responses, out)")
 		g.P("}")
-		g.P("return arr, nil")
+		g.P("return result")
 		g.P("}")
 		g.P()
 	}

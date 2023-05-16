@@ -39,9 +39,6 @@ func (self *AdminService) Register(server *grpc.Server) error {
 	admin_grpc.RegisterAdminServer(server, admin_server{
 		facade: self.facade,
 	})
-	// if _, err := facade.RegisterService(fmt.Sprintf("%s/%s_%d", admin_grpc.AdminServiceName, admin_grpc.AdminServiceName, facade.GetAppId())); err != nil {
-	// 	return err
-	// }
 	if _, err := facade.RegisterService(admin_grpc.AdminServiceName, options.WithRegisterAsGroupOption(true), options.WithRegisterCatAppIdOption(true)); err != nil {
 		return err
 	}

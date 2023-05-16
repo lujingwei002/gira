@@ -11,6 +11,7 @@ import (
 	fmt "fmt"
 	gira "github.com/lujingwei002/gira"
 	facade "github.com/lujingwei002/gira/facade"
+	options "github.com/lujingwei002/gira/registry/service/options"
 	grpc "google.golang.org/grpc"
 	sync "sync"
 )
@@ -19,6 +20,45 @@ import (
 // is compatible with the grpc package it is being compiled against.
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
+
+type ReloadResourceResponse_MulticastResult struct {
+	PeerCount int
+	Errors    []error
+	Responses []*ReloadResourceResponse
+}
+
+func (r *ReloadResourceResponse_MulticastResult) Error() error {
+	if len(r.Errors) <= 0 {
+		return nil
+	}
+	return r.Errors[0]
+}
+
+type ReloadResourceResponse1_MulticastResult struct {
+	PeerCount int
+	Errors    []error
+	Responses []*ReloadResourceResponse1
+}
+
+func (r *ReloadResourceResponse1_MulticastResult) Error() error {
+	if len(r.Errors) <= 0 {
+		return nil
+	}
+	return r.Errors[0]
+}
+
+type ReloadResourceResponse2_MulticastResult struct {
+	PeerCount int
+	Errors    []error
+	Responses []*ReloadResourceResponse2
+}
+
+func (r *ReloadResourceResponse2_MulticastResult) Error() error {
+	if len(r.Errors) <= 0 {
+		return nil
+	}
+	return r.Errors[0]
+}
 
 const (
 	AdminServiceName = "admin_grpc.Admin"
@@ -40,10 +80,11 @@ type AdminClients interface {
 }
 
 type AdminClientsMulticast interface {
-	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) ([]*ReloadResourceResponse, error)
-	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) ([]Admin_ReloadResource1Client, error)
-	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) ([]Admin_ReloadResource2Client, error)
-	ReloadResource3(ctx context.Context, opts ...grpc.CallOption) ([]Admin_ReloadResource3Client, error)
+	WithRegex(regex string) AdminClientsMulticast
+	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) *ReloadResourceResponse_MulticastResult
+	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource1Client_MulticastResult
+	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) *Admin_ReloadResource2Client_MulticastResult
+	ReloadResource3(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource3Client_MulticastResult
 }
 
 type AdminClientsUnicast interface {
@@ -63,9 +104,14 @@ type adminClients struct {
 	serviceName string
 }
 
-func NewAdminClients(cc grpc.ClientConnInterface) AdminClient {
-	return &adminClient{cc}
+func NewAdminClients() AdminClients {
+	return &adminClients{
+		serviceName: AdminServiceName,
+		clientPool:  make(map[string]*sync.Pool, 0),
+	}
 }
+
+var DefaultAdminClients = NewAdminClients()
 
 func (c *adminClients) getClient(address string) (AdminClient, error) {
 	c.mu.Lock()
@@ -94,6 +140,16 @@ func (c *adminClients) getClient(address string) (AdminClient, error) {
 	} else {
 		return v.(AdminClient), nil
 	}
+}
+
+func (c *adminClients) putClient(address string, client AdminClient) {
+	c.mu.Lock()
+	var pool *sync.Pool
+	var ok bool
+	if pool, ok = c.clientPool[address]; ok {
+		pool.Put(client)
+	}
+	c.mu.Unlock()
 }
 
 func (c *adminClients) WithServiceName(serviceName string) AdminClients {
@@ -131,6 +187,7 @@ func (c *adminClients) ReloadResource(ctx context.Context, address string, in *R
 	if err != nil {
 		return nil, err
 	}
+	defer c.putClient(address, client)
 	out, err := client.ReloadResource(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -143,6 +200,7 @@ func (c *adminClients) ReloadResource1(ctx context.Context, address string, opts
 	if err != nil {
 		return nil, err
 	}
+	defer c.putClient(address, client)
 	out, err := client.ReloadResource1(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -155,6 +213,7 @@ func (c *adminClients) ReloadResource2(ctx context.Context, address string, in *
 	if err != nil {
 		return nil, err
 	}
+	defer c.putClient(address, client)
 	out, err := client.ReloadResource2(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -167,6 +226,7 @@ func (c *adminClients) ReloadResource3(ctx context.Context, address string, opts
 	if err != nil {
 		return nil, err
 	}
+	defer c.putClient(address, client)
 	out, err := client.ReloadResource3(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -182,18 +242,27 @@ type adminClientsUnicast struct {
 }
 
 func (c *adminClientsUnicast) WithServiceName(serviceName string) AdminClientsUnicast {
-	c.serviceName = fmt.Sprintf("%s/%s", c.client.serviceName, serviceName)
-	return c
+	u := &adminClientsUnicast{
+		client:      c.client,
+		serviceName: fmt.Sprintf("%s/%s", c.client.serviceName, serviceName),
+	}
+	return u
 }
 
 func (c *adminClientsUnicast) WithPeer(peer *gira.Peer) AdminClientsUnicast {
-	c.peer = peer
-	return c
+	u := &adminClientsUnicast{
+		client: c.client,
+		peer:   peer,
+	}
+	return u
 }
 
 func (c *adminClientsUnicast) WithAddress(address string) AdminClientsUnicast {
-	c.address = address
-	return c
+	u := &adminClientsUnicast{
+		client:  c.client,
+		address: address,
+	}
+	return u
 }
 
 func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error) {
@@ -218,6 +287,7 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 	if err != nil {
 		return nil, err
 	}
+	defer c.client.putClient(address, client)
 	out, err := client.ReloadResource(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -247,6 +317,7 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 	if err != nil {
 		return nil, err
 	}
+	defer c.client.putClient(address, client)
 	out, err := client.ReloadResource1(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -276,6 +347,7 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 	if err != nil {
 		return nil, err
 	}
+	defer c.client.putClient(address, client)
 	out, err := client.ReloadResource2(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -305,6 +377,7 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 	if err != nil {
 		return nil, err
 	}
+	defer c.client.putClient(address, client)
 	out, err := client.ReloadResource3(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -313,91 +386,194 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 }
 
 type adminClientsMulticast struct {
+	// 不变
 	count       int
 	serviceName string
-	client      *adminClients
+	// 可变
+	regex  string
+	client *adminClients
 }
 
-func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) ([]*ReloadResourceResponse, error) {
-	var peers []*gira.Peer
-	peers, err := facade.WhereIsService(c.serviceName)
-	if err != nil {
-		return nil, err
+type Admin_ReloadResource1Client_MulticastResult struct {
+	PeerCount int
+	Errors    []error
+	Responses []Admin_ReloadResource1Client
+}
+
+func (r *Admin_ReloadResource1Client_MulticastResult) Error() error {
+	if len(r.Errors) <= 0 {
+		return nil
 	}
-	arr := make([]*ReloadResourceResponse, 0)
+	return r.Errors[0]
+}
+
+type Admin_ReloadResource2Client_MulticastResult struct {
+	PeerCount int
+	Errors    []error
+	Responses []Admin_ReloadResource2Client
+}
+
+func (r *Admin_ReloadResource2Client_MulticastResult) Error() error {
+	if len(r.Errors) <= 0 {
+		return nil
+	}
+	return r.Errors[0]
+}
+
+type Admin_ReloadResource3Client_MulticastResult struct {
+	PeerCount int
+	Errors    []error
+	Responses []Admin_ReloadResource3Client
+}
+
+func (r *Admin_ReloadResource3Client_MulticastResult) Error() error {
+	if len(r.Errors) <= 0 {
+		return nil
+	}
+	return r.Errors[0]
+}
+func (c *adminClientsMulticast) WithRegex(regex string) AdminClientsMulticast {
+	u := &adminClientsMulticast{
+		client: c.client,
+		count:  c.count,
+		regex:  regex,
+	}
+	return u
+}
+
+func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) *ReloadResourceResponse_MulticastResult {
+	var peers []*gira.Peer
+	var whereOpts []options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, options.WithWhereMaxCountOption(c.count))
+	}
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
+	}
+	result := &ReloadResourceResponse_MulticastResult{}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		result.Errors = append(result.Errors, err)
+		return result
+	}
+	result.PeerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
 			continue
 		}
 		out, err := client.ReloadResource(ctx, in, opts...)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
+			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
-		arr = append(arr, out)
+		c.client.putClient(peer.GrpcAddr, client)
+		result.Responses = append(result.Responses, out)
 	}
-	return arr, nil
+	return result
 }
 
-func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) ([]Admin_ReloadResource1Client, error) {
+func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource1Client_MulticastResult {
 	var peers []*gira.Peer
-	peers, err := facade.WhereIsService(c.serviceName)
-	if err != nil {
-		return nil, err
+	var whereOpts []options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, options.WithWhereMaxCountOption(c.count))
 	}
-	arr := make([]Admin_ReloadResource1Client, 0)
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
+	}
+	result := &Admin_ReloadResource1Client_MulticastResult{}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		result.Errors = append(result.Errors, err)
+		return result
+	}
+	result.PeerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
 			continue
 		}
 		out, err := client.ReloadResource1(ctx, opts...)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
+			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
-		arr = append(arr, out)
+		result.Responses = append(result.Responses, out)
 	}
-	return arr, nil
+	return result
 }
 
-func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) ([]Admin_ReloadResource2Client, error) {
+func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) *Admin_ReloadResource2Client_MulticastResult {
 	var peers []*gira.Peer
-	peers, err := facade.WhereIsService(c.serviceName)
-	if err != nil {
-		return nil, err
+	var whereOpts []options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, options.WithWhereMaxCountOption(c.count))
 	}
-	arr := make([]Admin_ReloadResource2Client, 0)
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
+	}
+	result := &Admin_ReloadResource2Client_MulticastResult{}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		result.Errors = append(result.Errors, err)
+		return result
+	}
+	result.PeerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
 			continue
 		}
 		out, err := client.ReloadResource2(ctx, in, opts...)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
+			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
-		arr = append(arr, out)
+		result.Responses = append(result.Responses, out)
 	}
-	return arr, nil
+	return result
 }
 
-func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) ([]Admin_ReloadResource3Client, error) {
+func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource3Client_MulticastResult {
 	var peers []*gira.Peer
-	peers, err := facade.WhereIsService(c.serviceName)
-	if err != nil {
-		return nil, err
+	var whereOpts []options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, options.WithWhereMaxCountOption(c.count))
 	}
-	arr := make([]Admin_ReloadResource3Client, 0)
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
+	}
+	result := &Admin_ReloadResource3Client_MulticastResult{}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		result.Errors = append(result.Errors, err)
+		return result
+	}
+	result.PeerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
 			continue
 		}
 		out, err := client.ReloadResource3(ctx, opts...)
 		if err != nil {
+			result.Errors = append(result.Errors, err)
+			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
-		arr = append(arr, out)
+		result.Responses = append(result.Responses, out)
 	}
-	return arr, nil
+	return result
 }

@@ -8,6 +8,8 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
+// from https://github.com/grpc/grpc-go/blob/cmd/protoc-gen-go-grpc/v1.3.0/cmd/protoc-gen-go-grpc/main.go
+
 const version = "1.3.0"
 
 var requireUnimplemented *bool

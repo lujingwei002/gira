@@ -50,7 +50,6 @@ type Runtime struct {
 	appType        string /// 服务类型
 	appName        string /// 服务名
 	appFullName    string /// 完整的服务名 Name_Id
-	adminClient    gira.AdminClient
 	cancelFunc     context.CancelFunc
 	ctx            context.Context
 	errCtx         context.Context
@@ -236,8 +235,6 @@ func (runtime *Runtime) onStart() error {
 			return gira.ErrGrpcServerNotImplement
 		}
 	}
-	// admin服务
-	runtime.adminClient = admin_service.NewAdminClient()
 	if runtime.config.Module.Admin != nil {
 		if runtime.GrpcServer == nil {
 			return gira.ErrGrpcServerNotOpen

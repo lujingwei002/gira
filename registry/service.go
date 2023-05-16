@@ -163,7 +163,7 @@ func (self *service_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 		self.services.Store(serviceName, service)
 		if service.IsGroup {
 			groupServices := &group_services{}
-			if v, _ := self.groupServices.LoadOrStore(serviceName, groupServices); true {
+			if v, _ := self.groupServices.LoadOrStore(service.GroupName, groupServices); true {
 				groupServices = v.(*group_services)
 				groupServices.services.Store(serviceName, service)
 			}
@@ -194,7 +194,7 @@ func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error
 		self.services.Delete(serviceName)
 		self.onServiceDelete(r, lastService)
 		if lastService.IsGroup {
-			if v, ok := self.groupServices.Load(serviceName); ok {
+			if v, ok := self.groupServices.Load(lastService.GroupName); ok {
 				groupServices := v.(*group_services)
 				groupServices.services.Delete(serviceName)
 			}
@@ -248,7 +248,7 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 		}
 		if service.IsGroup {
 			groupServices := &group_services{}
-			if v, _ := self.groupServices.LoadOrStore(serviceName, groupServices); true {
+			if v, _ := self.groupServices.LoadOrStore(service.GroupName, groupServices); true {
 				groupServices = v.(*group_services)
 				groupServices.services.Store(serviceName, service)
 			}
@@ -456,7 +456,7 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 	} else if pats[1] == "" {
 		// 全部
 		peers = make([]*gira.Peer, 0)
-		multicastCount := opts.MulticastCount
+		multicastCount := opts.MaxCount
 		if v, ok := self.groupServices.Load(pats[0]); ok {
 			group := v.(*group_services)
 			group.services.Range(func(key any, value any) bool {

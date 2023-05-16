@@ -2,25 +2,40 @@ package options
 
 // where option
 type WhereOptions struct {
-	MulticastCount int
+	MaxCount int
+	Regex    string
 }
 
 type WhereOption interface {
 	ConfigWhereOption(opts *WhereOptions)
 }
 
-type WhereMulticastOption struct {
+type WhereMaxCountOption struct {
 	count int
 }
 
-func WithWhereMulticastOption(count int) WhereMulticastOption {
-	return WhereMulticastOption{
+func WithWhereMaxCountOption(count int) WhereMaxCountOption {
+	return WhereMaxCountOption{
 		count: count,
 	}
 }
 
-func (opt WhereMulticastOption) ConfigWhereOption(opts *WhereOptions) {
-	opts.MulticastCount = opt.count
+func (opt WhereMaxCountOption) ConfigWhereOption(opts *WhereOptions) {
+	opts.MaxCount = opt.count
+}
+
+type WhereRegexOption struct {
+	regex string
+}
+
+func WithWhereRegexOption(regex string) WhereRegexOption {
+	return WhereRegexOption{
+		regex: regex,
+	}
+}
+
+func (opt WhereRegexOption) ConfigWhereOption(opts *WhereOptions) {
+	opts.Regex = opt.regex
 }
 
 type RegisterOptions struct {
