@@ -1,10 +1,13 @@
 syntax = "proto3";
 
-option go_package = "service/admin/admin_grpc";
+option go_package = "./admin_grpc";
 package admin_grpc;
 
 service Admin {
     rpc ReloadResource (ReloadResourceRequest) returns (ReloadResourceResponse) {}
+    rpc ReloadResource1 (stream ReloadResourceRequest1) returns (ReloadResourceResponse1) {}
+    rpc ReloadResource2 (ReloadResourceRequest2) returns (stream ReloadResourceResponse2) {}
+    rpc ReloadResource3 (stream ReloadResourceRequest2) returns (stream ReloadResourceResponse2) {}
 }
 
 // 请求消息
@@ -14,4 +17,34 @@ message ReloadResourceRequest {
 
 // 响应消息
 message ReloadResourceResponse {
+}
+
+// 请求消息
+message ReloadResourceRequest1 {
+    string name = 1;
+}
+
+// 响应消息
+message ReloadResourceResponse1 {
+}
+
+
+// 请求消息
+message ReloadResourceRequest2 {
+    string name = 1;
+}
+
+// 响应消息
+message ReloadResourceResponse2 {
+}
+
+
+
+// 请求消息
+message ReloadResourceRequest3 {
+    string name = 1;
+}
+
+// 响应消息
+message ReloadResourceResponse3 {
 }

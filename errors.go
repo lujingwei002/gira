@@ -69,6 +69,7 @@ const (
 	E_INVALID_SERVICE                = -56
 	E_SERVICE_NOT_FOUND              = -57
 	E_SERVICE_LOCKED                 = -58
+	E_ALREADY_DESTORY                = -59
 )
 const (
 	E_MSG_OK                             = "成功"
@@ -131,6 +132,7 @@ const (
 	E_MSG_INVALID_SERVICE                = "service格式非法"
 	E_MSG_SERVICE_NOT_FOUND              = "查找不到service"
 	E_MSG_SERVICE_LOCKED                 = "注册service失败"
+	E_MSG_ALREADY_DESTORY                = "已经销毁"
 )
 
 type Error struct {
@@ -218,6 +220,7 @@ var (
 	ErrInvalidService              = NewError(E_INVALID_SERVICE, E_MSG_INVALID_SERVICE)
 	ErrServiceNotFound             = NewError(E_SERVICE_NOT_FOUND, E_MSG_SERVICE_NOT_FOUND)
 	ErrServiceLocked               = NewError(E_SERVICE_LOCKED, E_MSG_SERVICE_LOCKED)
+	ErrAlreadyDestory              = NewError(E_ALREADY_DESTORY, E_MSG_ALREADY_DESTORY)
 )
 
 func ErrCode(err error) int32 {

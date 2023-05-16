@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/registry/service/options"
 	"google.golang.org/grpc"
 )
 
@@ -20,6 +21,9 @@ func (application *BaseApplication) OnFrameworkStart() error {
 	return nil
 }
 
+func (application *BaseApplication) OnFrameworkDestory() error {
+	return nil
+}
 func (self *BaseApplication) OnFrameworkAwake(application gira.Application) error {
 	return nil
 }
@@ -150,12 +154,12 @@ func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer
 
 }
 
-func (application *BaseApplication) RegisterService(serviceName string) (*gira.Peer, error) {
-	return application.runtime.Registry.RegisterService(serviceName)
+func (application *BaseApplication) RegisterService(serviceName string, opt ...options.RegisterOption) (*gira.Peer, error) {
+	return application.runtime.Registry.RegisterService(serviceName, opt...)
 }
 
-func (application *BaseApplication) WhereIsService(serviceName string) ([]*gira.Peer, error) {
-	return application.runtime.Registry.WhereIsService(serviceName)
+func (application *BaseApplication) WhereIsService(serviceName string, opt ...options.WhereOption) ([]*gira.Peer, error) {
+	return application.runtime.Registry.WhereIsService(serviceName, opt...)
 }
 
 func (application *BaseApplication) UnregisterService(serviceName string) (*gira.Peer, error) {

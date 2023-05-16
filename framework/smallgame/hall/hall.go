@@ -29,6 +29,7 @@ type hall_server struct {
 	playerHandler gira.ProtoHandler
 	proto         gira.Proto
 	config        *Config
+	isDestory     bool
 }
 
 func newHall(framework *Framework, proto gira.Proto, config *Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) *hall_server {
@@ -42,7 +43,7 @@ func newHall(framework *Framework, proto gira.Proto, config *Config, hallHandler
 	}
 }
 
-func (hall *hall_server) OnAwake() error {
+func (hall *hall_server) onAwake() error {
 	// 注册grpc
 	facade.RegisterGrpc(func(server *grpc.Server) error {
 		hall_grpc.RegisterHallServer(server, &grpc_hall_server{
@@ -54,6 +55,27 @@ func (hall *hall_server) OnAwake() error {
 	return nil
 }
 
+func (hall *hall_server) onDestory() {
+	hall.isDestory = true
+	for {
+		log.Infow("hall停止中", "session_count", hall.sessionCount)
+		sessions := make([]*hall_sesssion, 0)
+		hall.SessionDict.Range(func(key, value any) bool {
+			session, _ := value.(*hall_sesssion)
+			sessions = append(sessions, session)
+			return true
+		})
+		for _, session := range sessions {
+			session.Call_close(hall.ctx, actor.WithCallTimeOut(5*time.Second))
+		}
+		log.Infow("hall停止中", "session_count", hall.sessionCount)
+		if hall.sessionCount <= 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func (hall *hall_server) serve() {
 	//
 	// 1.服务器关闭时保存数据后再退出
@@ -61,20 +83,20 @@ func (hall *hall_server) serve() {
 	//
 	hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
 	defer hall.cancelFunc()
-	facade.Go(func() error {
-		select {
-		case <-hall.ctx.Done():
-			// 服务器停止，保存数据
-			for {
-				log.Infow("hall停止中", "session_count", hall.sessionCount)
-				if hall.sessionCount <= 0 {
-					break
-				}
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-		return nil
-	})
+	// facade.Go(func() error {
+	// 	select {
+	// 	case <-hall.ctx.Done():
+	// 		// 服务器停止，保存数据
+	// 		for {
+	// 			log.Infow("hall停止中", "session_count", hall.sessionCount)
+	// 			if hall.sessionCount <= 0 {
+	// 				break
+	// 			}
+	// 			time.Sleep(100 * time.Millisecond)
+	// 		}
+	// 	}
+	// 	return nil
+	// })
 	for {
 		select {
 		// 处理actor请求
@@ -290,6 +312,9 @@ func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) 
 		// ticker.Stop()
 		log.Infow("gate stream exit")
 	}()
+	if self.hall.isDestory {
+		return gira.ErrAlreadyDestory
+	}
 	errGroup, errCtx := errgroup.WithContext(self.hall.ctx)
 	// 定时发送在线人数
 	errGroup.Go(func() error {
@@ -329,6 +354,9 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 	var req *hall_grpc.ClientMessageRequest
 	var err error
 	var memberId string
+	if self.hall.isDestory {
+		return gira.ErrAlreadyDestory
+	}
 	if req, err = client.Recv(); err != nil {
 		log.Errorw("recv fail", "error", err)
 		return err

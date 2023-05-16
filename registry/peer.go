@@ -51,7 +51,7 @@ type peer_registry struct {
 	Peers                  sync.Map //map[string]*gira.Peer
 	isNormalUnregisterSelf bool
 	SelfPeer               *gira.Peer
-	cancelCtx              context.Context
+	ctx                    context.Context
 	cancelFunc             context.CancelFunc
 }
 
@@ -60,24 +60,24 @@ func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
 		Prefix:     "/peer/",
 		SelfPrefix: fmt.Sprintf("/peer/%s/", r.fullName),
 	}
-	self.cancelCtx, self.cancelFunc = context.WithCancel(r.cancelCtx)
+	self.ctx, self.cancelFunc = context.WithCancel(r.ctx)
 	// 注册自己
 	if err := self.registerSelf(r); err != nil {
 		return nil, err
 	}
-	r.application.Go(func() error {
-		select {
-		case <-r.application.Done():
-			{
-				log.Infow("peer registry recv down")
-			}
-		}
-		if err := self.unregisterSelf(r); err != nil {
-			log.Errorw("unregister self fail", "error", err)
-		}
+	// r.application.Go(func() error {
+	// 	select {
+	// 	case <-r.application.Done():
+	// 		{
+	// 			log.Infow("peer registry recv down")
+	// 		}
+	// 	}
+	// 	if err := self.unregisterSelf(r); err != nil {
+	// 		log.Errorw("unregister self fail", "error", err)
+	// 	}
 
-		return nil
-	})
+	// 	return nil
+	// })
 	return self, nil
 }
 
@@ -89,6 +89,13 @@ func (self *peer_registry) getPeer(r *Registry, fullName string) *gira.Peer {
 	if lastValue, ok := self.Peers.Load(fullName); ok {
 		lastPeer := lastValue.(*gira.Peer)
 		return lastPeer
+	}
+	return nil
+}
+
+func (self *peer_registry) onDestory(r *Registry) error {
+	if err := self.unregisterSelf(r); err != nil {
+		log.Info(err)
 	}
 	return nil
 }
@@ -114,7 +121,7 @@ func (self *peer_registry) notify(r *Registry) error {
 }
 
 func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
-	log.Debugw("peer add", "full_name", peer.FullName)
+	log.Debugw("peer registry peer add", "full_name", peer.FullName)
 	if peer.FullName == r.fullName {
 		self.SelfPeer = peer
 	}
@@ -130,7 +137,7 @@ func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
-	log.Debugw("peer delete", "full_name", peer.FullName)
+	log.Debugw("peer registry peer delete", "full_name", peer.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerDelete(peer)
@@ -154,7 +161,7 @@ func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
-	log.Debugw("peer update", "full_name", peer.FullName)
+	log.Debugw("peer registry peer update", "full_name", peer.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerUpdate(peer)
@@ -186,25 +193,25 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			if lastPeer.GrpcAddr == "" {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
-				log.Infow("peer registry add peer", "full_name", fullName, "address", attrValue)
+				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 				self.onPeerAdd(r, lastPeer)
 			} else if attrValue != lastPeer.GrpcAddr {
 				// 节点地址改变
 				lastPeer.GrpcAddr = attrValue
 				self.onPeerUpdate(r, lastPeer)
-				log.Infow("peer registry update peer", "full_name", fullName, "last_attr_value", lastPeer.GrpcAddr, "attr_value", attrValue)
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
 			} else {
-				log.Infow("peer registry update peer", "full_name", fullName, "last_attr_value", lastPeer.GrpcAddr, "attr_value", attrValue)
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
 			}
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
 				if lastAttrValue != attrValue {
-					log.Infow("peer registry update peer attr", "full_name", fullName, "attr_name", attrName, "last_attr_value", lastAttrValue, "attr_value", attrValue)
+					log.Infow("peer registry update peer attr", "full_name", fullName, attrName, attrValue, "last_attr_value", lastAttrValue)
 				} else {
-					log.Infow("peer registry update peer attr", "full_name", fullName, "attr_name", attrName, "last_attr_value", lastAttrValue, "attr_value", attrValue)
+					log.Infow("peer registry update peer attr", "full_name", fullName, attrName, attrValue, "last_attr_value", lastAttrValue)
 				}
 			} else {
-				log.Infow("peer registry add peer attr", "full_name", fullName, "attr_name", attrName, "attr_value", attrValue)
+				log.Infow("peer registry add peer attr", "full_name", fullName, attrName, attrValue)
 			}
 			lastPeer.Kvs[attrName] = attrValue
 		}
@@ -218,12 +225,12 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 		self.Peers.Store(fullName, peer)
 		if attrName == GRPC_KEY {
 			// 新增节点
-			log.Infow("peer registry add peer", "full_name", fullName, "attr_value", attrValue)
+			log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 			peer.GrpcAddr = attrValue
 			self.onPeerAdd(r, peer)
 		} else {
 			peer.Kvs[attrName] = attrValue
-			log.Infow("peer registry add peer attr", "full_name", fullName, "attr_name", attrName, "attr_value", attrValue)
+			log.Infow("peer registry add peer attr", "full_name", fullName, attrName, attrValue)
 		}
 	}
 	return nil
@@ -241,15 +248,15 @@ func (self *peer_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 		lastPeer := lastValue.(*gira.Peer)
 		if attrName == GRPC_KEY {
 			//删除节点
-			log.Infow("peer registry remove peer", "full_name", fullName, "last_address", lastPeer.GrpcAddr)
+			log.Infow("peer registry remove peer", "full_name", fullName, GRPC_KEY, lastPeer.GrpcAddr)
 			lastPeer.GrpcAddr = ""
 			self.onPeerDelete(r, lastPeer)
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
 				delete(lastPeer.Kvs, attrName)
-				log.Infow("peer registry remove peer attr", "full_name", fullName, "attr_name", attrName, "last_attr_value", lastAttrValue)
+				log.Infow("peer registry remove peer attr", "full_name", fullName, attrName, lastAttrValue)
 			} else {
-				log.Warnw("peer registry remove peer attr, but attr not found!!!!!", "full_name", fullName, "attr_name", attrName)
+				log.Warnw("peer registry remove peer attr, but attr not found!!!!!", "full_name", fullName, attrName, "")
 			}
 		}
 	} else {
@@ -279,25 +286,25 @@ func (r *peer_registry) onKvAdd(kv *mvccpb.KeyValue) error {
 			if lastPeer.GrpcAddr == "" {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
-				log.Infow("peer registry add peer", "full_name", fullName, "attr_value", attrValue)
+				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 			} else if attrValue != lastPeer.GrpcAddr {
 				// 节点地址改变
 				lastPeer.GrpcAddr = attrValue
-				log.Infow("peer registry update peer", "full_name", fullName, "last_attr_value", lastPeer.GrpcAddr, "attr_value", attrValue)
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
 			} else {
-				log.Infow("peer registry update peer", "full_name", fullName, "last_attr_value", lastPeer.GrpcAddr, "attr_value", attrValue)
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
 			}
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
 				// 更新属性
 				if lastAttrValue != attrValue {
-					log.Infow("peer registry update peer attr", "full_name", fullName, "attr_name", attrName, "last_attr_value", lastAttrValue, "attr_value", attrValue)
+					log.Infow("peer registry update peer attr", "full_name", fullName, attrName, attrValue, "last_attr_value", lastAttrValue)
 				} else {
-					log.Infow("peer registry update peer attr", "full_name", fullName, "attr_name", attrName, "last_attr_value", lastAttrValue, "attr_value", attrValue)
+					log.Infow("peer registry update peer attr", "full_name", fullName, attrName, attrValue, "last_attr_value", lastAttrValue)
 				}
 			} else {
 				// 新增属性
-				log.Infow("peer registry add peer attr", "full_name", fullName, "attr_name", attrName, "attr_value", attrValue)
+				log.Infow("peer registry add peer attr", "full_name", fullName, attrName, attrValue)
 			}
 			lastPeer.Kvs[attrName] = attrValue
 		}
@@ -312,10 +319,10 @@ func (r *peer_registry) onKvAdd(kv *mvccpb.KeyValue) error {
 		if attrName == GRPC_KEY {
 			peer.GrpcAddr = attrValue
 			// 新增节点
-			log.Infow("peer registry add peer", "full_name", fullName, "attr_value", attrValue)
+			log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 		} else {
 			peer.Kvs[attrName] = attrValue
-			log.Infow("peer registry add peer attr", "full_name", fullName, "attr_name", attrName, "attr_value", attrValue)
+			log.Infow("peer registry add peer attr", "full_name", fullName, attrName, attrValue)
 		}
 	}
 	return nil
@@ -326,7 +333,7 @@ func (self *peer_registry) watchPeers(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
 	var err error
-	if getResp, err = kv.Get(self.cancelCtx, self.Prefix, clientv3.WithPrefix()); err != nil {
+	if getResp, err = kv.Get(self.ctx, self.Prefix, clientv3.WithPrefix()); err != nil {
 		return err
 	}
 	for _, kv := range getResp.Kvs {
@@ -337,8 +344,8 @@ func (self *peer_registry) watchPeers(r *Registry) error {
 	watchStartRevision := getResp.Header.Revision + 1
 	watcher := clientv3.NewWatcher(client)
 	r.application.Go(func() error {
-		watchRespChan := watcher.Watch(self.cancelCtx, self.Prefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
 		log.Infow("peer registry watch peer started", "prefix", self.Prefix, "watch_start_revision", watchStartRevision)
+		watchRespChan := watcher.Watch(self.ctx, self.Prefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
 		for watchResp := range watchRespChan {
 			// log.Info("etcd watch got events")
 			for _, event := range watchResp.Events {
@@ -365,7 +372,7 @@ func (self *peer_registry) watchPeers(r *Registry) error {
 func (self *peer_registry) unregisterSelf(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
-	ctx, cancelFunc := context.WithTimeout(self.cancelCtx, 10*time.Second)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
 	log.Infow("peer registry unregister self", "self_prefix", self.SelfPrefix)
 	self.isNormalUnregisterSelf = true
@@ -389,17 +396,17 @@ func (self *peer_registry) unregisterSelf(r *Registry) error {
 
 	if txnResp.Succeeded {
 		// key 被其他程序占用着，不用管，直接退出
-		log.Info(" key 被其他程序占用着，不用管，直接退出")
+		// log.Info(" key 被其他程序占用着，不用管，直接退出")
 		self.cancelFunc()
 	} else {
 		if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
 			// key 没被任何程序占用，不用管，直接退出
-			log.Info("key 没被任何程序占用，不用管，直接退出")
+			// log.Info("key 没被任何程序占用，不用管，直接退出")
 			self.cancelFunc()
 		} else {
 			// 等监听到清理完成后再退出
-			log.Info("等监听到清理完成后再退出")
-
+			// log.Info("等监听到清理完成后再退出")
+			log.Info("peer registry wait cleanup")
 		}
 	}
 	return nil
@@ -415,7 +422,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		lease = clientv3.Lease(client)
 		var leaseGrantResp *clientv3.LeaseGrantResponse
 		// 申请一个5s的租约
-		if leaseGrantResp, err = lease.Grant(self.cancelCtx, 5); err != nil {
+		if leaseGrantResp, err = lease.Grant(self.ctx, 5); err != nil {
 			return err
 		}
 		// 租约ID
@@ -430,7 +437,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	for name, value := range advertises {
 		var txnResp *clientv3.TxnResponse
-		txn := kv.Txn(self.cancelCtx)
+		txn := kv.Txn(self.ctx)
 		key := fmt.Sprintf("%s%s", self.SelfPrefix, name)
 		tx := txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
 			Then(clientv3.OpGet(key))
@@ -444,20 +451,20 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 			return err
 		}
 		if txnResp.Succeeded {
-			log.Errorw("etcd register fail", "key", key, "value", value, "lock by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
+			log.Errorw("etcd register fail", "key", key, "value", value, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 			return gira.ErrRegisterServerFail
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
-				log.Infow("etcd register create", "key", key, "value", value)
+				log.Infow("peer registry register peer success", "key", key, "value", value)
 			} else {
-				log.Infow("etcd register resume", "key", key, "value", value)
+				log.Infow("peer registry resume peer success", "key", key, "value", value)
 			}
 		}
 	}
 	if leaseID != 0 {
 		var keepRespChan <-chan *clientv3.LeaseKeepAliveResponse
 		// 自动续租
-		if keepRespChan, err = lease.KeepAlive(self.cancelCtx, leaseID); err != nil {
+		if keepRespChan, err = lease.KeepAlive(self.ctx, leaseID); err != nil {
 			log.Info("自动续租失败", err)
 			return err
 		}

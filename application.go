@@ -8,6 +8,7 @@ type Framework interface {
 	OnFrameworkConfigLoad(c *Config) error
 	OnFrameworkAwake(application Application) error
 	OnFrameworkStart() error
+	OnFrameworkDestory() error
 }
 
 type Application interface {

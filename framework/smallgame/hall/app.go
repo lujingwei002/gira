@@ -50,6 +50,7 @@ type Framework struct {
 	Config *Config
 	Hall   Hall
 	// 由application设置
+	hallServer    *hall_server
 	Proto         gira.Proto
 	PlayerHandler gira.ProtoHandler
 }
@@ -59,8 +60,9 @@ func (framework *Framework) OnFrameworkAwake(application gira.Application) error
 		return gira.ErrGateHandlerNotImplement
 	} else {
 		hall := newHall(framework, framework.Proto, framework.Config, handler, framework.PlayerHandler)
+		framework.hallServer = hall
 		framework.Hall = hall
-		if err := hall.OnAwake(); err != nil {
+		if err := hall.onAwake(); err != nil {
 			return err
 		}
 		rpc.OnAwake()
@@ -70,6 +72,13 @@ func (framework *Framework) OnFrameworkAwake(application gira.Application) error
 
 // 框架启动
 func (framework *Framework) OnFrameworkStart() error {
+	return nil
+}
+
+func (framework *Framework) OnFrameworkDestory() error {
+	if framework.hallServer != nil {
+		framework.hallServer.onDestory()
+	}
 	return nil
 }
 

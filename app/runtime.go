@@ -181,7 +181,7 @@ func (runtime *Runtime) serve() error {
 	return nil
 }
 
-func (runtime *Runtime) start() error {
+func (runtime *Runtime) start() (err error) {
 	if r, ok := runtime.Application.(RunnableApplication); !ok {
 		return gira.ErrTodo
 	} else {
@@ -189,16 +189,37 @@ func (runtime *Runtime) start() error {
 	}
 	gira.OnApplicationNew(runtime.Application)
 	runtime.Frameworks = runtime.Application.OnFrameworkInit()
-	if err := runtime.init(); err != nil {
-		return err
+	if err = runtime.init(); err != nil {
+		return
 	}
-	if err := runtime.onAwake(); err != nil {
-		return err
+	defer func() {
+		if err != nil {
+			runtime.onDestory()
+		}
+	}()
+	if err = runtime.onAwake(); err != nil {
+		return
 	}
-	if err := runtime.onStart(); err != nil {
-		return err
+	if err = runtime.onStart(); err != nil {
+		return
 	}
 	return nil
+}
+
+func (runtime *Runtime) onDestory() {
+	log.Infow("runtime onDestory")
+	for _, fw := range runtime.Frameworks {
+		log.Info("framework onDestory", "name")
+		if err := fw.OnFrameworkDestory(); err != nil {
+			log.Warnw("framework on destory fail", "error", err)
+		}
+	}
+	if runtime.Registry != nil {
+		log.Infow("registry onDestory")
+		if err := runtime.Registry.OnDestory(); err != nil {
+			log.Warnw("registry on destory fail", "error", err)
+		}
+	}
 }
 
 func (runtime *Runtime) onStart() error {
@@ -246,6 +267,7 @@ func (runtime *Runtime) onStart() error {
 func (runtime *Runtime) onAwake() error {
 	// log.Info("application", app.FullName, "start")
 	application := runtime.Application
+
 	// ====内置的服务=============
 	if runtime.config.Pprof.Port != 0 {
 		go func() {
@@ -418,6 +440,7 @@ func (runtime *Runtime) wait() error {
 				switch s {
 				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 					log.Info("ctrl shutdown begin.")
+					runtime.onDestory()
 					runtime.cancelFunc()
 					log.Info("ctrl shutdown end.")
 					return nil

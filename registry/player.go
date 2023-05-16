@@ -26,7 +26,7 @@ import (
 type player_registry struct {
 	peerPrefix   string // /peer_user/<<AppName>>/      根据服务类型查找全部玩家
 	localPrefix  string // /local_user/<<AppFullName>>  根据服务全名查找全部玩家
-	userPrefix   string // /user/<<UserId>>/       	 可以根据user_id查找当前所在的服
+	userPrefix   string // /user/<<UserId>>/       	 	可以根据user_id查找当前所在的服
 	localPlayers sync.Map
 	ctx          context.Context
 	cancelFunc   context.CancelFunc
@@ -38,25 +38,33 @@ func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
 		localPrefix: fmt.Sprintf("/local_user/%s/", r.fullName),
 		userPrefix:  "/user/",
 	}
-	self.ctx, self.cancelFunc = context.WithCancel(r.cancelCtx)
+	self.ctx, self.cancelFunc = context.WithCancel(r.ctx)
 	// 侦听本服的player信息
 	// if err := self.watchLocalPlayers(r); err != nil {
 	// 	return nil, err
 	// }
-	r.application.Go(func() error {
-		select {
-		case <-r.application.Done():
-			{
-				log.Info("player registry recv down")
-			}
-		}
-		if err := self.unregisterSelf(r); err != nil {
-			log.Error(err)
-		}
-		self.cancelFunc()
-		return nil
-	})
+	// r.application.Go(func() error {
+	// 	select {
+	// 	case <-r.application.Done():
+	// 		{
+	// 			log.Info("player registry recv down")
+	// 		}
+	// 	}
+	// 	if err := self.unregisterSelf(r); err != nil {
+	// 		log.Error(err)
+	// 	}
+	// 	self.cancelFunc()
+	// 	return nil
+	// })
 	return self, nil
+}
+
+func (self *player_registry) onDestory(r *Registry) error {
+	if err := self.unregisterSelf(r); err != nil {
+		log.Info(err)
+	}
+	self.cancelFunc()
+	return nil
 }
 
 func (self *player_registry) onStart(r *Registry) error {
@@ -156,7 +164,7 @@ func (self *player_registry) onLocalKvDelete(r *Registry, kv *mvccpb.KeyValue) e
 		self.localPlayers.Delete(userId)
 		self.onLocalPlayerDelete(r, lastPlayer)
 	} else {
-		log.Warnw("player registry remote local player, but player not found", "user_id", userId)
+		log.Warnw("player registry remove local player, but player not found", "user_id", userId)
 	}
 	return nil
 }
@@ -232,7 +240,7 @@ func (self *player_registry) watchLocalPlayers(r *Registry) error {
 func (self *player_registry) unregisterSelf(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
-	ctx, cancelFunc := context.WithTimeout(self.ctx, 10*time.Second)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
 	log.Infow("player registry unregister self", "local_prefix", self.localPrefix)
 
@@ -243,6 +251,7 @@ func (self *player_registry) unregisterSelf(r *Registry) error {
 		localKey := fmt.Sprintf("%s%s", self.localPrefix, userId)
 		peerKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
 		userKey := fmt.Sprintf("%s%s", self.userPrefix, userId)
+		log.Infow("player registry unregister self", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(localKey), "!=", 0)).
 			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(userKey))
 
@@ -310,7 +319,7 @@ func (self *player_registry) UnlockLocalUser(r *Registry, userId string) (*gira.
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
-	log.Infow("player registry", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
+	log.Infow("player registry unregister", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
 	txn.If(clientv3.Compare(clientv3.Value(peerKey), "=", r.fullName), clientv3.Compare(clientv3.CreateRevision(peerKey), "!=", 0)).
 		Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(userKey)).
 		Else(clientv3.OpGet(peerKey))

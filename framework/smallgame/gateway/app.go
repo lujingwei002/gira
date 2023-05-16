@@ -43,6 +43,10 @@ func (framework *Framework) OnFrameworkStart() error {
 	return nil
 }
 
+func (framework *Framework) OnFrameworkDestory() error {
+	return nil
+}
+
 func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
 	framework.Config = &Config{}
 	return framework.Config.OnConfigLoad(c)

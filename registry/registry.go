@@ -24,6 +24,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/registry/service/options"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 )
@@ -32,15 +33,29 @@ const GRPC_KEY string = "grpc"
 
 type Registry struct {
 	config          gira.EtcdConfig
+	appId           int32
 	fullName        string // 节点全名
 	name            string // 节点名
 	client          *clientv3.Client
-	cancelCtx       context.Context
+	ctx             context.Context
 	cancelFunc      context.CancelFunc
 	application     gira.Application
 	peerRegistry    *peer_registry
 	playerRegistry  *player_registry
 	serviceRegistry *service_registry
+}
+
+func (r *Registry) OnDestory() error {
+	if err := r.playerRegistry.onDestory(r); err != nil {
+		log.Warnw("player registry on destory fail", "error", err)
+	}
+	if err := r.serviceRegistry.onDestory(r); err != nil {
+		log.Warnw("service registry on destory fail", "error", err)
+	}
+	if err := r.peerRegistry.onDestory(r); err != nil {
+		log.Warnw("peer registry on destory fail", "error", err)
+	}
+	return nil
 }
 
 func (r *Registry) OnStart() error {
@@ -73,8 +88,9 @@ func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*
 	r := &Registry{
 		config: *config,
 	}
-	r.cancelCtx, r.cancelFunc = context.WithCancel(context.Background())
+	r.ctx, r.cancelFunc = context.WithCancel(application.Context())
 	r.fullName = application.GetAppFullName()
+	r.appId = application.GetAppId()
 	r.name = application.GetAppType()
 	r.application = application
 
@@ -89,7 +105,7 @@ func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*
 		DialOptions: []grpc.DialOption{grpc.WithBlock()},               // 使用阻塞模式，确认启动时etcd是可用的
 		Username:    r.config.Username,
 		Password:    r.config.Password,
-		Context:     r.cancelCtx,
+		Context:     r.ctx,
 	}
 	var client *clientv3.Client
 	var err error
@@ -135,13 +151,13 @@ func (r *Registry) WhereIsUser(userId string) (*gira.Peer, error) {
 }
 
 // 查找服务
-func (r *Registry) WhereIsService(serviceName string) ([]*gira.Peer, error) {
-	return r.serviceRegistry.WhereIsService(r, serviceName)
+func (r *Registry) WhereIsService(serviceName string, opt ...options.WhereOption) ([]*gira.Peer, error) {
+	return r.serviceRegistry.WhereIsService(r, serviceName, opt...)
 }
 
 // 注册服务
-func (r *Registry) RegisterService(serviceName string) (*gira.Peer, error) {
-	return r.serviceRegistry.RegisterService(r, serviceName)
+func (r *Registry) RegisterService(serviceName string, opt ...options.RegisterOption) (*gira.Peer, error) {
+	return r.serviceRegistry.RegisterService(r, serviceName, opt...)
 }
 
 // 反注册服务

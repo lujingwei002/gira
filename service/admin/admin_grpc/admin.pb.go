@@ -107,6 +107,267 @@ func (*ReloadResourceResponse) Descriptor() ([]byte, []int) {
 	return file_service_admin_admin_proto_rawDescGZIP(), []int{1}
 }
 
+// 请求消息
+type ReloadResourceRequest1 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *ReloadResourceRequest1) Reset() {
+	*x = ReloadResourceRequest1{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_service_admin_admin_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReloadResourceRequest1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReloadResourceRequest1) ProtoMessage() {}
+
+func (x *ReloadResourceRequest1) ProtoReflect() protoreflect.Message {
+	mi := &file_service_admin_admin_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReloadResourceRequest1.ProtoReflect.Descriptor instead.
+func (*ReloadResourceRequest1) Descriptor() ([]byte, []int) {
+	return file_service_admin_admin_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ReloadResourceRequest1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// 响应消息
+type ReloadResourceResponse1 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ReloadResourceResponse1) Reset() {
+	*x = ReloadResourceResponse1{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_service_admin_admin_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReloadResourceResponse1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReloadResourceResponse1) ProtoMessage() {}
+
+func (x *ReloadResourceResponse1) ProtoReflect() protoreflect.Message {
+	mi := &file_service_admin_admin_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReloadResourceResponse1.ProtoReflect.Descriptor instead.
+func (*ReloadResourceResponse1) Descriptor() ([]byte, []int) {
+	return file_service_admin_admin_proto_rawDescGZIP(), []int{3}
+}
+
+// 请求消息
+type ReloadResourceRequest2 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *ReloadResourceRequest2) Reset() {
+	*x = ReloadResourceRequest2{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_service_admin_admin_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReloadResourceRequest2) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReloadResourceRequest2) ProtoMessage() {}
+
+func (x *ReloadResourceRequest2) ProtoReflect() protoreflect.Message {
+	mi := &file_service_admin_admin_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReloadResourceRequest2.ProtoReflect.Descriptor instead.
+func (*ReloadResourceRequest2) Descriptor() ([]byte, []int) {
+	return file_service_admin_admin_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ReloadResourceRequest2) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// 响应消息
+type ReloadResourceResponse2 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ReloadResourceResponse2) Reset() {
+	*x = ReloadResourceResponse2{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_service_admin_admin_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReloadResourceResponse2) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReloadResourceResponse2) ProtoMessage() {}
+
+func (x *ReloadResourceResponse2) ProtoReflect() protoreflect.Message {
+	mi := &file_service_admin_admin_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReloadResourceResponse2.ProtoReflect.Descriptor instead.
+func (*ReloadResourceResponse2) Descriptor() ([]byte, []int) {
+	return file_service_admin_admin_proto_rawDescGZIP(), []int{5}
+}
+
+// 请求消息
+type ReloadResourceRequest3 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *ReloadResourceRequest3) Reset() {
+	*x = ReloadResourceRequest3{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_service_admin_admin_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReloadResourceRequest3) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReloadResourceRequest3) ProtoMessage() {}
+
+func (x *ReloadResourceRequest3) ProtoReflect() protoreflect.Message {
+	mi := &file_service_admin_admin_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReloadResourceRequest3.ProtoReflect.Descriptor instead.
+func (*ReloadResourceRequest3) Descriptor() ([]byte, []int) {
+	return file_service_admin_admin_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ReloadResourceRequest3) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// 响应消息
+type ReloadResourceResponse3 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ReloadResourceResponse3) Reset() {
+	*x = ReloadResourceResponse3{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_service_admin_admin_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReloadResourceResponse3) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReloadResourceResponse3) ProtoMessage() {}
+
+func (x *ReloadResourceResponse3) ProtoReflect() protoreflect.Message {
+	mi := &file_service_admin_admin_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReloadResourceResponse3.ProtoReflect.Descriptor instead.
+func (*ReloadResourceResponse3) Descriptor() ([]byte, []int) {
+	return file_service_admin_admin_proto_rawDescGZIP(), []int{7}
+}
+
 var File_service_admin_admin_proto protoreflect.FileDescriptor
 
 var file_service_admin_admin_proto_rawDesc = []byte{
@@ -116,16 +377,47 @@ var file_service_admin_admin_proto_rawDesc = []byte{
 	0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
 	0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
 	0x6e, 0x61, 0x6d, 0x65, 0x22, 0x18, 0x0a, 0x16, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65,
-	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0x62,
-	0x0a, 0x05, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x12, 0x59, 0x0a, 0x0e, 0x52, 0x65, 0x6c, 0x6f, 0x61,
-	0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x21, 0x2e, 0x61, 0x64, 0x6d, 0x69,
-	0x6e, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x22, 0x2e, 0x61,
-	0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64,
-	0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x22, 0x00, 0x42, 0x1a, 0x5a, 0x18, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2f, 0x61, 0x64,
-	0x6d, 0x69, 0x6e, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2c,
+	0x0a, 0x16, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x31, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x19, 0x0a, 0x17,
+	0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x31, 0x22, 0x2c, 0x0a, 0x16, 0x52, 0x65, 0x6c, 0x6f, 0x61,
+	0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x32, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x19, 0x0a, 0x17, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32,
+	0x22, 0x2c, 0x0a, 0x16, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x33, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61,
+	0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x19,
+	0x0a, 0x17, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x33, 0x32, 0x84, 0x03, 0x0a, 0x05, 0x41, 0x64,
+	0x6d, 0x69, 0x6e, 0x12, 0x59, 0x0a, 0x0e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x21, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72,
+	0x70, 0x63, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x22, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e,
+	0x5f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x5e,
+	0x0a, 0x0f, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x31, 0x12, 0x22, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x52,
+	0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x31, 0x1a, 0x23, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72,
+	0x70, 0x63, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x31, 0x22, 0x00, 0x28, 0x01, 0x12, 0x5e,
+	0x0a, 0x0f, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x32, 0x12, 0x22, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x52,
+	0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x32, 0x1a, 0x23, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72,
+	0x70, 0x63, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0x22, 0x00, 0x30, 0x01, 0x12, 0x60,
+	0x0a, 0x0f, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x33, 0x12, 0x22, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x52,
+	0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x32, 0x1a, 0x23, 0x2e, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72,
+	0x70, 0x63, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0x22, 0x00, 0x28, 0x01, 0x30, 0x01,
+	0x42, 0x0e, 0x5a, 0x0c, 0x2e, 0x2f, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x5f, 0x67, 0x72, 0x70, 0x63,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -140,16 +432,28 @@ func file_service_admin_admin_proto_rawDescGZIP() []byte {
 	return file_service_admin_admin_proto_rawDescData
 }
 
-var file_service_admin_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_service_admin_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_service_admin_admin_proto_goTypes = []interface{}{
-	(*ReloadResourceRequest)(nil),  // 0: admin_grpc.ReloadResourceRequest
-	(*ReloadResourceResponse)(nil), // 1: admin_grpc.ReloadResourceResponse
+	(*ReloadResourceRequest)(nil),   // 0: admin_grpc.ReloadResourceRequest
+	(*ReloadResourceResponse)(nil),  // 1: admin_grpc.ReloadResourceResponse
+	(*ReloadResourceRequest1)(nil),  // 2: admin_grpc.ReloadResourceRequest1
+	(*ReloadResourceResponse1)(nil), // 3: admin_grpc.ReloadResourceResponse1
+	(*ReloadResourceRequest2)(nil),  // 4: admin_grpc.ReloadResourceRequest2
+	(*ReloadResourceResponse2)(nil), // 5: admin_grpc.ReloadResourceResponse2
+	(*ReloadResourceRequest3)(nil),  // 6: admin_grpc.ReloadResourceRequest3
+	(*ReloadResourceResponse3)(nil), // 7: admin_grpc.ReloadResourceResponse3
 }
 var file_service_admin_admin_proto_depIdxs = []int32{
 	0, // 0: admin_grpc.Admin.ReloadResource:input_type -> admin_grpc.ReloadResourceRequest
-	1, // 1: admin_grpc.Admin.ReloadResource:output_type -> admin_grpc.ReloadResourceResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: admin_grpc.Admin.ReloadResource1:input_type -> admin_grpc.ReloadResourceRequest1
+	4, // 2: admin_grpc.Admin.ReloadResource2:input_type -> admin_grpc.ReloadResourceRequest2
+	4, // 3: admin_grpc.Admin.ReloadResource3:input_type -> admin_grpc.ReloadResourceRequest2
+	1, // 4: admin_grpc.Admin.ReloadResource:output_type -> admin_grpc.ReloadResourceResponse
+	3, // 5: admin_grpc.Admin.ReloadResource1:output_type -> admin_grpc.ReloadResourceResponse1
+	5, // 6: admin_grpc.Admin.ReloadResource2:output_type -> admin_grpc.ReloadResourceResponse2
+	5, // 7: admin_grpc.Admin.ReloadResource3:output_type -> admin_grpc.ReloadResourceResponse2
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -185,6 +489,78 @@ func file_service_admin_admin_proto_init() {
 				return nil
 			}
 		}
+		file_service_admin_admin_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReloadResourceRequest1); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_service_admin_admin_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReloadResourceResponse1); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_service_admin_admin_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReloadResourceRequest2); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_service_admin_admin_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReloadResourceResponse2); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_service_admin_admin_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReloadResourceRequest3); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_service_admin_admin_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReloadResourceResponse3); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -192,7 +568,7 @@ func file_service_admin_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_service_admin_admin_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

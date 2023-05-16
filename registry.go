@@ -1,5 +1,7 @@
 package gira
 
+import "github.com/lujingwei002/gira/registry/service/options"
+
 type Registry interface {
 	// 如果失败，则返回当前所在的节点
 	LockLocalUser(userId string) (*Peer, error)
@@ -7,9 +9,9 @@ type Registry interface {
 	WhereIsUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
 
-	RegisterService(serviceName string) (*Peer, error)
+	RegisterService(serviceName string, opt ...options.RegisterOption) (*Peer, error)
 	UnregisterService(serviceName string) (*Peer, error)
-	WhereIsService(serviceName string) ([]*Peer, error)
+	WhereIsService(serviceName string, opt ...options.WhereOption) ([]*Peer, error)
 }
 
 // 伙伴
@@ -27,14 +29,13 @@ type LocalPlayer struct {
 }
 
 type Service struct {
-	UniqueName string
-	GroupName  string
-	Peer       *Peer
-	IsLocal    bool
-}
-
-func (s *Service) IsGrouped() bool {
-	return len(s.GroupName) > 0
+	// <<GroupName>>/<<ShortName>>
+	FullName  string
+	GroupName string
+	Name      string
+	Peer      *Peer
+	IsLocal   bool
+	IsGroup   bool
 }
 
 // 伙伴节点增删改的回调

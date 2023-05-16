@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Admin_ReloadResource_FullMethodName = "/admin_grpc.Admin/ReloadResource"
+	Admin_ReloadResource_FullMethodName  = "/admin_grpc.Admin/ReloadResource"
+	Admin_ReloadResource1_FullMethodName = "/admin_grpc.Admin/ReloadResource1"
+	Admin_ReloadResource2_FullMethodName = "/admin_grpc.Admin/ReloadResource2"
+	Admin_ReloadResource3_FullMethodName = "/admin_grpc.Admin/ReloadResource3"
 )
 
 // AdminClient is the client API for Admin service.
@@ -27,6 +30,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdminClient interface {
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
+	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
+	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (Admin_ReloadResource2Client, error)
+	ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error)
 }
 
 type adminClient struct {
@@ -46,11 +52,111 @@ func (c *adminClient) ReloadResource(ctx context.Context, in *ReloadResourceRequ
 	return out, nil
 }
 
+func (c *adminClient) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error) {
+	stream, err := c.cc.NewStream(ctx, &Admin_ServiceDesc.Streams[0], Admin_ReloadResource1_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &adminReloadResource1Client{stream}
+	return x, nil
+}
+
+type Admin_ReloadResource1Client interface {
+	Send(*ReloadResourceRequest1) error
+	CloseAndRecv() (*ReloadResourceResponse1, error)
+	grpc.ClientStream
+}
+
+type adminReloadResource1Client struct {
+	grpc.ClientStream
+}
+
+func (x *adminReloadResource1Client) Send(m *ReloadResourceRequest1) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *adminReloadResource1Client) CloseAndRecv() (*ReloadResourceResponse1, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(ReloadResourceResponse1)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *adminClient) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (Admin_ReloadResource2Client, error) {
+	stream, err := c.cc.NewStream(ctx, &Admin_ServiceDesc.Streams[1], Admin_ReloadResource2_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &adminReloadResource2Client{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Admin_ReloadResource2Client interface {
+	Recv() (*ReloadResourceResponse2, error)
+	grpc.ClientStream
+}
+
+type adminReloadResource2Client struct {
+	grpc.ClientStream
+}
+
+func (x *adminReloadResource2Client) Recv() (*ReloadResourceResponse2, error) {
+	m := new(ReloadResourceResponse2)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *adminClient) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error) {
+	stream, err := c.cc.NewStream(ctx, &Admin_ServiceDesc.Streams[2], Admin_ReloadResource3_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &adminReloadResource3Client{stream}
+	return x, nil
+}
+
+type Admin_ReloadResource3Client interface {
+	Send(*ReloadResourceRequest2) error
+	Recv() (*ReloadResourceResponse2, error)
+	grpc.ClientStream
+}
+
+type adminReloadResource3Client struct {
+	grpc.ClientStream
+}
+
+func (x *adminReloadResource3Client) Send(m *ReloadResourceRequest2) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *adminReloadResource3Client) Recv() (*ReloadResourceResponse2, error) {
+	m := new(ReloadResourceResponse2)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // AdminServer is the server API for Admin service.
 // All implementations must embed UnimplementedAdminServer
 // for forward compatibility
 type AdminServer interface {
 	ReloadResource(context.Context, *ReloadResourceRequest) (*ReloadResourceResponse, error)
+	ReloadResource1(Admin_ReloadResource1Server) error
+	ReloadResource2(*ReloadResourceRequest2, Admin_ReloadResource2Server) error
+	ReloadResource3(Admin_ReloadResource3Server) error
 	mustEmbedUnimplementedAdminServer()
 }
 
@@ -60,6 +166,15 @@ type UnimplementedAdminServer struct {
 
 func (UnimplementedAdminServer) ReloadResource(context.Context, *ReloadResourceRequest) (*ReloadResourceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource not implemented")
+}
+func (UnimplementedAdminServer) ReloadResource1(Admin_ReloadResource1Server) error {
+	return status.Errorf(codes.Unimplemented, "method ReloadResource1 not implemented")
+}
+func (UnimplementedAdminServer) ReloadResource2(*ReloadResourceRequest2, Admin_ReloadResource2Server) error {
+	return status.Errorf(codes.Unimplemented, "method ReloadResource2 not implemented")
+}
+func (UnimplementedAdminServer) ReloadResource3(Admin_ReloadResource3Server) error {
+	return status.Errorf(codes.Unimplemented, "method ReloadResource3 not implemented")
 }
 func (UnimplementedAdminServer) mustEmbedUnimplementedAdminServer() {}
 
@@ -92,6 +207,79 @@ func _Admin_ReloadResource_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Admin_ReloadResource1_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AdminServer).ReloadResource1(&adminReloadResource1Server{stream})
+}
+
+type Admin_ReloadResource1Server interface {
+	SendAndClose(*ReloadResourceResponse1) error
+	Recv() (*ReloadResourceRequest1, error)
+	grpc.ServerStream
+}
+
+type adminReloadResource1Server struct {
+	grpc.ServerStream
+}
+
+func (x *adminReloadResource1Server) SendAndClose(m *ReloadResourceResponse1) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *adminReloadResource1Server) Recv() (*ReloadResourceRequest1, error) {
+	m := new(ReloadResourceRequest1)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Admin_ReloadResource2_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ReloadResourceRequest2)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AdminServer).ReloadResource2(m, &adminReloadResource2Server{stream})
+}
+
+type Admin_ReloadResource2Server interface {
+	Send(*ReloadResourceResponse2) error
+	grpc.ServerStream
+}
+
+type adminReloadResource2Server struct {
+	grpc.ServerStream
+}
+
+func (x *adminReloadResource2Server) Send(m *ReloadResourceResponse2) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Admin_ReloadResource3_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AdminServer).ReloadResource3(&adminReloadResource3Server{stream})
+}
+
+type Admin_ReloadResource3Server interface {
+	Send(*ReloadResourceResponse2) error
+	Recv() (*ReloadResourceRequest2, error)
+	grpc.ServerStream
+}
+
+type adminReloadResource3Server struct {
+	grpc.ServerStream
+}
+
+func (x *adminReloadResource3Server) Send(m *ReloadResourceResponse2) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *adminReloadResource3Server) Recv() (*ReloadResourceRequest2, error) {
+	m := new(ReloadResourceRequest2)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Admin_ServiceDesc is the grpc.ServiceDesc for Admin service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -104,6 +292,23 @@ var Admin_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Admin_ReloadResource_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ReloadResource1",
+			Handler:       _Admin_ReloadResource1_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "ReloadResource2",
+			Handler:       _Admin_ReloadResource2_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ReloadResource3",
+			Handler:       _Admin_ReloadResource3_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "service/admin/admin.proto",
 }
