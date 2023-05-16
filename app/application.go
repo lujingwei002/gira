@@ -185,15 +185,12 @@ func (application *BaseApplication) RangePeers(f func(k any, v any) bool) {
 	application.runtime.Registry.RangePeers(f)
 }
 
-func (application *BaseApplication) BroadcastReloadResource(ctx context.Context, name string) error {
+func (application *BaseApplication) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
 	req := &admin_grpc.ReloadResourceRequest{
 		Name: name,
 	}
-	if result := admin_grpc.DefaultAdminClients.WithBroadcast().ReloadResource(ctx, req); result.Error() != nil {
-		return result.Error()
-	} else {
-		return nil
-	}
+	result, err = admin_grpc.DefaultAdminClients.WithBroadcast().ReloadResource(ctx, req)
+	return
 }
 
 func (application *BaseApplication) OnFrameworkInit() []gira.Framework {

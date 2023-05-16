@@ -22,42 +22,147 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 type ReloadResourceResponse_MulticastResult struct {
-	PeerCount int
-	Errors    []error
-	Responses []*ReloadResourceResponse
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*ReloadResourceResponse
 }
 
 func (r *ReloadResourceResponse_MulticastResult) Error() error {
-	if len(r.Errors) <= 0 {
+	if len(r.errors) <= 0 {
 		return nil
 	}
-	return r.Errors[0]
+	return r.errors[0]
+}
+func (r *ReloadResourceResponse_MulticastResult) Response(index int) *ReloadResourceResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *ReloadResourceResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *ReloadResourceResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *ReloadResourceResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *ReloadResourceResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *ReloadResourceResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *ReloadResourceResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
 }
 
 type ReloadResourceResponse1_MulticastResult struct {
-	PeerCount int
-	Errors    []error
-	Responses []*ReloadResourceResponse1
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*ReloadResourceResponse1
 }
 
 func (r *ReloadResourceResponse1_MulticastResult) Error() error {
-	if len(r.Errors) <= 0 {
+	if len(r.errors) <= 0 {
 		return nil
 	}
-	return r.Errors[0]
+	return r.errors[0]
+}
+func (r *ReloadResourceResponse1_MulticastResult) Response(index int) *ReloadResourceResponse1 {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *ReloadResourceResponse1_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *ReloadResourceResponse1_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *ReloadResourceResponse1_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *ReloadResourceResponse1_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *ReloadResourceResponse1_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *ReloadResourceResponse1_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
 }
 
 type ReloadResourceResponse2_MulticastResult struct {
-	PeerCount int
-	Errors    []error
-	Responses []*ReloadResourceResponse2
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*ReloadResourceResponse2
 }
 
 func (r *ReloadResourceResponse2_MulticastResult) Error() error {
-	if len(r.Errors) <= 0 {
+	if len(r.errors) <= 0 {
 		return nil
 	}
-	return r.Errors[0]
+	return r.errors[0]
+}
+func (r *ReloadResourceResponse2_MulticastResult) Response(index int) *ReloadResourceResponse2 {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *ReloadResourceResponse2_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *ReloadResourceResponse2_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *ReloadResourceResponse2_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *ReloadResourceResponse2_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *ReloadResourceResponse2_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *ReloadResourceResponse2_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
 }
 
 const (
@@ -81,10 +186,10 @@ type AdminClients interface {
 
 type AdminClientsMulticast interface {
 	WithRegex(regex string) AdminClientsMulticast
-	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) *ReloadResourceResponse_MulticastResult
-	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource1Client_MulticastResult
-	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) *Admin_ReloadResource2Client_MulticastResult
-	ReloadResource3(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource3Client_MulticastResult
+	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error)
+	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource1Client_MulticastResult, error)
+	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (*Admin_ReloadResource2Client_MulticastResult, error)
+	ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource3Client_MulticastResult, error)
 }
 
 type AdminClientsUnicast interface {
@@ -395,42 +500,147 @@ type adminClientsMulticast struct {
 }
 
 type Admin_ReloadResource1Client_MulticastResult struct {
-	PeerCount int
-	Errors    []error
-	Responses []Admin_ReloadResource1Client
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []Admin_ReloadResource1Client
 }
 
 func (r *Admin_ReloadResource1Client_MulticastResult) Error() error {
-	if len(r.Errors) <= 0 {
+	if len(r.errors) <= 0 {
 		return nil
 	}
-	return r.Errors[0]
+	return r.errors[0]
+}
+func (r *Admin_ReloadResource1Client_MulticastResult) Response(index int) Admin_ReloadResource1Client {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *Admin_ReloadResource1Client_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *Admin_ReloadResource1Client_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *Admin_ReloadResource1Client_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *Admin_ReloadResource1Client_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *Admin_ReloadResource1Client_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *Admin_ReloadResource1Client_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
 }
 
 type Admin_ReloadResource2Client_MulticastResult struct {
-	PeerCount int
-	Errors    []error
-	Responses []Admin_ReloadResource2Client
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []Admin_ReloadResource2Client
 }
 
 func (r *Admin_ReloadResource2Client_MulticastResult) Error() error {
-	if len(r.Errors) <= 0 {
+	if len(r.errors) <= 0 {
 		return nil
 	}
-	return r.Errors[0]
+	return r.errors[0]
+}
+func (r *Admin_ReloadResource2Client_MulticastResult) Response(index int) Admin_ReloadResource2Client {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *Admin_ReloadResource2Client_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *Admin_ReloadResource2Client_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *Admin_ReloadResource2Client_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *Admin_ReloadResource2Client_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *Admin_ReloadResource2Client_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *Admin_ReloadResource2Client_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
 }
 
 type Admin_ReloadResource3Client_MulticastResult struct {
-	PeerCount int
-	Errors    []error
-	Responses []Admin_ReloadResource3Client
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []Admin_ReloadResource3Client
 }
 
 func (r *Admin_ReloadResource3Client_MulticastResult) Error() error {
-	if len(r.Errors) <= 0 {
+	if len(r.errors) <= 0 {
 		return nil
 	}
-	return r.Errors[0]
+	return r.errors[0]
+}
+func (r *Admin_ReloadResource3Client_MulticastResult) Response(index int) Admin_ReloadResource3Client {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *Admin_ReloadResource3Client_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *Admin_ReloadResource3Client_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *Admin_ReloadResource3Client_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *Admin_ReloadResource3Client_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *Admin_ReloadResource3Client_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *Admin_ReloadResource3Client_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
 }
 func (c *adminClientsMulticast) WithRegex(regex string) AdminClientsMulticast {
 	u := &adminClientsMulticast{
@@ -441,7 +651,7 @@ func (c *adminClientsMulticast) WithRegex(regex string) AdminClientsMulticast {
 	return u
 }
 
-func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) *ReloadResourceResponse_MulticastResult {
+func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error) {
 	var peers []*gira.Peer
 	var whereOpts []options.WhereOption
 	// 多播
@@ -451,32 +661,34 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 	if len(c.regex) > 0 {
 		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
 	}
-	result := &ReloadResourceResponse_MulticastResult{}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
-		result.Errors = append(result.Errors, err)
-		return result
+		return nil, err
 	}
-	result.PeerCount = len(peers)
+	result := &ReloadResourceResponse_MulticastResult{}
+	result.peerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			continue
 		}
 		out, err := client.ReloadResource(ctx, in, opts...)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
 		c.client.putClient(peer.GrpcAddr, client)
-		result.Responses = append(result.Responses, out)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
 	}
-	return result
+	return result, nil
 }
 
-func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource1Client_MulticastResult {
+func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource1Client_MulticastResult, error) {
 	var peers []*gira.Peer
 	var whereOpts []options.WhereOption
 	// 多播
@@ -486,31 +698,33 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 	if len(c.regex) > 0 {
 		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
 	}
-	result := &Admin_ReloadResource1Client_MulticastResult{}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
-		result.Errors = append(result.Errors, err)
-		return result
+		return nil, err
 	}
-	result.PeerCount = len(peers)
+	result := &Admin_ReloadResource1Client_MulticastResult{}
+	result.peerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			continue
 		}
 		out, err := client.ReloadResource1(ctx, opts...)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
-		result.Responses = append(result.Responses, out)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
 	}
-	return result
+	return result, nil
 }
 
-func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) *Admin_ReloadResource2Client_MulticastResult {
+func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (*Admin_ReloadResource2Client_MulticastResult, error) {
 	var peers []*gira.Peer
 	var whereOpts []options.WhereOption
 	// 多播
@@ -520,31 +734,33 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 	if len(c.regex) > 0 {
 		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
 	}
-	result := &Admin_ReloadResource2Client_MulticastResult{}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
-		result.Errors = append(result.Errors, err)
-		return result
+		return nil, err
 	}
-	result.PeerCount = len(peers)
+	result := &Admin_ReloadResource2Client_MulticastResult{}
+	result.peerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			continue
 		}
 		out, err := client.ReloadResource2(ctx, in, opts...)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
-		result.Responses = append(result.Responses, out)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
 	}
-	return result
+	return result, nil
 }
 
-func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) *Admin_ReloadResource3Client_MulticastResult {
+func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource3Client_MulticastResult, error) {
 	var peers []*gira.Peer
 	var whereOpts []options.WhereOption
 	// 多播
@@ -554,26 +770,28 @@ func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grp
 	if len(c.regex) > 0 {
 		whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))
 	}
-	result := &Admin_ReloadResource3Client_MulticastResult{}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
-		result.Errors = append(result.Errors, err)
-		return result
+		return nil, err
 	}
-	result.PeerCount = len(peers)
+	result := &Admin_ReloadResource3Client_MulticastResult{}
+	result.peerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			continue
 		}
 		out, err := client.ReloadResource3(ctx, opts...)
 		if err != nil {
-			result.Errors = append(result.Errors, err)
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
 			c.client.putClient(peer.GrpcAddr, client)
 			continue
 		}
-		result.Responses = append(result.Responses, out)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
 	}
-	return result
+	return result, nil
 }

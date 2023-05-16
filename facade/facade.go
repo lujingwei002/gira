@@ -45,14 +45,17 @@ func ReloadResource() error {
 	}
 }
 
-func BroadcastReloadResource(ctx context.Context, name string) error {
+func BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
 	application := gira.App()
 	if h, ok := application.(gira.AdminClient); !ok {
-		return gira.ErrAdminClientNotImplement
+		err = gira.ErrAdminClientNotImplement
+		return
 	} else {
-		return h.BroadcastReloadResource(ctx, name)
+		result, err = h.BroadcastReloadResource(ctx, name)
+		return
 	}
 }
+
 func GetAdminDbClient() gira.DbClient {
 	application := gira.App()
 	if h, ok := application.(gira.AdminDbClient); ok {

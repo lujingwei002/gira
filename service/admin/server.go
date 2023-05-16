@@ -5,7 +5,6 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/registry/service/options"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
 	"google.golang.org/grpc"
@@ -35,7 +34,6 @@ func NewService(facade gira.Application) *AdminService {
 }
 
 func (self *AdminService) Register(server *grpc.Server) error {
-	log.Infof("注册Admin服务 %p", server)
 	admin_grpc.RegisterAdminServer(server, admin_server{
 		facade: self.facade,
 	})

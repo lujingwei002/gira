@@ -86,7 +86,7 @@ func (self *service_registry) notify(r *Registry) error {
 }
 
 func (self *service_registry) onServiceAdd(r *Registry, service *gira.Service) {
-	log.Infow("service add", "service_name", service.FullName)
+	log.Infow("service registry on service add", "service_name", service.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
 			handler.OnServiceAdd(service)
@@ -98,7 +98,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.Service) {
 }
 
 func (self *service_registry) onServiceDelete(r *Registry, service *gira.Service) {
-	log.Infow("service delete", "service_name", service.FullName)
+	log.Infow("service registry on service delete", "service_name", service.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
 			handler.OnServiceDelete(service)
@@ -379,7 +379,7 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
-	log.Infow("service registry", "local_key", localKey, "service_key", serviceKey)
+	log.Infow("service registry register service", "local_key", localKey, "service_key", serviceKey)
 	txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "=", 0)).
 		Then(clientv3.OpPut(localKey, r.fullName), clientv3.OpPut(serviceKey, r.fullName)).
 		Else(clientv3.OpGet(serviceKey))

@@ -102,6 +102,8 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.652 h1:BQzW
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.652/go.mod h1:7sCQWVkxcsR38nffDW057DRGk8mUjK1Ing/EFOK8s8Y=
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.652 h1:Owhw3S/sEBx78Y1jmaJQTR1k1ktlWcEMk8kVK4xnGqM=
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.652/go.mod h1:e9cRQscK7rwMvI7hBZ7KxE7S/EZS2XrmZbt9bcHh6Ho=
+github.com/tencentyun/qcloud-cos-sts-sdk v0.0.0-20230423073423-604452501797 h1:giLlZREOLNffRCn+SnZhjWMoeLcmWEuCabfDdHbU7ZM=
+github.com/tencentyun/qcloud-cos-sts-sdk v0.0.0-20230423073423-604452501797/go.mod h1:b18KQa4IxHbxeseW1GcZox53d7J0z39VNONTxvvlkXw=
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/urfave/cli/v2 v2.23.7 h1:YHDQ46s3VghFHFf1DdF+Sh7H4RqhcM+t0TmZRJx4oJY=
 github.com/urfave/cli/v2 v2.23.7/go.mod h1:GHupkWPMM0M/sj1a2b4wUrWBPzazNrIjouW6fmdJLxc=
