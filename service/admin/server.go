@@ -5,8 +5,8 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/registry/service/options"
-	"github.com/lujingwei002/gira/service/admin/admin_grpc"
+	"github.com/lujingwei002/gira/options/registry_options"
+	"github.com/lujingwei002/gira/service/admin/admin_service"
 	"google.golang.org/grpc"
 )
 
@@ -15,12 +15,12 @@ type AdminService struct {
 }
 
 type admin_server struct {
-	admin_grpc.UnimplementedAdminServer
+	admin_service.UnimplementedAdminServer
 	facade gira.Application
 }
 
-func (self admin_server) ReloadResource(context.Context, *admin_grpc.ReloadResourceRequest) (*admin_grpc.ReloadResourceResponse, error) {
-	resp := &admin_grpc.ReloadResourceResponse{}
+func (self *admin_server) ReloadResource(context.Context, *admin_service.ReloadResourceRequest) (*admin_service.ReloadResourceResponse, error) {
+	resp := &admin_service.ReloadResourceResponse{}
 	if err := facade.ReloadResource(); err != nil {
 		return nil, err
 	}
@@ -34,10 +34,10 @@ func NewService(facade gira.Application) *AdminService {
 }
 
 func (self *AdminService) Register(server *grpc.Server) error {
-	admin_grpc.RegisterAdminServer(server, admin_server{
+	admin_service.RegisterAdminServer(server, &admin_server{
 		facade: self.facade,
 	})
-	if _, err := facade.RegisterService(admin_grpc.AdminServiceName, options.WithRegisterAsGroupOption(true), options.WithRegisterCatAppIdOption(true)); err != nil {
+	if _, err := facade.RegisterService(admin_service.AdminServiceName, registry_options.WithRegisterAsGroupOption(true), registry_options.WithRegisterCatAppIdOption(true)); err != nil {
 		return err
 	}
 	return nil

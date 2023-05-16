@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/registry/service/options"
-	"github.com/lujingwei002/gira/service/admin/admin_grpc"
+	"github.com/lujingwei002/gira/options/registry_options"
+	"github.com/lujingwei002/gira/service/admin/admin_service"
 	"google.golang.org/grpc"
 )
 
@@ -155,11 +155,11 @@ func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer
 
 }
 
-func (application *BaseApplication) RegisterService(serviceName string, opt ...options.RegisterOption) (*gira.Peer, error) {
+func (application *BaseApplication) RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
 	return application.runtime.Registry.RegisterService(serviceName, opt...)
 }
 
-func (application *BaseApplication) WhereIsService(serviceName string, opt ...options.WhereOption) ([]*gira.Peer, error) {
+func (application *BaseApplication) WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*gira.Peer, error) {
 	return application.runtime.Registry.WhereIsService(serviceName, opt...)
 }
 
@@ -186,10 +186,10 @@ func (application *BaseApplication) RangePeers(f func(k any, v any) bool) {
 }
 
 func (application *BaseApplication) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
-	req := &admin_grpc.ReloadResourceRequest{
+	req := &admin_service.ReloadResourceRequest{
 		Name: name,
 	}
-	result, err = admin_grpc.DefaultAdminClients.WithBroadcast().ReloadResource(ctx, req)
+	result, err = admin_service.DefaultAdminClients.WithBroadcast().ReloadResource(ctx, req)
 	return
 }
 

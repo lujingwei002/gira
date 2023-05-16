@@ -1,6 +1,8 @@
 package gira
 
-import "github.com/lujingwei002/gira/registry/service/options"
+import (
+	"github.com/lujingwei002/gira/options/registry_options"
+)
 
 type Registry interface {
 	// 如果失败，则返回当前所在的节点
@@ -9,9 +11,9 @@ type Registry interface {
 	WhereIsUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
 
-	RegisterService(serviceName string, opt ...options.RegisterOption) (*Peer, error)
+	RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*Peer, error)
 	UnregisterService(serviceName string) (*Peer, error)
-	WhereIsService(serviceName string, opt ...options.WhereOption) ([]*Peer, error)
+	WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*Peer, error)
 }
 
 // 伙伴

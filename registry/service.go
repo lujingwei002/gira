@@ -17,7 +17,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/registry/service/options"
+	"github.com/lujingwei002/gira/options/registry_options"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -362,8 +362,8 @@ func (self *service_registry) unregisterSelf(r *Registry) error {
 }
 
 // 注册服务
-func (self *service_registry) RegisterService(r *Registry, serviceName string, opt ...options.RegisterOption) (*gira.Peer, error) {
-	opts := options.RegisterOptions{}
+func (self *service_registry) RegisterService(r *Registry, serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+	opts := registry_options.RegisterOptions{}
 	for _, v := range opt {
 		v.ConfigRegisterOption(&opts)
 	}
@@ -436,8 +436,8 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 }
 
 // 查找服务位置
-func (self *service_registry) WhereIsService(r *Registry, serviceName string, opt ...options.WhereOption) (peers []*gira.Peer, err error) {
-	opts := options.WhereOptions{}
+func (self *service_registry) WhereIsService(r *Registry, serviceName string, opt ...registry_options.WhereOption) (peers []*gira.Peer, err error) {
+	opts := registry_options.WhereOptions{}
 	for _, v := range opt {
 		v.ConfigWhereOption(&opts)
 	}

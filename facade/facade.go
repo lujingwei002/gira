@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/registry/service/options"
+	"github.com/lujingwei002/gira/options/registry_options"
 	"google.golang.org/grpc"
 )
 
@@ -98,7 +98,7 @@ func RangePeers(f func(k any, v any) bool) {
 	}
 }
 
-func RegisterService(serviceName string, opt ...options.RegisterOption) (*gira.Peer, error) {
+func RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		return h.RegisterService(serviceName, opt...)
@@ -116,7 +116,7 @@ func UnregisterService(serviceName string) (*gira.Peer, error) {
 	}
 }
 
-func WhereIsService(serviceName string, opt ...options.WhereOption) ([]*gira.Peer, error) {
+func WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*gira.Peer, error) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		return h.WhereIsService(serviceName, opt...)

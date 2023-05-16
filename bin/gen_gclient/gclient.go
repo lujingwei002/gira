@@ -39,7 +39,7 @@ const (
 	syncPackage    = protogen.GoImportPath("sync")
 	giraPackage    = protogen.GoImportPath("github.com/lujingwei002/gira")
 	facadePackage  = protogen.GoImportPath("github.com/lujingwei002/gira/facade")
-	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/registry/service/options")
+	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/options/registry_options")
 )
 
 type serviceGenerateHelperInterface interface {
@@ -764,8 +764,8 @@ func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *pro
 	g.P("var peers []*gira.Peer")
 	g.P("var whereOpts []", optionsPackage.Ident("WhereOption"))
 	g.P("// 多播")
-	g.P("if c.count > 0 {whereOpts = append(whereOpts, options.WithWhereMaxCountOption(c.count))}")
-	g.P("if len(c.regex) > 0 {whereOpts = append(whereOpts, options.WithWhereRegexOption(c.regex))}")
+	g.P("if c.count > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereMaxCountOption"), "(c.count))}")
+	g.P("if len(c.regex) > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereRegexOption"), "(c.regex))}")
 	g.P("peers, err := ", facadePackage.Ident("WhereIsService"), "(c.serviceName, whereOpts...)")
 	g.P("if err != nil {")
 	g.P("	return nil, err")

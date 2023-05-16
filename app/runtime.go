@@ -23,6 +23,7 @@ import (
 	"github.com/lujingwei002/gira/registry"
 	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
+	peer_service "github.com/lujingwei002/gira/service/peer"
 
 	_ "net/http/pprof"
 
@@ -240,6 +241,12 @@ func (runtime *Runtime) onStart() error {
 			return gira.ErrGrpcServerNotOpen
 		}
 		service := admin_service.NewService(runtime.Application)
+		if err := service.Register(runtime.GrpcServer.Server()); err != nil {
+			return err
+		}
+	}
+	if runtime.GrpcServer != nil {
+		service := peer_service.NewService(runtime.Application)
 		if err := service.Register(runtime.GrpcServer.Server()); err != nil {
 			return err
 		}

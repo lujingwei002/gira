@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "./peer_service";
+package peer_service;
+
+service Peer {
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {}
+}
+
+// 请求消息
+message HealthCheckRequest{
+}
+
+// 响应消息
+message HealthCheckResponse {
+}
+
+
