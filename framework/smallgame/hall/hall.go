@@ -11,9 +11,8 @@ import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/actor"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/framework/smallgame/common/rpc"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -135,7 +134,10 @@ func (hall *hall_server) Push(ctx context.Context, userId string, push gira.Prot
 		if err != nil {
 			return
 		}
-		if err = rpc.Hall.Push(ctx, peer, userId, data); err != nil {
+		if _, err = hall_grpc.DefaultHallClients.WithUnicast().WithPeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
+			UserId: userId,
+			Data:   data,
+		}); err != nil {
 			return
 		}
 		return
@@ -168,7 +170,10 @@ func (hall *hall_server) MustPush(ctx context.Context, userId string, push gira.
 		if err != nil {
 			return
 		}
-		if _, err = rpc.Hall.MustPush(ctx, peer, userId, data); err != nil {
+		if _, err = hall_grpc.DefaultHallClients.WithUnicast().WithPeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
+			UserId: userId,
+			Data:   data,
+		}); err != nil {
 			return
 		}
 		return
@@ -351,7 +356,7 @@ func (self grpc_hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) 
 }
 
 func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) error {
-	var req *hall_grpc.ClientMessageRequest
+	var req *hall_grpc.ClientMessageNotify
 	var err error
 	var memberId string
 	if self.hall.isDestory {
@@ -381,8 +386,8 @@ func (self grpc_hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServ
 
 	// 建立成功， 函数结束后通知释放
 	// response管理
-	session.chClientResponse = make(chan *hall_grpc.ClientMessageResponse, hall.config.Framework.Hall.ResponseBufferSize)
-	session.chClientRequest = make(chan *hall_grpc.ClientMessageRequest, hall.config.Framework.Hall.RequestBufferSize)
+	session.chClientResponse = make(chan *hall_grpc.ClientMessagePush, hall.config.Framework.Hall.ResponseBufferSize)
+	session.chClientRequest = make(chan *hall_grpc.ClientMessageNotify, hall.config.Framework.Hall.RequestBufferSize)
 
 	// 绑定到hall
 	clientCtx, clientCancelFunc := context.WithCancel(self.hall.ctx)

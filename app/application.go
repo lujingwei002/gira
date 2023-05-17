@@ -5,7 +5,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/options/registry_options"
-	"github.com/lujingwei002/gira/service/admin/admin_service"
+	"github.com/lujingwei002/gira/service/admin/admin_grpc"
 	"google.golang.org/grpc"
 )
 
@@ -186,10 +186,10 @@ func (application *BaseApplication) RangePeers(f func(k any, v any) bool) {
 }
 
 func (application *BaseApplication) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
-	req := &admin_service.ReloadResourceRequest{
+	req := &admin_grpc.ReloadResourceRequest{
 		Name: name,
 	}
-	result, err = admin_service.DefaultAdminClients.WithBroadcast().ReloadResource(ctx, req)
+	result, err = admin_grpc.DefaultAdminClients.WithBroadcast().ReloadResource(ctx, req)
 	return
 }
 

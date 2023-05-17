@@ -12,6 +12,7 @@ cli:
 service:
 	protoc --go_out=service/admin --go-grpc_out=service/admin --go-gclient_out=service/admin  service/admin/admin.proto
 	protoc --go_out=service/peer --go-grpc_out=service/peer --go-gclient_out=service/peer service/peer/peer.proto
+	protoc --go_out=service/hall --go-grpc_out=service/hall --go-gclient_out=service/hall service/hall/hall.proto
 
 
 .PHONY: gen cli service framework

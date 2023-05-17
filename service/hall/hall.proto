@@ -1,23 +1,26 @@
 syntax = "proto3";
 
-option go_package = "gen/grpc/hall_grpc";
+option go_package = "./hall_grpc";
 package hall_grpc;
 
 service Hall {
     // 顶号下线
     rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
-    rpc PushStream (stream PushStreamRequest) returns (PushStreamResponse) {}
+    // rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
     rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
     // 转发client消息
-    rpc ClientStream (stream ClientMessageRequest) returns (stream ClientMessageResponse){}
+    rpc ClientStream (stream ClientMessageNotify) returns (stream ClientMessagePush){}
     // 网关消息交互
-    rpc GateStream (stream GateDataPush) returns (stream HallDataPush){}
+    rpc GateStream (stream GateStreamNotify) returns (stream GateStreamPush){}
     // 状态
     rpc Info (InfoRequest) returns (InfoResponse) {}
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
 }
 
-message GateDataPush {
+message GateStreamNotify {
+}
+
+message GateStreamPush {
 }
 
 message HeartbeatRequest {
@@ -35,17 +38,15 @@ message InfoResponse {
     string BuildVersion = 2;
 }
 
-message HallDataPush {
-}
 
-message ClientMessageRequest {
+message ClientMessageNotify {
     string MemberId = 1;
     uint64 SessionId = 2;
     uint64 ReqId = 3;
     bytes Data = 4;
 }
 
-message ClientMessageResponse {
+message ClientMessagePush {
     PacketType Type = 1;
     uint64 SessionId = 2;
     uint64 ReqId = 3;
@@ -66,16 +67,16 @@ message UserInsteadResponse {
 }
 
 // 推送消息
-message PushStreamRequest {
-    string UserId = 1;
-    bytes Data = 4;
-}
+// message PushStreamNotify {
+//     string UserId = 1;
+//     bytes Data = 4;
+// }
 
 // 推送消息
-message PushStreamResponse {
-    int32 ErrorCode = 1;
-    string ErrorMsg = 2;
-}
+// message PushStreamPush {
+//     int32 ErrorCode = 1;
+//     string ErrorMsg = 2;
+// }
 
 // 推送消息
 message MustPushRequest {

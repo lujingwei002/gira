@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-option go_package = "./peer_service";
-package peer_service;
+option go_package = "./peer_grpc";
+package peer_grpc;
 
 service Peer {
     rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {}

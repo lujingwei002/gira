@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v3.12.4
-// source: doc/grpc/hall.proto
+// source: service/hall/hall.proto
 
 package hall_grpc
 
@@ -32,13 +32,15 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HallClient interface {
-	// SayHello 方法
+	// 顶号下线
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
 	PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error)
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 转发client消息
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
+	// 网关消息交互
 	GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error)
+	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 }
@@ -70,8 +72,8 @@ func (c *hallClient) PushStream(ctx context.Context, opts ...grpc.CallOption) (H
 }
 
 type Hall_PushStreamClient interface {
-	Send(*PushStreamRequest) error
-	CloseAndRecv() (*PushStreamResponse, error)
+	Send(*PushStreamNotify) error
+	CloseAndRecv() (*PushStreamPush, error)
 	grpc.ClientStream
 }
 
@@ -79,15 +81,15 @@ type hallPushStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *hallPushStreamClient) Send(m *PushStreamRequest) error {
+func (x *hallPushStreamClient) Send(m *PushStreamNotify) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *hallPushStreamClient) CloseAndRecv() (*PushStreamResponse, error) {
+func (x *hallPushStreamClient) CloseAndRecv() (*PushStreamPush, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(PushStreamResponse)
+	m := new(PushStreamPush)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -113,8 +115,8 @@ func (c *hallClient) ClientStream(ctx context.Context, opts ...grpc.CallOption) 
 }
 
 type Hall_ClientStreamClient interface {
-	Send(*ClientMessageRequest) error
-	Recv() (*ClientMessageResponse, error)
+	Send(*ClientMessageNotify) error
+	Recv() (*ClientMessagePush, error)
 	grpc.ClientStream
 }
 
@@ -122,12 +124,12 @@ type hallClientStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *hallClientStreamClient) Send(m *ClientMessageRequest) error {
+func (x *hallClientStreamClient) Send(m *ClientMessageNotify) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *hallClientStreamClient) Recv() (*ClientMessageResponse, error) {
-	m := new(ClientMessageResponse)
+func (x *hallClientStreamClient) Recv() (*ClientMessagePush, error) {
+	m := new(ClientMessagePush)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -144,8 +146,8 @@ func (c *hallClient) GateStream(ctx context.Context, opts ...grpc.CallOption) (H
 }
 
 type Hall_GateStreamClient interface {
-	Send(*GateDataPush) error
-	Recv() (*HallDataPush, error)
+	Send(*GateStreamNotify) error
+	Recv() (*GateStreamPush, error)
 	grpc.ClientStream
 }
 
@@ -153,12 +155,12 @@ type hallGateStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *hallGateStreamClient) Send(m *GateDataPush) error {
+func (x *hallGateStreamClient) Send(m *GateStreamNotify) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *hallGateStreamClient) Recv() (*HallDataPush, error) {
-	m := new(HallDataPush)
+func (x *hallGateStreamClient) Recv() (*GateStreamPush, error) {
+	m := new(GateStreamPush)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -187,13 +189,15 @@ func (c *hallClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts .
 // All implementations must embed UnimplementedHallServer
 // for forward compatibility
 type HallServer interface {
-	// SayHello 方法
+	// 顶号下线
 	UserInstead(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error)
 	PushStream(Hall_PushStreamServer) error
 	MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error)
 	// 转发client消息
 	ClientStream(Hall_ClientStreamServer) error
+	// 网关消息交互
 	GateStream(Hall_GateStreamServer) error
+	// 状态
 	Info(context.Context, *InfoRequest) (*InfoResponse, error)
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
 	mustEmbedUnimplementedHallServer()
@@ -260,8 +264,8 @@ func _Hall_PushStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Hall_PushStreamServer interface {
-	SendAndClose(*PushStreamResponse) error
-	Recv() (*PushStreamRequest, error)
+	SendAndClose(*PushStreamPush) error
+	Recv() (*PushStreamNotify, error)
 	grpc.ServerStream
 }
 
@@ -269,12 +273,12 @@ type hallPushStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *hallPushStreamServer) SendAndClose(m *PushStreamResponse) error {
+func (x *hallPushStreamServer) SendAndClose(m *PushStreamPush) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *hallPushStreamServer) Recv() (*PushStreamRequest, error) {
-	m := new(PushStreamRequest)
+func (x *hallPushStreamServer) Recv() (*PushStreamNotify, error) {
+	m := new(PushStreamNotify)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -304,8 +308,8 @@ func _Hall_ClientStream_Handler(srv interface{}, stream grpc.ServerStream) error
 }
 
 type Hall_ClientStreamServer interface {
-	Send(*ClientMessageResponse) error
-	Recv() (*ClientMessageRequest, error)
+	Send(*ClientMessagePush) error
+	Recv() (*ClientMessageNotify, error)
 	grpc.ServerStream
 }
 
@@ -313,12 +317,12 @@ type hallClientStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *hallClientStreamServer) Send(m *ClientMessageResponse) error {
+func (x *hallClientStreamServer) Send(m *ClientMessagePush) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *hallClientStreamServer) Recv() (*ClientMessageRequest, error) {
-	m := new(ClientMessageRequest)
+func (x *hallClientStreamServer) Recv() (*ClientMessageNotify, error) {
+	m := new(ClientMessageNotify)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -330,8 +334,8 @@ func _Hall_GateStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Hall_GateStreamServer interface {
-	Send(*HallDataPush) error
-	Recv() (*GateDataPush, error)
+	Send(*GateStreamPush) error
+	Recv() (*GateStreamNotify, error)
 	grpc.ServerStream
 }
 
@@ -339,12 +343,12 @@ type hallGateStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *hallGateStreamServer) Send(m *HallDataPush) error {
+func (x *hallGateStreamServer) Send(m *GateStreamPush) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *hallGateStreamServer) Recv() (*GateDataPush, error) {
-	m := new(GateDataPush)
+func (x *hallGateStreamServer) Recv() (*GateStreamNotify, error) {
+	m := new(GateStreamNotify)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -430,5 +434,5 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "doc/grpc/hall.proto",
+	Metadata: "service/hall/hall.proto",
 }

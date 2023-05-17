@@ -1,12 +1,11 @@
 package rpc
 
 import (
-	"context"
 	"sync"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
+	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"google.golang.org/grpc"
 )
 
@@ -86,49 +85,49 @@ func (self *HallClient) getClient(address string) (hall_grpc.HallClient, error) 
 	}
 }
 
-func (self *HallClient) UserInstead(ctx context.Context, peer *gira.Peer, userId string) (*hall_grpc.UserInsteadResponse, error) {
-	if client, err := self.getClient(peer.GrpcAddr); err != nil {
-		return nil, err
-	} else {
-		req := &hall_grpc.UserInsteadRequest{
-			UserId: userId,
-		}
-		if resp, err := client.UserInstead(ctx, req); err != nil {
-			return nil, err
-		} else {
-			return resp, nil
-		}
-	}
-}
+// func (self *HallClient) UserInstead(ctx context.Context, peer *gira.Peer, userId string) (*hall_grpc.UserInsteadResponse, error) {
+// 	if client, err := self.getClient(peer.GrpcAddr); err != nil {
+// 		return nil, err
+// 	} else {
+// 		req := &hall_grpc.UserInsteadRequest{
+// 			UserId: userId,
+// 		}
+// 		if resp, err := client.UserInstead(ctx, req); err != nil {
+// 			return nil, err
+// 		} else {
+// 			return resp, nil
+// 		}
+// 	}
+// }
 
-func (self *HallClient) Push(ctx context.Context, peer *gira.Peer, userId string, req []byte) error {
-	if stream, err := self.getStream(peer.GrpcAddr); err != nil {
-		return err
-	} else {
-		req := &hall_grpc.PushStreamRequest{
-			UserId: userId,
-			Data:   req,
-		}
-		if err := stream.Send(req); err != nil {
-			return err
-		} else {
-			return nil
-		}
-	}
-}
+// func (self *HallClient) Push(ctx context.Context, peer *gira.Peer, userId string, req []byte) error {
+// 	if stream, err := self.getStream(peer.GrpcAddr); err != nil {
+// 		return err
+// 	} else {
+// 		req := &hall_grpc.PushStreamNotify{
+// 			UserId: userId,
+// 			Data:   req,
+// 		}
+// 		if err := stream.Send(req); err != nil {
+// 			return err
+// 		} else {
+// 			return nil
+// 		}
+// 	}
+// }
 
-func (self *HallClient) MustPush(ctx context.Context, peer *gira.Peer, userId string, req []byte) (*hall_grpc.MustPushResponse, error) {
-	if client, err := self.getClient(peer.GrpcAddr); err != nil {
-		return nil, err
-	} else {
-		req := &hall_grpc.MustPushRequest{
-			UserId: userId,
-			Data:   req,
-		}
-		if resp, err := client.MustPush(ctx, req); err != nil {
-			return nil, err
-		} else {
-			return resp, nil
-		}
-	}
-}
+// func (self *HallClient) MustPush(ctx context.Context, peer *gira.Peer, userId string, req []byte) (*hall_grpc.MustPushResponse, error) {
+// 	if client, err := self.getClient(peer.GrpcAddr); err != nil {
+// 		return nil, err
+// 	} else {
+// 		req := &hall_grpc.MustPushRequest{
+// 			UserId: userId,
+// 			Data:   req,
+// 		}
+// 		if resp, err := client.MustPush(ctx, req); err != nil {
+// 			return nil, err
+// 		} else {
+// 			return resp, nil
+// 		}
+// 	}
+// }

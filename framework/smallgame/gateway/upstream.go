@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -128,7 +128,7 @@ func (server *upstream_peer) serve() error {
 	})
 	errGroup.Go(func() error {
 		for {
-			var resp *hall_grpc.HallDataPush
+			var resp *hall_grpc.GateStreamPush
 			if resp, err = stream.Recv(); err != nil {
 				log.Warnw("gate recv fail", "error", err)
 				return err

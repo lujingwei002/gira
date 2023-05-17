@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/grpc/hall_grpc"
 )
 
 type client_session struct {
@@ -78,7 +78,7 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 			}
 		}()
 		for {
-			var resp *hall_grpc.ClientMessageResponse
+			var resp *hall_grpc.ClientMessagePush
 			// 上游关闭时，stream并不会返回，会一直阻塞
 			if resp, err = stream.Recv(); err == nil {
 				session.processStreamMessage(resp)
@@ -194,7 +194,7 @@ func (self *client_session) processClientMessage(message gira.GatewayMessage) er
 		log.Warnw("当前服务器不可以用，无法转发", "req_id", message.ReqId())
 		return gira.ErrTodo
 	} else {
-		data := &hall_grpc.ClientMessageRequest{
+		data := &hall_grpc.ClientMessageNotify{
 			MemberId:  memberId,
 			SessionId: sessionId,
 			ReqId:     message.ReqId(),
@@ -208,7 +208,7 @@ func (self *client_session) processClientMessage(message gira.GatewayMessage) er
 }
 
 // 处理上游的消息
-func (session *client_session) processStreamMessage(message *hall_grpc.ClientMessageResponse) error {
+func (session *client_session) processStreamMessage(message *hall_grpc.ClientMessagePush) error {
 	sessionId := session.sessionId
 	log.Infow("upstream=>client", "session_id", sessionId, "type", message.Type, "route", message.Route, "len", len(message.Data), "req_id", message.ReqId)
 
