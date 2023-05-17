@@ -19,7 +19,7 @@ import (
 // session 被动从stream接收消息
 type hall_sesssion struct {
 	*actor.Actor
-	hall             *hall_server
+	hall             *hall_service
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	sessionId        uint64
@@ -34,7 +34,7 @@ type hall_sesssion struct {
 	isClosed         int32
 }
 
-func newSession(hall *hall_server, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
+func newSession(hall *hall_service, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
 	var userId string
 	var avatar UserAvatar
 	ctx := hall.ctx
@@ -94,7 +94,7 @@ func newSession(hall *hall_server, sessionId uint64, memberId string) (session *
 		userId:    userId,
 		memberId:  memberId,
 		avatar:    avatar,
-		Actor:     actor.NewActor(hall.config.Framework.Hall.SessionActorBuffSize),
+		Actor:     actor.NewActor(hall.config.SessionActorBuffSize),
 	}
 	session.ctx, session.cancelFunc = context.WithCancel(ctx)
 
@@ -121,8 +121,8 @@ func newSession(hall *hall_server, sessionId uint64, memberId string) (session *
 func (session *hall_sesssion) serve() {
 	ticker := time.NewTicker(1 * time.Second)
 	hall := session.hall
-	saveTicker := time.NewTicker(time.Duration(session.hall.config.Framework.Hall.BgSaveInterval) * time.Second)
-	session.chPeerPush = make(chan gira.ProtoPush, hall.config.Framework.Hall.PushBufferSize)
+	saveTicker := time.NewTicker(time.Duration(session.hall.config.BgSaveInterval) * time.Second)
+	session.chPeerPush = make(chan gira.ProtoPush, hall.config.PushBufferSize)
 	defer func() {
 		ticker.Stop()
 		saveTicker.Stop()

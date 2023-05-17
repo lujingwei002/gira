@@ -20,7 +20,6 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	Hall_UserInstead_FullMethodName  = "/hall_grpc.Hall/UserInstead"
-	Hall_PushStream_FullMethodName   = "/hall_grpc.Hall/PushStream"
 	Hall_MustPush_FullMethodName     = "/hall_grpc.Hall/MustPush"
 	Hall_ClientStream_FullMethodName = "/hall_grpc.Hall/ClientStream"
 	Hall_GateStream_FullMethodName   = "/hall_grpc.Hall/GateStream"
@@ -34,7 +33,7 @@ const (
 type HallClient interface {
 	// 顶号下线
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-	PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 转发client消息
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
@@ -62,40 +61,6 @@ func (c *hallClient) UserInstead(ctx context.Context, in *UserInsteadRequest, op
 	return out, nil
 }
 
-func (c *hallClient) PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Hall_ServiceDesc.Streams[0], Hall_PushStream_FullMethodName, opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &hallPushStreamClient{stream}
-	return x, nil
-}
-
-type Hall_PushStreamClient interface {
-	Send(*PushStreamNotify) error
-	CloseAndRecv() (*PushStreamPush, error)
-	grpc.ClientStream
-}
-
-type hallPushStreamClient struct {
-	grpc.ClientStream
-}
-
-func (x *hallPushStreamClient) Send(m *PushStreamNotify) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *hallPushStreamClient) CloseAndRecv() (*PushStreamPush, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(PushStreamPush)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 func (c *hallClient) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
 	out := new(MustPushResponse)
 	err := c.cc.Invoke(ctx, Hall_MustPush_FullMethodName, in, out, opts...)
@@ -106,7 +71,7 @@ func (c *hallClient) MustPush(ctx context.Context, in *MustPushRequest, opts ...
 }
 
 func (c *hallClient) ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Hall_ServiceDesc.Streams[1], Hall_ClientStream_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &Hall_ServiceDesc.Streams[0], Hall_ClientStream_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +102,7 @@ func (x *hallClientStreamClient) Recv() (*ClientMessagePush, error) {
 }
 
 func (c *hallClient) GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Hall_ServiceDesc.Streams[2], Hall_GateStream_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &Hall_ServiceDesc.Streams[1], Hall_GateStream_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +156,7 @@ func (c *hallClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts .
 type HallServer interface {
 	// 顶号下线
 	UserInstead(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error)
-	PushStream(Hall_PushStreamServer) error
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error)
 	// 转发client消息
 	ClientStream(Hall_ClientStreamServer) error
@@ -209,9 +174,6 @@ type UnimplementedHallServer struct {
 
 func (UnimplementedHallServer) UserInstead(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserInstead not implemented")
-}
-func (UnimplementedHallServer) PushStream(Hall_PushStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method PushStream not implemented")
 }
 func (UnimplementedHallServer) MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MustPush not implemented")
@@ -257,32 +219,6 @@ func _Hall_UserInstead_Handler(srv interface{}, ctx context.Context, dec func(in
 		return srv.(HallServer).UserInstead(ctx, req.(*UserInsteadRequest))
 	}
 	return interceptor(ctx, in, info, handler)
-}
-
-func _Hall_PushStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(HallServer).PushStream(&hallPushStreamServer{stream})
-}
-
-type Hall_PushStreamServer interface {
-	SendAndClose(*PushStreamPush) error
-	Recv() (*PushStreamNotify, error)
-	grpc.ServerStream
-}
-
-type hallPushStreamServer struct {
-	grpc.ServerStream
-}
-
-func (x *hallPushStreamServer) SendAndClose(m *PushStreamPush) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *hallPushStreamServer) Recv() (*PushStreamNotify, error) {
-	m := new(PushStreamNotify)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 func _Hall_MustPush_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -416,11 +352,6 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "PushStream",
-			Handler:       _Hall_PushStream_Handler,
-			ClientStreams: true,
-		},
 		{
 			StreamName:    "ClientStream",
 			Handler:       _Hall_ClientStream_Handler,

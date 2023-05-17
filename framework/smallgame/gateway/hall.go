@@ -9,7 +9,7 @@ import (
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/framework/smallgame/account/jwt"
+	jwt "github.com/lujingwei002/gira/jwt/account"
 )
 
 type hall_server struct {

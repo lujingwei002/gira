@@ -21,198 +21,6 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-type InfoResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*InfoResponse
-}
-
-func (r *InfoResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *InfoResponse_MulticastResult) Response(index int) *InfoResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *InfoResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *InfoResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *InfoResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *InfoResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *InfoResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *InfoResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type HeartbeatResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*HeartbeatResponse
-}
-
-func (r *HeartbeatResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *HeartbeatResponse_MulticastResult) Response(index int) *HeartbeatResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *HeartbeatResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *HeartbeatResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *HeartbeatResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *HeartbeatResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *HeartbeatResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *HeartbeatResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type UserInsteadResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*UserInsteadResponse
-}
-
-func (r *UserInsteadResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *UserInsteadResponse_MulticastResult) Response(index int) *UserInsteadResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *UserInsteadResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *UserInsteadResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *UserInsteadResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *UserInsteadResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *UserInsteadResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *UserInsteadResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type PushStreamPush_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*PushStreamPush
-}
-
-func (r *PushStreamPush_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *PushStreamPush_MulticastResult) Response(index int) *PushStreamPush {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *PushStreamPush_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *PushStreamPush_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *PushStreamPush_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *PushStreamPush_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *PushStreamPush_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *PushStreamPush_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
 type MustPushResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -357,6 +165,150 @@ func (r *GateStreamPush_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
+type InfoResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*InfoResponse
+}
+
+func (r *InfoResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *InfoResponse_MulticastResult) Response(index int) *InfoResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *InfoResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *InfoResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *InfoResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *InfoResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *InfoResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *InfoResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type HeartbeatResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*HeartbeatResponse
+}
+
+func (r *HeartbeatResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *HeartbeatResponse_MulticastResult) Response(index int) *HeartbeatResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *HeartbeatResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *HeartbeatResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *HeartbeatResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *HeartbeatResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *HeartbeatResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *HeartbeatResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type UserInsteadResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*UserInsteadResponse
+}
+
+func (r *UserInsteadResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *UserInsteadResponse_MulticastResult) Response(index int) *UserInsteadResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *UserInsteadResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *UserInsteadResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *UserInsteadResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *UserInsteadResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *UserInsteadResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *UserInsteadResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
 const (
 	HallServiceName = "hall_grpc.Hall"
 )
@@ -372,7 +324,7 @@ type HallClients interface {
 
 	// 顶号下线
 	UserInstead(ctx context.Context, address string, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-	PushStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_PushStreamClient, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, address string, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 转发client消息
 	ClientStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
@@ -387,7 +339,7 @@ type HallClientsMulticast interface {
 	WithRegex(regex string) HallClientsMulticast
 	// 顶号下线
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error)
-	PushStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_PushStreamClient_MulticastResult, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error)
 	// 转发client消息
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error)
@@ -405,7 +357,7 @@ type HallClientsUnicast interface {
 
 	// 顶号下线
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-	PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 转发client消息
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
@@ -507,19 +459,6 @@ func (c *hallClients) UserInstead(ctx context.Context, address string, in *UserI
 	}
 	defer c.putClient(address, client)
 	out, err := client.UserInstead(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *hallClients) PushStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_PushStreamClient, error) {
-	client, err := c.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.putClient(address, client)
-	out, err := client.PushStream(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -646,36 +585,6 @@ func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadReq
 	}
 	defer c.client.putClient(address, client)
 	out, err := client.UserInstead(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *hallClientsUnicast) PushStream(ctx context.Context, opts ...grpc.CallOption) (Hall_PushStreamClient, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
-		} else {
-			address = peers[0].GrpcAddr
-		}
-	}
-	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	out, err := client.PushStream(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -841,54 +750,6 @@ type hallClientsMulticast struct {
 	client *hallClients
 }
 
-type Hall_PushStreamClient_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []Hall_PushStreamClient
-}
-
-func (r *Hall_PushStreamClient_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *Hall_PushStreamClient_MulticastResult) Response(index int) Hall_PushStreamClient {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *Hall_PushStreamClient_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *Hall_PushStreamClient_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *Hall_PushStreamClient_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *Hall_PushStreamClient_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *Hall_PushStreamClient_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *Hall_PushStreamClient_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
 type Hall_ClientStreamClient_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -1024,42 +885,6 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 			continue
 		}
 		c.client.putClient(peer.GrpcAddr, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
-	}
-	return result, nil
-}
-
-func (c *hallClientsMulticast) PushStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_PushStreamClient_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
-	// 多播
-	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
-	}
-	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
-	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &Hall_PushStreamClient_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
-		}
-		out, err := client.PushStream(ctx, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
-			continue
-		}
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}

@@ -21,54 +21,6 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-type ReloadResourceResponse1_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*ReloadResourceResponse1
-}
-
-func (r *ReloadResourceResponse1_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *ReloadResourceResponse1_MulticastResult) Response(index int) *ReloadResourceResponse1 {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *ReloadResourceResponse1_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *ReloadResourceResponse1_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *ReloadResourceResponse1_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *ReloadResourceResponse1_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *ReloadResourceResponse1_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *ReloadResourceResponse1_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
 type ReloadResourceResponse2_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -159,6 +111,54 @@ func (r *ReloadResourceResponse_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
 func (r *ReloadResourceResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type ReloadResourceResponse1_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*ReloadResourceResponse1
+}
+
+func (r *ReloadResourceResponse1_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *ReloadResourceResponse1_MulticastResult) Response(index int) *ReloadResourceResponse1 {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *ReloadResourceResponse1_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *ReloadResourceResponse1_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *ReloadResourceResponse1_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *ReloadResourceResponse1_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *ReloadResourceResponse1_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *ReloadResourceResponse1_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}

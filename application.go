@@ -17,6 +17,7 @@ type Application interface {
 	OnConfigLoad(c *Config) error
 	OnAwake() error
 	OnStart() error
+	OnDestory() error
 
 	// ======= 状态数据 ===========
 	GetConfig() *Config

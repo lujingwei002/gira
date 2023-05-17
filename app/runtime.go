@@ -208,6 +208,7 @@ func (runtime *Runtime) start() (err error) {
 
 func (runtime *Runtime) onDestory() {
 	log.Infow("runtime onDestory")
+	runtime.Application.OnDestory()
 	for _, fw := range runtime.Frameworks {
 		log.Info("framework onDestory", "name")
 		if err := fw.OnFrameworkDestory(); err != nil {
