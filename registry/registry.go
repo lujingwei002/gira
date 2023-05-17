@@ -45,16 +45,11 @@ type Registry struct {
 	serviceRegistry *service_registry
 }
 
-func (r *Registry) OnDestory() error {
-	if err := r.playerRegistry.onDestory(r); err != nil {
-		log.Warnw("player registry on destory fail", "error", err)
-	}
-	if err := r.serviceRegistry.onDestory(r); err != nil {
-		log.Warnw("service registry on destory fail", "error", err)
-	}
-	if err := r.peerRegistry.onDestory(r); err != nil {
-		log.Warnw("peer registry on destory fail", "error", err)
-	}
+func (r *Registry) Stop() error {
+	log.Debug("registry stop")
+	r.playerRegistry.stop(r)
+	r.serviceRegistry.stop(r)
+	r.peerRegistry.stop(r)
 	return nil
 }
 

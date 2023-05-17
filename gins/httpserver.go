@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -32,6 +33,7 @@ type JsonResponse interface {
 	SetMsg(v string)
 }
 
+// 返回json response
 func HttpJsonResponse(g *gin.Context, httpCode int, err error, data JsonResponse) {
 	errorCode := gira.ErrCode(err)
 	errorMsg := gira.ErrMsg(err)
@@ -50,7 +52,6 @@ func HttpJsonResponse(g *gin.Context, httpCode int, err error, data JsonResponse
 
 // 获取远程客户端ip要设置SetTrustedProxies
 // 参考 https://www.cnblogs.com/mayanan/p/15703234.html
-
 func JWT() gin.HandlerFunc {
 	return func(g *gin.Context) {
 		var err error
@@ -82,7 +83,7 @@ func JWT() gin.HandlerFunc {
 }
 
 type HttpServer struct {
-	Config     gira.HttpConfig
+	config     gira.HttpConfig
 	Handler    http.Handler
 	server     *http.Server
 	cancelCtx  context.Context
@@ -91,48 +92,68 @@ type HttpServer struct {
 
 func NewConfigHttpServer(facade gira.Application, config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
 	h := &HttpServer{
-		Config:  config,
+		config:  config,
 		Handler: router,
 	}
 	h.cancelCtx, h.cancelFunc = context.WithCancel(facade.Context())
 	server := &http.Server{
-		Addr:           h.Config.Addr,
+		Addr:           h.config.Addr,
 		Handler:        h.Handler,
-		ReadTimeout:    time.Duration(h.Config.ReadTimeout) * time.Second,
-		WriteTimeout:   time.Duration(h.Config.WriteTimeout) * time.Second,
+		ReadTimeout:    time.Duration(h.config.ReadTimeout) * time.Second,
+		WriteTimeout:   time.Duration(h.config.WriteTimeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 	h.server = server
+	return h, nil
+}
+
+func (h *HttpServer) Start() error {
 	httpFunc := func() error {
-		if config.Ssl && len(config.CertFile) > 0 && len(config.KeyFile) > 0 {
-			if err := server.ListenAndServeTLS(config.CertFile, config.KeyFile); err != nil && err != http.ErrServerClosed {
-				log.Fatalf("https server shutdown, err: %s\n", err)
+		if h.config.Ssl && len(h.config.CertFile) > 0 && len(h.config.KeyFile) > 0 {
+			if err := h.server.ListenAndServeTLS(h.config.CertFile, h.config.KeyFile); err != nil && err != http.ErrServerClosed {
+				// log.Fatalf("https server shutdown, err: %s\n", err)
+				h.OnStop()
 				return err
 			} else {
-				log.Infof("https server shutdown")
+				h.OnStop()
+				// log.Infof("https server shutdown")
 			}
 		} else {
-			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Infof("http server shutdown, err: %s\n", err)
+			if err := h.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				// log.Infof("http server shutdown, err: %s\n", err)
+				h.OnStop()
 				return err
 			} else {
-				log.Infof("http server shutdown")
+				h.OnStop()
+				// log.Infof("http server shutdown")
 			}
 		}
 		return nil
 	}
-	httpCtl := func() error {
-		select {
-		case <-facade.Done():
-			log.Info("http server recv down")
-			h.server.Close()
-		}
-		return nil
-	}
+	// httpCtl := func() error {
+	// 	select {
+	// 	case <-facade.Done():
+	// 		log.Info("http server recv down")
+	// 		h.server.Close()
+	// 	}
+	// 	return nil
+	// }
 	facade.Go(httpFunc)
-	facade.Go(httpCtl)
-	log.Infof("http server started, addr=%s\n", h.Config.Addr)
-	return h, nil
+	// facade.Go(httpCtl)
+	log.Infof("http server started, addr=%s\n", h.config.Addr)
+	return nil
+}
+
+func (h *HttpServer) OnStop() {
+	log.Debugw("http server on stop")
+}
+
+func (h *HttpServer) Stop() error {
+	log.Debugw("http server stop")
+	if h.server != nil {
+		h.server.Close()
+	}
+	return nil
 }
 
 type Claims struct {

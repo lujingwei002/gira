@@ -73,6 +73,7 @@ const (
 	E_SERVICE_CONTAINER_NOT_IMPLEMENT = -59
 	E_SERVICE_NOT_IMPLEMENT           = -59
 	E_USER_NOT_FOUND                  = -60
+	E_ACTOR_CALL_TIME_OUT             = -61
 )
 const (
 	E_MSG_OK                              = "成功"
@@ -139,6 +140,7 @@ const (
 	E_MSG_SERVICE_CONTAINER_NOT_IMPLEMENT = "service container 未实现"
 	E_MSG_SERVICE_NOT_IMPLEMENT           = "service接口未实现"
 	E_MSG_USER_NOT_FOUND                  = "用户不在线"
+	E_MSG_ACTOR_CALL_TIME_OUT             = "actor call timeout"
 )
 
 type Error struct {
@@ -230,6 +232,7 @@ var (
 	ErrServiceContainerNotImplement = NewError(E_SERVICE_CONTAINER_NOT_IMPLEMENT, E_MSG_SERVICE_CONTAINER_NOT_IMPLEMENT)
 	ErrServiceNotImplement          = NewError(E_SERVICE_NOT_IMPLEMENT, E_MSG_SERVICE_NOT_IMPLEMENT)
 	ErrUserNotFound                 = NewError(E_USER_NOT_FOUND, E_MSG_USER_NOT_FOUND)
+	ErrActorCallTimeOut             = NewError(E_ACTOR_CALL_TIME_OUT, E_MSG_ACTOR_CALL_TIME_OUT)
 )
 
 func ErrCode(err error) int32 {

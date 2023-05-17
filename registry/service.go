@@ -58,7 +58,8 @@ func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
 	return self, nil
 }
 
-func (self *service_registry) onDestory(r *Registry) error {
+func (self *service_registry) stop(r *Registry) error {
+	log.Debug("service registry stop")
 	if err := self.unregisterSelf(r); err != nil {
 		log.Info(err)
 	}

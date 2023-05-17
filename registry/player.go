@@ -59,7 +59,8 @@ func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
 	return self, nil
 }
 
-func (self *player_registry) onDestory(r *Registry) error {
+func (self *player_registry) stop(r *Registry) error {
+	log.Debug("player registry stop")
 	if err := self.unregisterSelf(r); err != nil {
 		log.Info(err)
 	}

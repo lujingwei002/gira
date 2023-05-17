@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
+// mongodb客户端
 type MongoDbClient struct {
 	cancelFunc context.CancelFunc
 	ctx        context.Context
@@ -23,6 +24,7 @@ type MongoDbClient struct {
 	uri        string
 }
 
+// redis客户端
 type RedisClient struct {
 	cancelFunc context.CancelFunc
 	ctx        context.Context
@@ -31,6 +33,7 @@ type RedisClient struct {
 	uri        string
 }
 
+// mysql客户端
 type MysqlClient struct {
 	cancelFunc context.CancelFunc
 	ctx        context.Context
@@ -63,6 +66,7 @@ func (self *MongoDbClient) GetMongoClient() *mongo.Client {
 	return self.client
 }
 
+// 根据配置构造mongodb client
 func NewConfigMongoDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
@@ -92,6 +96,7 @@ func NewConfigMongoDbClient(ctx context.Context, name string, config gira.DbConf
 	return client, nil
 }
 
+// 根据配置构造redis client
 func NewConfigRedisClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
@@ -123,6 +128,7 @@ func NewConfigRedisClient(ctx context.Context, name string, config gira.DbConfig
 	return client, nil
 }
 
+// 根据配置构造mysql client
 func NewConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
@@ -148,6 +154,7 @@ func NewConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig
 	return client, nil
 }
 
+// 根据url构造db client
 func NewDbClientFromUri(ctx context.Context, name string, uri string) (gira.DbClient, error) {
 	config := gira.DbConfig{}
 	if err := config.Parse(uri); err != nil {
@@ -156,6 +163,7 @@ func NewDbClientFromUri(ctx context.Context, name string, uri string) (gira.DbCl
 	return NewConfigDbClient(ctx, name, config)
 }
 
+// 根据配置构造db client
 func NewConfigDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	switch config.Driver {
 	case gira.MONGODB_NAME:

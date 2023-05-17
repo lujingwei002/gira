@@ -93,7 +93,8 @@ func (self *peer_registry) getPeer(r *Registry, fullName string) *gira.Peer {
 	return nil
 }
 
-func (self *peer_registry) onDestory(r *Registry) error {
+func (self *peer_registry) stop(r *Registry) error {
+	log.Debug("peer registry stop")
 	if err := self.unregisterSelf(r); err != nil {
 		log.Info(err)
 	}

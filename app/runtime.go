@@ -201,7 +201,7 @@ func (runtime *Runtime) start() (err error) {
 	defer func() {
 		if err != nil {
 			log.Warn(err)
-			runtime.onDestory()
+			runtime.onStop()
 		}
 	}()
 	if err = runtime.awake(); err != nil {
@@ -213,8 +213,11 @@ func (runtime *Runtime) start() (err error) {
 	return nil
 }
 
-func (runtime *Runtime) onDestory() {
-	log.Infow("runtime onDestory")
+func (runtime *Runtime) onStop() {
+	log.Infow("runtime on stop")
+	if runtime.HttpServer != nil {
+		runtime.HttpServer.Stop()
+	}
 	runtime.Application.OnDestory()
 	for _, fw := range runtime.Frameworks {
 		log.Info("framework onDestory", "name")
@@ -223,10 +226,7 @@ func (runtime *Runtime) onDestory() {
 		}
 	}
 	if runtime.Registry != nil {
-		log.Infow("registry onDestory")
-		if err := runtime.Registry.OnDestory(); err != nil {
-			log.Warnw("registry on destory fail", "error", err)
-		}
+		runtime.Registry.Stop()
 	}
 }
 
@@ -255,6 +255,13 @@ func (runtime *Runtime) onStart() error {
 			}
 		}
 	}
+	// ==== http ================
+	if runtime.HttpServer != nil {
+		if err := runtime.HttpServer.Start(); err != nil {
+			return err
+		}
+	}
+
 	// ==== framework start ================
 	for _, fw := range runtime.Frameworks {
 		if err := fw.OnFrameworkStart(); err != nil {
@@ -413,7 +420,7 @@ func (runtime *Runtime) wait() error {
 				switch s {
 				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 					log.Info("ctrl shutdown begin.")
-					runtime.onDestory()
+					runtime.onStop()
 					runtime.cancelFunc()
 					log.Info("ctrl shutdown end.")
 					return nil
