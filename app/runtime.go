@@ -301,7 +301,7 @@ func (runtime *Runtime) awake() error {
 	}
 	// ==== etcd ================
 	if runtime.config.Module.Etcd != nil {
-		if r, err := registry.NewConfigRegistry(runtime.config.Module.Etcd, application); err != nil {
+		if r, err := registry.NewConfigRegistry(runtime.ctx, runtime.config.Module.Etcd, application); err != nil {
 			return err
 		} else {
 			runtime.Registry = r
@@ -348,7 +348,7 @@ func (runtime *Runtime) awake() error {
 			return gira.ErrHttpHandlerNotImplement
 		} else {
 			router := handler.HttpHandler()
-			if httpServer, err := gins.NewConfigHttpServer(application, *runtime.config.Module.Http, router); err != nil {
+			if httpServer, err := gins.NewConfigHttpServer(runtime.ctx, *runtime.config.Module.Http, router); err != nil {
 				return err
 			} else {
 				runtime.HttpServer = httpServer

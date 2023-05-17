@@ -37,43 +37,40 @@ type service_registry struct {
 }
 
 func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
+	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
 	self := &service_registry{
 		servicePrefix: "/service/",
 		localPrefix:   fmt.Sprintf("/local_service/%s/", r.fullName),
+		cancelFunc:    cancelFunc,
+		ctx:           cancelCtx,
 	}
-	self.ctx, self.cancelFunc = context.WithCancel(r.ctx)
-	// r.application.Go(func() error {
-	// 	select {
-	// 	case <-r.application.Done():
-	// 		{
-	// 			log.Info("service registry recv down")
-	// 		}
-	// 	}
-	// 	if err := self.unregisterSelf(r); err != nil {
-	// 		log.Info(err)
-	// 	}
-	// 	self.cancelFunc()
-	// 	return nil
-	// })
 	return self, nil
 }
 
 func (self *service_registry) stop(r *Registry) error {
 	log.Debug("service registry stop")
-	if err := self.unregisterSelf(r); err != nil {
-		log.Info(err)
-	}
 	self.cancelFunc()
 	return nil
 }
 
-func (self *service_registry) onStart(r *Registry) error {
-	if err := self.watchServices(r); err != nil {
-		return err
+func (self *service_registry) onStop(r *Registry) {
+	log.Debug("service registry on stop")
+	if err := self.unregisterSelf(r); err != nil {
+		log.Info(err)
 	}
-	if err := self.notify(r); err != nil {
-		return err
-	}
+}
+
+func (self *service_registry) start(r *Registry) error {
+	r.application.Go(func() error {
+		return self.watchServices(r)
+	})
+	r.application.Go(func() error {
+		select {
+		case <-self.ctx.Done():
+			self.onStop(r)
+		}
+		return nil
+	})
 	return nil
 }
 
@@ -304,6 +301,9 @@ func (self *service_registry) watchServices(r *Registry) error {
 		if err := self.onKvAdd(r, kv); err != nil {
 			return err
 		}
+	}
+	if err := self.notify(r); err != nil {
+		return err
 	}
 	watchStartRevision := getResp.Header.Revision + 1
 	watcher := clientv3.NewWatcher(client)

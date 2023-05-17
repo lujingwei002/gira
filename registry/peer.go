@@ -101,7 +101,7 @@ func (self *peer_registry) stop(r *Registry) error {
 	return nil
 }
 
-func (self *peer_registry) onStart(r *Registry) error {
+func (self *peer_registry) start(r *Registry) error {
 	// 侦听伙伴信息
 	if err := self.watchPeers(r); err != nil {
 		return err

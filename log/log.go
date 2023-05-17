@@ -244,7 +244,7 @@ func Info(args ...interface{}) {
 }
 
 func Debug(args ...interface{}) {
-	defaultLogger.Info(args...)
+	defaultLogger.Debug(args...)
 }
 
 func Error(args ...interface{}) {

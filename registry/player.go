@@ -33,49 +33,42 @@ type player_registry struct {
 }
 
 func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
+	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
 	self := &player_registry{
 		peerPrefix:  fmt.Sprintf("/peer_user/%s/", r.name),
 		localPrefix: fmt.Sprintf("/local_user/%s/", r.fullName),
 		userPrefix:  "/user/",
+		ctx:         cancelCtx,
+		cancelFunc:  cancelFunc,
 	}
-	self.ctx, self.cancelFunc = context.WithCancel(r.ctx)
-	// 侦听本服的player信息
-	// if err := self.watchLocalPlayers(r); err != nil {
-	// 	return nil, err
-	// }
-	// r.application.Go(func() error {
-	// 	select {
-	// 	case <-r.application.Done():
-	// 		{
-	// 			log.Info("player registry recv down")
-	// 		}
-	// 	}
-	// 	if err := self.unregisterSelf(r); err != nil {
-	// 		log.Error(err)
-	// 	}
-	// 	self.cancelFunc()
-	// 	return nil
-	// })
 	return self, nil
 }
 
 func (self *player_registry) stop(r *Registry) error {
 	log.Debug("player registry stop")
-	if err := self.unregisterSelf(r); err != nil {
-		log.Info(err)
-	}
 	self.cancelFunc()
 	return nil
 }
 
-func (self *player_registry) onStart(r *Registry) error {
+func (self *player_registry) onStop(r *Registry) {
+	log.Debug("player registry on stop")
+	if err := self.unregisterSelf(r); err != nil {
+		log.Info(err)
+	}
+}
+
+func (self *player_registry) start(r *Registry) error {
 	// 侦听伙伴信息
-	if err := self.watchLocalPlayers(r); err != nil {
-		return err
-	}
-	if err := self.notify(r); err != nil {
-		return err
-	}
+	r.application.Go(func() error {
+		return self.watchLocalPlayers(r)
+	})
+	r.application.Go(func() error {
+		select {
+		case <-self.ctx.Done():
+			self.onStop(r)
+		}
+		return nil
+	})
 	return nil
 }
 
@@ -210,31 +203,34 @@ func (self *player_registry) watchLocalPlayers(r *Registry) error {
 			return err
 		}
 	}
+	if err := self.notify(r); err != nil {
+		return err
+	}
 	watchStartRevision := getResp.Header.Revision + 1
 	watcher := clientv3.NewWatcher(client)
-	r.application.Go(func() error {
-		watchRespChan := watcher.Watch(self.ctx, self.localPrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
-		log.Infow("player registry started", "local_prefix", self.localPrefix, "watch_start_revision", watchStartRevision)
-		for watchResp := range watchRespChan {
-			// log.Info("etcd watch got events")
-			for _, event := range watchResp.Events {
-				switch event.Type {
-				case mvccpb.PUT:
-					// log.Info("etcd got put event")
-					if err := self.onLocalKvPut(r, event.Kv); err != nil {
-						log.Warnw("player registry put event fail", "error", err)
-					}
-				case mvccpb.DELETE:
-					// log.Info("etcd got delete event")
-					if err := self.onLocalKvDelete(r, event.Kv); err != nil {
-						log.Warnw("player registry put event fail", "error", err)
-					}
+	// r.application.Go(func() error {
+	watchRespChan := watcher.Watch(self.ctx, self.localPrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
+	log.Infow("player registry started", "local_prefix", self.localPrefix, "watch_start_revision", watchStartRevision)
+	for watchResp := range watchRespChan {
+		// log.Info("etcd watch got events")
+		for _, event := range watchResp.Events {
+			switch event.Type {
+			case mvccpb.PUT:
+				// log.Info("etcd got put event")
+				if err := self.onLocalKvPut(r, event.Kv); err != nil {
+					log.Warnw("player registry put event fail", "error", err)
+				}
+			case mvccpb.DELETE:
+				// log.Info("etcd got delete event")
+				if err := self.onLocalKvDelete(r, event.Kv); err != nil {
+					log.Warnw("player registry put event fail", "error", err)
 				}
 			}
 		}
-		log.Info("player registry watch shutdown")
-		return nil
-	})
+	}
+	log.Info("player registry watch shutdown")
+	// return nil
+	// })
 	return nil
 }
 

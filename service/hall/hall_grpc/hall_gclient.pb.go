@@ -21,102 +21,6 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-type ClientMessagePush_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*ClientMessagePush
-}
-
-func (r *ClientMessagePush_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *ClientMessagePush_MulticastResult) Response(index int) *ClientMessagePush {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *ClientMessagePush_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *ClientMessagePush_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *ClientMessagePush_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *ClientMessagePush_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *ClientMessagePush_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *ClientMessagePush_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type GateStreamPush_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*GateStreamPush
-}
-
-func (r *GateStreamPush_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *GateStreamPush_MulticastResult) Response(index int) *GateStreamPush {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *GateStreamPush_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *GateStreamPush_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *GateStreamPush_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *GateStreamPush_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *GateStreamPush_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *GateStreamPush_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
 type InfoResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -351,6 +255,102 @@ func (r *MustPushResponse_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
 func (r *MustPushResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type ClientMessagePush_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*ClientMessagePush
+}
+
+func (r *ClientMessagePush_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *ClientMessagePush_MulticastResult) Response(index int) *ClientMessagePush {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *ClientMessagePush_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *ClientMessagePush_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *ClientMessagePush_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *ClientMessagePush_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *ClientMessagePush_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *ClientMessagePush_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type GateStreamPush_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*GateStreamPush
+}
+
+func (r *GateStreamPush_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *GateStreamPush_MulticastResult) Response(index int) *GateStreamPush {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *GateStreamPush_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *GateStreamPush_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *GateStreamPush_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *GateStreamPush_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *GateStreamPush_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *GateStreamPush_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}

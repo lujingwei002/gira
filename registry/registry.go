@@ -54,13 +54,13 @@ func (r *Registry) Stop() error {
 }
 
 func (r *Registry) Start() error {
-	if err := r.peerRegistry.onStart(r); err != nil {
+	if err := r.peerRegistry.start(r); err != nil {
 		return err
 	}
-	if err := r.playerRegistry.onStart(r); err != nil {
+	if err := r.playerRegistry.start(r); err != nil {
 		return err
 	}
-	if err := r.serviceRegistry.onStart(r); err != nil {
+	if err := r.serviceRegistry.start(r); err != nil {
 		return err
 	}
 	return nil
@@ -79,15 +79,18 @@ func (r *Registry) SelfPeer() *gira.Peer {
 	return r.peerRegistry.SelfPeer
 }
 
-func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
+func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
+
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	r := &Registry{
-		config: *config,
+		config:      *config,
+		ctx:         cancelCtx,
+		cancelFunc:  cancelFunc,
+		fullName:    application.GetAppFullName(),
+		appId:       application.GetAppId(),
+		name:        application.GetAppType(),
+		application: application,
 	}
-	r.ctx, r.cancelFunc = context.WithCancel(application.Context())
-	r.fullName = application.GetAppFullName()
-	r.appId = application.GetAppId()
-	r.name = application.GetAppType()
-	r.application = application
 
 	// 配置endpoints
 	endpoints := make([]string, 0)
