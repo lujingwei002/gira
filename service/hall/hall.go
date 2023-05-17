@@ -16,8 +16,16 @@ import (
 
 type hall_server struct {
 	hall_grpc.UnimplementedHallServer
-	application gira.Application
-	hall        *hall_service
+	hall *HallService
+}
+
+func (self *hall_server) Kick(ctx context.Context, req *hall_grpc.KickRequest) (*hall_grpc.KickResponse, error) {
+	log.Println("ccccccccccc")
+	resp := &hall_grpc.KickResponse{}
+	if err := self.hall.Kick(ctx, req.UserId, req.Reason); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 // 收到顶号下线的请求
@@ -25,7 +33,7 @@ func (self *hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserIns
 	resp := &hall_grpc.UserInsteadResponse{}
 	userId := req.UserId
 	log.Infow("user instead", "user_id", userId)
-	if v, ok := self.hall.SessionDict.Load(userId); !ok {
+	if v, ok := self.hall.sessionDict.Load(userId); !ok {
 		// 偿试解锁
 		peer, err := facade.UnlockLocalUser(userId)
 		log.Infow("unlock local user return", "user_id", userId, "peer", peer, "err", err)
@@ -92,7 +100,7 @@ func (self *hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushRe
 			err = e.(error)
 		}
 	}()
-	if v, ok := self.hall.SessionDict.Load(userId); !ok {
+	if v, ok := self.hall.sessionDict.Load(userId); !ok {
 		err = gira.ErrNoSession
 		return
 	} else {
@@ -130,6 +138,7 @@ func (self *hall_server) Info(ctx context.Context, req *hall_grpc.InfoRequest) (
 	resp := &hall_grpc.InfoResponse{
 		BuildTime:    facade.GetBuildTime(),
 		BuildVersion: facade.GetBuildVersion(),
+		SessionCount: self.hall.sessionCount,
 	}
 	return resp, nil
 }

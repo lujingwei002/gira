@@ -14,6 +14,7 @@ import (
 
 	"github.com/lujingwei002/gira/gins"
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/service"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/db"
@@ -86,11 +87,12 @@ type Runtime struct {
 	Sdk                *sdk.Sdk
 	Gate               *gate.Server
 	GrpcServer         *grpc.GrpcServer
+	ServiceContainer   *service.ServiceContainer
 }
 
 func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
-	cancelCtx, cancelFunc := context.WithCancel(context.Background())
-	errGroup, errCtx := errgroup.WithContext(cancelCtx)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	errGroup, errCtx := errgroup.WithContext(ctx)
 	runtime := &Runtime{
 		BuildVersion: args.BuildVersion,
 		BuildTime:    args.BuildTime,
@@ -99,7 +101,7 @@ func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
 		Frameworks:   make([]gira.Framework, 0),
 		appType:      args.AppType,
 		appName:      fmt.Sprintf("%s_%d", args.AppType, args.AppId),
-		ctx:          cancelCtx,
+		ctx:          ctx,
 		cancelFunc:   cancelFunc,
 		errCtx:       errCtx,
 		errGroup:     errGroup,
@@ -153,6 +155,8 @@ func (runtime *Runtime) init() error {
 		runtime.appFullName = fmt.Sprintf("%s_%s_%s_%d", runtime.appType, runtime.zone, runtime.env, runtime.appId)
 		runtime.config = c
 	}
+	// 初始化框架
+	runtime.Frameworks = runtime.Application.OnFrameworkInit()
 	for _, fw := range runtime.Frameworks {
 		if err := fw.OnFrameworkConfigLoad(runtime.config); err != nil {
 			return err
@@ -171,6 +175,7 @@ func (runtime *Runtime) init() error {
 	return nil
 }
 
+// 启动并等待结束
 func (runtime *Runtime) serve() error {
 	if err := runtime.start(); err != nil {
 		return err
@@ -187,17 +192,19 @@ func (runtime *Runtime) start() (err error) {
 	} else {
 		r.OnApplicationRun(runtime)
 	}
-	gira.OnApplicationNew(runtime.Application)
-	runtime.Frameworks = runtime.Application.OnFrameworkInit()
+	// 初始化
 	if err = runtime.init(); err != nil {
 		return
 	}
+	// 设置全局对象
+	gira.OnApplicationNew(runtime.Application)
 	defer func() {
 		if err != nil {
+			log.Warn(err)
 			runtime.onDestory()
 		}
 	}()
-	if err = runtime.onAwake(); err != nil {
+	if err = runtime.awake(); err != nil {
 		return
 	}
 	if err = runtime.onStart(); err != nil {
@@ -224,65 +231,68 @@ func (runtime *Runtime) onDestory() {
 }
 
 func (runtime *Runtime) onStart() error {
-	application := runtime.Application
 
+	// ==== registry ================
 	if runtime.Registry != nil {
-		if err := runtime.Registry.OnStart(); err != nil {
+		if err := runtime.Registry.Start(); err != nil {
 			return err
 		}
 	}
-	// 注册grpc服务
+	// ==== service ================
 	if runtime.GrpcServer != nil {
-		if _, ok := application.(gira.GrpcServer); !ok {
-			return gira.ErrGrpcServerNotImplement
+		// ==== admin service ================
+		{
+			service := admin_service.NewService(runtime.Application)
+			if err := runtime.ServiceContainer.StartService(admin_service.GetServiceName(), service); err != nil {
+				return err
+			}
+		}
+		// ==== peer service ================
+		{
+			service := peer_service.NewService(runtime.Application)
+			if err := runtime.ServiceContainer.StartService(peer_service.GetServiceName(), service); err != nil {
+				return err
+			}
 		}
 	}
-	if runtime.config.Module.Admin != nil {
-		if runtime.GrpcServer == nil {
-			return gira.ErrGrpcServerNotOpen
-		}
-		service := admin_service.NewService(runtime.Application)
-		if err := service.Register(runtime.GrpcServer.Server()); err != nil {
-			return err
-		}
-	}
-	if runtime.GrpcServer != nil {
-		service := peer_service.NewService(runtime.Application)
-		if err := service.Register(runtime.GrpcServer.Server()); err != nil {
-			return err
-		}
-	}
+	// ==== framework start ================
 	for _, fw := range runtime.Frameworks {
 		if err := fw.OnFrameworkStart(); err != nil {
 			return err
 		}
 	}
+	// ==== application start ================
 	if err := runtime.Application.OnStart(); err != nil {
 		return err
 	}
-	// 开始侦听
-	if runtime.config.Module.Grpc != nil {
-		if err := runtime.GrpcServer.OnStart(runtime.Application, runtime.errGroup, runtime.errCtx); err != nil {
+	// ==== grpc ================
+	if runtime.GrpcServer != nil {
+		if err := runtime.GrpcServer.Start(); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (runtime *Runtime) onAwake() error {
+func (runtime *Runtime) awake() error {
 	// log.Info("application", app.FullName, "start")
 	application := runtime.Application
 
-	// ====内置的服务=============
+	// ==== 模块 =============
+	// ==== service ================
+	runtime.ServiceContainer = service.NewServiceContainer()
+	// ==== pprof ================
 	if runtime.config.Pprof.Port != 0 {
 		go func() {
 			log.Infof("pprof start at http://%s:%d/debug", runtime.config.Pprof.Bind, runtime.config.Pprof.Port)
 			http.ListenAndServe(fmt.Sprintf("%s:%d", runtime.config.Pprof.Bind, runtime.config.Pprof.Port), nil)
 		}()
 	}
+	// ==== sdk================
 	if runtime.config.Module.Sdk != nil {
 		runtime.Sdk = sdk.NewConfigSdk(*runtime.config.Module.Sdk)
 	}
+	// ==== etcd ================
 	if runtime.config.Module.Etcd != nil {
 		if r, err := registry.NewConfigRegistry(runtime.config.Module.Etcd, application); err != nil {
 			return err
@@ -290,9 +300,10 @@ func (runtime *Runtime) onAwake() error {
 			runtime.Registry = r
 		}
 	}
+	// ==== db ================
 	runtime.DbClients = make(map[string]gira.DbClient)
 	for name, c := range runtime.config.Db {
-		if client, err := db.ConfigDbClient(runtime.ctx, name, *c); err != nil {
+		if client, err := db.NewConfigDbClient(runtime.ctx, name, *c); err != nil {
 			return err
 		} else {
 			runtime.DbClients[name] = client
@@ -317,60 +328,14 @@ func (runtime *Runtime) onAwake() error {
 			}
 		}
 	}
-	// if runtime.config.Module.AdminCache != nil {
-	// 	runtime.AdminCacheClient = db.NewAdminCacheClient()
-	// 	if err := runtime.AdminCacheClient.OnAwake(runtime.ctx, *runtime.config.Module.AdminCache); err != nil {
-	// 		return err
-	// 	}
-	// }
-	// if runtime.config.Module.AccountCache != nil {
-	// 	runtime.AccountCacheClient = db.NewAccountCacheClient()
-	// 	if err := runtime.AccountCacheClient.OnAwake(runtime.ctx, *runtime.config.Module.AccountCache); err != nil {
-	// 		return err
-	// 	}
-	// }
+	// ==== grpc ================
 	if runtime.config.Module.Grpc != nil {
-		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)
+		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc, runtime.errGroup, runtime.errCtx)
+		if _, ok := application.(gira.GrpcServer); !ok {
+			return gira.ErrGrpcServerNotImplement
+		}
 	}
-	// if runtime.config.Module.GameDb != nil {
-	// 	if client, err := db.ConfigGameDbClient(runtime.ctx, *runtime.config.Module.GameDb); err != nil {
-	// 		return err
-	// 	} else {
-	// 		runtime.GameDbClient = client
-	// 	}
-	// }
-	// if runtime.config.Module.BehaviorDb != nil {
-	// 	if client, err := db.ConfigBehaviorDbClient(runtime.ctx, *runtime.config.Module.BehaviorDb); err != nil {
-	// 		return err
-	// 	} else {
-	// 		runtime.BehaviorDbClient = client
-	// 	}
-	// }
-	// if runtime.config.Module.AccountDb != nil {
-	// 	if client, err := db.ConfigAccountDbClient(runtime.ctx, *runtime.config.Module.AccountDb); err != nil {
-	// 		return err
-	// 	} else {
-	// 		runtime.AccountDbClient = client
-	// 	}
-	// }
-	// if runtime.config.Module.StatDb != nil {
-	// 	runtime.StatDbClient = db.NewStatDbClient()
-	// 	if err := runtime.StatDbClient.OnAwake(runtime.ctx, *runtime.config.Module.StatDb); err != nil {
-	// 		return err
-	// 	}
-	// }
-	// if runtime.config.Module.AdminDb != nil {
-	// 	runtime.adminDbClient = db.NewAdminDbClient()
-	// 	if err := runtime.adminDbClient.OnAwake(runtime.ctx, *runtime.config.Module.AdminDb); err != nil {
-	// 		return err
-	// 	}
-	// }
-	// if runtime.config.Module.ResourceDb != nil {
-	// 	runtime.ResourceDbClient = db.NewResourceDbClient()
-	// 	if err := runtime.ResourceDbClient.OnAwake(runtime.ctx, *runtime.config.Module.ResourceDb); err != nil {
-	// 		return err
-	// 	}
-	// }
+	// ==== http ================
 	if runtime.config.Module.Http != nil {
 		if handler, ok := application.(gira.HttpHandler); !ok {
 			return gira.ErrHttpHandlerNotImplement
@@ -384,6 +349,7 @@ func (runtime *Runtime) onAwake() error {
 			}
 		}
 	}
+	// ==== gateway ================
 	if runtime.config.Module.Gateway != nil {
 		var handler gira.GatewayHandler
 		if h, ok := application.(gira.GatewayHandler); ok {
@@ -405,7 +371,7 @@ func (runtime *Runtime) onAwake() error {
 			runtime.Gate = gate
 		}
 	}
-	// res加载
+	// ==== 加载resource ================
 	if resourceManager, ok := runtime.Application.(gira.ResourceManager); ok {
 		resourceLoader := resourceManager.ResourceLoader()
 		if resourceLoader != nil {
@@ -419,11 +385,13 @@ func (runtime *Runtime) onAwake() error {
 	} else {
 		return gira.ErrResourceManagerNotImplement
 	}
+	// ==== framework awake ================
 	for _, fw := range runtime.Frameworks {
 		if err := fw.OnFrameworkAwake(application); err != nil {
 			return err
 		}
 	}
+	// ==== application awake ================
 	if err := application.OnAwake(); err != nil {
 		return err
 	}

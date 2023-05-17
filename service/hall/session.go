@@ -19,7 +19,7 @@ import (
 // session 被动从stream接收消息
 type hall_sesssion struct {
 	*actor.Actor
-	hall             *hall_service
+	hall             *HallService
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	sessionId        uint64
@@ -34,7 +34,7 @@ type hall_sesssion struct {
 	isClosed         int32
 }
 
-func newSession(hall *hall_service, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
+func newSession(hall *HallService, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
 	var userId string
 	var avatar UserAvatar
 	ctx := hall.ctx
@@ -82,7 +82,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 	}()
 
 	// 如果还没释放完成，则失败
-	if _, ok := hall.SessionDict.Load(userId); ok {
+	if _, ok := hall.sessionDict.Load(userId); ok {
 		log.Infow("unexpect session", "session_id", sessionId)
 		err = gira.ErrUserInstead
 		return
@@ -98,7 +98,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 	}
 	session.ctx, session.cancelFunc = context.WithCancel(ctx)
 
-	if _, loaded := hall.SessionDict.LoadOrStore(userId, session); loaded {
+	if _, loaded := hall.sessionDict.LoadOrStore(userId, session); loaded {
 		log.Infow("session store fail", "session_id", sessionId)
 		err = gira.ErrUserInstead
 		return
@@ -108,7 +108,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 	// 加载数据
 	if player, err = session.load(); err != nil {
 		// 数据加载失败，释放锁
-		hall.SessionDict.Delete(userId)
+		hall.sessionDict.Delete(userId)
 		atomic.AddInt64(&hall.sessionCount, -1)
 		return
 	} else {
@@ -346,7 +346,7 @@ func (session *hall_sesssion) close(ctx context.Context) (err error) {
 		peer, err := facade.UnlockLocalUser(userId)
 		log.Infow("unlock local user return", "session_id", sessionId, "peer", peer, "err", err)
 		// 从agent dict释放
-		session.hall.SessionDict.Delete(userId)
+		session.hall.sessionDict.Delete(userId)
 		atomic.AddInt64(&session.hall.sessionCount, -1)
 		log.Infow("session close finished", "session_id", sessionId)
 	}()
@@ -359,6 +359,8 @@ func (session *hall_sesssion) close(ctx context.Context) (err error) {
 
 // 踢下线
 // call by handler
+// call by hall
+// #actor(call)
 func (self *hall_sesssion) Kick(ctx context.Context, reason string) (err error) {
 	return self.sendPacketAndClose(ctx, hall_grpc.PacketType_KICK, reason)
 }
@@ -439,6 +441,53 @@ func (session *hall_sesssion) Call_close(ctx context.Context, opts ...actor.Call
 			return ctx.Err()
 		case <-__timer__.C:
 			log.Errorw("actor call time out", "func", "func (session *hall_sesssion) close(ctx context.Context) (err error) ")
+			return actor.ErrCallTimeOut
+		}
+	} else {
+		select {
+		case resp := <-__arg__.__caller__:
+			return resp.err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+type hall_sesssionKickArgument struct {
+	self       *hall_sesssion
+	ctx        context.Context
+	reason     string
+	err        error
+	__caller__ chan *hall_sesssionKickArgument
+}
+
+func (__arg__ *hall_sesssionKickArgument) Call() {
+	__arg__.err = __arg__.self.Kick(__arg__.ctx, __arg__.reason)
+	__arg__.__caller__ <- __arg__
+}
+
+func (self *hall_sesssion) Call_Kick(ctx context.Context, reason string, opts ...actor.CallOption) (err error) {
+	var __options__ actor.CallOptions
+	for _, v := range opts {
+		v.Config(&__options__)
+	}
+	__arg__ := &hall_sesssionKickArgument{
+		self:       self,
+		ctx:        ctx,
+		reason:     reason,
+		__caller__: make(chan *hall_sesssionKickArgument),
+	}
+	self.Inbox() <- __arg__
+	if __options__.TimeOut != 0 {
+		__timer__ := time.NewTimer(__options__.TimeOut)
+		defer __timer__.Stop()
+		select {
+		case resp := <-__arg__.__caller__:
+			return resp.err
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-__timer__.C:
+			log.Errorw("actor call time out", "func", "func (self *hall_sesssion) Kick(ctx context.Context, reason string) (err error) ")
 			return actor.ErrCallTimeOut
 		}
 	} else {

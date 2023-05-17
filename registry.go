@@ -11,6 +11,7 @@ type Registry interface {
 	WhereIsUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
 
+	NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string
 	RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*Peer, error)
 	UnregisterService(serviceName string) (*Peer, error)
 	WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*Peer, error)
@@ -30,12 +31,12 @@ type LocalPlayer struct {
 	LoginTime int
 }
 
-type Service struct {
+type ServiceName struct {
 	// <<GroupName>>/<<ShortName>>
+	Peer      *Peer
 	FullName  string
 	GroupName string
 	Name      string
-	Peer      *Peer
 	IsLocal   bool
 	IsGroup   bool
 }
@@ -55,7 +56,7 @@ type LocalPlayerWatchHandler interface {
 }
 
 type ServiceWatchHandler interface {
-	OnServiceAdd(service *Service)
-	OnServiceDelete(service *Service)
-	OnServiceUpdate(service *Service)
+	OnServiceAdd(service *ServiceName)
+	OnServiceDelete(service *ServiceName)
+	OnServiceUpdate(service *ServiceName)
 }

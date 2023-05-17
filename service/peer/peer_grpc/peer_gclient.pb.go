@@ -94,6 +94,7 @@ type PeerClientsUnicast interface {
 	WithServiceName(serviceName string) PeerClientsUnicast
 	WithPeer(peer *gira.Peer) PeerClientsUnicast
 	WithAddress(address string) PeerClientsUnicast
+	WithUserId(userId string) PeerClientsUnicast
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
@@ -199,6 +200,7 @@ type peerClientsUnicast struct {
 	peer        *gira.Peer
 	serviceName string
 	address     string
+	userId      string
 	client      *peerClients
 }
 
@@ -226,6 +228,14 @@ func (c *peerClientsUnicast) WithAddress(address string) PeerClientsUnicast {
 	return u
 }
 
+func (c *peerClientsUnicast) WithUserId(userId string) PeerClientsUnicast {
+	u := &peerClientsUnicast{
+		client: c.client,
+		userId: userId,
+	}
+	return u
+}
+
 func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
 	var address string
 	if len(c.address) > 0 {
@@ -239,6 +249,12 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 			return nil, gira.ErrPeerNotFound.Trace()
 		} else {
 			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
 		}
 	}
 	if len(address) <= 0 {

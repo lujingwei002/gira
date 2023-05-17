@@ -58,7 +58,7 @@ func (r *Registry) OnDestory() error {
 	return nil
 }
 
-func (r *Registry) OnStart() error {
+func (r *Registry) Start() error {
 	if err := r.peerRegistry.onStart(r); err != nil {
 		return err
 	}
@@ -153,6 +153,10 @@ func (r *Registry) WhereIsUser(userId string) (*gira.Peer, error) {
 // 查找服务
 func (r *Registry) WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*gira.Peer, error) {
 	return r.serviceRegistry.WhereIsService(r, serviceName, opt...)
+}
+
+func (r *Registry) NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string {
+	return r.serviceRegistry.NewServiceName(r, serviceName, opt...)
 }
 
 // 注册服务

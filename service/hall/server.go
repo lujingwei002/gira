@@ -12,49 +12,11 @@ import (
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/options/registry_options"
 	"github.com/lujingwei002/gira/service/hall/hall_grpc"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
 )
 
-// 玩家接口
-type Player interface {
-	// 加载数据
-	Load(ctx context.Context, memberId string, userId string) error
-	// 断开连接,登出
-	Logout(ctx context.Context) error
-	// 保存数据
-	Save(ctx context.Context) error
-	Update()
-}
-
-// 大厅接口
-type Hall interface {
-	SessionCount() int64
-	// 将消息推送给玩家, 不保证消息已经被处理，如果玩家当前不在线，消息将会推送失败，但不会返回错误
-	Push(ctx context.Context, userId string, req gira.ProtoPush) error
-	// 会将消息推送到玩家的消息队列中，但不等待结果，如果玩家不在线，会返回错误
-	MustPush(ctx context.Context, userId string, resp gira.ProtoPush) (err error)
-}
-
-type Session interface {
-	// 推送消息给当前session
-	Push(resp gira.ProtoPush) (err error)
-	Kick(ctx context.Context, reason string) (err error)
-}
-
-type HallHandler interface {
-	// 由memberId创建账号
-	NewUser(ctx context.Context, memberId string) (avatar UserAvatar, err error)
-	// 创建player
-	NewPlayer(ctx context.Context, session Session, memberId string, avatar UserAvatar) (player Player, err error)
-}
-
-type UserAvatar interface {
-	GetUserId() primitive.ObjectID
-}
-
-func Register(application gira.Application, proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (Hall, error) {
-	service := &hall_service{
+func NewService(application gira.Application, proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (*HallService, error) {
+	service := &HallService{
 		facade:        application,
 		proto:         proto,
 		config:        config,
@@ -62,25 +24,23 @@ func Register(application gira.Application, proto gira.Proto, config Config, hal
 		playerHandler: playerHandler,
 		Actor:         actor.NewActor(16),
 	}
-	if err := service.register(); err != nil {
-		return nil, err
+	service.hallServer = &hall_server{
+		hall: service,
 	}
-	go service.serve()
 	return service, nil
 }
 
-type hall_service struct {
-	facade gira.Application
-	Config *Config
-	Hall   Hall
-	// 由application设置
-	hallServer    *hall_server
-	Proto         gira.Proto
-	PlayerHandler gira.ProtoHandler
+func GetServiceName() string {
+	return facade.NewServiceName(hall_grpc.HallServiceName, registry_options.WithRegisterAsGroupOption(true), registry_options.WithRegisterCatAppIdOption(true))
+}
+
+type HallService struct {
+	facade     gira.Application
+	hallServer *hall_server
 	*actor.Actor
 	ctx           context.Context
 	cancelFunc    context.CancelFunc
-	SessionDict   sync.Map
+	sessionDict   sync.Map
 	sessionCount  int64
 	hallHandler   HallHandler
 	playerHandler gira.ProtoHandler
@@ -89,26 +49,21 @@ type hall_service struct {
 	isDestory     bool
 }
 
-func (hall *hall_service) register() error {
+func (hall *HallService) OnStart() error {
 	facade.RegisterGrpc(func(server *grpc.Server) error {
-		hall_grpc.RegisterHallServer(server, &hall_server{
-			application: hall.facade,
-			hall:        hall,
-		})
+		hall_grpc.RegisterHallServer(server, hall.hallServer)
 		return nil
 	})
-	if _, err := facade.RegisterService(hall_grpc.HallServiceName, registry_options.WithRegisterAsGroupOption(true), registry_options.WithRegisterCatAppIdOption(true)); err != nil {
-		return err
-	}
+	go hall.serve()
 	return nil
 }
 
-func (hall *hall_service) onDestory() {
+func (hall *HallService) OnDestory() {
 	hall.isDestory = true
 	for {
 		log.Infow("hall停止中", "session_count", hall.sessionCount)
 		sessions := make([]*hall_sesssion, 0)
-		hall.SessionDict.Range(func(key, value any) bool {
+		hall.sessionDict.Range(func(key, value any) bool {
 			session, _ := value.(*hall_sesssion)
 			sessions = append(sessions, session)
 			return true
@@ -124,7 +79,7 @@ func (hall *hall_service) onDestory() {
 	}
 }
 
-func (hall *hall_service) serve() {
+func (hall *HallService) serve() {
 	//
 	// 1.服务器关闭时保存数据后再退出
 	// 2.处理actor调用
@@ -157,12 +112,21 @@ func (hall *hall_service) serve() {
 	}
 }
 
-func (hall *hall_service) SessionCount() int64 {
+func (hall *HallService) SessionCount() int64 {
 	return hall.sessionCount
 }
 
+func (hall *HallService) Kick(ctx context.Context, userId string, reason string) (err error) {
+	if v, ok := hall.sessionDict.Load(userId); !ok {
+		return gira.ErrUserNotFound
+	} else {
+		session := v.(*hall_sesssion)
+		return session.Call_Kick(ctx, reason, actor.WithCallTimeOut(5*time.Second))
+	}
+}
+
 // 推送消息给其他玩家
-func (hall *hall_service) Push(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
+func (hall *HallService) Push(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
 	defer func() {
 		log.Warnw("hall_server push panic", "user_id", userId, "route", push.GetPushName())
 		if e := recover(); e != nil {
@@ -172,7 +136,7 @@ func (hall *hall_service) Push(ctx context.Context, userId string, push gira.Pro
 		}
 	}()
 
-	if v, ok := hall.SessionDict.Load(userId); !ok {
+	if v, ok := hall.sessionDict.Load(userId); !ok {
 		var data []byte
 		var peer *gira.Peer
 		data, err = hall.proto.PushEncode(push)
@@ -199,7 +163,7 @@ func (hall *hall_service) Push(ctx context.Context, userId string, push gira.Pro
 }
 
 // 推送消息给其他玩家
-func (hall *hall_service) MustPush(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
+func (hall *HallService) MustPush(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
 	defer func() {
 		log.Warnw("hall_server must push panic", "user_id", userId, "route", push.GetPushName())
 		if e := recover(); e != nil {
@@ -208,7 +172,7 @@ func (hall *hall_service) MustPush(ctx context.Context, userId string, push gira
 			err = e.(error)
 		}
 	}()
-	if v, ok := hall.SessionDict.Load(userId); !ok {
+	if v, ok := hall.sessionDict.Load(userId); !ok {
 		var data []byte
 		var peer *gira.Peer
 		data, err = hall.proto.PushEncode(push)

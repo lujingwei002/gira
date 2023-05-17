@@ -25,6 +25,7 @@ const (
 	Hall_GateStream_FullMethodName   = "/hall_grpc.Hall/GateStream"
 	Hall_Info_FullMethodName         = "/hall_grpc.Hall/Info"
 	Hall_Heartbeat_FullMethodName    = "/hall_grpc.Hall/Heartbeat"
+	Hall_Kick_FullMethodName         = "/hall_grpc.Hall/Kick"
 )
 
 // HallClient is the client API for Hall service.
@@ -42,6 +43,7 @@ type HallClient interface {
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
 }
 
 type hallClient struct {
@@ -150,6 +152,15 @@ func (c *hallClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts .
 	return out, nil
 }
 
+func (c *hallClient) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
+	out := new(KickResponse)
+	err := c.cc.Invoke(ctx, Hall_Kick_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HallServer is the server API for Hall service.
 // All implementations must embed UnimplementedHallServer
 // for forward compatibility
@@ -165,6 +176,7 @@ type HallServer interface {
 	// 状态
 	Info(context.Context, *InfoRequest) (*InfoResponse, error)
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
+	Kick(context.Context, *KickRequest) (*KickResponse, error)
 	mustEmbedUnimplementedHallServer()
 }
 
@@ -189,6 +201,9 @@ func (UnimplementedHallServer) Info(context.Context, *InfoRequest) (*InfoRespons
 }
 func (UnimplementedHallServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+}
+func (UnimplementedHallServer) Kick(context.Context, *KickRequest) (*KickResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Kick not implemented")
 }
 func (UnimplementedHallServer) mustEmbedUnimplementedHallServer() {}
 
@@ -327,6 +342,24 @@ func _Hall_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Hall_Kick_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KickRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HallServer).Kick(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Hall_Kick_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HallServer).Kick(ctx, req.(*KickRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Hall_ServiceDesc is the grpc.ServiceDesc for Hall service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -349,6 +382,10 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Heartbeat",
 			Handler:    _Hall_Heartbeat_Handler,
+		},
+		{
+			MethodName: "Kick",
+			Handler:    _Hall_Kick_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

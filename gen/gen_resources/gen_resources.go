@@ -86,7 +86,7 @@ func compressAction(args *cli.Context) error {
 }
 
 func pushAction(args *cli.Context) error {
-	if client, err := db.DbClientFromUri(context.Background(), "resource", uri); err != nil {
+	if client, err := db.NewDbClientFromUri(context.Background(), "resource", uri); err != nil {
 		return err
 	} else {
 		return resource.Push(context.Background(), client, "resource")

@@ -21,54 +21,6 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-type ReloadResourceResponse2_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*ReloadResourceResponse2
-}
-
-func (r *ReloadResourceResponse2_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *ReloadResourceResponse2_MulticastResult) Response(index int) *ReloadResourceResponse2 {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *ReloadResourceResponse2_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *ReloadResourceResponse2_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *ReloadResourceResponse2_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *ReloadResourceResponse2_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *ReloadResourceResponse2_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *ReloadResourceResponse2_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
 type ReloadResourceResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -165,6 +117,54 @@ func (r *ReloadResourceResponse1_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
+type ReloadResourceResponse2_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*ReloadResourceResponse2
+}
+
+func (r *ReloadResourceResponse2_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *ReloadResourceResponse2_MulticastResult) Response(index int) *ReloadResourceResponse2 {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *ReloadResourceResponse2_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *ReloadResourceResponse2_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *ReloadResourceResponse2_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *ReloadResourceResponse2_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *ReloadResourceResponse2_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *ReloadResourceResponse2_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
 const (
 	AdminServiceName = "admin_grpc.Admin"
 )
@@ -196,6 +196,7 @@ type AdminClientsUnicast interface {
 	WithServiceName(serviceName string) AdminClientsUnicast
 	WithPeer(peer *gira.Peer) AdminClientsUnicast
 	WithAddress(address string) AdminClientsUnicast
+	WithUserId(userId string) AdminClientsUnicast
 
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
@@ -343,6 +344,7 @@ type adminClientsUnicast struct {
 	peer        *gira.Peer
 	serviceName string
 	address     string
+	userId      string
 	client      *adminClients
 }
 
@@ -370,6 +372,14 @@ func (c *adminClientsUnicast) WithAddress(address string) AdminClientsUnicast {
 	return u
 }
 
+func (c *adminClientsUnicast) WithUserId(userId string) AdminClientsUnicast {
+	u := &adminClientsUnicast{
+		client: c.client,
+		userId: userId,
+	}
+	return u
+}
+
 func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error) {
 	var address string
 	if len(c.address) > 0 {
@@ -383,6 +393,12 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 			return nil, gira.ErrPeerNotFound.Trace()
 		} else {
 			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
 		}
 	}
 	if len(address) <= 0 {
@@ -414,6 +430,12 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 		} else {
 			address = peers[0].GrpcAddr
 		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
+		}
 	}
 	if len(address) <= 0 {
 		return nil, gira.ErrInvalidArgs.Trace()
@@ -444,6 +466,12 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 		} else {
 			address = peers[0].GrpcAddr
 		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
+		}
 	}
 	if len(address) <= 0 {
 		return nil, gira.ErrInvalidArgs.Trace()
@@ -473,6 +501,12 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 			return nil, gira.ErrPeerNotFound.Trace()
 		} else {
 			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
 		}
 	}
 	if len(address) <= 0 {

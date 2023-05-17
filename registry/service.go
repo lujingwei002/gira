@@ -78,14 +78,14 @@ func (self *service_registry) onStart(r *Registry) error {
 
 func (self *service_registry) notify(r *Registry) error {
 	self.services.Range(func(k any, v any) bool {
-		service := v.(*gira.Service)
+		service := v.(*gira.ServiceName)
 		self.onServiceAdd(r, service)
 		return true
 	})
 	return nil
 }
 
-func (self *service_registry) onServiceAdd(r *Registry, service *gira.Service) {
+func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceName) {
 	log.Infow("service registry on service add", "service_name", service.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
@@ -97,7 +97,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.Service) {
 	}
 }
 
-func (self *service_registry) onServiceDelete(r *Registry, service *gira.Service) {
+func (self *service_registry) onServiceDelete(r *Registry, service *gira.ServiceName) {
 	log.Infow("service registry on service delete", "service_name", service.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
@@ -138,7 +138,7 @@ func (self *service_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	}
 	value := string(kv.Value)
 	if lastValue, ok := self.services.Load(serviceName); ok {
-		lastService := lastValue.(*gira.Service)
+		lastService := lastValue.(*gira.ServiceName)
 		log.Warnw("service registry add service, but already exist", "service_name", serviceName, "peer", value, "last_peer", lastService.Peer.FullName)
 	} else {
 		// 新增service
@@ -148,7 +148,7 @@ func (self *service_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			log.Warnw("service registry add service, but peer not found", "service_name", serviceName, "peer", value)
 			return gira.ErrPeerNotFound
 		}
-		service := &gira.Service{
+		service := &gira.ServiceName{
 			FullName:  serviceName,
 			GroupName: groupName,
 			Peer:      peer,
@@ -189,7 +189,7 @@ func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error
 	}
 	// value := string(kv.Value) value没有值
 	if lastValue, ok := self.services.Load(serviceName); ok {
-		lastService := lastValue.(*gira.Service)
+		lastService := lastValue.(*gira.ServiceName)
 		log.Infow("service registry remove service", "service_name", serviceName, "last_peer", lastService.Peer.FullName)
 		self.services.Delete(serviceName)
 		self.onServiceDelete(r, lastService)
@@ -225,7 +225,7 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	}
 	value := string(kv.Value)
 	if lastValue, ok := self.services.Load(serviceName); ok {
-		lastService := lastValue.(*gira.Service)
+		lastService := lastValue.(*gira.ServiceName)
 		log.Warnw("service registry add service, but already exist", "service_name", serviceName, "locked_by", lastService.Peer.FullName)
 	} else {
 		peer := r.GetPeer(value)
@@ -233,7 +233,7 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 			log.Warnw("service registry add service, but peer not found", "service_name", serviceName, "peer", value)
 			return gira.ErrPeerNotFound
 		}
-		service := &gira.Service{
+		service := &gira.ServiceName{
 			FullName:  serviceName,
 			GroupName: groupName,
 			Name:      name,
@@ -361,8 +361,7 @@ func (self *service_registry) unregisterSelf(r *Registry) error {
 	return nil
 }
 
-// 注册服务
-func (self *service_registry) RegisterService(r *Registry, serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+func (self *service_registry) NewServiceName(r *Registry, serviceName string, opt ...registry_options.RegisterOption) string {
 	opts := registry_options.RegisterOptions{}
 	for _, v := range opt {
 		v.ConfigRegisterOption(&opts)
@@ -372,6 +371,12 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 			serviceName = fmt.Sprintf("%s/%s_%d", serviceName, serviceName, r.appId)
 		}
 	}
+	return serviceName
+}
+
+// 注册服务
+func (self *service_registry) RegisterService(r *Registry, serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+	serviceName = self.NewServiceName(r, serviceName, opt...)
 	client := r.client
 	serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
 	localKey := fmt.Sprintf("%s%s", self.localPrefix, serviceName)
@@ -449,7 +454,7 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 	if len(pats) <= 1 {
 		peers = make([]*gira.Peer, 0)
 		if value, ok := self.services.Load(serviceName); ok {
-			service := value.(*gira.Service)
+			service := value.(*gira.ServiceName)
 			peers = append(peers, service.Peer)
 		}
 		return
@@ -460,7 +465,7 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 		if v, ok := self.groupServices.Load(pats[0]); ok {
 			group := v.(*group_services)
 			group.services.Range(func(key any, value any) bool {
-				service := value.(*gira.Service)
+				service := value.(*gira.ServiceName)
 				peers = append(peers, service.Peer)
 				// 多播指定数量
 				if multicastCount > 0 {
@@ -479,7 +484,7 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 		if v, ok := self.groupServices.Load(pats[0]); ok {
 			group := v.(*group_services)
 			group.services.Range(func(key any, value any) bool {
-				service := value.(*gira.Service)
+				service := value.(*gira.ServiceName)
 				if service.Name == pats[1] {
 					peers = append(peers, service.Peer)
 				}

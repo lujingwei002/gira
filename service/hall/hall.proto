@@ -15,6 +15,7 @@ service Hall {
     // 状态
     rpc Info (InfoRequest) returns (InfoResponse) {}
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
+    rpc Kick(KickRequest) returns (KickResponse) {}
 }
 
 message GateStreamNotify {
@@ -36,8 +37,9 @@ message InfoRequest {
 message InfoResponse {
     int64 BuildTime = 1;
     string BuildVersion = 2;
+    // 在线人数
+    int64 SessionCount = 3;
 }
-
 
 message ClientMessageNotify {
     string MemberId = 1;
@@ -97,5 +99,12 @@ enum PacketType {
     USER_INSTEAD = 8;
 }
 
+message KickRequest {
+    string UserId = 1;
+    string Reason = 2;
+}
 
-
+message KickResponse {
+    int32 ErrorCode = 1;
+    string ErrorMsg = 2;
+}

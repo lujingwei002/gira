@@ -11,12 +11,10 @@ import (
 )
 
 type AdminService struct {
-	facade gira.Application
 }
 
 type admin_server struct {
 	admin_grpc.UnimplementedAdminServer
-	facade gira.Application
 }
 
 func (self *admin_server) ReloadResource(context.Context, *admin_grpc.ReloadResourceRequest) (*admin_grpc.ReloadResourceResponse, error) {
@@ -28,17 +26,20 @@ func (self *admin_server) ReloadResource(context.Context, *admin_grpc.ReloadReso
 }
 
 func NewService(facade gira.Application) *AdminService {
-	return &AdminService{
-		facade: facade,
-	}
+	return &AdminService{}
 }
 
-func (self *AdminService) Register(server *grpc.Server) error {
-	admin_grpc.RegisterAdminServer(server, &admin_server{
-		facade: self.facade,
+func (self *AdminService) OnDestory() {
+}
+
+func (self *AdminService) OnStart() error {
+	facade.RegisterGrpc(func(server *grpc.Server) error {
+		admin_grpc.RegisterAdminServer(server, &admin_server{})
+		return nil
 	})
-	if _, err := facade.RegisterService(admin_grpc.AdminServiceName, registry_options.WithRegisterAsGroupOption(true), registry_options.WithRegisterCatAppIdOption(true)); err != nil {
-		return err
-	}
 	return nil
+}
+
+func GetServiceName() string {
+	return facade.NewServiceName(admin_grpc.AdminServiceName, registry_options.WithRegisterAsGroupOption(true), registry_options.WithRegisterCatAppIdOption(true))
 }

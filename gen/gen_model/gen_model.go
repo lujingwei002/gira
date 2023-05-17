@@ -84,7 +84,7 @@ func main() {
 func migrateAction(args *cli.Context) error {
 	opts := make([]db.MigrateOption, 0)
 	opts = append(opts, db.WithMigrateDropIndex(enabledDropIndex), db.WithMigrateConnectTimeout(connectTimeout))
-	if client, err := db.DbClientFromUri(context.Background(), "<<.DbName>>", uri); err != nil {
+	if client, err := db.NewDbClientFromUri(context.Background(), "<<.DbName>>", uri); err != nil {
 		return err
 	} else {
 		return <<.DbName>>.Migrate(context.Background(), client, opts...)

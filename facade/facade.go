@@ -98,7 +98,16 @@ func RangePeers(f func(k any, v any) bool) {
 	}
 }
 
-func RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+func NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string {
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		return h.NewServiceName(serviceName, opt...)
+	} else {
+		return ""
+	}
+}
+
+func RegisterServiceName(serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		return h.RegisterService(serviceName, opt...)
@@ -107,7 +116,7 @@ func RegisterService(serviceName string, opt ...registry_options.RegisterOption)
 	}
 }
 
-func UnregisterService(serviceName string) (*gira.Peer, error) {
+func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		return h.UnregisterService(serviceName)
@@ -220,5 +229,23 @@ func SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount
 		return nil, gira.ErrSdkNotImplement
 	} else {
 		return s.SdkLogin(accountPlat, openId, token)
+	}
+}
+
+func StopService(service gira.Service) error {
+	application := gira.App()
+	if s, ok := application.(gira.ServiceContainer); !ok {
+		return gira.ErrResourceLoaderNotImplement
+	} else {
+		return s.StopService(service)
+	}
+}
+
+func StartService(name string, service gira.Service) error {
+	application := gira.App()
+	if s, ok := application.(gira.ServiceContainer); !ok {
+		return gira.ErrResourceLoaderNotImplement
+	} else {
+		return s.StartService(name, service)
 	}
 }

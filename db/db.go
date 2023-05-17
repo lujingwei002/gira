@@ -63,7 +63,7 @@ func (self *MongoDbClient) GetMongoClient() *mongo.Client {
 	return self.client
 }
 
-func ConfigMongoDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
+func NewConfigMongoDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
 	log.Info(uri)
@@ -92,7 +92,7 @@ func ConfigMongoDbClient(ctx context.Context, name string, config gira.DbConfig)
 	return client, nil
 }
 
-func ConfigRedisClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
+func NewConfigRedisClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
 	client := &RedisClient{
@@ -123,7 +123,7 @@ func ConfigRedisClient(ctx context.Context, name string, config gira.DbConfig) (
 	return client, nil
 }
 
-func ConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
+func NewConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
 	log.Info(uri)
@@ -148,22 +148,22 @@ func ConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig) (
 	return client, nil
 }
 
-func DbClientFromUri(ctx context.Context, name string, uri string) (gira.DbClient, error) {
+func NewDbClientFromUri(ctx context.Context, name string, uri string) (gira.DbClient, error) {
 	config := gira.DbConfig{}
 	if err := config.Parse(uri); err != nil {
 		return nil, err
 	}
-	return ConfigDbClient(ctx, name, config)
+	return NewConfigDbClient(ctx, name, config)
 }
 
-func ConfigDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
+func NewConfigDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	switch config.Driver {
 	case gira.MONGODB_NAME:
-		return ConfigMongoDbClient(ctx, name, config)
+		return NewConfigMongoDbClient(ctx, name, config)
 	case gira.REDIS_NAME:
-		return ConfigRedisClient(ctx, name, config)
+		return NewConfigRedisClient(ctx, name, config)
 	case gira.MYSQL_NAME:
-		return ConfigMysqlClient(ctx, name, config)
+		return NewConfigMysqlClient(ctx, name, config)
 	default:
 		return nil, gira.TraceError(gira.ErrDbNotSupport)
 	}

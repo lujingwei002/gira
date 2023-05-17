@@ -39,12 +39,12 @@ type Application interface {
 	Frameworks() []Framework
 }
 
-var app Application
+var application Application
 
 func App() Application {
-	return app
+	return application
 }
 
-func OnApplicationNew(v Application) {
-	app = v
+func OnApplicationNew(app Application) {
+	application = app
 }
