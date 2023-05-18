@@ -74,6 +74,9 @@ const (
 	E_SERVICE_NOT_IMPLEMENT           = -59
 	E_USER_NOT_FOUND                  = -60
 	E_ACTOR_CALL_TIME_OUT             = -61
+	E_ETCD_CONFIG_NOT_FOUND           = -62
+	E_GRPC_CONFIG_NOT_FOUND           = -63
+	E_INTERRUPT                       = -64
 )
 const (
 	E_MSG_OK                              = "成功"
@@ -141,6 +144,9 @@ const (
 	E_MSG_SERVICE_NOT_IMPLEMENT           = "service接口未实现"
 	E_MSG_USER_NOT_FOUND                  = "用户不在线"
 	E_MSG_ACTOR_CALL_TIME_OUT             = "actor call timeout"
+	E_MSG_ETCD_CONFIG_NOT_FOUND           = "etcd未配置"
+	E_MSG_GRPC_CONFIG_NOT_FOUND           = "grpc未配置"
+	E_MSGS_INTERRUPT                      = "interrupt"
 )
 
 type Error struct {
@@ -233,6 +239,9 @@ var (
 	ErrServiceNotImplement          = NewError(E_SERVICE_NOT_IMPLEMENT, E_MSG_SERVICE_NOT_IMPLEMENT)
 	ErrUserNotFound                 = NewError(E_USER_NOT_FOUND, E_MSG_USER_NOT_FOUND)
 	ErrActorCallTimeOut             = NewError(E_ACTOR_CALL_TIME_OUT, E_MSG_ACTOR_CALL_TIME_OUT)
+	ErrEtcdConfigNotFound           = NewError(E_ETCD_CONFIG_NOT_FOUND, E_MSG_ETCD_CONFIG_NOT_FOUND)
+	ErrGrpcConfigNotFound           = NewError(E_GRPC_CONFIG_NOT_FOUND, E_MSG_GRPC_CONFIG_NOT_FOUND)
+	ErrInterrupt                    = NewError(E_INTERRUPT, E_MSGS_INTERRUPT)
 )
 
 func ErrCode(err error) int32 {

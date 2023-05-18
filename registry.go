@@ -37,7 +37,7 @@ type ServiceName struct {
 	FullName  string
 	GroupName string
 	Name      string
-	IsLocal   bool
+	IsSelf    bool
 	IsGroup   bool
 }
 

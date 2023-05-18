@@ -45,6 +45,7 @@ type Registry struct {
 	serviceRegistry *service_registry
 	errCtx          context.Context
 	errGroup        *errgroup.Group
+	isNotify        int32
 }
 
 // 关闭，释放资源
@@ -74,6 +75,13 @@ func (r *Registry) OnStart(ctx context.Context) error {
 	return nil
 }
 
+func (r *Registry) Notify() {
+	r.isNotify = 1
+	r.peerRegistry.notify(r)
+	r.playerRegistry.notify(r)
+	r.serviceRegistry.notify(r)
+}
+
 func (r *Registry) Serve() error {
 	r.errGroup.Go(func() error {
 		return r.peerRegistry.Serve(r)
@@ -91,6 +99,8 @@ func (r *Registry) RangePeers(f func(k any, v any) bool) {
 	r.peerRegistry.RangePeers(f)
 }
 
+// 根据app名查找节点
+// 协程安全
 func (r *Registry) GetPeer(fullName string) *gira.Peer {
 	return r.peerRegistry.getPeer(r, fullName)
 }

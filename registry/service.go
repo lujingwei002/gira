@@ -6,7 +6,7 @@ package registry
 /// 注册表结构:
 ///   /unique_service/<<ServiceName>> => <<AppFullName>>
 ///   /service/<<ServiceGroupName>>/<<ServiceName>> => <<AppFullName>>
-///   /local_service/<<AppFullName>>/<<ServiceUniqueName>> => <<AppFullName>>
+///   /peer_service/<<AppFullName>>/<<ServiceUniqueName>> => <<AppFullName>>
 ///
 import (
 	"context"
@@ -27,11 +27,11 @@ type group_services struct {
 }
 
 type service_registry struct {
-	localPrefix        string // /local_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
-	servicePrefix      string // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
-	services           sync.Map
-	localServices      sync.Map
-	groupServices      sync.Map
+	peerPrefix         string   // /peer_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
+	servicePrefix      string   // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
+	services           sync.Map // 全部service
+	groupServices      sync.Map // service分组
+	selfServices       sync.Map // 本节点上的service
 	ctx                context.Context
 	cancelFunc         context.CancelFunc
 	watchStartRevision int64
@@ -40,7 +40,7 @@ type service_registry struct {
 func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
 	self := &service_registry{
 		servicePrefix: "/service/",
-		localPrefix:   fmt.Sprintf("/local_service/%s/", r.fullName),
+		peerPrefix:    fmt.Sprintf("/peer_service/%s/", r.fullName),
 	}
 	return self, nil
 }
@@ -76,8 +76,12 @@ func (self *service_registry) notify(r *Registry) error {
 	return nil
 }
 
+// on service add callback
 func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceName) {
-	log.Infow("service registry on service add", "service_name", service.FullName)
+	if r.isNotify == 0 {
+		return
+	}
+	log.Infow("service registry on service add", "service_name", service.FullName, "peer", service.Peer.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
 			handler.OnServiceAdd(service)
@@ -88,8 +92,9 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 	}
 }
 
+// on service delete callback
 func (self *service_registry) onServiceDelete(r *Registry, service *gira.ServiceName) {
-	log.Infow("service registry on service delete", "service_name", service.FullName)
+	log.Infow("service registry on service delete", "service_name", service.FullName, "peer", service.Peer.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
 			handler.OnServiceDelete(service)
@@ -112,7 +117,7 @@ func (self *service_registry) onServiceDelete(r *Registry, service *gira.Service
 // 	}
 // }
 
-func (self *service_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
+func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	var groupName string
 	var serviceName string
@@ -130,13 +135,13 @@ func (self *service_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	value := string(kv.Value)
 	if lastValue, ok := self.services.Load(serviceName); ok {
 		lastService := lastValue.(*gira.ServiceName)
-		log.Warnw("service registry add service, but already exist", "service_name", serviceName, "peer", value, "last_peer", lastService.Peer.FullName)
+		log.Warnw("service registry on kv add, but already exist", "service_name", serviceName, "peer", value, "last_peer", lastService.Peer.FullName)
 	} else {
 		// 新增service
-		log.Infow("service registry add service", "service_name", serviceName, "peer", value)
+		log.Infow("service registry on kv add", "service_name", serviceName, "peer", value)
 		peer := r.GetPeer(value)
 		if peer == nil {
-			log.Warnw("service registry add service, but peer not found", "service_name", serviceName, "peer", value)
+			log.Warnw("service registry on kv add, but peer not found", "service_name", serviceName, "peer", value)
 			return gira.ErrPeerNotFound
 		}
 		service := &gira.ServiceName{
@@ -146,7 +151,7 @@ func (self *service_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			Name:      name,
 		}
 		if peer == r.SelfPeer() {
-			service.IsLocal = true
+			service.IsSelf = true
 		}
 		if len(service.GroupName) > 0 {
 			service.IsGroup = true
@@ -159,8 +164,8 @@ func (self *service_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 				groupServices.services.Store(serviceName, service)
 			}
 		}
-		if service.IsLocal {
-			self.localServices.Store(serviceName, service)
+		if service.IsSelf {
+			self.selfServices.Store(serviceName, service)
 		}
 		self.onServiceAdd(r, service)
 	}
@@ -190,64 +195,11 @@ func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error
 				groupServices.services.Delete(serviceName)
 			}
 		}
-		if lastService.IsLocal {
-			self.localServices.Delete(serviceName)
+		if lastService.IsSelf {
+			self.selfServices.Delete(serviceName)
 		}
 	} else {
 		log.Warnw("service registry remove service, but service not found", "service_name", serviceName)
-	}
-	return nil
-}
-
-func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
-	pats := strings.Split(string(kv.Key), "/")
-	var serviceName string
-	var groupName string
-	var name string
-	if len(pats) == 4 {
-		serviceName = fmt.Sprintf("%s/%s", pats[2], pats[3])
-		groupName = pats[2]
-		name = pats[3]
-	} else if len(pats) == 3 {
-		serviceName = pats[2]
-	} else {
-		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidService
-	}
-	value := string(kv.Value)
-	if lastValue, ok := self.services.Load(serviceName); ok {
-		lastService := lastValue.(*gira.ServiceName)
-		log.Warnw("service registry add service, but already exist", "service_name", serviceName, "locked_by", lastService.Peer.FullName)
-	} else {
-		peer := r.GetPeer(value)
-		if peer == nil {
-			log.Warnw("service registry add service, but peer not found", "service_name", serviceName, "peer", value)
-			return gira.ErrPeerNotFound
-		}
-		service := &gira.ServiceName{
-			FullName:  serviceName,
-			GroupName: groupName,
-			Name:      name,
-			Peer:      peer,
-		}
-		self.services.Store(serviceName, service)
-		if peer == r.SelfPeer() {
-			service.IsLocal = true
-		}
-		if len(service.GroupName) > 0 {
-			service.IsGroup = true
-		}
-		if service.IsGroup {
-			groupServices := &group_services{}
-			if v, _ := self.groupServices.LoadOrStore(service.GroupName, groupServices); true {
-				groupServices = v.(*group_services)
-				groupServices.services.Store(serviceName, service)
-			}
-		}
-		if service.IsLocal {
-			self.localServices.Store(serviceName, service)
-		}
-		log.Infow("service registry add service", "service_name", serviceName, "peer", value)
 	}
 	return nil
 }
@@ -258,7 +210,7 @@ func (self *service_registry) initServices(r *Registry) error {
 	var getResp *clientv3.GetResponse
 	var err error
 	// 删除自身之前注册，没清理干净的服务
-	if getResp, err = kv.Get(self.ctx, self.localPrefix, clientv3.WithPrefix()); err != nil {
+	if getResp, err = kv.Get(self.ctx, self.peerPrefix, clientv3.WithPrefix()); err != nil {
 		return err
 	}
 	for _, v := range getResp.Kvs {
@@ -271,18 +223,18 @@ func (self *service_registry) initServices(r *Registry) error {
 		}
 		txn := kv.Txn(self.ctx)
 		serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-		localKey := fmt.Sprintf("%s%s", self.localPrefix, serviceName)
+		peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
-			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(serviceKey))
+			Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey))
 		var txnResp *clientv3.TxnResponse
 		if txnResp, err = txn.Commit(); err != nil {
 			log.Errorw("service registry commit fail", "error", err)
 			return err
 		}
 		if txnResp.Succeeded {
-			log.Infow("service registry unregister self", "serviceKey", serviceKey, "local_key", localKey, "service_name", serviceName)
+			log.Infow("service registry unregister", "service_key", serviceKey, "peer_key", peerKey, "service_name", serviceName)
 		} else {
-			log.Warnw("service registry unregister self", "serviceKey", serviceKey, "local_key", localKey, "service_name", serviceName)
+			log.Warnw("service registry unregister", "service_key", serviceKey, "peer_key", peerKey, "service_name", serviceName)
 		}
 	}
 	// 初始化服务
@@ -293,9 +245,6 @@ func (self *service_registry) initServices(r *Registry) error {
 		if err := self.onKvAdd(r, kv); err != nil {
 			return err
 		}
-	}
-	if err := self.notify(r); err != nil {
-		return err
 	}
 	self.watchStartRevision = getResp.Header.Revision + 1
 	return nil
@@ -314,7 +263,7 @@ func (self *service_registry) watchServices(r *Registry) error {
 			switch event.Type {
 			case mvccpb.PUT:
 				// log.Info("etcd got put event")
-				if err := self.onKvPut(r, event.Kv); err != nil {
+				if err := self.onKvAdd(r, event.Kv); err != nil {
 					log.Warnw("service registry put event fail", "error", err)
 				}
 			case mvccpb.DELETE:
@@ -328,7 +277,6 @@ func (self *service_registry) watchServices(r *Registry) error {
 	log.Info("service registry watch shutdown")
 	return nil
 	// })
-	return nil
 }
 
 func (self *service_registry) unregisterServices(r *Registry) error {
@@ -336,24 +284,24 @@ func (self *service_registry) unregisterServices(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("service registry unregister self", "local_prefix", self.localPrefix)
+	log.Infow("service registry unregister self", "peer_prefix", self.peerPrefix)
 
 	var txnResp *clientv3.TxnResponse
 	var err error
-	self.localServices.Range(func(serviceName any, v any) bool {
+	self.selfServices.Range(func(serviceName any, v any) bool {
 		txn := kv.Txn(ctx)
 		serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-		localKey := fmt.Sprintf("%s%s", self.localPrefix, serviceName)
+		peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
-			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(serviceKey))
+			Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey))
 		if txnResp, err = txn.Commit(); err != nil {
 			log.Errorw("service registry commit fail", "error", err)
 			return true
 		}
 		if txnResp.Succeeded {
-			log.Infow("service registry unregister self", "serviceKey", serviceKey, "local_key", localKey, "service_name", serviceName)
+			log.Infow("service registry unregister", "peer_key", peerKey)
 		} else {
-			log.Warnw("service registry unregister self", "serviceKey", serviceKey, "local_key", localKey, "service_name", serviceName)
+			log.Warnw("service registry unregister", "peer_key", peerKey)
 		}
 		return true
 	})
@@ -378,21 +326,20 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 	serviceName = self.NewServiceName(r, serviceName, opt...)
 	client := r.client
 	serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-	localKey := fmt.Sprintf("%s%s", self.localPrefix, serviceName)
+	peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
 	kv := clientv3.NewKV(client)
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
-	log.Infow("service registry register service", "local_key", localKey, "service_key", serviceKey)
+	log.Infow("service registry register", "service_name", serviceName, "peer_key", peerKey, "service_key", serviceKey)
 	txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "=", 0)).
-		Then(clientv3.OpPut(localKey, r.fullName), clientv3.OpPut(serviceKey, r.fullName)).
+		Then(clientv3.OpPut(peerKey, r.fullName), clientv3.OpPut(serviceKey, r.fullName)).
 		Else(clientv3.OpGet(serviceKey))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Errorw("service registry commit fail", "error", err)
 		return nil, err
 	}
 	if txnResp.Succeeded {
-		log.Infow("service registry register success", "service_name", serviceName)
 		return nil, nil
 	} else {
 		log.Warnw("service registry register fail", "service_name", serviceName, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
@@ -409,21 +356,21 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 func (self *service_registry) UnregisterService(r *Registry, serviceName string) (*gira.Peer, error) {
 	client := r.client
 	serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-	localKey := fmt.Sprintf("%s%s", self.localPrefix, serviceName)
+	peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
 	kv := clientv3.NewKV(client)
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
-	log.Infow("service registry", "local_key", localKey, "service_key", serviceKey)
+	log.Infow("service registry", "peer_key", peerKey, "service_key", serviceKey)
 	txn.If(clientv3.Compare(clientv3.Value(serviceKey), "=", r.fullName), clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
-		Then(clientv3.OpDelete(localKey), clientv3.OpDelete(serviceKey)).
+		Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey)).
 		Else(clientv3.OpGet(serviceKey))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Errorw("service registry commit fail", "error", err)
 		return nil, err
 	}
 	if txnResp.Succeeded {
-		log.Infow("service registry unregister success", "service_name", serviceName)
+		log.Infow("service registry unregister", "service_name", serviceName)
 		return nil, nil
 	} else {
 		var fullName string

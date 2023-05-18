@@ -5,8 +5,8 @@ package registry
 /// key不设置过期时间，程序正常退出时自动清理，非正常退出，要程序重启来解锁
 ///
 /// 注册表结构:
-///   /peer_user/<<AppName>>/<<UserId>> => <<AppFullName>>
-///   /local_user/<<AppFullName>>/<<UserId>> time
+///   /peer_type_user/<<AppName>>/<<UserId>> => <<AppFullName>>
+///   /peer_user/<<AppFullName>>/<<UserId>> time
 ///   /user/<<UserId>> => <<AppFullName>>
 ///
 import (
@@ -24,10 +24,10 @@ import (
 )
 
 type player_registry struct {
-	peerPrefix         string // /peer_user/<<AppName>>/      根据服务类型查找全部玩家
-	localPrefix        string // /local_user/<<AppFullName>>  根据服务全名查找全部玩家
-	userPrefix         string // /user/<<UserId>>/       	 	可以根据user_id查找当前所在的服
-	localPlayers       sync.Map
+	peerTypePrefix     string   // /peer_type_user/<<AppName>>/      根据服务类型查找全部玩家
+	peerPrefix         string   // /peer_user/<<AppFullName>>  根据服务全名查找全部玩家
+	userPrefix         string   // /user/<<UserId>>/       	 	可以根据user_id查找当前所在的服
+	localPlayers       sync.Map // 本节点上的用户
 	ctx                context.Context
 	cancelFunc         context.CancelFunc
 	watchStartRevision int64
@@ -35,9 +35,9 @@ type player_registry struct {
 
 func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
 	self := &player_registry{
-		peerPrefix:  fmt.Sprintf("/peer_user/%s/", r.name),
-		localPrefix: fmt.Sprintf("/local_user/%s/", r.fullName),
-		userPrefix:  "/user/",
+		peerTypePrefix: fmt.Sprintf("/peer_type_user/%s/", r.name),
+		peerPrefix:     fmt.Sprintf("/peer_user/%s/", r.fullName),
+		userPrefix:     "/user/",
 	}
 	return self, nil
 }
@@ -54,14 +54,14 @@ func (self *player_registry) OnStart(r *Registry) error {
 	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
 	self.ctx = cancelCtx
 	self.cancelFunc = cancelFunc
-	if err := self.initLocalPlayers(r); err != nil {
+	if err := self.initSelfPeerPlayers(r); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (self *player_registry) Serve(r *Registry) error {
-	return self.watchLocalPlayers(r)
+	return self.watchSelfPeerPlayers(r)
 }
 
 func (self *player_registry) notify(r *Registry) error {
@@ -74,6 +74,9 @@ func (self *player_registry) notify(r *Registry) error {
 }
 
 func (self *player_registry) onLocalPlayerAdd(r *Registry, player *gira.LocalPlayer) {
+	if r.isNotify == 0 {
+		return
+	}
 	log.Infow("player registry on local user add", "user_id", player.UserId)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
@@ -109,7 +112,7 @@ func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.Local
 // 	}
 // }
 
-func (self *player_registry) onLocalKvPut(r *Registry, kv *mvccpb.KeyValue) error {
+func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
 		log.Warnw("player registry got a invalid key", "key", string(kv.Key))
@@ -155,39 +158,12 @@ func (self *player_registry) onLocalKvDelete(r *Registry, kv *mvccpb.KeyValue) e
 	return nil
 }
 
-// 只增加节点，但不通知handler, 等notify再通知
-func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
-	pats := strings.Split(string(kv.Key), "/")
-	if len(pats) != 4 {
-		log.Warnw("player registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidPeer
-	}
-	userId := pats[3]
-	value := string(kv.Value)
-	loginTime, err := strconv.Atoi(value)
-	if err != nil {
-		log.Warnw("player registry got a invalid key", "key", string(kv.Value))
-		return err
-	}
-	if _, ok := self.localPlayers.Load(userId); ok {
-		log.Warnw("player registry add player, but already exist", "user_id", userId)
-	} else {
-		player := &gira.LocalPlayer{
-			LoginTime: loginTime,
-			UserId:    userId,
-		}
-		self.localPlayers.Store(userId, player)
-		log.Infow("player registry add player", "user_id", userId)
-	}
-	return nil
-}
-
-func (self *player_registry) initLocalPlayers(r *Registry) error {
+func (self *player_registry) initSelfPeerPlayers(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
 	var err error
-	if getResp, err = kv.Get(self.ctx, self.localPrefix, clientv3.WithPrefix()); err != nil {
+	if getResp, err = kv.Get(self.ctx, self.peerPrefix, clientv3.WithPrefix()); err != nil {
 		return err
 	}
 	for _, kv := range getResp.Kvs {
@@ -195,27 +171,24 @@ func (self *player_registry) initLocalPlayers(r *Registry) error {
 			return err
 		}
 	}
-	if err := self.notify(r); err != nil {
-		return err
-	}
 	self.watchStartRevision = getResp.Header.Revision + 1
 	return nil
 }
 
-func (self *player_registry) watchLocalPlayers(r *Registry) error {
+func (self *player_registry) watchSelfPeerPlayers(r *Registry) error {
 	client := r.client
 	watchStartRevision := self.watchStartRevision
 	watcher := clientv3.NewWatcher(client)
 	// r.application.Go(func() error {
-	watchRespChan := watcher.Watch(self.ctx, self.localPrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
-	log.Infow("player registry started", "local_prefix", self.localPrefix, "watch_start_revision", watchStartRevision)
+	watchRespChan := watcher.Watch(self.ctx, self.peerPrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
+	log.Infow("player registry started", "local_prefix", self.peerPrefix, "watch_start_revision", watchStartRevision)
 	for watchResp := range watchRespChan {
 		// log.Info("etcd watch got events")
 		for _, event := range watchResp.Events {
 			switch event.Type {
 			case mvccpb.PUT:
 				// log.Info("etcd got put event")
-				if err := self.onLocalKvPut(r, event.Kv); err != nil {
+				if err := self.onLocalKvAdd(r, event.Kv); err != nil {
 					log.Warnw("player registry put event fail", "error", err)
 				}
 			case mvccpb.DELETE:
@@ -235,14 +208,14 @@ func (self *player_registry) unregisterLocalPlayers(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("player registry unregister self", "local_prefix", self.localPrefix)
+	log.Infow("player registry unregister self", "local_prefix", self.peerPrefix)
 
 	var txnResp *clientv3.TxnResponse
 	var err error
 	self.localPlayers.Range(func(userId any, v any) bool {
 		txn := kv.Txn(ctx)
-		localKey := fmt.Sprintf("%s%s", self.localPrefix, userId)
-		peerKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
+		localKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
+		peerKey := fmt.Sprintf("%s%s", self.peerTypePrefix, userId)
 		userKey := fmt.Sprintf("%s%s", self.userPrefix, userId)
 		log.Infow("player registry unregister self", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(localKey), "!=", 0)).
@@ -253,9 +226,9 @@ func (self *player_registry) unregisterLocalPlayers(r *Registry) error {
 			return true
 		}
 		if txnResp.Succeeded {
-			log.Infow("player registry unregister self", "user_id", userId)
+			log.Infow("player registry unregister", "user_id", userId)
 		} else {
-			log.Warnw("player registry unregister self", "user_id", userId)
+			log.Warnw("player registry unregister", "user_id", userId)
 		}
 		return true
 	})
@@ -269,8 +242,8 @@ func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Pe
 	//}
 	client := r.client
 	// 到etcd抢占localKey
-	localKey := fmt.Sprintf("%s%s", self.localPrefix, userId)
-	peerKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
+	localKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
+	peerKey := fmt.Sprintf("%s%s", self.peerTypePrefix, userId)
 	userKey := fmt.Sprintf("%s%s", self.userPrefix, userId)
 	value := fmt.Sprintf("%d", time.Now().Unix())
 	kv := clientv3.NewKV(client)
@@ -305,8 +278,8 @@ func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Pe
 // 解锁
 func (self *player_registry) UnlockLocalUser(r *Registry, userId string) (*gira.Peer, error) {
 	client := r.client
-	localKey := fmt.Sprintf("%s%s", self.localPrefix, userId)
-	peerKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
+	localKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
+	peerKey := fmt.Sprintf("%s%s", self.peerTypePrefix, userId)
 	userKey := fmt.Sprintf("%s%s", self.userPrefix, userId)
 	kv := clientv3.NewKV(client)
 	var err error
@@ -357,7 +330,7 @@ func (self *player_registry) WhereIsUser(r *Registry, userId string) (*gira.Peer
 	fullName := string(getResp.Kvs[0].Value)
 	peer := r.GetPeer(fullName)
 	if peer == nil {
-		return nil, gira.ErrPeerNotFound
+		return nil, gira.ErrPeerNotFound.Trace()
 	} else {
 		return peer, nil
 	}

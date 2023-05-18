@@ -25,7 +25,7 @@ func (application *BaseApplication) OnFrameworkStart() error {
 }
 
 // 框架销毁回调
-func (application *BaseApplication) OnFrameworkDestory() error {
+func (application *BaseApplication) OnFrameworkStop() error {
 	return nil
 }
 

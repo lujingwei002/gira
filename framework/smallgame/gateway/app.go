@@ -43,7 +43,7 @@ func (framework *Framework) OnFrameworkStart() error {
 	return nil
 }
 
-func (framework *Framework) OnFrameworkDestory() error {
+func (framework *Framework) OnFrameworkStop() error {
 	return nil
 }
 
