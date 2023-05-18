@@ -26,6 +26,7 @@ import (
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/options/registry_options"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -38,33 +39,52 @@ type Registry struct {
 	name            string // 节点名
 	client          *clientv3.Client
 	ctx             context.Context
-	cancelFunc      context.CancelFunc
 	application     gira.Application
 	peerRegistry    *peer_registry
 	playerRegistry  *player_registry
 	serviceRegistry *service_registry
+	errCtx          context.Context
+	errGroup        *errgroup.Group
 }
 
-func (r *Registry) Stop() error {
+// 关闭，释放资源
+func (r *Registry) OnStop() error {
 	log.Debug("registry stop")
-	r.playerRegistry.stop(r)
-	r.serviceRegistry.stop(r)
-	r.peerRegistry.stop(r)
+	r.playerRegistry.onStop(r)
+	r.serviceRegistry.onStop(r)
+	r.peerRegistry.onStop(r)
 	return nil
 }
 
-func (r *Registry) Start() error {
-	if err := r.peerRegistry.start(r); err != nil {
+// 启动
+func (r *Registry) OnStart(ctx context.Context) error {
+	errGroup, errCtx := errgroup.WithContext(ctx)
+	r.ctx = ctx
+	r.errGroup = errGroup
+	r.errCtx = errCtx
+	if err := r.peerRegistry.OnStart(r); err != nil {
 		return err
 	}
-	if err := r.playerRegistry.start(r); err != nil {
+	if err := r.playerRegistry.OnStart(r); err != nil {
 		return err
 	}
-	if err := r.serviceRegistry.start(r); err != nil {
+	if err := r.serviceRegistry.OnStart(r); err != nil {
 		return err
 	}
 	return nil
+}
 
+func (r *Registry) Serve() error {
+	r.errGroup.Go(func() error {
+		return r.peerRegistry.Serve(r)
+	})
+	r.errGroup.Go(func() error {
+		return r.playerRegistry.Serve(r)
+	})
+	r.errGroup.Go(func() error {
+		return r.serviceRegistry.Serve(r)
+	})
+	return r.errGroup.Wait()
 }
 
 func (r *Registry) RangePeers(f func(k any, v any) bool) {
@@ -79,13 +99,9 @@ func (r *Registry) SelfPeer() *gira.Peer {
 	return r.peerRegistry.SelfPeer
 }
 
-func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
-
-	cancelCtx, cancelFunc := context.WithCancel(ctx)
+func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
 	r := &Registry{
 		config:      *config,
-		ctx:         cancelCtx,
-		cancelFunc:  cancelFunc,
 		fullName:    application.GetAppFullName(),
 		appId:       application.GetAppId(),
 		name:        application.GetAppType(),

@@ -9,11 +9,13 @@ import (
 	"os/signal"
 	"path/filepath"
 	go_runtime "runtime"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/lujingwei002/gira/gins"
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/module"
 	"github.com/lujingwei002/gira/service"
 
 	"github.com/lujingwei002/gira"
@@ -55,9 +57,11 @@ type Runtime struct {
 	cancelFunc     context.CancelFunc
 	ctx            context.Context
 	errCtx         context.Context
-	resourceLoader gira.ResourceLoader
 	errGroup       *errgroup.Group
+	resourceLoader gira.ResourceLoader
 	config         *gira.Config
+	stopChan       chan struct{}
+	stopping       int64
 
 	BuildVersion       string
 	BuildTime          int64
@@ -88,23 +92,27 @@ type Runtime struct {
 	Gate               *gate.Server
 	GrpcServer         *grpc.GrpcServer
 	ServiceContainer   *service.ServiceContainer
+	ModuleContainer    *module.ModuleContainer
 }
 
 func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
 	runtime := &Runtime{
-		BuildVersion: args.BuildVersion,
-		BuildTime:    args.BuildTime,
-		appId:        args.AppId,
-		Application:  application,
-		Frameworks:   make([]gira.Framework, 0),
-		appType:      args.AppType,
-		appName:      fmt.Sprintf("%s_%d", args.AppType, args.AppId),
-		ctx:          ctx,
-		cancelFunc:   cancelFunc,
-		errCtx:       errCtx,
-		errGroup:     errGroup,
+		BuildVersion:     args.BuildVersion,
+		BuildTime:        args.BuildTime,
+		appId:            args.AppId,
+		Application:      application,
+		Frameworks:       make([]gira.Framework, 0),
+		appType:          args.AppType,
+		appName:          fmt.Sprintf("%s_%d", args.AppType, args.AppId),
+		ctx:              ctx,
+		cancelFunc:       cancelFunc,
+		errCtx:           errCtx,
+		errGroup:         errGroup,
+		stopChan:         make(chan struct{}, 1),
+		ServiceContainer: service.NewServiceContainer(),
+		ModuleContainer:  module.New(ctx),
 	}
 	return runtime
 }
@@ -175,17 +183,6 @@ func (runtime *Runtime) init() error {
 	return nil
 }
 
-// 启动并等待结束
-func (runtime *Runtime) serve() error {
-	if err := runtime.start(); err != nil {
-		return err
-	}
-	if err := runtime.wait(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (runtime *Runtime) start() (err error) {
 	if r, ok := runtime.Application.(RunnableApplication); !ok {
 		return gira.ErrTodo
@@ -198,26 +195,78 @@ func (runtime *Runtime) start() (err error) {
 	}
 	// 设置全局对象
 	gira.OnApplicationNew(runtime.Application)
-	defer func() {
-		if err != nil {
-			log.Warn(err)
-			runtime.onStop()
-		}
-	}()
-	if err = runtime.awake(); err != nil {
+	if err = runtime.onAwake(); err != nil {
 		return
 	}
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+		if err != nil {
+			log.Errorw("+++++++++++++++++++++++++++++")
+			log.Errorw("++         启动异常       +++", "error", err)
+			log.Errorw("+++++++++++++++++++++++++++++")
+			runtime.onStop()
+			runtime.cancelFunc()
+			runtime.ModuleContainer.Wait()
+			runtime.errGroup.Wait()
+		}
+	}()
 	if err = runtime.onStart(); err != nil {
 		return
 	}
+	runtime.Go(func() error {
+		err := runtime.ModuleContainer.Wait()
+		return err
+	})
+	runtime.Go(func() error {
+		quit := make(chan os.Signal, 1)
+		defer close(quit)
+		signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
+		for {
+			select {
+			case s := <-quit:
+				log.Infow("application recv signal", "signal", s)
+				switch s {
+				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+					log.Errorw("+++++++++++++++++++++++++++++")
+					log.Errorw("++    signal interrupt    +++", "signal", s)
+					log.Errorw("+++++++++++++++++++++++++++++")
+					runtime.onStop()
+					runtime.cancelFunc()
+					log.Info("application interrupt end")
+				case syscall.SIGUSR1:
+				case syscall.SIGUSR2:
+				default:
+				}
+			case <-runtime.stopChan:
+				log.Info("application stop begin")
+				runtime.onStop()
+				runtime.cancelFunc()
+				log.Info("application stop end")
+			case <-runtime.ctx.Done():
+				log.Infow("application context done", "error", runtime.ctx.Err())
+				return nil
+			}
+		}
+	})
 	return nil
+}
+
+// 主动关闭, 启动成功后才可以调用
+func (runtime *Runtime) Stop() error {
+	if !atomic.CompareAndSwapInt64(&runtime.stopping, 0, 1) {
+		return nil
+	}
+	runtime.stopChan <- struct{}{}
+	log.Println("cccccccc1")
+	err := runtime.errGroup.Wait()
+	log.Println("cccccccc2")
+	return err
 }
 
 func (runtime *Runtime) onStop() {
 	log.Infow("runtime on stop")
-	if runtime.HttpServer != nil {
-		runtime.HttpServer.Stop()
-	}
 	runtime.Application.OnDestory()
 	for _, fw := range runtime.Frameworks {
 		log.Info("framework onDestory", "name")
@@ -226,15 +275,26 @@ func (runtime *Runtime) onStop() {
 		}
 	}
 	if runtime.Registry != nil {
-		runtime.Registry.Stop()
+		runtime.ModuleContainer.UninstallModule(runtime.Registry)
+	}
+	if runtime.GrpcServer != nil {
+		runtime.ModuleContainer.UninstallModule(runtime.GrpcServer)
+	}
+	if runtime.HttpServer != nil {
+		runtime.ModuleContainer.UninstallModule(runtime.HttpServer)
 	}
 }
 
 func (runtime *Runtime) onStart() error {
-
 	// ==== registry ================
 	if runtime.Registry != nil {
-		if err := runtime.Registry.Start(); err != nil {
+		if err := runtime.ModuleContainer.InstallModule("registry", runtime.Registry); err != nil {
+			return err
+		}
+	}
+	// ==== http ================
+	if runtime.HttpServer != nil {
+		if err := runtime.ModuleContainer.InstallModule("http server", runtime.HttpServer); err != nil {
 			return err
 		}
 	}
@@ -255,13 +315,6 @@ func (runtime *Runtime) onStart() error {
 			}
 		}
 	}
-	// ==== http ================
-	if runtime.HttpServer != nil {
-		if err := runtime.HttpServer.Start(); err != nil {
-			return err
-		}
-	}
-
 	// ==== framework start ================
 	for _, fw := range runtime.Frameworks {
 		if err := fw.OnFrameworkStart(); err != nil {
@@ -274,20 +327,18 @@ func (runtime *Runtime) onStart() error {
 	}
 	// ==== grpc ================
 	if runtime.GrpcServer != nil {
-		if err := runtime.GrpcServer.Start(); err != nil {
+		if err := runtime.ModuleContainer.InstallModule("grpc server", runtime.GrpcServer); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (runtime *Runtime) awake() error {
+func (runtime *Runtime) onAwake() error {
 	// log.Info("application", app.FullName, "start")
 	application := runtime.Application
 
 	// ==== 模块 =============
-	// ==== service ================
-	runtime.ServiceContainer = service.NewServiceContainer()
 	// ==== pprof ================
 	if runtime.config.Pprof.Port != 0 {
 		go func() {
@@ -299,9 +350,9 @@ func (runtime *Runtime) awake() error {
 	if runtime.config.Module.Sdk != nil {
 		runtime.Sdk = sdk.NewConfigSdk(*runtime.config.Module.Sdk)
 	}
-	// ==== etcd ================
+	// ==== registry ================
 	if runtime.config.Module.Etcd != nil {
-		if r, err := registry.NewConfigRegistry(runtime.ctx, runtime.config.Module.Etcd, application); err != nil {
+		if r, err := registry.NewConfigRegistry(runtime.config.Module.Etcd, application); err != nil {
 			return err
 		} else {
 			runtime.Registry = r
@@ -337,7 +388,7 @@ func (runtime *Runtime) awake() error {
 	}
 	// ==== grpc ================
 	if runtime.config.Module.Grpc != nil {
-		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc, runtime.errGroup, runtime.errCtx)
+		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)
 		if _, ok := application.(gira.GrpcServer); !ok {
 			return gira.ErrGrpcServerNotImplement
 		}
@@ -348,11 +399,10 @@ func (runtime *Runtime) awake() error {
 			return gira.ErrHttpHandlerNotImplement
 		} else {
 			router := handler.HttpHandler()
-			if httpServer, err := gins.NewConfigHttpServer(runtime.ctx, *runtime.config.Module.Http, router); err != nil {
+			if httpServer, err := gins.NewConfigHttpServer(*runtime.config.Module.Http, router); err != nil {
 				return err
 			} else {
 				runtime.HttpServer = httpServer
-
 			}
 		}
 	}
@@ -402,47 +452,12 @@ func (runtime *Runtime) awake() error {
 	if err := application.OnAwake(); err != nil {
 		return err
 	}
-	// 创建场景
-	// scene := CreateScene()
-	// app.MainScene = scene
-	// 等待关闭
 	return nil
 }
 
+// 等待中断
 func (runtime *Runtime) wait() error {
-	ctrlFunc := func() error {
-		quit := make(chan os.Signal)
-		defer close(quit)
-		signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
-		for {
-			select {
-			case s := <-quit:
-				switch s {
-				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-					log.Info("ctrl shutdown begin.")
-					runtime.onStop()
-					runtime.cancelFunc()
-					log.Info("ctrl shutdown end.")
-					return nil
-				case syscall.SIGUSR1:
-					log.Info("sigusr1.")
-				case syscall.SIGUSR2:
-					log.Info("sigusr2.")
-				default:
-					log.Info("single x")
-				}
-			case <-runtime.ctx.Done():
-				log.Info("recv ctx:", runtime.Err().Error())
-				return nil
-			}
-		}
-	}
-	runtime.Go(ctrlFunc)
-	if err := runtime.errGroup.Wait(); err != nil {
-		log.Infow("application down", "full_name", runtime.appFullName, "error", err)
-		return err
-	} else {
-		log.Infow("application down", "full_name", runtime.appFullName)
-		return nil
-	}
+	err := runtime.errGroup.Wait()
+	log.Infow("application down", "full_name", runtime.appFullName, "error", err)
+	return err
 }

@@ -134,7 +134,13 @@ func startAction(args *cli.Context) error {
 		BuildVersion: buildVersion,
 		BuildTime:    buildTime,
 	}, application)
-	return runtime.serve()
+	if err := runtime.start(); err != nil {
+		return err
+	}
+	if err := runtime.wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // 打印应用构建版本

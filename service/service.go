@@ -12,6 +12,7 @@ func NewServiceContainer() *ServiceContainer {
 	return &ServiceContainer{}
 }
 
+// 启动服务
 func (c *ServiceContainer) StartService(name string, service gira.Service) error {
 	if _, err := facade.RegisterServiceName(name); err != nil {
 		return err
@@ -22,6 +23,7 @@ func (c *ServiceContainer) StartService(name string, service gira.Service) error
 	return nil
 }
 
+// 停止服务
 func (c *ServiceContainer) StopService(service gira.Service) error {
 	service.OnDestory()
 	return nil

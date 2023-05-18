@@ -27,51 +27,44 @@ type group_services struct {
 }
 
 type service_registry struct {
-	localPrefix   string // /local_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
-	servicePrefix string // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
-	services      sync.Map
-	localServices sync.Map
-	groupServices sync.Map
-	ctx           context.Context
-	cancelFunc    context.CancelFunc
+	localPrefix        string // /local_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
+	servicePrefix      string // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
+	services           sync.Map
+	localServices      sync.Map
+	groupServices      sync.Map
+	ctx                context.Context
+	cancelFunc         context.CancelFunc
+	watchStartRevision int64
 }
 
 func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
-	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
 	self := &service_registry{
 		servicePrefix: "/service/",
 		localPrefix:   fmt.Sprintf("/local_service/%s/", r.fullName),
-		cancelFunc:    cancelFunc,
-		ctx:           cancelCtx,
 	}
 	return self, nil
 }
 
-func (self *service_registry) stop(r *Registry) error {
-	log.Debug("service registry stop")
-	self.cancelFunc()
-	return nil
-}
-
-func (self *service_registry) onStop(r *Registry) {
+func (self *service_registry) onStop(r *Registry) error {
 	log.Debug("service registry on stop")
-	if err := self.unregisterSelf(r); err != nil {
+	if err := self.unregisterServices(r); err != nil {
 		log.Info(err)
 	}
+	return nil
 }
 
-func (self *service_registry) start(r *Registry) error {
-	r.application.Go(func() error {
-		return self.watchServices(r)
-	})
-	r.application.Go(func() error {
-		select {
-		case <-self.ctx.Done():
-			self.onStop(r)
-		}
-		return nil
-	})
+func (self *service_registry) OnStart(r *Registry) error {
+	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
+	self.ctx = cancelCtx
+	self.cancelFunc = cancelFunc
+	if err := self.initServices(r); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (self *service_registry) Serve(r *Registry) error {
+	return self.watchServices(r)
 }
 
 func (self *service_registry) notify(r *Registry) error {
@@ -259,7 +252,7 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	return nil
 }
 
-func (self *service_registry) watchServices(r *Registry) error {
+func (self *service_registry) initServices(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
@@ -276,7 +269,6 @@ func (self *service_registry) watchServices(r *Registry) error {
 		} else if len(pats) == 4 {
 			serviceName = pats[3]
 		}
-		log.Println(pats)
 		txn := kv.Txn(self.ctx)
 		serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
 		localKey := fmt.Sprintf("%s%s", self.localPrefix, serviceName)
@@ -305,35 +297,41 @@ func (self *service_registry) watchServices(r *Registry) error {
 	if err := self.notify(r); err != nil {
 		return err
 	}
-	watchStartRevision := getResp.Header.Revision + 1
-	watcher := clientv3.NewWatcher(client)
-	r.application.Go(func() error {
-		watchRespChan := watcher.Watch(self.ctx, self.servicePrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
-		log.Infow("service registry started", "service_prefix", self.servicePrefix, "watch_start_revision", watchStartRevision)
-		for watchResp := range watchRespChan {
-			// log.Info("etcd watch got events")
-			for _, event := range watchResp.Events {
-				switch event.Type {
-				case mvccpb.PUT:
-					// log.Info("etcd got put event")
-					if err := self.onKvPut(r, event.Kv); err != nil {
-						log.Warnw("service registry put event fail", "error", err)
-					}
-				case mvccpb.DELETE:
-					// log.Info("etcd got delete event")
-					if err := self.onKvDelete(r, event.Kv); err != nil {
-						log.Warnw("service registry put event fail", "error", err)
-					}
-				}
-			}
-		}
-		log.Info("service registry watch shutdown")
-		return nil
-	})
+	self.watchStartRevision = getResp.Header.Revision + 1
 	return nil
 }
 
-func (self *service_registry) unregisterSelf(r *Registry) error {
+func (self *service_registry) watchServices(r *Registry) error {
+	client := r.client
+	watchStartRevision := self.watchStartRevision
+	watcher := clientv3.NewWatcher(client)
+	// r.application.Go(func() error {
+	watchRespChan := watcher.Watch(self.ctx, self.servicePrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
+	log.Infow("service registry started", "service_prefix", self.servicePrefix, "watch_start_revision", watchStartRevision)
+	for watchResp := range watchRespChan {
+		// log.Info("etcd watch got events")
+		for _, event := range watchResp.Events {
+			switch event.Type {
+			case mvccpb.PUT:
+				// log.Info("etcd got put event")
+				if err := self.onKvPut(r, event.Kv); err != nil {
+					log.Warnw("service registry put event fail", "error", err)
+				}
+			case mvccpb.DELETE:
+				// log.Info("etcd got delete event")
+				if err := self.onKvDelete(r, event.Kv); err != nil {
+					log.Warnw("service registry put event fail", "error", err)
+				}
+			}
+		}
+	}
+	log.Info("service registry watch shutdown")
+	return nil
+	// })
+	return nil
+}
+
+func (self *service_registry) unregisterServices(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)

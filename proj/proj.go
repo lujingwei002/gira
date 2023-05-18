@@ -63,7 +63,6 @@ type ProjectConfig struct {
 	LogDir               string // log
 	ConfigDir            string // config
 	EnvDir               string // env
-	ConstDir             string //
 	ResourceDir          string // resource
 	GenDir               string // gen
 	RunDir               string // run
@@ -122,6 +121,7 @@ func Update(key string, value interface{}) error {
 	return nil
 }
 
+// 加载gira.yaml并初始化项目目录
 func (p *ProjectConfig) load() error {
 	// 初始化
 	// 向上查找gira.yaml文件
@@ -182,6 +182,7 @@ func (p *ProjectConfig) load() error {
 	return nil
 }
 
+// 加载build.yaml
 func (self *BuildConfigs) load() error {
 	buildConfigFilePath := filepath.Join(Config.ProjectDir, ".gira", "build.yaml")
 	if _, err := os.Stat(buildConfigFilePath); err == nil {
@@ -196,6 +197,7 @@ func (self *BuildConfigs) load() error {
 	return nil
 }
 
+// 加载tasks.yaml
 func (self *TaskConfigs) load() error {
 	taskConfigFilePath := filepath.Join(Config.ProjectDir, ".gira", "tasks.yaml")
 	if _, err := os.Stat(taskConfigFilePath); err == nil {
@@ -210,6 +212,7 @@ func (self *TaskConfigs) load() error {
 	return nil
 }
 
+// 执行tasks.yaml中的命令
 func Run(name string, args []string) error {
 	if arr, ok := TaskConfig.Targets[name]; !ok {
 		return nil
@@ -227,6 +230,7 @@ func Run(name string, args []string) error {
 	return nil
 }
 
+// 执行build.yaml中的命令
 func Build(name string) error {
 	var buildFunc func(target string) error
 	buildFunc = func(target string) error {

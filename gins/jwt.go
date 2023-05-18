@@ -1,9 +1,12 @@
-package account
+package gins
 
 import (
+	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"github.com/lujingwei002/gira"
 )
 
 type Claims struct {
@@ -15,8 +18,39 @@ type Claims struct {
 	Channel     int64  `json:"channel"`
 }
 
-// 生成 jwt token
-func GenerateJwtToken(secret string, duration time.Duration, memberId string, channel int64, accountPlat string, phonePlat int32, deviceID string) (string, error) {
+// 获取远程客户端ip要设置SetTrustedProxies
+// 参考 https://www.cnblogs.com/mayanan/p/15703234.html
+func JWT() gin.HandlerFunc {
+	return func(g *gin.Context) {
+		var err error
+		var claims *Claims
+		token := g.GetHeader("Authorization")
+		if token == "" {
+			err = gira.ErrInvalidJwt
+		} else {
+			//TODO
+			claims, err = ParseJwtToken1(token, "app.Config.Jwt.Secret")
+			if err != nil {
+				err = gira.ErrInvalidJwt
+			} else if time.Now().Unix() > claims.ExpiresAt {
+				err = gira.ErrJwtExpire
+			} else if claims.MemberId == "" {
+				err = gira.ErrInvalidJwt
+			} else {
+				g.Set("MemberId", claims.MemberId)
+				g.Set("Claims", claims)
+			}
+		}
+		if err != nil {
+			HttpJsonResponse(g, http.StatusUnauthorized, err, nil)
+			g.Abort()
+			return
+		}
+		g.Next()
+	}
+}
+
+func GenerateJwtToken1(secret string, duration time.Duration, memberId string, channel int64, accountPlat string, phonePlat int32, deviceID string) (string, error) {
 	nowTime := time.Now()
 	expireTime := nowTime.Add(duration)
 	claims := Claims{
@@ -35,8 +69,7 @@ func GenerateJwtToken(secret string, duration time.Duration, memberId string, ch
 	return token, err
 }
 
-// 生成 jwt refresh token
-func GenerateJwtRefreshToken(secret string, duration time.Duration) (string, error) {
+func GenerateJwtRefreshToken1(secret string, duration time.Duration) (string, error) {
 	nowTime := time.Now()
 	expireTime := nowTime.Add(duration)
 	claims := Claims{
@@ -55,8 +88,7 @@ func GenerateJwtRefreshToken(secret string, duration time.Duration) (string, err
 	return token, err
 }
 
-// 解析 jwt token
-func ParseJwtToken(token string, secret string) (*Claims, error) {
+func ParseJwtToken1(token string, secret string) (*Claims, error) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})

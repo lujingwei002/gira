@@ -24,52 +24,44 @@ import (
 )
 
 type player_registry struct {
-	peerPrefix   string // /peer_user/<<AppName>>/      根据服务类型查找全部玩家
-	localPrefix  string // /local_user/<<AppFullName>>  根据服务全名查找全部玩家
-	userPrefix   string // /user/<<UserId>>/       	 	可以根据user_id查找当前所在的服
-	localPlayers sync.Map
-	ctx          context.Context
-	cancelFunc   context.CancelFunc
+	peerPrefix         string // /peer_user/<<AppName>>/      根据服务类型查找全部玩家
+	localPrefix        string // /local_user/<<AppFullName>>  根据服务全名查找全部玩家
+	userPrefix         string // /user/<<UserId>>/       	 	可以根据user_id查找当前所在的服
+	localPlayers       sync.Map
+	ctx                context.Context
+	cancelFunc         context.CancelFunc
+	watchStartRevision int64
 }
 
 func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
-	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
 	self := &player_registry{
 		peerPrefix:  fmt.Sprintf("/peer_user/%s/", r.name),
 		localPrefix: fmt.Sprintf("/local_user/%s/", r.fullName),
 		userPrefix:  "/user/",
-		ctx:         cancelCtx,
-		cancelFunc:  cancelFunc,
 	}
 	return self, nil
 }
 
-func (self *player_registry) stop(r *Registry) error {
-	log.Debug("player registry stop")
-	self.cancelFunc()
-	return nil
-}
-
-func (self *player_registry) onStop(r *Registry) {
+func (self *player_registry) onStop(r *Registry) error {
 	log.Debug("player registry on stop")
-	if err := self.unregisterSelf(r); err != nil {
+	if err := self.unregisterLocalPlayers(r); err != nil {
 		log.Info(err)
 	}
+	return nil
 }
 
-func (self *player_registry) start(r *Registry) error {
-	// 侦听伙伴信息
-	r.application.Go(func() error {
-		return self.watchLocalPlayers(r)
-	})
-	r.application.Go(func() error {
-		select {
-		case <-self.ctx.Done():
-			self.onStop(r)
-		}
-		return nil
-	})
+func (self *player_registry) OnStart(r *Registry) error {
+	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
+	self.ctx = cancelCtx
+	self.cancelFunc = cancelFunc
+	if err := self.initLocalPlayers(r); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (self *player_registry) Serve(r *Registry) error {
+	return self.watchLocalPlayers(r)
 }
 
 func (self *player_registry) notify(r *Registry) error {
@@ -82,7 +74,7 @@ func (self *player_registry) notify(r *Registry) error {
 }
 
 func (self *player_registry) onLocalPlayerAdd(r *Registry, player *gira.LocalPlayer) {
-	log.Infow("local user add", "user_id", player.UserId)
+	log.Infow("player registry on local user add", "user_id", player.UserId)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
 			handler.OnLocalPlayerAdd(player)
@@ -94,7 +86,7 @@ func (self *player_registry) onLocalPlayerAdd(r *Registry, player *gira.LocalPla
 }
 
 func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.LocalPlayer) {
-	log.Infow("local user add", "delete", player.UserId)
+	log.Infow("player registry on local user add", "delete", player.UserId)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
 			handler.OnLocalPlayerDelete(player)
@@ -106,7 +98,7 @@ func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.Local
 }
 
 // func (self *player_registry) onLocalPlayerUpdate(r *Registry, player *gira.LocalPlayer) {
-// 	log.Infow("local user add", "update", player.UserId)
+// 	log.Infow("player registry on local user add", "update", player.UserId)
 // 	for _, fw := range r.application.Frameworks() {
 // 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
 // 			handler.OnLocalPlayerUpdate(player)
@@ -190,7 +182,7 @@ func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) erro
 	return nil
 }
 
-func (self *player_registry) watchLocalPlayers(r *Registry) error {
+func (self *player_registry) initLocalPlayers(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
@@ -206,7 +198,13 @@ func (self *player_registry) watchLocalPlayers(r *Registry) error {
 	if err := self.notify(r); err != nil {
 		return err
 	}
-	watchStartRevision := getResp.Header.Revision + 1
+	self.watchStartRevision = getResp.Header.Revision + 1
+	return nil
+}
+
+func (self *player_registry) watchLocalPlayers(r *Registry) error {
+	client := r.client
+	watchStartRevision := self.watchStartRevision
 	watcher := clientv3.NewWatcher(client)
 	// r.application.Go(func() error {
 	watchRespChan := watcher.Watch(self.ctx, self.localPrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
@@ -229,12 +227,10 @@ func (self *player_registry) watchLocalPlayers(r *Registry) error {
 		}
 	}
 	log.Info("player registry watch shutdown")
-	// return nil
-	// })
 	return nil
 }
 
-func (self *player_registry) unregisterSelf(r *Registry) error {
+func (self *player_registry) unregisterLocalPlayers(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)

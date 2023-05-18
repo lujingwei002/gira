@@ -21,150 +21,6 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-type InfoResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*InfoResponse
-}
-
-func (r *InfoResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *InfoResponse_MulticastResult) Response(index int) *InfoResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *InfoResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *InfoResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *InfoResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *InfoResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *InfoResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *InfoResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type HeartbeatResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*HeartbeatResponse
-}
-
-func (r *HeartbeatResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *HeartbeatResponse_MulticastResult) Response(index int) *HeartbeatResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *HeartbeatResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *HeartbeatResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *HeartbeatResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *HeartbeatResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *HeartbeatResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *HeartbeatResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type KickResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*KickResponse
-}
-
-func (r *KickResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *KickResponse_MulticastResult) Response(index int) *KickResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *KickResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *KickResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *KickResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *KickResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *KickResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *KickResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
 type UserInsteadResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -351,6 +207,150 @@ func (r *GateStreamPush_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
 func (r *GateStreamPush_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type InfoResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*InfoResponse
+}
+
+func (r *InfoResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *InfoResponse_MulticastResult) Response(index int) *InfoResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *InfoResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *InfoResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *InfoResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *InfoResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *InfoResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *InfoResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type HeartbeatResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*HeartbeatResponse
+}
+
+func (r *HeartbeatResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *HeartbeatResponse_MulticastResult) Response(index int) *HeartbeatResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *HeartbeatResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *HeartbeatResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *HeartbeatResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *HeartbeatResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *HeartbeatResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *HeartbeatResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type KickResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*KickResponse
+}
+
+func (r *KickResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *KickResponse_MulticastResult) Response(index int) *KickResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *KickResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *KickResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *KickResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *KickResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *KickResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *KickResponse_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}

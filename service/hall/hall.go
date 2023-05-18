@@ -20,7 +20,6 @@ type hall_server struct {
 }
 
 func (self *hall_server) Kick(ctx context.Context, req *hall_grpc.KickRequest) (*hall_grpc.KickResponse, error) {
-	log.Println("ccccccccccc")
 	resp := &hall_grpc.KickResponse{}
 	if err := self.hall.Kick(ctx, req.UserId, req.Reason); err != nil {
 		return nil, err

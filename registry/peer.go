@@ -53,6 +53,7 @@ type peer_registry struct {
 	SelfPeer               *gira.Peer
 	ctx                    context.Context
 	cancelFunc             context.CancelFunc
+	watchStartRevision     int64
 }
 
 func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
@@ -60,24 +61,6 @@ func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
 		Prefix:     "/peer/",
 		SelfPrefix: fmt.Sprintf("/peer/%s/", r.fullName),
 	}
-	self.ctx, self.cancelFunc = context.WithCancel(r.ctx)
-	// 注册自己
-	if err := self.registerSelf(r); err != nil {
-		return nil, err
-	}
-	// r.application.Go(func() error {
-	// 	select {
-	// 	case <-r.application.Done():
-	// 		{
-	// 			log.Infow("peer registry recv down")
-	// 		}
-	// 	}
-	// 	if err := self.unregisterSelf(r); err != nil {
-	// 		log.Errorw("unregister self fail", "error", err)
-	// 	}
-
-	// 	return nil
-	// })
 	return self, nil
 }
 
@@ -93,20 +76,31 @@ func (self *peer_registry) getPeer(r *Registry, fullName string) *gira.Peer {
 	return nil
 }
 
-func (self *peer_registry) stop(r *Registry) error {
-	log.Debug("peer registry stop")
+func (self *peer_registry) onStop(r *Registry) error {
+	log.Debug("peer registry on stop")
 	if err := self.unregisterSelf(r); err != nil {
 		log.Info(err)
 	}
 	return nil
 }
 
-func (self *peer_registry) start(r *Registry) error {
-	// 侦听伙伴信息
-	if err := self.watchPeers(r); err != nil {
+func (self *peer_registry) OnStart(r *Registry) error {
+	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
+	self.ctx = cancelCtx
+	self.cancelFunc = cancelFunc
+	// 注册自己
+	if err := self.registerSelf(r); err != nil {
 		return err
 	}
-	if err := self.notify(r); err != nil {
+	if err := self.initPeers(r); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *peer_registry) Serve(r *Registry) error {
+	// 侦听伙伴信息
+	if err := self.watchPeers(r); err != nil {
 		return err
 	}
 	return nil
@@ -122,10 +116,7 @@ func (self *peer_registry) notify(r *Registry) error {
 }
 
 func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
-	log.Debugw("peer registry peer add", "full_name", peer.FullName)
-	if peer.FullName == r.fullName {
-		self.SelfPeer = peer
-	}
+	log.Debugw("peer registry on peer add", "full_name", peer.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerAdd(peer)
@@ -138,7 +129,7 @@ func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
-	log.Debugw("peer registry peer delete", "full_name", peer.FullName)
+	log.Debugw("peer registry on peer delete", "full_name", peer.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerDelete(peer)
@@ -162,7 +153,7 @@ func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 }
 
 func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
-	log.Debugw("peer registry peer update", "full_name", peer.FullName)
+	log.Debugw("peer registry on peer update", "full_name", peer.FullName)
 	for _, fw := range r.application.Frameworks() {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerUpdate(peer)
@@ -195,6 +186,9 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
 				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
+				if lastPeer.FullName == r.fullName {
+					self.SelfPeer = lastPeer
+				}
 				self.onPeerAdd(r, lastPeer)
 			} else if attrValue != lastPeer.GrpcAddr {
 				// 节点地址改变
@@ -228,6 +222,9 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			// 新增节点
 			log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 			peer.GrpcAddr = attrValue
+			if peer.FullName == r.fullName {
+				self.SelfPeer = peer
+			}
 			self.onPeerAdd(r, peer)
 		} else {
 			peer.Kvs[attrName] = attrValue
@@ -267,7 +264,7 @@ func (self *peer_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 }
 
 // 只增加节点，但不通知handler, 等notify再通知
-func (r *peer_registry) onKvAdd(kv *mvccpb.KeyValue) error {
+func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
 		log.Warnw("peer registry got a invalid key", "key", string(kv.Key))
@@ -281,12 +278,15 @@ func (r *peer_registry) onKvAdd(kv *mvccpb.KeyValue) error {
 		return err
 	}
 	attrValue := string(kv.Value)
-	if lastValue, ok := r.Peers.Load(fullName); ok {
+	if lastValue, ok := self.Peers.Load(fullName); ok {
 		lastPeer := lastValue.(*gira.Peer)
 		if attrName == GRPC_KEY {
 			if lastPeer.GrpcAddr == "" {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
+				if lastPeer.FullName == r.fullName {
+					self.SelfPeer = lastPeer
+				}
 				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 			} else if attrValue != lastPeer.GrpcAddr {
 				// 节点地址改变
@@ -316,9 +316,12 @@ func (r *peer_registry) onKvAdd(kv *mvccpb.KeyValue) error {
 			FullName: fullName,
 			Kvs:      make(map[string]string),
 		}
-		r.Peers.Store(fullName, peer)
+		self.Peers.Store(fullName, peer)
 		if attrName == GRPC_KEY {
 			peer.GrpcAddr = attrValue
+			if peer.FullName == r.fullName {
+				self.SelfPeer = peer
+			}
 			// 新增节点
 			log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 		} else {
@@ -329,7 +332,7 @@ func (r *peer_registry) onKvAdd(kv *mvccpb.KeyValue) error {
 	return nil
 }
 
-func (self *peer_registry) watchPeers(r *Registry) error {
+func (self *peer_registry) initPeers(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
@@ -338,36 +341,45 @@ func (self *peer_registry) watchPeers(r *Registry) error {
 		return err
 	}
 	for _, kv := range getResp.Kvs {
-		if err := self.onKvAdd(kv); err != nil {
+		if err := self.onKvAdd(r, kv); err != nil {
 			return err
 		}
 	}
-	watchStartRevision := getResp.Header.Revision + 1
+	if err := self.notify(r); err != nil {
+		return err
+	}
+	self.watchStartRevision = getResp.Header.Revision + 1
+	return nil
+	// })
+}
+
+func (self *peer_registry) watchPeers(r *Registry) error {
+	client := r.client
+	watchStartRevision := self.watchStartRevision
 	watcher := clientv3.NewWatcher(client)
-	r.application.Go(func() error {
-		log.Infow("peer registry watch peer started", "prefix", self.Prefix, "watch_start_revision", watchStartRevision)
-		watchRespChan := watcher.Watch(self.ctx, self.Prefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
-		for watchResp := range watchRespChan {
-			// log.Info("etcd watch got events")
-			for _, event := range watchResp.Events {
-				switch event.Type {
-				case mvccpb.PUT:
-					// log.Info("etcd got put event")
-					if err := self.onKvPut(r, event.Kv); err != nil {
-						log.Warnw("peer registry put event fail", "error", err)
-					}
-				case mvccpb.DELETE:
-					// log.Info("etcd got delete event")
-					if err := self.onKvDelete(r, event.Kv); err != nil {
-						log.Warnw("peer registry put event fail", "error", err)
-					}
+	// r.application.Go(func() error {
+	log.Infow("peer registry watch peer started", "prefix", self.Prefix, "watch_start_revision", watchStartRevision)
+	watchRespChan := watcher.Watch(self.ctx, self.Prefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
+	for watchResp := range watchRespChan {
+		// log.Info("etcd watch got events")
+		for _, event := range watchResp.Events {
+			switch event.Type {
+			case mvccpb.PUT:
+				// log.Info("etcd got put event")
+				if err := self.onKvPut(r, event.Kv); err != nil {
+					log.Warnw("peer registry put event fail", "error", err)
+				}
+			case mvccpb.DELETE:
+				// log.Info("etcd got delete event")
+				if err := self.onKvDelete(r, event.Kv); err != nil {
+					log.Warnw("peer registry put event fail", "error", err)
 				}
 			}
 		}
-		log.Info("peer registry watch shutdown")
-		return nil
-	})
+	}
+	log.Info("peer registry watch shutdown")
 	return nil
+	// })
 }
 
 func (self *peer_registry) unregisterSelf(r *Registry) error {
@@ -377,9 +389,7 @@ func (self *peer_registry) unregisterSelf(r *Registry) error {
 	defer cancelFunc()
 	log.Infow("peer registry unregister self", "self_prefix", self.SelfPrefix)
 	self.isNormalUnregisterSelf = true
-
 	// txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0))
-
 	var txnResp *clientv3.TxnResponse
 	var err error
 	txn := kv.Txn(ctx)
@@ -389,25 +399,23 @@ func (self *peer_registry) unregisterSelf(r *Registry) error {
 	txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
 		Then(clientv3.OpGet(key)).
 		Else(clientv3.OpGet(key), clientv3.OpDelete(self.SelfPrefix, clientv3.WithPrefix()))
-
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Errorw("peer registry commit fail", "error", err)
 		return err
 	}
-
 	if txnResp.Succeeded {
 		// key 被其他程序占用着，不用管，直接退出
-		// log.Info(" key 被其他程序占用着，不用管，直接退出")
-		self.cancelFunc()
+		log.Info(" key 被其他程序占用着，不用管，直接退出")
+		// self.cancelFunc()
 	} else {
 		if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
 			// key 没被任何程序占用，不用管，直接退出
-			// log.Info("key 没被任何程序占用，不用管，直接退出")
-			self.cancelFunc()
+			log.Info("key 没被任何程序占用，不用管，直接退出")
+			// self.cancelFunc()
 		} else {
 			// 等监听到清理完成后再退出
-			// log.Info("等监听到清理完成后再退出")
-			log.Info("peer registry wait cleanup")
+			log.Info("key 清理成功，正常退出")
+			// log.Info("peer registry wait cleanup")
 		}
 	}
 	return nil
@@ -470,7 +478,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 			return err
 		}
 		//判断续约应答的协程
-		r.application.Go(func() error {
+		go func() error {
 			for {
 				select {
 				case keepResp := <-keepRespChan:
@@ -482,7 +490,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 						goto END
 					} else {
 						// KeepAlive每秒会续租一次,所以就会收到一次应答
-						// log.Info("收到应答,租约ID是:", keepResp.ID)
+						log.Info("收到应答,租约ID是:", keepResp.ID)
 					}
 				case <-r.application.Done():
 					break
@@ -490,7 +498,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 			}
 		END:
 			return nil
-		})
+		}()
 	}
 	return nil
 }

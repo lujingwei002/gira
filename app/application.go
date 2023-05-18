@@ -229,7 +229,7 @@ func (application *BaseApplication) Frameworks() []gira.Framework {
 func (application *BaseApplication) RegisterGrpc(f func(server *grpc.Server) error) error {
 	if s := application.runtime.GrpcServer; s == nil {
 		return gira.ErrGrpcServerNotOpen
-	} else if err := f(s.Server()); err != nil {
+	} else if err := s.Register(f); err != nil {
 		return err
 	} else {
 		return nil

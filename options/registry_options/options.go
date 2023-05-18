@@ -1,6 +1,34 @@
 package registry_options
 
-// where option
+// 最大数量
+func WithWhereMaxCountOption(count int) WhereMaxCountOption {
+	return WhereMaxCountOption{
+		count: count,
+	}
+}
+
+// 设置正则表达式查找
+func WithWhereRegexOption(regex string) WhereRegexOption {
+	return WhereRegexOption{
+		regex: regex,
+	}
+}
+
+// 注册成组员
+func WithRegisterAsGroupOption(asGroup bool) RegisterAsGroupOption {
+	return RegisterAsGroupOption{
+		asGroup: asGroup,
+	}
+}
+
+// 当注册成组员时，使用app id作为组员id
+func WithRegisterCatAppIdOption(catAppId bool) RegisterCatAppidOption {
+	return RegisterCatAppidOption{
+		catAppId: catAppId,
+	}
+}
+
+// ====== where options ===================
 type WhereOptions struct {
 	MaxCount int
 	Regex    string
@@ -14,24 +42,12 @@ type WhereMaxCountOption struct {
 	count int
 }
 
-func WithWhereMaxCountOption(count int) WhereMaxCountOption {
-	return WhereMaxCountOption{
-		count: count,
-	}
-}
-
 func (opt WhereMaxCountOption) ConfigWhereOption(opts *WhereOptions) {
 	opts.MaxCount = opt.count
 }
 
 type WhereRegexOption struct {
 	regex string
-}
-
-func WithWhereRegexOption(regex string) WhereRegexOption {
-	return WhereRegexOption{
-		regex: regex,
-	}
 }
 
 func (opt WhereRegexOption) ConfigWhereOption(opts *WhereOptions) {
@@ -51,24 +67,12 @@ type RegisterAsGroupOption struct {
 	asGroup bool
 }
 
-func WithRegisterAsGroupOption(asGroup bool) RegisterAsGroupOption {
-	return RegisterAsGroupOption{
-		asGroup: asGroup,
-	}
-}
-
 func (opt RegisterAsGroupOption) ConfigRegisterOption(opts *RegisterOptions) {
 	opts.AsGroup = opt.asGroup
 }
 
 type RegisterCatAppidOption struct {
 	catAppId bool
-}
-
-func WithRegisterCatAppIdOption(catAppId bool) RegisterCatAppidOption {
-	return RegisterCatAppidOption{
-		catAppId: catAppId,
-	}
 }
 
 func (opt RegisterCatAppidOption) ConfigRegisterOption(opts *RegisterOptions) {
