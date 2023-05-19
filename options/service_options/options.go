@@ -1,5 +1,15 @@
-package registry_options
+package service_options
 
+// ====== register options ===================
+
+// app内唯一的服务
+func WithAsAppServiceOption(enabled bool) AsAppServiceOption {
+	return AsAppServiceOption{
+		enabled: enabled,
+	}
+}
+
+// ====== where options ===================
 // 最大数量
 func WithWhereMaxCountOption(count int) WhereMaxCountOption {
 	return WhereMaxCountOption{
@@ -11,20 +21,6 @@ func WithWhereMaxCountOption(count int) WhereMaxCountOption {
 func WithWhereRegexOption(regex string) WhereRegexOption {
 	return WhereRegexOption{
 		regex: regex,
-	}
-}
-
-// 注册成组员
-func WithRegisterAsGroupOption(asGroup bool) RegisterAsGroupOption {
-	return RegisterAsGroupOption{
-		asGroup: asGroup,
-	}
-}
-
-// 当注册成组员时，使用app id作为组员id
-func WithRegisterCatAppIdOption(catAppId bool) RegisterCatAppidOption {
-	return RegisterCatAppidOption{
-		catAppId: catAppId,
 	}
 }
 
@@ -54,27 +50,20 @@ func (opt WhereRegexOption) ConfigWhereOption(opts *WhereOptions) {
 	opts.Regex = opt.regex
 }
 
+// ====== register options ===================
+
 type RegisterOptions struct {
-	AsGroup  bool
-	CatAppId bool
+	AsAppService bool
 }
 
 type RegisterOption interface {
 	ConfigRegisterOption(opts *RegisterOptions)
 }
 
-type RegisterAsGroupOption struct {
-	asGroup bool
+type AsAppServiceOption struct {
+	enabled bool
 }
 
-func (opt RegisterAsGroupOption) ConfigRegisterOption(opts *RegisterOptions) {
-	opts.AsGroup = opt.asGroup
-}
-
-type RegisterCatAppidOption struct {
-	catAppId bool
-}
-
-func (opt RegisterCatAppidOption) ConfigRegisterOption(opts *RegisterOptions) {
-	opts.CatAppId = opt.catAppId
+func (opt AsAppServiceOption) ConfigRegisterOption(opts *RegisterOptions) {
+	opts.AsAppService = opt.enabled
 }

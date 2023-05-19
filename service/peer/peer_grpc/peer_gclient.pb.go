@@ -11,7 +11,7 @@ import (
 	fmt "fmt"
 	gira "github.com/lujingwei002/gira"
 	facade "github.com/lujingwei002/gira/facade"
-	registry_options "github.com/lujingwei002/gira/options/registry_options"
+	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
 	sync "sync"
 )
@@ -292,13 +292,13 @@ func (c *peerClientsMulticast) WithRegex(regex string) PeerClientsMulticast {
 
 func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {

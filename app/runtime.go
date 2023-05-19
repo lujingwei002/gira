@@ -44,6 +44,11 @@ type RunnableApplication interface {
 	OnApplicationRun(runtime *Runtime)
 }
 
+const (
+	runtime_status_started = 1
+	runtime_status_stopped = 2
+)
+
 // / @Component
 type Runtime struct {
 	gira.BaseComponent
@@ -61,7 +66,7 @@ type Runtime struct {
 	resourceLoader gira.ResourceLoader
 	config         *gira.Config
 	stopChan       chan struct{}
-	stopping       int64
+	status         int64
 
 	BuildVersion       string
 	BuildTime          int64
@@ -111,7 +116,7 @@ func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
 		errCtx:           errCtx,
 		errGroup:         errGroup,
 		stopChan:         make(chan struct{}, 1),
-		ServiceContainer: service.NewServiceContainer(),
+		ServiceContainer: service.New(ctx),
 		ModuleContainer:  module.New(ctx),
 	}
 	return runtime
@@ -209,6 +214,7 @@ func (runtime *Runtime) start() (err error) {
 			runtime.onStop()
 			runtime.cancelFunc()
 			runtime.ModuleContainer.Wait()
+			runtime.ServiceContainer.Wait()
 			runtime.errGroup.Wait()
 		}
 	}()
@@ -216,7 +222,9 @@ func (runtime *Runtime) start() (err error) {
 		return
 	}
 	runtime.Go(func() error {
-		return runtime.ModuleContainer.Wait()
+		runtime.ServiceContainer.Wait()
+		runtime.ModuleContainer.Wait()
+		return nil
 	})
 	runtime.Go(func() error {
 		quit := make(chan os.Signal, 1)
@@ -229,9 +237,9 @@ func (runtime *Runtime) start() (err error) {
 				log.Infow("application recv signal", "signal", s)
 				switch s {
 				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-					log.Errorw("+++++++++++++++++++++++++++++")
-					log.Errorw("++    signal interrupt    +++", "signal", s)
-					log.Errorw("+++++++++++++++++++++++++++++")
+					log.Infow("+++++++++++++++++++++++++++++")
+					log.Infow("++    signal interrupt    +++", "signal", s)
+					log.Infow("+++++++++++++++++++++++++++++")
 					runtime.onStop()
 					runtime.cancelFunc()
 					log.Info("application interrupt end")
@@ -250,12 +258,13 @@ func (runtime *Runtime) start() (err error) {
 			}
 		}
 	})
+	runtime.status = runtime_status_started
 	return nil
 }
 
 // 主动关闭, 启动成功后才可以调用
 func (runtime *Runtime) Stop() error {
-	if !atomic.CompareAndSwapInt64(&runtime.stopping, 0, 1) {
+	if !atomic.CompareAndSwapInt64(&runtime.status, runtime_status_started, runtime_status_stopped) {
 		return nil
 	}
 	runtime.stopChan <- struct{}{}
@@ -272,11 +281,13 @@ func (runtime *Runtime) onStop() {
 			log.Warnw("framework on stop fail", "error", err)
 		}
 	}
-	runtime.ModuleContainer.UninstallModule(runtime.Registry)
-	runtime.ModuleContainer.UninstallModule(runtime.GrpcServer)
-	if runtime.HttpServer != nil {
-		runtime.ModuleContainer.UninstallModule(runtime.HttpServer)
-	}
+	runtime.ServiceContainer.Stop()
+	runtime.ModuleContainer.Stop()
+	// runtime.ModuleContainer.UninstallModule(runtime.Registry)
+	// runtime.ModuleContainer.UninstallModule(runtime.GrpcServer)
+	// if runtime.HttpServer != nil {
+	// 	runtime.ModuleContainer.UninstallModule(runtime.HttpServer)
+	// }
 }
 
 func (runtime *Runtime) onStart() error {
@@ -466,7 +477,7 @@ func (runtime *Runtime) onCreate() error {
 }
 
 // 等待中断
-func (runtime *Runtime) wait() error {
+func (runtime *Runtime) Wait() error {
 	err := runtime.errGroup.Wait()
 	log.Infow("application down", "full_name", runtime.appFullName, "error", err)
 	return err

@@ -24,7 +24,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/options/registry_options"
+	"github.com/lujingwei002/gira/options/service_options"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -185,16 +185,16 @@ func (r *Registry) WhereIsUser(userId string) (*gira.Peer, error) {
 }
 
 // 查找服务
-func (r *Registry) WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*gira.Peer, error) {
+func (r *Registry) WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
 	return r.serviceRegistry.WhereIsService(r, serviceName, opt...)
 }
 
-func (r *Registry) NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string {
+func (r *Registry) NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
 	return r.serviceRegistry.NewServiceName(r, serviceName, opt...)
 }
 
 // 注册服务
-func (r *Registry) RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+func (r *Registry) RegisterService(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
 	return r.serviceRegistry.RegisterService(r, serviceName, opt...)
 }
 

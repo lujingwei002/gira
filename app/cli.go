@@ -137,7 +137,7 @@ func startAction(args *cli.Context) error {
 	if err := runtime.start(); err != nil {
 		return err
 	}
-	if err := runtime.wait(); err != nil {
+	if err := runtime.Wait(); err != nil {
 		return err
 	}
 	return nil

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/options/registry_options"
+	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
 	"google.golang.org/grpc"
 )
@@ -100,7 +100,7 @@ func (application *BaseApplication) GetLogDir() string {
 }
 
 func (application *BaseApplication) Wait() error {
-	return application.runtime.wait()
+	return application.runtime.Wait()
 }
 
 func (application *BaseApplication) GetAccountDbClient() gira.DbClient {
@@ -166,17 +166,17 @@ func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer
 
 }
 
-func (application *BaseApplication) NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string {
+func (application *BaseApplication) NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
 	return application.runtime.Registry.NewServiceName(serviceName, opt...)
 }
 
 // 注册服务
-func (application *BaseApplication) RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+func (application *BaseApplication) RegisterService(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
 	return application.runtime.Registry.RegisterService(serviceName, opt...)
 }
 
 // 查找服务
-func (application *BaseApplication) WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*gira.Peer, error) {
+func (application *BaseApplication) WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
 	return application.runtime.Registry.WhereIsService(serviceName, opt...)
 }
 

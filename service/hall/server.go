@@ -10,7 +10,7 @@ import (
 	"github.com/lujingwei002/gira/actor"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/options/registry_options"
+	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"google.golang.org/grpc"
 )
@@ -31,14 +31,15 @@ func NewService(application gira.Application, proto gira.Proto, config Config, h
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(hall_grpc.HallServiceName, registry_options.WithRegisterAsGroupOption(true), registry_options.WithRegisterCatAppIdOption(true))
+	return facade.NewServiceName(hall_grpc.HallServiceName, service_options.WithAsAppServiceOption(true))
 }
 
 type HallService struct {
-	facade     gira.Application
-	hallServer *hall_server
 	*actor.Actor
+	facade        gira.Application
+	hallServer    *hall_server
 	ctx           context.Context
+	cancelCtx     context.Context
 	cancelFunc    context.CancelFunc
 	sessionDict   sync.Map
 	sessionCount  int64
@@ -49,43 +50,28 @@ type HallService struct {
 	isDestory     bool
 }
 
-func (hall *HallService) OnStart() error {
+func (hall *HallService) OnStart(ctx context.Context) error {
+	hall.ctx = ctx
+	// 后台运行
+	hall.cancelCtx, hall.cancelFunc = context.WithCancel(context.Background())
 	facade.RegisterGrpc(func(server *grpc.Server) error {
 		hall_grpc.RegisterHallServer(server, hall.hallServer)
 		return nil
 	})
-	go hall.serve()
 	return nil
 }
 
-func (hall *HallService) OnStop() {
-	hall.isDestory = true
-	for {
-		log.Infow("hall停止中", "session_count", hall.sessionCount)
-		sessions := make([]*hall_sesssion, 0)
-		hall.sessionDict.Range(func(key, value any) bool {
-			session, _ := value.(*hall_sesssion)
-			sessions = append(sessions, session)
-			return true
-		})
-		for _, session := range sessions {
-			session.Call_close(hall.ctx, actor.WithCallTimeOut(5*time.Second))
-		}
-		log.Infow("hall停止中", "session_count", hall.sessionCount)
-		if hall.sessionCount <= 0 {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+func (hall *HallService) OnStop() error {
+	return nil
 }
 
-func (hall *HallService) serve() {
+func (hall *HallService) Serve() error {
 	//
 	// 1.服务器关闭时保存数据后再退出
 	// 2.处理actor调用
 	//
-	hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
-	defer hall.cancelFunc()
+	// hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
+	// defer hall.cancelFunc()
 	// facade.Go(func() error {
 	// 	select {
 	// 	case <-hall.ctx.Done():
@@ -107,21 +93,71 @@ func (hall *HallService) serve() {
 			r.Call()
 		case <-hall.ctx.Done():
 			log.Infow("hall exit")
-			return
+			goto TAG_CLEAN_UP
 		}
 	}
+TAG_CLEAN_UP:
+	hall.isDestory = true
+	for {
+		log.Infow("hall on stop------------", "session_count", hall.sessionCount)
+		sessions := make([]*hall_sesssion, 0)
+		hall.sessionDict.Range(func(key, value any) bool {
+			session, _ := value.(*hall_sesssion)
+			sessions = append(sessions, session)
+			return true
+		})
+		for _, session := range sessions {
+			session.Call_close(hall.cancelCtx, actor.WithCallTimeOut(5*time.Second))
+		}
+		log.Infow("hall on stop++++++++", "session_count", hall.sessionCount)
+		if hall.sessionCount <= 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	hall.cancelFunc()
+	return nil
 }
 
 func (hall *HallService) SessionCount() int64 {
 	return hall.sessionCount
 }
 
+// 踢用户下线
+// 协程程安全
 func (hall *HallService) Kick(ctx context.Context, userId string, reason string) (err error) {
 	if v, ok := hall.sessionDict.Load(userId); !ok {
 		return gira.ErrUserNotFound
 	} else {
 		session := v.(*hall_sesssion)
 		return session.Call_Kick(ctx, reason, actor.WithCallTimeOut(5*time.Second))
+	}
+}
+
+// 顶号下线
+// 协程程安全
+func (hall *HallService) Instead(ctx context.Context, userId string, reason string) error {
+	log.Infow("user instead", "user_id", userId)
+	if v, ok := hall.sessionDict.Load(userId); !ok {
+		// 偿试解锁
+		peer, err := facade.UnlockLocalUser(userId)
+		log.Infow("unlock local user return", "user_id", userId, "peer", peer, "err", err)
+		if err != nil {
+			return err
+		} else {
+			return nil
+		}
+	} else {
+		session := v.(*hall_sesssion)
+		timeoutCtx, timeoutFunc := context.WithTimeout(ctx, 10*time.Second)
+		defer timeoutFunc()
+		if err := session.Call_instead(timeoutCtx, reason, actor.WithCallTimeOut(1*time.Second)); err != nil {
+			log.Errorw("user instead fail", "user_id", userId, "error", err)
+			return err
+		} else {
+			log.Infow("user instead success", "user_id", userId)
+			return nil
+		}
 	}
 }
 

@@ -39,7 +39,7 @@ const (
 	syncPackage    = protogen.GoImportPath("sync")
 	giraPackage    = protogen.GoImportPath("github.com/lujingwei002/gira")
 	facadePackage  = protogen.GoImportPath("github.com/lujingwei002/gira/facade")
-	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/options/registry_options")
+	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/options/service_options")
 )
 
 type serviceGenerateHelperInterface interface {

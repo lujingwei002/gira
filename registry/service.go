@@ -17,7 +17,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/options/registry_options"
+	"github.com/lujingwei002/gira/options/service_options"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -274,7 +274,7 @@ func (self *service_registry) watchServices(r *Registry) error {
 			}
 		}
 	}
-	log.Info("service registry watch shutdown")
+	log.Info("service registry watch exit")
 	return nil
 	// })
 }
@@ -284,7 +284,7 @@ func (self *service_registry) unregisterServices(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("service registry unregister self", "peer_prefix", self.peerPrefix)
+	log.Infow("service registry unregister", "peer_prefix", self.peerPrefix)
 
 	var txnResp *clientv3.TxnResponse
 	var err error
@@ -308,21 +308,19 @@ func (self *service_registry) unregisterServices(r *Registry) error {
 	return nil
 }
 
-func (self *service_registry) NewServiceName(r *Registry, serviceName string, opt ...registry_options.RegisterOption) string {
-	opts := registry_options.RegisterOptions{}
+func (self *service_registry) NewServiceName(r *Registry, serviceName string, opt ...service_options.RegisterOption) string {
+	opts := service_options.RegisterOptions{}
 	for _, v := range opt {
 		v.ConfigRegisterOption(&opts)
 	}
-	if opts.AsGroup {
-		if opts.CatAppId {
-			serviceName = fmt.Sprintf("%s/%s_%d", serviceName, serviceName, r.appId)
-		}
+	if opts.AsAppService {
+		serviceName = fmt.Sprintf("%s/%s_%d", serviceName, serviceName, r.appId)
 	}
 	return serviceName
 }
 
 // 注册服务
-func (self *service_registry) RegisterService(r *Registry, serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+func (self *service_registry) RegisterService(r *Registry, serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
 	serviceName = self.NewServiceName(r, serviceName, opt...)
 	client := r.client
 	serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
@@ -387,8 +385,8 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 }
 
 // 查找服务位置
-func (self *service_registry) WhereIsService(r *Registry, serviceName string, opt ...registry_options.WhereOption) (peers []*gira.Peer, err error) {
-	opts := registry_options.WhereOptions{}
+func (self *service_registry) WhereIsService(r *Registry, serviceName string, opt ...service_options.WhereOption) (peers []*gira.Peer, err error) {
+	opts := service_options.WhereOptions{}
 	for _, v := range opt {
 		v.ConfigWhereOption(&opts)
 	}

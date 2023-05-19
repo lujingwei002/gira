@@ -1,7 +1,7 @@
 package gira
 
 import (
-	"github.com/lujingwei002/gira/options/registry_options"
+	service_options "github.com/lujingwei002/gira/options/service_options"
 )
 
 type Registry interface {
@@ -13,10 +13,10 @@ type Registry interface {
 	ListPeerKvs() (peers map[string]string, err error)
 	ListServiceKvs() (services map[string][]string, err error)
 
-	NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string
-	RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*Peer, error)
+	NewServiceName(serviceName string, opt ...service_options.RegisterOption) string
+	RegisterService(serviceName string, opt ...service_options.RegisterOption) (*Peer, error)
 	UnregisterService(serviceName string) (*Peer, error)
-	WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*Peer, error)
+	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
 }
 
 // 伙伴

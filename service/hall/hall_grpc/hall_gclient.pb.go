@@ -11,7 +11,7 @@ import (
 	fmt "fmt"
 	gira "github.com/lujingwei002/gira"
 	facade "github.com/lujingwei002/gira/facade"
-	registry_options "github.com/lujingwei002/gira/options/registry_options"
+	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
 	sync "sync"
 )
@@ -117,96 +117,96 @@ func (r *MustPushResponse_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
-type ClientMessagePush_MulticastResult struct {
+type ClientMessageResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
 	successPeers []*gira.Peer
 	errorPeers   []*gira.Peer
-	responses    []*ClientMessagePush
+	responses    []*ClientMessageResponse
 }
 
-func (r *ClientMessagePush_MulticastResult) Error() error {
+func (r *ClientMessageResponse_MulticastResult) Error() error {
 	if len(r.errors) <= 0 {
 		return nil
 	}
 	return r.errors[0]
 }
-func (r *ClientMessagePush_MulticastResult) Response(index int) *ClientMessagePush {
+func (r *ClientMessageResponse_MulticastResult) Response(index int) *ClientMessageResponse {
 	if index < 0 || index >= len(r.responses) {
 		return nil
 	}
 	return r.responses[index]
 }
-func (r *ClientMessagePush_MulticastResult) SuccessPeer(index int) *gira.Peer {
+func (r *ClientMessageResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.successPeers) {
 		return nil
 	}
 	return r.successPeers[index]
 }
-func (r *ClientMessagePush_MulticastResult) ErrorPeer(index int) *gira.Peer {
+func (r *ClientMessageResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.errorPeers) {
 		return nil
 	}
 	return r.errorPeers[index]
 }
-func (r *ClientMessagePush_MulticastResult) PeerCount() int {
+func (r *ClientMessageResponse_MulticastResult) PeerCount() int {
 	return r.peerCount
 }
-func (r *ClientMessagePush_MulticastResult) SuccessCount() int {
+func (r *ClientMessageResponse_MulticastResult) SuccessCount() int {
 	return len(r.successPeers)
 }
-func (r *ClientMessagePush_MulticastResult) ErrorCount() int {
+func (r *ClientMessageResponse_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
-func (r *ClientMessagePush_MulticastResult) Errors(index int) error {
+func (r *ClientMessageResponse_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}
 	return r.errors[index]
 }
 
-type GateStreamPush_MulticastResult struct {
+type GateStreamResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
 	successPeers []*gira.Peer
 	errorPeers   []*gira.Peer
-	responses    []*GateStreamPush
+	responses    []*GateStreamResponse
 }
 
-func (r *GateStreamPush_MulticastResult) Error() error {
+func (r *GateStreamResponse_MulticastResult) Error() error {
 	if len(r.errors) <= 0 {
 		return nil
 	}
 	return r.errors[0]
 }
-func (r *GateStreamPush_MulticastResult) Response(index int) *GateStreamPush {
+func (r *GateStreamResponse_MulticastResult) Response(index int) *GateStreamResponse {
 	if index < 0 || index >= len(r.responses) {
 		return nil
 	}
 	return r.responses[index]
 }
-func (r *GateStreamPush_MulticastResult) SuccessPeer(index int) *gira.Peer {
+func (r *GateStreamResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.successPeers) {
 		return nil
 	}
 	return r.successPeers[index]
 }
-func (r *GateStreamPush_MulticastResult) ErrorPeer(index int) *gira.Peer {
+func (r *GateStreamResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.errorPeers) {
 		return nil
 	}
 	return r.errorPeers[index]
 }
-func (r *GateStreamPush_MulticastResult) PeerCount() int {
+func (r *GateStreamResponse_MulticastResult) PeerCount() int {
 	return r.peerCount
 }
-func (r *GateStreamPush_MulticastResult) SuccessCount() int {
+func (r *GateStreamResponse_MulticastResult) SuccessCount() int {
 	return len(r.successPeers)
 }
-func (r *GateStreamPush_MulticastResult) ErrorCount() int {
+func (r *GateStreamResponse_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
-func (r *GateStreamPush_MulticastResult) Errors(index int) error {
+func (r *GateStreamResponse_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}
@@ -357,6 +357,102 @@ func (r *KickResponse_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
+type SendMessageResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*SendMessageResponse
+}
+
+func (r *SendMessageResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *SendMessageResponse_MulticastResult) Response(index int) *SendMessageResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *SendMessageResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *SendMessageResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *SendMessageResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *SendMessageResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *SendMessageResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *SendMessageResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type CallMessageResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*CallMessageResponse
+}
+
+func (r *CallMessageResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *CallMessageResponse_MulticastResult) Response(index int) *CallMessageResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *CallMessageResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *CallMessageResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *CallMessageResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *CallMessageResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *CallMessageResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *CallMessageResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
 const (
 	HallServiceName = "hall_grpc.Hall"
 )
@@ -374,14 +470,20 @@ type HallClients interface {
 	UserInstead(ctx context.Context, address string, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, address string, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
-	// 转发client消息
+	// client消息流
 	ClientStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
-	// 网关消息交互
+	// 网关消息流
 	GateStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_GateStreamClient, error)
 	// 状态
 	Info(ctx context.Context, address string, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
+	// 心跳
 	Heartbeat(ctx context.Context, address string, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	// 踢人下线
 	Kick(ctx context.Context, address string, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
+	// 发送消息
+	SendMessage(ctx context.Context, address string, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	// 发送消息
+	CallMessage(ctx context.Context, address string, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error)
 }
 
 type HallClientsMulticast interface {
@@ -390,14 +492,20 @@ type HallClientsMulticast interface {
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error)
-	// 转发client消息
+	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error)
-	// 网关消息交互
+	// 网关消息流
 	GateStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_GateStreamClient_MulticastResult, error)
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse_MulticastResult, error)
+	// 心跳
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse_MulticastResult, error)
+	// 踢人下线
 	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error)
+	// 发送消息
+	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse_MulticastResult, error)
+	// 发送消息
+	CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse_MulticastResult, error)
 }
 
 type HallClientsUnicast interface {
@@ -410,14 +518,20 @@ type HallClientsUnicast interface {
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
-	// 转发client消息
+	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
-	// 网关消息交互
+	// 网关消息流
 	GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error)
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
+	// 心跳
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	// 踢人下线
 	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
+	// 发送消息
+	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	// 发送消息
+	CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error)
 }
 
 type hallClients struct {
@@ -589,6 +703,32 @@ func (c *hallClients) Kick(ctx context.Context, address string, in *KickRequest,
 	}
 	defer c.putClient(address, client)
 	out, err := client.Kick(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClients) SendMessage(ctx context.Context, address string, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
+	client, err := c.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.putClient(address, client)
+	out, err := client.SendMessage(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClients) CallMessage(ctx context.Context, address string, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error) {
+	client, err := c.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.putClient(address, client)
+	out, err := client.CallMessage(ctx, in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -887,6 +1027,78 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 	return out, nil
 }
 
+func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
+	var address string
+	if len(c.address) > 0 {
+		address = c.address
+	} else if c.peer != nil {
+		address = c.peer.GrpcAddr
+	} else if len(c.serviceName) > 0 {
+		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+			return nil, err
+		} else if len(peers) < 1 {
+			return nil, gira.ErrPeerNotFound.Trace()
+		} else {
+			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
+		}
+	}
+	if len(address) <= 0 {
+		return nil, gira.ErrInvalidArgs.Trace()
+	}
+	client, err := c.client.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.client.putClient(address, client)
+	out, err := client.SendMessage(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error) {
+	var address string
+	if len(c.address) > 0 {
+		address = c.address
+	} else if c.peer != nil {
+		address = c.peer.GrpcAddr
+	} else if len(c.serviceName) > 0 {
+		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+			return nil, err
+		} else if len(peers) < 1 {
+			return nil, gira.ErrPeerNotFound.Trace()
+		} else {
+			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
+		}
+	}
+	if len(address) <= 0 {
+		return nil, gira.ErrInvalidArgs.Trace()
+	}
+	client, err := c.client.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.client.putClient(address, client)
+	out, err := client.CallMessage(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type hallClientsMulticast struct {
 	// 不变
 	count       int
@@ -1002,13 +1214,13 @@ func (c *hallClientsMulticast) WithRegex(regex string) HallClientsMulticast {
 
 func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -1039,13 +1251,13 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 
 func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -1076,13 +1288,13 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 
 func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -1112,13 +1324,13 @@ func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.Ca
 
 func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_GateStreamClient_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -1148,13 +1360,13 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 
 func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -1185,13 +1397,13 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 
 func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -1222,13 +1434,13 @@ func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatReque
 
 func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -1244,6 +1456,80 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 			continue
 		}
 		out, err := client.Kick(ctx, in, opts...)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			c.client.putClient(peer.GrpcAddr, client)
+			continue
+		}
+		c.client.putClient(peer.GrpcAddr, client)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
+	}
+	return result, nil
+}
+
+func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse_MulticastResult, error) {
+	var peers []*gira.Peer
+	var whereOpts []service_options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+	}
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+	}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		return nil, err
+	}
+	result := &SendMessageResponse_MulticastResult{}
+	result.peerCount = len(peers)
+	for _, peer := range peers {
+		client, err := c.client.getClient(peer.GrpcAddr)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			continue
+		}
+		out, err := client.SendMessage(ctx, in, opts...)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			c.client.putClient(peer.GrpcAddr, client)
+			continue
+		}
+		c.client.putClient(peer.GrpcAddr, client)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
+	}
+	return result, nil
+}
+
+func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse_MulticastResult, error) {
+	var peers []*gira.Peer
+	var whereOpts []service_options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+	}
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+	}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		return nil, err
+	}
+	result := &CallMessageResponse_MulticastResult{}
+	result.peerCount = len(peers)
+	for _, peer := range peers {
+		client, err := c.client.getClient(peer.GrpcAddr)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			continue
+		}
+		out, err := client.CallMessage(ctx, in, opts...)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)

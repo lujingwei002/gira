@@ -19,6 +19,7 @@ type hall_server struct {
 	hall *HallService
 }
 
+// 踢用户下线
 func (self *hall_server) Kick(ctx context.Context, req *hall_grpc.KickRequest) (*hall_grpc.KickResponse, error) {
 	resp := &hall_grpc.KickResponse{}
 	if err := self.hall.Kick(ctx, req.UserId, req.Reason); err != nil {
@@ -27,35 +28,17 @@ func (self *hall_server) Kick(ctx context.Context, req *hall_grpc.KickRequest) (
 	return resp, nil
 }
 
-// 收到顶号下线的请求
+// 顶号下线
 func (self *hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserInsteadRequest) (*hall_grpc.UserInsteadResponse, error) {
 	resp := &hall_grpc.UserInsteadResponse{}
-	userId := req.UserId
-	log.Infow("user instead", "user_id", userId)
-	if v, ok := self.hall.sessionDict.Load(userId); !ok {
-		// 偿试解锁
-		peer, err := facade.UnlockLocalUser(userId)
-		log.Infow("unlock local user return", "user_id", userId, "peer", peer, "err", err)
-		if err != nil {
-			resp.ErrorCode = gira.ErrCode(err)
-			resp.ErrorMsg = gira.ErrMsg(err)
-			return resp, nil
-		} else {
-			return resp, nil
-		}
+	reason := fmt.Sprintf("账号在%s登录", req.Address)
+	if err := self.hall.Instead(ctx, req.UserId, reason); err != nil {
+		resp.ErrorCode = gira.ErrCode(err)
+		resp.ErrorMsg = gira.ErrMsg(err)
+		return resp, nil
 	} else {
-		session := v.(*hall_sesssion)
-		timeoutCtx, timeoutFunc := context.WithTimeout(ctx, 10*time.Second)
-		defer timeoutFunc()
-		if err := session.Call_instead(timeoutCtx, fmt.Sprintf("在%s登录", req.Address), actor.WithCallTimeOut(1*time.Second)); err != nil {
-			log.Errorw("user instead fail", "user_id", userId, "error", err)
-			resp.ErrorCode = gira.ErrCode(err)
-			resp.ErrorMsg = gira.ErrMsg(err)
-			return resp, nil
-		} else {
-			log.Infow("user instead success", "user_id", userId)
-			return resp, nil
-		}
+
+		return resp, nil
 	}
 }
 
@@ -158,13 +141,13 @@ func (self *hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) erro
 	if self.hall.isDestory {
 		return gira.ErrAlreadyDestory
 	}
-	errGroup, errCtx := errgroup.WithContext(self.hall.ctx)
+	errGroup, errCtx := errgroup.WithContext(self.hall.cancelCtx)
 	// 定时发送在线人数
 	errGroup.Go(func() error {
 		for {
 			select {
-			case <-self.hall.ctx.Done():
-				return self.hall.ctx.Err()
+			case <-self.hall.cancelCtx.Done():
+				return self.hall.cancelCtx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
 			}
@@ -174,8 +157,8 @@ func (self *hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) erro
 	errGroup.Go(func() error {
 		for {
 			select {
-			case <-self.hall.ctx.Done():
-				return self.hall.ctx.Err()
+			case <-self.hall.cancelCtx.Done():
+				return self.hall.cancelCtx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
 			default:
@@ -194,7 +177,7 @@ func (self *hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) erro
 }
 
 func (self *hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) error {
-	var req *hall_grpc.ClientMessageNotify
+	var req *hall_grpc.ClientMessageRequest
 	var err error
 	var memberId string
 	if self.hall.isDestory {
@@ -224,16 +207,16 @@ func (self *hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) 
 
 	// 建立成功， 函数结束后通知释放
 	// response管理
-	session.chClientResponse = make(chan *hall_grpc.ClientMessagePush, hall.config.ResponseBufferSize)
-	session.chClientRequest = make(chan *hall_grpc.ClientMessageNotify, hall.config.RequestBufferSize)
+	session.chClientResponse = make(chan *hall_grpc.ClientMessageResponse, hall.config.ResponseBufferSize)
+	session.chClientRequest = make(chan *hall_grpc.ClientMessageRequest, hall.config.RequestBufferSize)
 
 	// 绑定到hall
-	clientCtx, clientCancelFunc := context.WithCancel(self.hall.ctx)
+	clientCtx, clientCancelFunc := context.WithCancel(self.hall.cancelCtx)
 	session.clientCancelFunc = clientCancelFunc
 	// recv ctrl context
 	defer func() {
 		clientCancelFunc()
-		if err := session.Call_close(self.hall.ctx, actor.WithCallTimeOut(5*time.Second)); err != nil {
+		if err := session.Call_close(self.hall.cancelCtx, actor.WithCallTimeOut(5*time.Second)); err != nil {
 			log.Errorw("session close fail", "session_id", sessionId, "error", err)
 		}
 	}()

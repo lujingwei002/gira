@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/options/registry_options"
+	"github.com/lujingwei002/gira/options/service_options"
 	"google.golang.org/grpc"
 )
 
@@ -126,7 +126,7 @@ func ListServiceKvs() (peers map[string][]string, err error) {
 }
 
 // 构造服务名
-func NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string {
+func NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		return h.NewServiceName(serviceName, opt...)
@@ -136,7 +136,7 @@ func NewServiceName(serviceName string, opt ...registry_options.RegisterOption) 
 }
 
 // 注册服务名
-func RegisterServiceName(serviceName string, opt ...registry_options.RegisterOption) (*gira.Peer, error) {
+func RegisterServiceName(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		return h.RegisterService(serviceName, opt...)
@@ -156,7 +156,7 @@ func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 }
 
 // 查找服务
-func WhereIsService(serviceName string, opt ...registry_options.WhereOption) ([]*gira.Peer, error) {
+func WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		return h.WhereIsService(serviceName, opt...)

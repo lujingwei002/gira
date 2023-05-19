@@ -1,8 +1,11 @@
 package gira
 
+import "context"
+
 type Service interface {
-	OnStart() error
-	OnStop()
+	OnStart(ctx context.Context) error
+	Serve() error
+	OnStop() error
 }
 
 type ServiceContainer interface {

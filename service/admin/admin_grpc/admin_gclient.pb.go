@@ -11,7 +11,7 @@ import (
 	fmt "fmt"
 	gira "github.com/lujingwei002/gira"
 	facade "github.com/lujingwei002/gira/facade"
-	registry_options "github.com/lujingwei002/gira/options/registry_options"
+	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
 	sync "sync"
 )
@@ -687,13 +687,13 @@ func (c *adminClientsMulticast) WithRegex(regex string) AdminClientsMulticast {
 
 func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -724,13 +724,13 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 
 func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource1Client_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -760,13 +760,13 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 
 func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (*Admin_ReloadResource2Client_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {
@@ -796,13 +796,13 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 
 func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource3Client_MulticastResult, error) {
 	var peers []*gira.Peer
-	var whereOpts []registry_options.WhereOption
+	var whereOpts []service_options.WhereOption
 	// 多播
 	if c.count > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereMaxCountOption(c.count))
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, registry_options.WithWhereRegexOption(c.regex))
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
 	}
 	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
 	if err != nil {

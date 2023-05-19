@@ -26,6 +26,8 @@ const (
 	Hall_Info_FullMethodName         = "/hall_grpc.Hall/Info"
 	Hall_Heartbeat_FullMethodName    = "/hall_grpc.Hall/Heartbeat"
 	Hall_Kick_FullMethodName         = "/hall_grpc.Hall/Kick"
+	Hall_SendMessage_FullMethodName  = "/hall_grpc.Hall/SendMessage"
+	Hall_CallMessage_FullMethodName  = "/hall_grpc.Hall/CallMessage"
 )
 
 // HallClient is the client API for Hall service.
@@ -36,14 +38,20 @@ type HallClient interface {
 	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
-	// 转发client消息
+	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
-	// 网关消息交互
+	// 网关消息流
 	GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error)
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
+	// 心跳
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	// 踢人下线
 	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
+	// 发送消息
+	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	// 发送消息
+	CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error)
 }
 
 type hallClient struct {
@@ -82,8 +90,8 @@ func (c *hallClient) ClientStream(ctx context.Context, opts ...grpc.CallOption) 
 }
 
 type Hall_ClientStreamClient interface {
-	Send(*ClientMessageNotify) error
-	Recv() (*ClientMessagePush, error)
+	Send(*ClientMessageRequest) error
+	Recv() (*ClientMessageResponse, error)
 	grpc.ClientStream
 }
 
@@ -91,12 +99,12 @@ type hallClientStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *hallClientStreamClient) Send(m *ClientMessageNotify) error {
+func (x *hallClientStreamClient) Send(m *ClientMessageRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *hallClientStreamClient) Recv() (*ClientMessagePush, error) {
-	m := new(ClientMessagePush)
+func (x *hallClientStreamClient) Recv() (*ClientMessageResponse, error) {
+	m := new(ClientMessageResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -113,8 +121,8 @@ func (c *hallClient) GateStream(ctx context.Context, opts ...grpc.CallOption) (H
 }
 
 type Hall_GateStreamClient interface {
-	Send(*GateStreamNotify) error
-	Recv() (*GateStreamPush, error)
+	Send(*GateStreamRequest) error
+	Recv() (*GateStreamResponse, error)
 	grpc.ClientStream
 }
 
@@ -122,12 +130,12 @@ type hallGateStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *hallGateStreamClient) Send(m *GateStreamNotify) error {
+func (x *hallGateStreamClient) Send(m *GateStreamRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *hallGateStreamClient) Recv() (*GateStreamPush, error) {
-	m := new(GateStreamPush)
+func (x *hallGateStreamClient) Recv() (*GateStreamResponse, error) {
+	m := new(GateStreamResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -161,6 +169,24 @@ func (c *hallClient) Kick(ctx context.Context, in *KickRequest, opts ...grpc.Cal
 	return out, nil
 }
 
+func (c *hallClient) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
+	out := new(SendMessageResponse)
+	err := c.cc.Invoke(ctx, Hall_SendMessage_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClient) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error) {
+	out := new(CallMessageResponse)
+	err := c.cc.Invoke(ctx, Hall_CallMessage_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HallServer is the server API for Hall service.
 // All implementations must embed UnimplementedHallServer
 // for forward compatibility
@@ -169,14 +195,20 @@ type HallServer interface {
 	UserInstead(context.Context, *UserInsteadRequest) (*UserInsteadResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error)
-	// 转发client消息
+	// client消息流
 	ClientStream(Hall_ClientStreamServer) error
-	// 网关消息交互
+	// 网关消息流
 	GateStream(Hall_GateStreamServer) error
 	// 状态
 	Info(context.Context, *InfoRequest) (*InfoResponse, error)
+	// 心跳
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
+	// 踢人下线
 	Kick(context.Context, *KickRequest) (*KickResponse, error)
+	// 发送消息
+	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
+	// 发送消息
+	CallMessage(context.Context, *CallMessageRequest) (*CallMessageResponse, error)
 	mustEmbedUnimplementedHallServer()
 }
 
@@ -204,6 +236,12 @@ func (UnimplementedHallServer) Heartbeat(context.Context, *HeartbeatRequest) (*H
 }
 func (UnimplementedHallServer) Kick(context.Context, *KickRequest) (*KickResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Kick not implemented")
+}
+func (UnimplementedHallServer) SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+}
+func (UnimplementedHallServer) CallMessage(context.Context, *CallMessageRequest) (*CallMessageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CallMessage not implemented")
 }
 func (UnimplementedHallServer) mustEmbedUnimplementedHallServer() {}
 
@@ -259,8 +297,8 @@ func _Hall_ClientStream_Handler(srv interface{}, stream grpc.ServerStream) error
 }
 
 type Hall_ClientStreamServer interface {
-	Send(*ClientMessagePush) error
-	Recv() (*ClientMessageNotify, error)
+	Send(*ClientMessageResponse) error
+	Recv() (*ClientMessageRequest, error)
 	grpc.ServerStream
 }
 
@@ -268,12 +306,12 @@ type hallClientStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *hallClientStreamServer) Send(m *ClientMessagePush) error {
+func (x *hallClientStreamServer) Send(m *ClientMessageResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *hallClientStreamServer) Recv() (*ClientMessageNotify, error) {
-	m := new(ClientMessageNotify)
+func (x *hallClientStreamServer) Recv() (*ClientMessageRequest, error) {
+	m := new(ClientMessageRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -285,8 +323,8 @@ func _Hall_GateStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Hall_GateStreamServer interface {
-	Send(*GateStreamPush) error
-	Recv() (*GateStreamNotify, error)
+	Send(*GateStreamResponse) error
+	Recv() (*GateStreamRequest, error)
 	grpc.ServerStream
 }
 
@@ -294,12 +332,12 @@ type hallGateStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *hallGateStreamServer) Send(m *GateStreamPush) error {
+func (x *hallGateStreamServer) Send(m *GateStreamResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *hallGateStreamServer) Recv() (*GateStreamNotify, error) {
-	m := new(GateStreamNotify)
+func (x *hallGateStreamServer) Recv() (*GateStreamRequest, error) {
+	m := new(GateStreamRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -360,6 +398,42 @@ func _Hall_Kick_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Hall_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HallServer).SendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Hall_SendMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HallServer).SendMessage(ctx, req.(*SendMessageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Hall_CallMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CallMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HallServer).CallMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Hall_CallMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HallServer).CallMessage(ctx, req.(*CallMessageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Hall_ServiceDesc is the grpc.ServiceDesc for Hall service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -386,6 +460,14 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Kick",
 			Handler:    _Hall_Kick_Handler,
+		},
+		{
+			MethodName: "SendMessage",
+			Handler:    _Hall_SendMessage_Handler,
+		},
+		{
+			MethodName: "CallMessage",
+			Handler:    _Hall_CallMessage_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

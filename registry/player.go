@@ -199,7 +199,7 @@ func (self *player_registry) watchSelfPeerPlayers(r *Registry) error {
 			}
 		}
 	}
-	log.Info("player registry watch shutdown")
+	log.Info("player registry watch exit")
 	return nil
 }
 
@@ -208,7 +208,7 @@ func (self *player_registry) unregisterLocalPlayers(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("player registry unregister self", "local_prefix", self.peerPrefix)
+	log.Infow("player registry unregister", "local_prefix", self.peerPrefix)
 
 	var txnResp *clientv3.TxnResponse
 	var err error
@@ -217,7 +217,7 @@ func (self *player_registry) unregisterLocalPlayers(r *Registry) error {
 		localKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
 		peerKey := fmt.Sprintf("%s%s", self.peerTypePrefix, userId)
 		userKey := fmt.Sprintf("%s%s", self.userPrefix, userId)
-		log.Infow("player registry unregister self", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
+		log.Infow("player registry unregister", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(localKey), "!=", 0)).
 			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(userKey))
 

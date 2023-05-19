@@ -8,20 +8,48 @@ service Hall {
     rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
     // rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
     rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
-    // 转发client消息
-    rpc ClientStream (stream ClientMessageNotify) returns (stream ClientMessagePush){}
-    // 网关消息交互
-    rpc GateStream (stream GateStreamNotify) returns (stream GateStreamPush){}
+    // client消息流
+    rpc ClientStream (stream ClientMessageRequest) returns (stream ClientMessageResponse){}
+    // 网关消息流
+    rpc GateStream (stream GateStreamRequest) returns (stream GateStreamResponse){}
     // 状态
     rpc Info (InfoRequest) returns (InfoResponse) {}
+    // 心跳
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
+    // 踢人下线
     rpc Kick(KickRequest) returns (KickResponse) {}
+    // 发送消息
+    rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {}
+    // 发送消息
+    rpc CallMessage (CallMessageRequest) returns (CallMessageResponse) {}
 }
 
-message GateStreamNotify {
+message SendMessageRequest {
+    string UserId = 1;
+    string Method = 2;
+    bytes Data = 3;
 }
 
-message GateStreamPush {
+message SendMessageResponse {
+}
+
+message CallMessageRequest {
+    string UserId = 1;
+    string Method = 2;
+    bytes Data = 3;
+}
+
+message CallMessageResponse {
+    string UserId = 1;
+    string Method = 2;
+    bytes Data = 3;
+}
+
+
+message GateStreamRequest {
+}
+
+message GateStreamResponse {
 }
 
 message HeartbeatRequest {
@@ -41,14 +69,14 @@ message InfoResponse {
     int64 SessionCount = 3;
 }
 
-message ClientMessageNotify {
+message ClientMessageRequest {
     string MemberId = 1;
     uint64 SessionId = 2;
     uint64 ReqId = 3;
     bytes Data = 4;
 }
 
-message ClientMessagePush {
+message ClientMessageResponse {
     PacketType Type = 1;
     uint64 SessionId = 2;
     uint64 ReqId = 3;
@@ -67,18 +95,6 @@ message UserInsteadResponse {
     int32 ErrorCode = 1;
     string ErrorMsg = 2;
 }
-
-// 推送消息
-// message PushStreamNotify {
-//     string UserId = 1;
-//     bytes Data = 4;
-// }
-
-// 推送消息
-// message PushStreamPush {
-//     int32 ErrorCode = 1;
-//     string ErrorMsg = 2;
-// }
 
 // 推送消息
 message MustPushRequest {

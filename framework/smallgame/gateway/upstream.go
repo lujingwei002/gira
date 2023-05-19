@@ -128,7 +128,7 @@ func (server *upstream_peer) serve() error {
 	})
 	errGroup.Go(func() error {
 		for {
-			var resp *hall_grpc.GateStreamPush
+			var resp *hall_grpc.GateStreamResponse
 			if resp, err = stream.Recv(); err != nil {
 				log.Warnw("gate recv fail", "error", err)
 				return err

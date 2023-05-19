@@ -376,7 +376,7 @@ func (self *peer_registry) watchPeers(r *Registry) error {
 			}
 		}
 	}
-	log.Info("peer registry watch shutdown")
+	log.Info("peer registry watch exit")
 	return nil
 	// })
 }
@@ -386,7 +386,7 @@ func (self *peer_registry) unregisterSelf(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("peer registry unregister self", "self_prefix", self.selfPrefix)
+	log.Infow("peer registry unregister", "self_prefix", self.selfPrefix)
 	self.isNormalUnregisterSelf = true
 	// txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0))
 	var txnResp *clientv3.TxnResponse
