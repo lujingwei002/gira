@@ -21,6 +21,54 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
+type MustPushResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*MustPushResponse
+}
+
+func (r *MustPushResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *MustPushResponse_MulticastResult) Response(index int) *MustPushResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *MustPushResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *MustPushResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *MustPushResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *MustPushResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *MustPushResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *MustPushResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
 type ClientMessagePush_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -303,54 +351,6 @@ func (r *UserInsteadResponse_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
 func (r *UserInsteadResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type MustPushResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*MustPushResponse
-}
-
-func (r *MustPushResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *MustPushResponse_MulticastResult) Response(index int) *MustPushResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *MustPushResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *MustPushResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *MustPushResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *MustPushResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *MustPushResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *MustPushResponse_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}
