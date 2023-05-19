@@ -282,8 +282,10 @@ func (runtime *Runtime) onStop() {
 func (runtime *Runtime) onStart() error {
 
 	// ==== registry ================
-	if err := runtime.ModuleContainer.InstallModule("registry", runtime.Registry); err != nil {
-		return err
+	if runtime.Registry != nil {
+		if err := runtime.ModuleContainer.InstallModule("registry", runtime.Registry); err != nil {
+			return err
+		}
 	}
 
 	// ==== service ================
@@ -304,7 +306,9 @@ func (runtime *Runtime) onStart() error {
 		}
 	}
 	// ==== registry ================
-	runtime.Registry.Notify()
+	if runtime.Registry != nil {
+		runtime.Registry.Notify()
+	}
 
 	// ==== http ================
 	if runtime.HttpServer != nil {
@@ -323,8 +327,10 @@ func (runtime *Runtime) onStart() error {
 		return err
 	}
 	// ==== grpc ================
-	if err := runtime.ModuleContainer.InstallModule("grpc server", runtime.GrpcServer); err != nil {
-		return err
+	if runtime.GrpcServer != nil {
+		if err := runtime.ModuleContainer.InstallModule("grpc server", runtime.GrpcServer); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -344,15 +350,13 @@ func (runtime *Runtime) onCreate() error {
 	}
 
 	// ==== registry ================
-	if runtime.config.Module.Etcd == nil {
-		return gira.ErrEtcdConfigNotFound.Trace()
+	if runtime.config.Module.Etcd != nil {
+		if r, err := registry.NewConfigRegistry(runtime.config.Module.Etcd, application); err != nil {
+			return err
+		} else {
+			runtime.Registry = r
+		}
 	}
-	if r, err := registry.NewConfigRegistry(runtime.config.Module.Etcd, application); err != nil {
-		return err
-	} else {
-		runtime.Registry = r
-	}
-
 	// ==== db ================
 	runtime.DbClients = make(map[string]gira.DbClient)
 	for name, c := range runtime.config.Db {
@@ -398,13 +402,12 @@ func (runtime *Runtime) onCreate() error {
 	}
 
 	// ==== grpc ================
-	if runtime.config.Module.Grpc == nil {
-		return gira.ErrGrpcConfigNotFound.Trace()
+	if runtime.config.Module.Grpc != nil {
+		if _, ok := application.(gira.GrpcServer); !ok {
+			return gira.ErrGrpcServerNotImplement
+		}
+		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)
 	}
-	if _, ok := application.(gira.GrpcServer); !ok {
-		return gira.ErrGrpcServerNotImplement
-	}
-	runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)
 
 	// ==== sdk================
 	if runtime.config.Module.Sdk != nil {
