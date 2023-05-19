@@ -223,14 +223,18 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 	g.P()
 
 	// gen response multicast result
-	responses := make(map[string]*protogen.Message)
+	responseDict := make(map[string]*protogen.Message)
+	responseArr := make([]*protogen.Message, 0)
 	for _, service := range file.Services {
 		for _, method := range service.Methods {
 			name := g.QualifiedGoIdent(method.Output.GoIdent)
-			responses[name] = method.Output
+			if _, ok := responseDict[name]; !ok {
+				responseDict[name] = method.Output
+				responseArr = append(responseArr, method.Output)
+			}
 		}
 	}
-	for _, response := range responses {
+	for _, response := range responseArr {
 		structName := fmt.Sprintf("%s_MulticastResult", g.QualifiedGoIdent(response.GoIdent))
 		g.P("type ", structName, " struct {")
 		g.P("	errors 			[]error")
