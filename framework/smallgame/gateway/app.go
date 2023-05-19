@@ -31,9 +31,9 @@ func (framework *Framework) ConnectionCount() int64 {
 	return framework.hall.connectionCount
 }
 
-func (framework *Framework) OnFrameworkAwake(application gira.Application) error {
+func (framework *Framework) OnFrameworkCreate(application gira.Application) error {
 	framework.hall = newHall(framework, framework.Proto, framework.Config)
-	if err := framework.hall.OnAwake(); err != nil {
+	if err := framework.hall.OnCreate(); err != nil {
 		return err
 	}
 	return nil

@@ -276,6 +276,13 @@ func ErrMsg(err error) string {
 	return s[1]
 }
 
+func ErrStack(err error) string {
+	if e, ok := err.(*Error); ok {
+		return string(e.Stack)
+	}
+	return ""
+}
+
 func TraceError(err error) error {
 	if e, ok := err.(*Error); ok {
 		return &Error{Code: e.Code, Msg: e.Msg, Stack: debug.Stack()}

@@ -29,7 +29,7 @@ func NewService(facade gira.Application) *AdminService {
 	return &AdminService{}
 }
 
-func (self *AdminService) OnDestory() {
+func (self *AdminService) OnStop() {
 }
 
 func (self *AdminService) OnStart() error {

@@ -29,7 +29,7 @@ func NewService(facade gira.Application) *PeerService {
 	}
 }
 
-func (self *PeerService) OnDestory() {
+func (self *PeerService) OnStop() {
 }
 
 func (self *PeerService) OnStart() error {

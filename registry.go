@@ -10,6 +10,8 @@ type Registry interface {
 	UnlockLocalUser(userId string) (*Peer, error)
 	WhereIsUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
+	ListPeerKvs() (peers map[string]string, err error)
+	ListServiceKvs() (services map[string][]string, err error)
 
 	NewServiceName(serviceName string, opt ...registry_options.RegisterOption) string
 	RegisterService(serviceName string, opt ...registry_options.RegisterOption) (*Peer, error)

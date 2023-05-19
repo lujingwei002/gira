@@ -2,7 +2,7 @@ package gira
 
 type Service interface {
 	OnStart() error
-	OnDestory()
+	OnStop()
 }
 
 type ServiceContainer interface {

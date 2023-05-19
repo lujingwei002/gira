@@ -194,8 +194,8 @@ func (runtime *Runtime) start() (err error) {
 		return
 	}
 	// 设置全局对象
-	gira.OnApplicationNew(runtime.Application)
-	if err = runtime.onAwake(); err != nil {
+	gira.OnApplicationCreate(runtime.Application)
+	if err = runtime.onCreate(); err != nil {
 		return
 	}
 	defer func() {
@@ -265,7 +265,7 @@ func (runtime *Runtime) Stop() error {
 
 func (runtime *Runtime) onStop() {
 	log.Infow("runtime on stop")
-	runtime.Application.OnDestory()
+	runtime.Application.OnStop()
 	for _, fw := range runtime.Frameworks {
 		log.Info("framework on stop", "name")
 		if err := fw.OnFrameworkStop(); err != nil {
@@ -273,9 +273,7 @@ func (runtime *Runtime) onStop() {
 		}
 	}
 	runtime.ModuleContainer.UninstallModule(runtime.Registry)
-	if runtime.GrpcServer != nil {
-		runtime.ModuleContainer.UninstallModule(runtime.GrpcServer)
-	}
+	runtime.ModuleContainer.UninstallModule(runtime.GrpcServer)
 	if runtime.HttpServer != nil {
 		runtime.ModuleContainer.UninstallModule(runtime.HttpServer)
 	}
@@ -286,13 +284,6 @@ func (runtime *Runtime) onStart() error {
 	// ==== registry ================
 	if err := runtime.ModuleContainer.InstallModule("registry", runtime.Registry); err != nil {
 		return err
-	}
-
-	// ==== http ================
-	if runtime.HttpServer != nil {
-		if err := runtime.ModuleContainer.InstallModule("http server", runtime.HttpServer); err != nil {
-			return err
-		}
 	}
 
 	// ==== service ================
@@ -312,7 +303,15 @@ func (runtime *Runtime) onStart() error {
 			}
 		}
 	}
+	// ==== registry ================
+	runtime.Registry.Notify()
 
+	// ==== http ================
+	if runtime.HttpServer != nil {
+		if err := runtime.ModuleContainer.InstallModule("http server", runtime.HttpServer); err != nil {
+			return err
+		}
+	}
 	// ==== framework start ================
 	for _, fw := range runtime.Frameworks {
 		if err := fw.OnFrameworkStart(); err != nil {
@@ -323,19 +322,14 @@ func (runtime *Runtime) onStart() error {
 	if err := runtime.Application.OnStart(); err != nil {
 		return err
 	}
-
-	runtime.Registry.Notify()
-
 	// ==== grpc ================
-	if runtime.GrpcServer != nil {
-		if err := runtime.ModuleContainer.InstallModule("grpc server", runtime.GrpcServer); err != nil {
-			return err
-		}
+	if err := runtime.ModuleContainer.InstallModule("grpc server", runtime.GrpcServer); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (runtime *Runtime) onAwake() error {
+func (runtime *Runtime) onCreate() error {
 	// log.Info("application", app.FullName, "start")
 	application := runtime.Application
 
@@ -454,15 +448,15 @@ func (runtime *Runtime) onAwake() error {
 		}
 	}
 
-	// ==== framework awake ================
+	// ==== framework create ================
 	for _, fw := range runtime.Frameworks {
-		if err := fw.OnFrameworkAwake(application); err != nil {
+		if err := fw.OnFrameworkCreate(application); err != nil {
 			return err
 		}
 	}
 
-	// ==== application awake ================
-	if err := application.OnAwake(); err != nil {
+	// ==== application create ================
+	if err := application.OnCreate(); err != nil {
 		return err
 	}
 	return nil

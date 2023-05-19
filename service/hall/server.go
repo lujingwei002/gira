@@ -58,7 +58,7 @@ func (hall *HallService) OnStart() error {
 	return nil
 }
 
-func (hall *HallService) OnDestory() {
+func (hall *HallService) OnStop() {
 	hall.isDestory = true
 	for {
 		log.Infow("hall停止中", "session_count", hall.sessionCount)

@@ -95,6 +95,16 @@ func (r *Registry) Serve() error {
 	return r.errGroup.Wait()
 }
 
+func (r *Registry) ListServiceKvs() (kvs map[string][]string, err error) {
+	kvs, err = r.serviceRegistry.listServiceKvs(r)
+	return
+}
+
+func (r *Registry) ListPeerKvs() (kvs map[string]string, err error) {
+	kvs, err = r.peerRegistry.listPeerKvs(r)
+	return
+}
+
 func (r *Registry) RangePeers(f func(k any, v any) bool) {
 	r.peerRegistry.RangePeers(f)
 }

@@ -32,7 +32,7 @@ func newHall(framework *Framework, proto gira.Proto, config *Config) *hall_serve
 	}
 }
 
-func (hall *hall_server) OnAwake() error {
+func (hall *hall_server) OnCreate() error {
 	var a interface{} = hall.framework
 	if handler, ok := a.(GatewayHandler); !ok {
 		return gira.ErrGateHandlerNotImplement

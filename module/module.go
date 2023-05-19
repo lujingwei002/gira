@@ -25,7 +25,6 @@ type Module struct {
 
 type ModuleContainer struct {
 	Modules    map[gira.Module]*Module
-	err        error
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	errCtx     context.Context
@@ -55,9 +54,6 @@ func (self *ModuleContainer) InstallModule(name string, m gira.Module) error {
 	}
 	self.Modules[m] = module
 	if err := m.OnStart(cancelCtx); err != nil {
-		if self.err == nil {
-			self.err = err
-		}
 		module.err = err
 		return err
 	}
@@ -80,10 +76,6 @@ func (self *ModuleContainer) UninstallModule(m gira.Module) error {
 		module.cancelFunc()
 		return nil
 	}
-}
-
-func (self *ModuleContainer) Err() error {
-	return self.err
 }
 
 func (self *ModuleContainer) Wait() error {

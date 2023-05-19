@@ -440,3 +440,25 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 		return
 	}
 }
+
+func (self *service_registry) listServiceKvs(r *Registry) (kvs map[string][]string, err error) {
+	client := r.client
+	kv := clientv3.NewKV(client)
+	var getResp *clientv3.GetResponse
+	if getResp, err = kv.Get(self.ctx, self.servicePrefix, clientv3.WithPrefix()); err != nil {
+		return
+	}
+	kvs = make(map[string][]string)
+	for _, kv := range getResp.Kvs {
+		pats := strings.Split(string(kv.Key), "/")
+		var serviceName string
+		if len(pats) == 4 {
+			serviceName = fmt.Sprintf("%s/%s", pats[2], pats[3])
+		} else if len(pats) == 3 {
+			serviceName = pats[2]
+		}
+		peerFullName := string(kv.Value)
+		kvs[peerFullName] = append(kvs[peerFullName], serviceName)
+	}
+	return
+}

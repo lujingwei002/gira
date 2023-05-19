@@ -30,7 +30,7 @@ func (application *BaseApplication) OnFrameworkStop() error {
 }
 
 // 框架唤醒回调
-func (self *BaseApplication) OnFrameworkAwake(application gira.Application) error {
+func (self *BaseApplication) OnFrameworkCreate(application gira.Application) error {
 	return nil
 }
 
@@ -204,6 +204,16 @@ func (application *BaseApplication) LoadResource(dir string) error {
 // 返回全部节点
 func (application *BaseApplication) RangePeers(f func(k any, v any) bool) {
 	application.runtime.Registry.RangePeers(f)
+}
+
+func (application *BaseApplication) ListPeerKvs() (peers map[string]string, err error) {
+	peers, err = application.runtime.Registry.ListPeerKvs()
+	return
+}
+
+func (application *BaseApplication) ListServiceKvs() (services map[string][]string, err error) {
+	services, err = application.runtime.Registry.ListServiceKvs()
+	return
 }
 
 // 重载配置

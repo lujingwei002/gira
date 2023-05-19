@@ -95,11 +95,33 @@ func WhereIsUser(userId string) (*gira.Peer, error) {
 	}
 }
 
+func ListPeerKvs() (peers map[string]string, err error) {
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		peers, err = h.ListPeerKvs()
+		return
+	} else {
+		err = gira.ErrRegistryNOtImplement
+		return
+	}
+}
+
 // 遍历节点
 func RangePeers(f func(k any, v any) bool) {
 	application := gira.App()
 	if h, ok := application.(gira.Registry); ok {
 		h.RangePeers(f)
+	}
+}
+
+func ListServiceKvs() (peers map[string][]string, err error) {
+	application := gira.App()
+	if h, ok := application.(gira.Registry); ok {
+		peers, err = h.ListServiceKvs()
+		return
+	} else {
+		err = gira.ErrRegistryNOtImplement
+		return
 	}
 }
 

@@ -502,3 +502,17 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 	}
 	return nil
 }
+
+func (self *peer_registry) listPeerKvs(r *Registry) (kvs map[string]string, err error) {
+	client := r.client
+	kv := clientv3.NewKV(client)
+	var getResp *clientv3.GetResponse
+	if getResp, err = kv.Get(self.ctx, self.prefix, clientv3.WithPrefix()); err != nil {
+		return
+	}
+	kvs = make(map[string]string)
+	for _, kv := range getResp.Kvs {
+		kvs[string(kv.Key)] = string(kv.Value)
+	}
+	return
+}

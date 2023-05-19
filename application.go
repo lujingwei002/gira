@@ -6,7 +6,7 @@ import (
 
 type Framework interface {
 	OnFrameworkConfigLoad(c *Config) error
-	OnFrameworkAwake(application Application) error
+	OnFrameworkCreate(application Application) error
 	OnFrameworkStart() error
 	OnFrameworkStop() error
 }
@@ -15,9 +15,9 @@ type Application interface {
 	// ======= 生命周期回调 ===========
 	// 配置加载完成后接收通知
 	OnConfigLoad(c *Config) error
-	OnAwake() error
+	OnCreate() error
 	OnStart() error
-	OnDestory() error
+	OnStop() error
 
 	// ======= 状态数据 ===========
 	GetConfig() *Config
@@ -45,6 +45,6 @@ func App() Application {
 	return application
 }
 
-func OnApplicationNew(app Application) {
+func OnApplicationCreate(app Application) {
 	application = app
 }

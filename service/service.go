@@ -25,6 +25,6 @@ func (c *ServiceContainer) StartService(name string, service gira.Service) error
 
 // 停止服务
 func (c *ServiceContainer) StopService(service gira.Service) error {
-	service.OnDestory()
+	service.OnStop()
 	return nil
 }
