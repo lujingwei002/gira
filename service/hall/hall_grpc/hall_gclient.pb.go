@@ -21,102 +21,6 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-type UserInsteadResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*UserInsteadResponse
-}
-
-func (r *UserInsteadResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *UserInsteadResponse_MulticastResult) Response(index int) *UserInsteadResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *UserInsteadResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *UserInsteadResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *UserInsteadResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *UserInsteadResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *UserInsteadResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *UserInsteadResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
-type MustPushResponse_MulticastResult struct {
-	errors       []error
-	peerCount    int
-	successPeers []*gira.Peer
-	errorPeers   []*gira.Peer
-	responses    []*MustPushResponse
-}
-
-func (r *MustPushResponse_MulticastResult) Error() error {
-	if len(r.errors) <= 0 {
-		return nil
-	}
-	return r.errors[0]
-}
-func (r *MustPushResponse_MulticastResult) Response(index int) *MustPushResponse {
-	if index < 0 || index >= len(r.responses) {
-		return nil
-	}
-	return r.responses[index]
-}
-func (r *MustPushResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.successPeers) {
-		return nil
-	}
-	return r.successPeers[index]
-}
-func (r *MustPushResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
-	if index < 0 || index >= len(r.errorPeers) {
-		return nil
-	}
-	return r.errorPeers[index]
-}
-func (r *MustPushResponse_MulticastResult) PeerCount() int {
-	return r.peerCount
-}
-func (r *MustPushResponse_MulticastResult) SuccessCount() int {
-	return len(r.successPeers)
-}
-func (r *MustPushResponse_MulticastResult) ErrorCount() int {
-	return len(r.errorPeers)
-}
-func (r *MustPushResponse_MulticastResult) Errors(index int) error {
-	if index < 0 || index >= len(r.errors) {
-		return nil
-	}
-	return r.errors[index]
-}
-
 type ClientMessageResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
@@ -309,48 +213,48 @@ func (r *HeartbeatResponse_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
-type KickResponse_MulticastResult struct {
+type MustPushResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
 	successPeers []*gira.Peer
 	errorPeers   []*gira.Peer
-	responses    []*KickResponse
+	responses    []*MustPushResponse
 }
 
-func (r *KickResponse_MulticastResult) Error() error {
+func (r *MustPushResponse_MulticastResult) Error() error {
 	if len(r.errors) <= 0 {
 		return nil
 	}
 	return r.errors[0]
 }
-func (r *KickResponse_MulticastResult) Response(index int) *KickResponse {
+func (r *MustPushResponse_MulticastResult) Response(index int) *MustPushResponse {
 	if index < 0 || index >= len(r.responses) {
 		return nil
 	}
 	return r.responses[index]
 }
-func (r *KickResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+func (r *MustPushResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.successPeers) {
 		return nil
 	}
 	return r.successPeers[index]
 }
-func (r *KickResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+func (r *MustPushResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.errorPeers) {
 		return nil
 	}
 	return r.errorPeers[index]
 }
-func (r *KickResponse_MulticastResult) PeerCount() int {
+func (r *MustPushResponse_MulticastResult) PeerCount() int {
 	return r.peerCount
 }
-func (r *KickResponse_MulticastResult) SuccessCount() int {
+func (r *MustPushResponse_MulticastResult) SuccessCount() int {
 	return len(r.successPeers)
 }
-func (r *KickResponse_MulticastResult) ErrorCount() int {
+func (r *MustPushResponse_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
-func (r *KickResponse_MulticastResult) Errors(index int) error {
+func (r *MustPushResponse_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}
@@ -453,6 +357,102 @@ func (r *CallMessageResponse_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
+type UserInsteadResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*UserInsteadResponse
+}
+
+func (r *UserInsteadResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *UserInsteadResponse_MulticastResult) Response(index int) *UserInsteadResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *UserInsteadResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *UserInsteadResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *UserInsteadResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *UserInsteadResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *UserInsteadResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *UserInsteadResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
+type KickResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*KickResponse
+}
+
+func (r *KickResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *KickResponse_MulticastResult) Response(index int) *KickResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *KickResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *KickResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *KickResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *KickResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *KickResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *KickResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
 const (
 	HallServiceName = "hall_grpc.Hall"
 )
@@ -466,10 +466,6 @@ type HallClients interface {
 	WithMulticast(count int) HallClientsMulticast
 	WithBroadcast() HallClientsMulticast
 
-	// 顶号下线
-	UserInstead(ctx context.Context, address string, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
-	MustPush(ctx context.Context, address string, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// client消息流
 	ClientStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
 	// 网关消息流
@@ -478,20 +474,20 @@ type HallClients interface {
 	Info(ctx context.Context, address string, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	// 心跳
 	Heartbeat(ctx context.Context, address string, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
-	// 踢人下线
-	Kick(ctx context.Context, address string, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
+	MustPush(ctx context.Context, address string, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 发送消息
 	SendMessage(ctx context.Context, address string, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
 	// 发送消息
 	CallMessage(ctx context.Context, address string, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error)
+	// 顶号下线
+	UserInstead(ctx context.Context, address string, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
+	// 踢人下线
+	Kick(ctx context.Context, address string, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
 }
 
 type HallClientsMulticast interface {
 	WithRegex(regex string) HallClientsMulticast
-	// 顶号下线
-	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error)
-	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
-	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error)
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error)
 	// 网关消息流
@@ -500,12 +496,16 @@ type HallClientsMulticast interface {
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse_MulticastResult, error)
 	// 心跳
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse_MulticastResult, error)
-	// 踢人下线
-	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
+	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error)
 	// 发送消息
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse_MulticastResult, error)
 	// 发送消息
 	CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse_MulticastResult, error)
+	// 顶号下线
+	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error)
+	// 踢人下线
+	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error)
 }
 
 type HallClientsUnicast interface {
@@ -514,10 +514,6 @@ type HallClientsUnicast interface {
 	WithAddress(address string) HallClientsUnicast
 	WithUserId(userId string) HallClientsUnicast
 
-	// 顶号下线
-	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
-	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
 	// 网关消息流
@@ -526,12 +522,16 @@ type HallClientsUnicast interface {
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	// 心跳
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
-	// 踢人下线
-	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
+	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 发送消息
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
 	// 发送消息
 	CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error)
+	// 顶号下线
+	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
+	// 踢人下线
+	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
 }
 
 type hallClients struct {
@@ -618,32 +618,6 @@ func (c *hallClients) WithBroadcast() HallClientsMulticast {
 	return u
 }
 
-func (c *hallClients) UserInstead(ctx context.Context, address string, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
-	client, err := c.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.putClient(address, client)
-	out, err := client.UserInstead(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *hallClients) MustPush(ctx context.Context, address string, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
-	client, err := c.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.putClient(address, client)
-	out, err := client.MustPush(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *hallClients) ClientStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_ClientStreamClient, error) {
 	client, err := c.getClient(address)
 	if err != nil {
@@ -696,13 +670,13 @@ func (c *hallClients) Heartbeat(ctx context.Context, address string, in *Heartbe
 	return out, nil
 }
 
-func (c *hallClients) Kick(ctx context.Context, address string, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
+func (c *hallClients) MustPush(ctx context.Context, address string, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
 	client, err := c.getClient(address)
 	if err != nil {
 		return nil, err
 	}
 	defer c.putClient(address, client)
-	out, err := client.Kick(ctx, in, opts...)
+	out, err := client.MustPush(ctx, in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -729,6 +703,32 @@ func (c *hallClients) CallMessage(ctx context.Context, address string, in *CallM
 	}
 	defer c.putClient(address, client)
 	out, err := client.CallMessage(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClients) UserInstead(ctx context.Context, address string, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
+	client, err := c.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.putClient(address, client)
+	out, err := client.UserInstead(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClients) Kick(ctx context.Context, address string, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
+	client, err := c.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.putClient(address, client)
+	out, err := client.Kick(ctx, in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -773,78 +773,6 @@ func (c *hallClientsUnicast) WithUserId(userId string) HallClientsUnicast {
 		userId: userId,
 	}
 	return u
-}
-
-func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
-		} else {
-			address = peers[0].GrpcAddr
-		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else {
-			address = peer.GrpcAddr
-		}
-	}
-	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	out, err := client.UserInstead(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
-		} else {
-			address = peers[0].GrpcAddr
-		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else {
-			address = peer.GrpcAddr
-		}
-	}
-	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	out, err := client.MustPush(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error) {
@@ -991,7 +919,7 @@ func (c *hallClientsUnicast) Heartbeat(ctx context.Context, in *HeartbeatRequest
 	return out, nil
 }
 
-func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
+func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
@@ -1020,7 +948,7 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
-	out, err := client.Kick(ctx, in, opts...)
+	out, err := client.MustPush(ctx, in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1093,6 +1021,78 @@ func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageReq
 	}
 	defer c.client.putClient(address, client)
 	out, err := client.CallMessage(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
+	var address string
+	if len(c.address) > 0 {
+		address = c.address
+	} else if c.peer != nil {
+		address = c.peer.GrpcAddr
+	} else if len(c.serviceName) > 0 {
+		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+			return nil, err
+		} else if len(peers) < 1 {
+			return nil, gira.ErrPeerNotFound.Trace()
+		} else {
+			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
+		}
+	}
+	if len(address) <= 0 {
+		return nil, gira.ErrInvalidArgs.Trace()
+	}
+	client, err := c.client.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.client.putClient(address, client)
+	out, err := client.UserInstead(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
+	var address string
+	if len(c.address) > 0 {
+		address = c.address
+	} else if c.peer != nil {
+		address = c.peer.GrpcAddr
+	} else if len(c.serviceName) > 0 {
+		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+			return nil, err
+		} else if len(peers) < 1 {
+			return nil, gira.ErrPeerNotFound.Trace()
+		} else {
+			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
+		}
+	}
+	if len(address) <= 0 {
+		return nil, gira.ErrInvalidArgs.Trace()
+	}
+	client, err := c.client.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.client.putClient(address, client)
+	out, err := client.Kick(ctx, in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1210,80 +1210,6 @@ func (c *hallClientsMulticast) WithRegex(regex string) HallClientsMulticast {
 		regex:  regex,
 	}
 	return u
-}
-
-func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
-	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &UserInsteadResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
-		}
-		out, err := client.UserInstead(ctx, in, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
-			continue
-		}
-		c.client.putClient(peer.GrpcAddr, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
-	}
-	return result, nil
-}
-
-func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
-	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &MustPushResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
-		}
-		out, err := client.MustPush(ctx, in, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
-			continue
-		}
-		c.client.putClient(peer.GrpcAddr, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
-	}
-	return result, nil
 }
 
 func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error) {
@@ -1432,7 +1358,7 @@ func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatReque
 	return result, nil
 }
 
-func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error) {
+func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error) {
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
@@ -1446,7 +1372,7 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 	if err != nil {
 		return nil, err
 	}
-	result := &KickResponse_MulticastResult{}
+	result := &MustPushResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
@@ -1455,7 +1381,7 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 			result.errorPeers = append(result.errorPeers, peer)
 			continue
 		}
-		out, err := client.Kick(ctx, in, opts...)
+		out, err := client.MustPush(ctx, in, opts...)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1530,6 +1456,80 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 			continue
 		}
 		out, err := client.CallMessage(ctx, in, opts...)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			c.client.putClient(peer.GrpcAddr, client)
+			continue
+		}
+		c.client.putClient(peer.GrpcAddr, client)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
+	}
+	return result, nil
+}
+
+func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error) {
+	var peers []*gira.Peer
+	var whereOpts []service_options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+	}
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+	}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		return nil, err
+	}
+	result := &UserInsteadResponse_MulticastResult{}
+	result.peerCount = len(peers)
+	for _, peer := range peers {
+		client, err := c.client.getClient(peer.GrpcAddr)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			continue
+		}
+		out, err := client.UserInstead(ctx, in, opts...)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			c.client.putClient(peer.GrpcAddr, client)
+			continue
+		}
+		c.client.putClient(peer.GrpcAddr, client)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
+	}
+	return result, nil
+}
+
+func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error) {
+	var peers []*gira.Peer
+	var whereOpts []service_options.WhereOption
+	// 多播
+	if c.count > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+	}
+	if len(c.regex) > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+	}
+	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if err != nil {
+		return nil, err
+	}
+	result := &KickResponse_MulticastResult{}
+	result.peerCount = len(peers)
+	for _, peer := range peers {
+		client, err := c.client.getClient(peer.GrpcAddr)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			continue
+		}
+		out, err := client.Kick(ctx, in, opts...)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)

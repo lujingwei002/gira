@@ -54,10 +54,14 @@ func (hall *HallService) OnStart(ctx context.Context) error {
 	hall.ctx = ctx
 	// 后台运行
 	hall.cancelCtx, hall.cancelFunc = context.WithCancel(context.Background())
-	facade.RegisterGrpc(func(server *grpc.Server) error {
+	if err := facade.RegisterGrpc(func(server *grpc.Server) error {
 		hall_grpc.RegisterHallServer(server, hall.hallServer)
 		return nil
-	})
+	}); err != nil {
+		log.Println("ffffffffffffffffffffffffffffff", err)
+		return err
+	}
+	log.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	return nil
 }
 

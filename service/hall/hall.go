@@ -42,6 +42,16 @@ func (self *hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserIns
 	}
 }
 
+func (self *hall_server) SendMessage(context.Context, *hall_grpc.SendMessageRequest) (*hall_grpc.SendMessageResponse, error) {
+	resp := &hall_grpc.SendMessageResponse{}
+	return resp, nil
+}
+
+func (self *hall_server) CallMessage(context.Context, *hall_grpc.CallMessageRequest) (*hall_grpc.CallMessageResponse, error) {
+	resp := &hall_grpc.CallMessageResponse{}
+	return resp, nil
+}
+
 // push消息流
 // func (self *hall_server) PushStream(server hall_grpc.Hall_PushStreamServer) error {
 // 	for {

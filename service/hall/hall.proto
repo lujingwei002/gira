@@ -4,10 +4,6 @@ option go_package = "./hall_grpc";
 package hall_grpc;
 
 service Hall {
-    // 顶号下线
-    rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
-    // rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
-    rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
     // client消息流
     rpc ClientStream (stream ClientMessageRequest) returns (stream ClientMessageResponse){}
     // 网关消息流
@@ -16,12 +12,16 @@ service Hall {
     rpc Info (InfoRequest) returns (InfoResponse) {}
     // 心跳
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
-    // 踢人下线
-    rpc Kick(KickRequest) returns (KickResponse) {}
+    // rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
+    rpc MustPush (MustPushRequest) returns (MustPushResponse) {}
     // 发送消息
     rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {}
     // 发送消息
     rpc CallMessage (CallMessageRequest) returns (CallMessageResponse) {}
+     // 顶号下线
+    rpc UserInstead (UserInsteadRequest) returns (UserInsteadResponse) {}
+    // 踢人下线
+    rpc Kick(KickRequest) returns (KickResponse) {}
 }
 
 message SendMessageRequest {
