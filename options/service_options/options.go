@@ -24,10 +24,22 @@ func WithWhereRegexOption(regex string) WhereRegexOption {
 	}
 }
 
+// 前缀查找
+func WithWherePrefixOption() WherePrefixOption {
+	return WherePrefixOption{}
+}
+
+// 按目录查找
+func WithWhereCatalogOption() WhereCatalogOption {
+	return WhereCatalogOption{}
+}
+
 // ====== where options ===================
 type WhereOptions struct {
 	MaxCount int
 	Regex    string
+	Prefix   bool
+	Catalog  bool
 }
 
 type WhereOption interface {
@@ -48,6 +60,20 @@ type WhereRegexOption struct {
 
 func (opt WhereRegexOption) ConfigWhereOption(opts *WhereOptions) {
 	opts.Regex = opt.regex
+}
+
+type WherePrefixOption struct {
+}
+
+func (opt WherePrefixOption) ConfigWhereOption(opts *WhereOptions) {
+	opts.Prefix = true
+}
+
+type WhereCatalogOption struct {
+}
+
+func (opt WhereCatalogOption) ConfigWhereOption(opts *WhereOptions) {
+	opts.Catalog = true
 }
 
 // ====== register options ===================

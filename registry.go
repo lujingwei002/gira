@@ -35,12 +35,11 @@ type LocalPlayer struct {
 
 type ServiceName struct {
 	// <<GroupName>>/<<ShortName>>
-	Peer      *Peer
-	FullName  string
-	GroupName string
-	Name      string
-	IsSelf    bool
-	IsGroup   bool
+	Peer        *Peer
+	FullName    string
+	CatalogName string
+	Name        string
+	IsSelf      bool
 }
 
 // 伙伴节点增删改的回调

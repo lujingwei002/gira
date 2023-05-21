@@ -22,25 +22,27 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-type group_services struct {
-	services sync.Map
-}
-
 type service_registry struct {
-	peerPrefix         string   // /peer_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
+	peerServicePrefix  string   // /peer_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
 	servicePrefix      string   // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
 	services           sync.Map // 全部service
-	groupServices      sync.Map // service分组
 	selfServices       sync.Map // 本节点上的service
 	ctx                context.Context
 	cancelFunc         context.CancelFunc
 	watchStartRevision int64
+	// services index
+	servicesCatalogIndex sync.Map // service分组
+}
+
+type service_map struct {
+	dict *sync.Map
+	init int32
 }
 
 func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
 	self := &service_registry{
-		servicePrefix: "/service/",
-		peerPrefix:    fmt.Sprintf("/peer_service/%s/", r.fullName),
+		servicePrefix:     "/service/",
+		peerServicePrefix: fmt.Sprintf("/peer_service/%s/", r.fullName),
 	}
 	return self, nil
 }
@@ -119,12 +121,12 @@ func (self *service_registry) onServiceDelete(r *Registry, service *gira.Service
 
 func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
-	var groupName string
+	var catalogName string
 	var serviceName string
 	var name string
 	if len(pats) == 4 {
 		serviceName = fmt.Sprintf("%s/%s", pats[2], pats[3])
-		groupName = pats[2]
+		catalogName = pats[2]
 		name = pats[3]
 	} else if len(pats) == 3 {
 		serviceName = pats[2]
@@ -145,23 +147,21 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 			return gira.ErrPeerNotFound
 		}
 		service := &gira.ServiceName{
-			FullName:  serviceName,
-			GroupName: groupName,
-			Peer:      peer,
-			Name:      name,
+			FullName:    serviceName,
+			CatalogName: catalogName,
+			Peer:        peer,
+			Name:        name,
 		}
 		if peer == r.SelfPeer() {
 			service.IsSelf = true
 		}
-		if len(service.GroupName) > 0 {
-			service.IsGroup = true
-		}
-		self.services.Store(serviceName, service)
-		if service.IsGroup {
-			groupServices := &group_services{}
-			if v, _ := self.groupServices.LoadOrStore(service.GroupName, groupServices); true {
-				groupServices = v.(*group_services)
-				groupServices.services.Store(serviceName, service)
+		if _, loaded := self.services.LoadOrStore(serviceName, service); !loaded {
+			if len(service.CatalogName) > 0 {
+				dict := &sync.Map{}
+				if v, _ := self.servicesCatalogIndex.LoadOrStore(service.CatalogName, dict); true {
+					dict = v.(*sync.Map)
+					dict.Store(serviceName, service)
+				}
 			}
 		}
 		if service.IsSelf {
@@ -190,7 +190,7 @@ func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error
 		self.services.Delete(serviceName)
 		self.onServiceDelete(r, lastService)
 		if lastService.IsGroup {
-			if v, ok := self.groupServices.Load(lastService.GroupName); ok {
+			if v, ok := self.groupServices.Load(lastService.CatalogName); ok {
 				groupServices := v.(*group_services)
 				groupServices.services.Delete(serviceName)
 			}
@@ -210,7 +210,7 @@ func (self *service_registry) initServices(r *Registry) error {
 	var getResp *clientv3.GetResponse
 	var err error
 	// 删除自身之前注册，没清理干净的服务
-	if getResp, err = kv.Get(self.ctx, self.peerPrefix, clientv3.WithPrefix()); err != nil {
+	if getResp, err = kv.Get(self.ctx, self.peerServicePrefix, clientv3.WithPrefix()); err != nil {
 		return err
 	}
 	for _, v := range getResp.Kvs {
@@ -223,7 +223,7 @@ func (self *service_registry) initServices(r *Registry) error {
 		}
 		txn := kv.Txn(self.ctx)
 		serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-		peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
+		peerKey := fmt.Sprintf("%s%s", self.peerServicePrefix, serviceName)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
 			Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey))
 		var txnResp *clientv3.TxnResponse
@@ -284,14 +284,14 @@ func (self *service_registry) unregisterServices(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("service registry unregister", "peer_prefix", self.peerPrefix)
+	log.Infow("service registry unregister", "peer_prefix", self.peerServicePrefix)
 
 	var txnResp *clientv3.TxnResponse
 	var err error
 	self.selfServices.Range(func(serviceName any, v any) bool {
 		txn := kv.Txn(ctx)
 		serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-		peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
+		peerKey := fmt.Sprintf("%s%s", self.peerServicePrefix, serviceName)
 		txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
 			Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey))
 		if txnResp, err = txn.Commit(); err != nil {
@@ -324,7 +324,7 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 	serviceName = self.NewServiceName(r, serviceName, opt...)
 	client := r.client
 	serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-	peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
+	peerKey := fmt.Sprintf("%s%s", self.peerServicePrefix, serviceName)
 	kv := clientv3.NewKV(client)
 	var err error
 	var txnResp *clientv3.TxnResponse
@@ -354,7 +354,7 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 func (self *service_registry) UnregisterService(r *Registry, serviceName string) (*gira.Peer, error) {
 	client := r.client
 	serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-	peerKey := fmt.Sprintf("%s%s", self.peerPrefix, serviceName)
+	peerKey := fmt.Sprintf("%s%s", self.peerServicePrefix, serviceName)
 	kv := clientv3.NewKV(client)
 	var err error
 	var txnResp *clientv3.TxnResponse
