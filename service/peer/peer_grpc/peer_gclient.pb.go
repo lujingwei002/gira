@@ -294,6 +294,7 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}

@@ -1216,6 +1216,7 @@ func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.Ca
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1252,6 +1253,7 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1288,6 +1290,7 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1325,6 +1328,7 @@ func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatReque
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1362,6 +1366,7 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1399,6 +1404,7 @@ func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageR
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1436,6 +1442,7 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1473,6 +1480,7 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -1510,6 +1518,7 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}

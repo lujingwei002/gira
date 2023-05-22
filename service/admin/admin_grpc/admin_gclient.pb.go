@@ -689,6 +689,7 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -726,6 +727,7 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -762,6 +764,7 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
@@ -798,6 +801,7 @@ func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grp
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}

@@ -58,10 +58,8 @@ func (hall *HallService) OnStart(ctx context.Context) error {
 		hall_grpc.RegisterHallServer(server, hall.hallServer)
 		return nil
 	}); err != nil {
-		log.Println("ffffffffffffffffffffffffffffff", err)
 		return err
 	}
-	log.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	return nil
 }
 

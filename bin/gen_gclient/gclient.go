@@ -785,6 +785,7 @@ func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *pro
 	g.P("var peers []*gira.Peer")
 	g.P("var whereOpts []", optionsPackage.Ident("WhereOption"))
 	g.P("// 多播")
+	g.P("whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereCatalogOption"), "())")
 	g.P("if c.count > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereMaxCountOption"), "(c.count))}")
 	g.P("if len(c.regex) > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereRegexOption"), "(c.regex))}")
 	g.P("peers, err := ", facadePackage.Ident("WhereIsService"), "(c.serviceName, whereOpts...)")

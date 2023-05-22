@@ -22,6 +22,252 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
+type word_trie struct {
+	mu      sync.Mutex
+	headers map[string]*word_trie_header_node
+}
+
+func newWordTrie() *word_trie {
+	return &word_trie{
+		headers: make(map[string]*word_trie_header_node),
+	}
+}
+
+type word_trie_header_node struct {
+	mu    sync.Mutex
+	value string
+	path  string
+	set   bool
+	nodes map[string]*word_trie_node
+}
+
+type word_trie_node struct {
+	value string
+	path  string
+	set   bool
+	nodes map[string]*word_trie_node
+}
+
+func (trie *word_trie) debugTrace() {
+	trie.mu.Lock()
+	defer trie.mu.Unlock()
+	for _, header := range trie.headers {
+		header.debugTrace()
+	}
+}
+
+func (trie *word_trie) add(path string) error {
+	trie.mu.Lock()
+	words := strings.Split(path, "/")
+	// /前面的空格去掉
+	if len(words) > 0 && len(words[0]) <= 0 {
+		words = words[1:]
+	}
+	if len(words) <= 0 {
+		trie.mu.Unlock()
+		return nil
+	}
+	// 不能有空格
+	for i := 1; i < len(words); i++ {
+		if len(words[i]) <= 0 {
+			trie.mu.Unlock()
+			return gira.ErrInvalidArgs.Trace()
+		}
+	}
+	if header, ok := trie.headers[words[0]]; !ok {
+		header := &word_trie_header_node{
+			value: words[0],
+			nodes: make(map[string]*word_trie_node),
+		}
+		trie.headers[words[0]] = header
+		trie.mu.Unlock()
+		return header.add(path, words[1:])
+	} else {
+		trie.mu.Unlock()
+		return header.add(path, words[1:])
+	}
+}
+
+func (trie *word_trie) delete(path string) error {
+	trie.mu.Lock()
+	words := strings.Split(path, "/")
+	// /前面的空格去掉
+	if len(words) > 0 && len(words[0]) <= 0 {
+		words = words[1:]
+	}
+	if len(words) <= 0 {
+		trie.mu.Unlock()
+		return gira.ErrTodo.Trace()
+	}
+	if header, ok := trie.headers[words[0]]; !ok {
+		trie.mu.Unlock()
+		return gira.ErrTodo.Trace()
+	} else {
+		trie.mu.Unlock()
+		if err := header.delete(words[1:]); err != nil {
+			return err
+		} else {
+			if len(header.nodes) <= 0 && !header.set {
+				delete(trie.headers, words[0])
+			}
+			return nil
+		}
+	}
+}
+
+func (wt *word_trie) search(path string) (matches []string) {
+	wt.mu.Lock()
+	words := strings.Split(path, "/")
+	// /前面的空格去掉
+	if len(words) > 0 && len(words[0]) <= 0 {
+		words = words[1:]
+	}
+	if len(words) <= 0 {
+		wt.mu.Unlock()
+		return
+	}
+	if len(words[0]) <= 0 {
+		for _, header := range wt.headers {
+			matches = header.collect(matches)
+		}
+		wt.mu.Unlock()
+		return
+	} else if header, ok := wt.headers[words[0]]; !ok {
+		wt.mu.Unlock()
+		return
+	} else {
+		wt.mu.Unlock()
+		matches = header.search(words[1:], matches)
+		return
+	}
+}
+
+func (header *word_trie_header_node) collect(result []string) []string {
+	if header.set {
+		result = append(result, header.path)
+	}
+	for _, c := range header.nodes {
+		result = c.collect(result)
+	}
+	return result
+}
+
+func (header *word_trie_header_node) debugTrace() {
+	header.mu.Lock()
+	defer header.mu.Unlock()
+	log.Infow("header", "value", header.value, "path", header.path, "set", header.set)
+	for _, node := range header.nodes {
+		node.debugTrace()
+	}
+}
+
+func (header *word_trie_header_node) add(path string, words []string) error {
+	header.mu.Lock()
+	defer header.mu.Unlock()
+	nodes := header.nodes
+	if len(words) <= 0 {
+		header.path = path
+		header.set = true
+		return nil
+	} else {
+		var lastNode *word_trie_node
+		var ok bool
+		for _, v := range words {
+			if lastNode, ok = nodes[v]; !ok {
+				lastNode = &word_trie_node{
+					value: v,
+					nodes: make(map[string]*word_trie_node),
+				}
+				nodes[v] = lastNode
+				nodes = lastNode.nodes
+			} else {
+				nodes = lastNode.nodes
+			}
+		}
+		lastNode.path = path
+		lastNode.set = true
+		return nil
+	}
+}
+
+func (header *word_trie_header_node) delete(words []string) error {
+	header.mu.Lock()
+	defer header.mu.Unlock()
+	if len(words) <= 0 {
+		header.set = false
+		return nil
+	} else {
+		if c, ok := header.nodes[words[0]]; !ok {
+			return nil
+		} else {
+			c.delete(words[1:])
+			if len(c.nodes) <= 0 && !c.set {
+				delete(header.nodes, words[0])
+			}
+			return nil
+		}
+	}
+}
+func (header *word_trie_header_node) search(words []string, matches []string) []string {
+	header.mu.Lock()
+	defer header.mu.Unlock()
+	var lastNode *word_trie_node
+	var ok bool
+	nodes := header.nodes
+	for i := 0; i < len(words); i++ {
+		v := words[i]
+		// 忽略/
+		if i == len(words)-1 && len(v) <= 0 {
+			break
+		}
+		if lastNode, ok = nodes[v]; !ok {
+			return nil
+		} else {
+			nodes = lastNode.nodes
+		}
+	}
+	for _, c := range nodes {
+		matches = c.collect(matches)
+	}
+	return matches
+}
+
+func (node *word_trie_node) delete(words []string) error {
+	if len(words) <= 0 {
+		node.set = false
+		return nil
+	} else {
+		if c, ok := node.nodes[words[0]]; !ok {
+			return gira.ErrTodo.Trace()
+		} else {
+			if err := c.delete(words[1:]); err != nil {
+				return err
+			}
+			if len(c.nodes) <= 0 && !c.set {
+				delete(node.nodes, words[0])
+			}
+			return nil
+		}
+	}
+}
+
+func (node *word_trie_node) debugTrace() {
+	log.Infow("node", "value", node.value, "path", node.path, "set", node.set)
+	for _, node := range node.nodes {
+		node.debugTrace()
+	}
+}
+
+func (node *word_trie_node) collect(result []string) []string {
+	if node.set {
+		result = append(result, node.path)
+	}
+	for _, c := range node.nodes {
+		result = c.collect(result)
+	}
+	return result
+}
+
 type service_registry struct {
 	peerServicePrefix  string   // /peer_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
 	servicePrefix      string   // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
@@ -32,6 +278,7 @@ type service_registry struct {
 	watchStartRevision int64
 	// services index
 	servicesCatalogIndex sync.Map // service分组
+	prefixIndex          *word_trie
 }
 
 type service_map struct {
@@ -41,6 +288,7 @@ type service_map struct {
 
 func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
 	self := &service_registry{
+		prefixIndex:       newWordTrie(),
 		servicePrefix:     "/service/",
 		peerServicePrefix: fmt.Sprintf("/peer_service/%s/", r.fullName),
 	}
@@ -92,6 +340,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
 		handler.OnServiceAdd(service)
 	}
+	self.prefixIndex.debugTrace()
 }
 
 // on service delete callback
@@ -120,16 +369,21 @@ func (self *service_registry) onServiceDelete(r *Registry, service *gira.Service
 // }
 
 func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
-	pats := strings.Split(string(kv.Key), "/")
+	words := strings.Split(string(kv.Key), "/")
 	var catalogName string
 	var serviceName string
 	var name string
-	if len(pats) == 4 {
-		serviceName = fmt.Sprintf("%s/%s", pats[2], pats[3])
-		catalogName = pats[2]
-		name = pats[3]
-	} else if len(pats) == 3 {
-		serviceName = pats[2]
+	if len(words) <= 2 {
+		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
+		return gira.ErrInvalidService
+	}
+	words = words[2:]
+	if len(words) == 2 {
+		serviceName = fmt.Sprintf("%s/%s", words[0], words[1])
+		catalogName = words[0]
+		name = words[1]
+	} else if len(words) == 1 {
+		serviceName = words[0]
 	} else {
 		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
 		return gira.ErrInvalidService
@@ -155,15 +409,8 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 		if peer == r.SelfPeer() {
 			service.IsSelf = true
 		}
-		if _, loaded := self.services.LoadOrStore(serviceName, service); !loaded {
-			if len(service.CatalogName) > 0 {
-				dict := &sync.Map{}
-				if v, _ := self.servicesCatalogIndex.LoadOrStore(service.CatalogName, dict); true {
-					dict = v.(*sync.Map)
-					dict.Store(serviceName, service)
-				}
-			}
-		}
+		self.services.LoadOrStore(serviceName, service)
+		self.prefixIndex.add(strings.Join(words, "/"))
 		if service.IsSelf {
 			self.selfServices.Store(serviceName, service)
 		}
@@ -173,28 +420,24 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 }
 
 func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
-	pats := strings.Split(string(kv.Key), "/")
+	words := strings.Split(string(kv.Key), "/")
 	var serviceName string
-	if len(pats) == 4 {
-		serviceName = fmt.Sprintf("%s/%s", pats[2], pats[3])
-	} else if len(pats) == 3 {
-		serviceName = pats[2]
-	} else {
+	if len(words) <= 2 {
 		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
 		return gira.ErrInvalidService
+	}
+	if len(words) == 2 {
+		serviceName = fmt.Sprintf("%s/%s", words[0], words[1])
+	} else if len(words) == 1 {
+		serviceName = words[0]
 	}
 	// value := string(kv.Value) value没有值
 	if lastValue, ok := self.services.Load(serviceName); ok {
 		lastService := lastValue.(*gira.ServiceName)
 		log.Infow("service registry remove service", "service_name", serviceName, "last_peer", lastService.Peer.FullName)
 		self.services.Delete(serviceName)
+		self.prefixIndex.delete(strings.Join(words, "/"))
 		self.onServiceDelete(r, lastService)
-		if lastService.IsGroup {
-			if v, ok := self.groupServices.Load(lastService.CatalogName); ok {
-				groupServices := v.(*group_services)
-				groupServices.services.Delete(serviceName)
-			}
-		}
 		if lastService.IsSelf {
 			self.selfServices.Delete(serviceName)
 		}
@@ -390,50 +633,32 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 	for _, v := range opt {
 		v.ConfigWhereOption(&opts)
 	}
-	pats := strings.Split(serviceName, "/")
-	if len(pats) != 1 && len(pats) != 2 {
-		err = gira.ErrInvalidArgs.Trace()
-		return
-	}
-	if len(pats) <= 1 {
-		peers = make([]*gira.Peer, 0)
-		if value, ok := self.services.Load(serviceName); ok {
-			service := value.(*gira.ServiceName)
-			peers = append(peers, service.Peer)
-		}
-		return
-	} else if pats[1] == "" {
-		// 全部
+	if opts.Catalog || opts.Prefix {
+		arr := self.prefixIndex.search(serviceName)
+		log.Println("aa", serviceName)
+
+		log.Println("aa", arr)
 		peers = make([]*gira.Peer, 0)
 		multicastCount := opts.MaxCount
-		if v, ok := self.groupServices.Load(pats[0]); ok {
-			group := v.(*group_services)
-			group.services.Range(func(key any, value any) bool {
+		for _, name := range arr {
+			if value, ok := self.services.Load(name); ok {
 				service := value.(*gira.ServiceName)
 				peers = append(peers, service.Peer)
 				// 多播指定数量
 				if multicastCount > 0 {
 					multicastCount--
 					if multicastCount <= 0 {
-						return false
+						break
 					}
 				}
-				return true
-			})
+			}
 		}
 		return
 	} else {
-		// 精确查找
 		peers = make([]*gira.Peer, 0)
-		if v, ok := self.groupServices.Load(pats[0]); ok {
-			group := v.(*group_services)
-			group.services.Range(func(key any, value any) bool {
-				service := value.(*gira.ServiceName)
-				if service.Name == pats[1] {
-					peers = append(peers, service.Peer)
-				}
-				return true
-			})
+		if value, ok := self.services.Load(serviceName); ok {
+			service := value.(*gira.ServiceName)
+			peers = append(peers, service.Peer)
 		}
 		return
 	}
