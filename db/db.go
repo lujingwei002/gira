@@ -15,57 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-// mongodb客户端
-type MongoDbClient struct {
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	client     *mongo.Client
-	config     gira.DbConfig
-	uri        string
-}
-
-// redis客户端
-type RedisClient struct {
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	client     *redis.Client
-	config     gira.DbConfig
-	uri        string
-}
-
-// mysql客户端
-type MysqlClient struct {
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	client     *sql.DB
-	config     gira.DbConfig
-	uri        string
-}
-
-func (self *MysqlClient) Uri() string {
-	return self.uri
-}
-
-func (self *MysqlClient) GetMysqlClient() *sql.DB {
-	return self.client
-}
-func (self *RedisClient) Uri() string {
-	return self.uri
-}
-func (self *RedisClient) GetRedisClient() *redis.Client {
-	return self.client
-}
-func (self *MongoDbClient) Uri() string {
-	return self.uri
-}
-func (self *MongoDbClient) GetMongoDatabase() *mongo.Database {
-	return self.client.Database(self.config.Db)
-}
-
-func (self *MongoDbClient) GetMongoClient() *mongo.Client {
-	return self.client
-}
-
 // 根据配置构造mongodb client
 func NewConfigMongoDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
@@ -175,4 +124,59 @@ func NewConfigDbClient(ctx context.Context, name string, config gira.DbConfig) (
 	default:
 		return nil, gira.TraceError(gira.ErrDbNotSupport)
 	}
+}
+
+// mongodb客户端
+type MongoDbClient struct {
+	cancelFunc context.CancelFunc
+	ctx        context.Context
+	client     *mongo.Client
+	config     gira.DbConfig
+	uri        string
+}
+
+func (self *MongoDbClient) GetMongoDatabase() *mongo.Database {
+	return self.client.Database(self.config.Db)
+}
+
+func (self *MongoDbClient) GetMongoClient() *mongo.Client {
+	return self.client
+}
+
+// mysql客户端
+type MysqlClient struct {
+	cancelFunc context.CancelFunc
+	ctx        context.Context
+	client     *sql.DB
+	config     gira.DbConfig
+	uri        string
+}
+
+func (self *MysqlClient) Uri() string {
+	return self.uri
+}
+
+func (self *MysqlClient) GetMysqlClient() *sql.DB {
+	return self.client
+}
+
+// redis客户端
+type RedisClient struct {
+	cancelFunc context.CancelFunc
+	ctx        context.Context
+	client     *redis.Client
+	config     gira.DbConfig
+	uri        string
+}
+
+func (self *RedisClient) Uri() string {
+	return self.uri
+}
+
+func (self *RedisClient) GetRedisClient() *redis.Client {
+	return self.client
+}
+
+func (self *MongoDbClient) Uri() string {
+	return self.uri
 }

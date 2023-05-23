@@ -49,7 +49,7 @@ func (self *ServiceContainer) StartService(name string, service gira.Service) er
 		handler: service,
 	}
 	if _, loaded := self.Services.LoadOrStore(service, s); loaded {
-		return gira.ErrTodo.Trace()
+		return gira.ErrServiceAlreadyStarted.Trace()
 	}
 	s.ctx, s.cancelFunc = context.WithCancel(self.ctx)
 	if err := service.OnStart(s.ctx); err != nil {
@@ -67,11 +67,11 @@ func (self *ServiceContainer) StartService(name string, service gira.Service) er
 // 停止服务
 func (self *ServiceContainer) StopService(service gira.Service) error {
 	if v, ok := self.Services.Load(service); !ok {
-		return gira.ErrTodo.Trace()
+		return gira.ErrServiceNotFound.Trace()
 	} else {
 		s := v.(*Service)
 		if !atomic.CompareAndSwapInt32(&s.status, service_status_started, service_status_stopped) {
-			return gira.ErrTodo.Trace()
+			return gira.ErrServiceAlreadyStopped.Trace()
 		} else {
 			log.Debugw("stop service", "name", s.name)
 			s.cancelFunc()
@@ -80,10 +80,12 @@ func (self *ServiceContainer) StopService(service gira.Service) error {
 	}
 }
 
+// 等待全部服务停止
 func (self *ServiceContainer) Wait() error {
 	return self.errGroup.Wait()
 }
 
+// 停止服务并等待
 func (self *ServiceContainer) Stop() error {
 	self.Services.Range(func(key, value any) bool {
 		s := value.(*Service)

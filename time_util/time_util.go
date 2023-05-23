@@ -13,12 +13,15 @@ func DurationFromTime(t1 int64, t2 int64) Duration {
 		t2: t2,
 	}
 }
+
 func DurationFromNow(t1 int64) Duration {
 	return Duration{
 		t1: t1,
 		t2: time.Now().Unix(),
 	}
 }
+
+// 是否跨天
 func (d Duration) IsCrossDay() bool {
 	y1, m1, d1 := time.Unix(d.t1, 0).Date()
 	y2, m2, d2 := time.Unix(d.t2, 0).Date()
@@ -29,6 +32,7 @@ func (d Duration) IsCrossDay() bool {
 	}
 }
 
+// 是否跨周
 func (d Duration) IsCrossWeek() bool {
 	y1, w1 := time.Unix(d.t1, 0).ISOWeek()
 	y2, w2 := time.Unix(d.t2, 0).ISOWeek()
@@ -39,6 +43,7 @@ func (d Duration) IsCrossWeek() bool {
 	}
 }
 
+// 是否跨月
 func (d Duration) IsCrossMonth() bool {
 	y1, m1, _ := time.Unix(d.t1, 0).Date()
 	y2, m2, _ := time.Unix(d.t2, 0).Date()

@@ -18,6 +18,7 @@ type ResourceHandler interface {
 }
 
 type ResourceManager interface {
+	// 返回资源加载器
 	ResourceLoader() ResourceLoader
 }
 

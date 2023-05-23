@@ -23,6 +23,7 @@ func (self *Actor) Inbox() chan Request {
 	return self.__sync_ch__
 }
 
+// ======================== options =======================
 // call选项
 type CallOptions struct {
 	TimeOut time.Duration

@@ -12,5 +12,6 @@ type SdkAccount struct {
 }
 
 type Sdk interface {
+	// 登录
 	SdkLogin(accountPlat string, openId string, token string) (*SdkAccount, error)
 }

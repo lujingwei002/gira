@@ -43,6 +43,14 @@ func GetAppType() string {
 	return gira.App().GetAppType()
 }
 
+func Go(f func() error) {
+	gira.App().Go(f)
+}
+
+func Done() <-chan struct{} {
+	return gira.App().Done()
+}
+
 // 重载配置
 func ReloadResource() error {
 	application := gira.App()
@@ -253,14 +261,6 @@ func GetGameDbClient() gira.DbClient {
 	} else {
 		return nil
 	}
-}
-
-func Go(f func() error) {
-	gira.App().Go(f)
-}
-
-func Done() <-chan struct{} {
-	return gira.App().Done()
 }
 
 // 注册grpc服务

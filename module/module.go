@@ -15,6 +15,17 @@ const (
 	module_status_stopped = 2
 )
 
+func New(ctx context.Context) *ModuleContainer {
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	errGroup, errCtx := errgroup.WithContext(cancelCtx)
+	return &ModuleContainer{
+		ctx:        cancelCtx,
+		cancelFunc: cancelFunc,
+		errCtx:     errCtx,
+		errGroup:   errGroup,
+	}
+}
+
 type Module struct {
 	status     int32
 	name       string
@@ -30,17 +41,6 @@ type ModuleContainer struct {
 	cancelFunc context.CancelFunc
 	errCtx     context.Context
 	errGroup   *errgroup.Group
-}
-
-func New(ctx context.Context) *ModuleContainer {
-	cancelCtx, cancelFunc := context.WithCancel(ctx)
-	errGroup, errCtx := errgroup.WithContext(cancelCtx)
-	return &ModuleContainer{
-		ctx:        cancelCtx,
-		cancelFunc: cancelFunc,
-		errCtx:     errCtx,
-		errGroup:   errGroup,
-	}
 }
 
 func (self *ModuleContainer) InstallModule(name string, module gira.Module) error {

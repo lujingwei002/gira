@@ -12,14 +12,16 @@ type Registry interface {
 	RangePeers(f func(k any, v any) bool)
 	ListPeerKvs() (peers map[string]string, err error)
 	ListServiceKvs() (services map[string][]string, err error)
-
 	NewServiceName(serviceName string, opt ...service_options.RegisterOption) string
+	// 注册服务
 	RegisterService(serviceName string, opt ...service_options.RegisterOption) (*Peer, error)
+	// 反注册服务
 	UnregisterService(serviceName string) (*Peer, error)
+	// 查找服务
 	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
 }
 
-// 伙伴
+// 伙伴节点
 type Peer struct {
 	Name     string            // 服务类型
 	Id       int32             // 服务id
@@ -42,20 +44,21 @@ type ServiceName struct {
 	IsSelf      bool
 }
 
-// 伙伴节点增删改的回调
+// 侦听伙伴节点
 type PeerWatchHandler interface {
 	OnPeerAdd(peer *Peer)
 	OnPeerDelete(peer *Peer)
 	OnPeerUpdate(peer *Peer)
 }
 
-// 玩家位置的回调
+// 侦听玩家位置
 type LocalPlayerWatchHandler interface {
 	OnLocalPlayerAdd(player *LocalPlayer)
 	OnLocalPlayerDelete(player *LocalPlayer)
 	OnLocalPlayerUpdate(player *LocalPlayer)
 }
 
+// 侦听服务状态
 type ServiceWatchHandler interface {
 	OnServiceAdd(service *ServiceName)
 	OnServiceDelete(service *ServiceName)

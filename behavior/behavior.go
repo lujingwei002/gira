@@ -15,6 +15,27 @@ func GetSeqId() int64 {
 	return time.Now().Unix()<<32 + int64(facade.GetAppId())<<24 + (seqId & 0xffffff)
 }
 
+// 设置允许drop index
+func WithMigrateDropIndex(enabled bool) MigrateDropIndex {
+	return MigrateDropIndex{
+		enabled: enabled,
+	}
+}
+
+// 设置连接超时时间
+func WithMigrateConnectTimeout(timeout int64) MigrateConnectTimeout {
+	return MigrateConnectTimeout{
+		timeout: timeout,
+	}
+}
+
+// 批量插入选项
+func WitchBatchInsertOption(step int) BatchInsertOption {
+	return BatchInsertOption{
+		step: step,
+	}
+}
+
 // ========= sync 选项 ================
 type SyncOptions struct {
 	Step int
@@ -32,18 +53,12 @@ func (opt BatchInsertOption) ConfigSyncOptions(opts *SyncOptions) {
 	opts.Step = opt.step
 }
 
-// 批量插入选项
-func WitchBatchInsertOption(step int) BatchInsertOption {
-	return BatchInsertOption{
-		step: step,
-	}
-}
-
 // ========= migrate 选项 ================
 type MigrateOptions struct {
 	EnabledDropIndex bool
 	ConnectTimeout   int64
 }
+
 type MigrateOption interface {
 	ConfigMigrateOptions(opts *MigrateOptions)
 }
@@ -56,24 +71,10 @@ func (opt MigrateDropIndex) ConfigMigrateOptions(opts *MigrateOptions) {
 	opts.EnabledDropIndex = opt.enabled
 }
 
-// 设置允许drop index
-func WithMigrateDropIndex(enabled bool) MigrateDropIndex {
-	return MigrateDropIndex{
-		enabled: enabled,
-	}
-}
-
 type MigrateConnectTimeout struct {
 	timeout int64
 }
 
 func (opt MigrateConnectTimeout) ConfigMigrateOptions(opts *MigrateOptions) {
 	opts.ConnectTimeout = opt.timeout
-}
-
-// 设置连接超时时间
-func WithMigrateConnectTimeout(timeout int64) MigrateConnectTimeout {
-	return MigrateConnectTimeout{
-		timeout: timeout,
-	}
 }

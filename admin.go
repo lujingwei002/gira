@@ -17,6 +17,7 @@ type BroadcastReloadResourceResult interface {
 	Errors(index int) error
 	Error() error
 }
+
 type AdminClient interface {
 	// 广播所有节点重载资源
 	BroadcastReloadResource(ctx context.Context, name string) (result BroadcastReloadResourceResult, err error)

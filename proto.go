@@ -46,6 +46,7 @@ type Proto interface {
 	StructEncode(req interface{}) (data []byte, err error)
 	// struct编码
 	StructDecode(data []byte, req interface{}) error
+	// 创建response
 	NewResponse(req ProtoRequest) (resp ProtoResponse, err error)
 	// 将request路由到handler的相应方法
 	RequestDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, pushArr []ProtoPush, err error)
