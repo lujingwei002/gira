@@ -340,7 +340,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
 		handler.OnServiceAdd(service)
 	}
-	self.prefixIndex.debugTrace()
+	// self.prefixIndex.debugTrace()
 }
 
 // on service delete callback
