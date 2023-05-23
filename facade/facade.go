@@ -5,7 +5,6 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/options/service_options"
-	"google.golang.org/grpc"
 )
 
 // 返回app配置
@@ -263,13 +262,21 @@ func GetGameDbClient() gira.DbClient {
 	}
 }
 
-// 注册grpc服务
-func RegisterGrpc(f func(server *grpc.Server) error) error {
+func GrpcServer() gira.GrpcServer {
 	application := gira.App()
-	if s, ok := application.(gira.GrpcServer); !ok {
-		return gira.ErrGrpcServerNotImplement
+	if s, ok := application.(gira.GrpcServerComponent); !ok {
+		return nil
 	} else {
-		return s.RegisterGrpc(f)
+		return s.GetGrpcServer()
+	}
+}
+
+func GetGrpcService(name string) (svr interface{}, ok bool) {
+	application := gira.App()
+	if s, ok := application.(gira.GrpcServerComponent); !ok {
+		return nil, false
+	} else {
+		return s.GetGrpcService(name)
 	}
 }
 

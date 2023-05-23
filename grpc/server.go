@@ -12,26 +12,36 @@ import (
 
 // http://wzmmmmj.com/2020/09/06/grpc-stream/
 
-type GrpcServer struct {
+type Server struct {
 	config   gira.GrpcConfig
 	server   *grpc.Server
 	ctx      context.Context
 	listener net.Listener
+	services map[string]interface{}
 }
 
-func NewConfigGrpcServer(config gira.GrpcConfig) *GrpcServer {
-	self := &GrpcServer{
-		config: config,
-		server: grpc.NewServer(),
+func NewConfigGrpcServer(config gira.GrpcConfig) *Server {
+	self := &Server{
+		config:   config,
+		server:   grpc.NewServer(),
+		services: make(map[string]interface{}),
 	}
 	return self
 }
 
-func (self *GrpcServer) Register(f func(server *grpc.Server) error) error {
-	return f(self.server)
+// 实现接口 grpc.ServiceRegistrar
+// 将impl保存起来，转发的时候要用到
+func (self *Server) RegisterService(desc *grpc.ServiceDesc, impl interface{}) {
+	self.server.RegisterService(desc, impl)
+	self.services[desc.ServiceName] = impl
 }
 
-func (self *GrpcServer) OnStart(ctx context.Context) error {
+func (self *Server) GetService(name string) (svr interface{}, ok bool) {
+	svr, ok = self.services[name]
+	return
+}
+
+func (self *Server) OnStart(ctx context.Context) error {
 	self.ctx = ctx
 	log.Debugw("grpc server started", "addr", self.config.Address)
 	if listener, err := net.Listen("tcp", self.config.Address); err != nil {
@@ -42,7 +52,7 @@ func (self *GrpcServer) OnStart(ctx context.Context) error {
 	}
 }
 
-func (self *GrpcServer) Serve() error {
+func (self *Server) Serve() error {
 	go func() {
 		<-self.ctx.Done()
 		self.server.GracefulStop()
@@ -51,7 +61,7 @@ func (self *GrpcServer) Serve() error {
 	return err
 }
 
-func (self *GrpcServer) OnStop() error {
+func (self *Server) OnStop() error {
 	log.Debugw("gpc server on stop")
 	return nil
 }

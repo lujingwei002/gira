@@ -12,7 +12,6 @@ import (
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/hall/hall_grpc"
-	"google.golang.org/grpc"
 )
 
 func NewService(application gira.Application, proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (*HallService, error) {
@@ -31,7 +30,7 @@ func NewService(application gira.Application, proto gira.Proto, config Config, h
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(hall_grpc.HallServerName, service_options.WithAsAppServiceOption(true))
+	return facade.NewServiceName(hall_grpc.HallServerName, service_options.WithAsAppServiceOption())
 }
 
 type HallService struct {
@@ -57,12 +56,7 @@ func (hall *HallService) OnStart(ctx context.Context) error {
 	}
 	// 后台运行
 	hall.cancelCtx, hall.cancelFunc = context.WithCancel(context.Background())
-	if err := facade.RegisterGrpc(func(server *grpc.Server) error {
-		hall_grpc.RegisterHallServer(server, hall.hallServer)
-		return nil
-	}); err != nil {
-		return err
-	}
+	hall_grpc.RegisterHallServer(facade.GrpcServer(), hall.hallServer)
 	return nil
 }
 

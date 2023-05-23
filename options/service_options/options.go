@@ -3,10 +3,8 @@ package service_options
 // ====== register options ===================
 
 // app内唯一的服务
-func WithAsAppServiceOption(enabled bool) AsAppServiceOption {
-	return AsAppServiceOption{
-		enabled: enabled,
-	}
+func WithAsAppServiceOption() AsAppServiceOption {
+	return AsAppServiceOption{}
 }
 
 // ====== where options ===================
@@ -88,5 +86,5 @@ type AsAppServiceOption struct {
 }
 
 func (opt AsAppServiceOption) ConfigRegisterOption(opts *RegisterOptions) {
-	opts.AsAppService = opt.enabled
+	opts.AsAppService = true
 }

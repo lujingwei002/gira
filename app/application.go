@@ -6,7 +6,6 @@ import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
-	"google.golang.org/grpc"
 )
 
 // 负载实现gira声明的接口和启动的模块
@@ -235,15 +234,13 @@ func (application *BaseApplication) Frameworks() []gira.Framework {
 	return application.runtime.Frameworks
 }
 
-// 注册grpc服务
-func (application *BaseApplication) RegisterGrpc(f func(server *grpc.Server) error) error {
-	if s := application.runtime.GrpcServer; s == nil {
-		return gira.ErrGrpcServerNotOpen
-	} else if err := s.Register(f); err != nil {
-		return err
-	} else {
-		return nil
-	}
+func (application *BaseApplication) GetGrpcServer() gira.GrpcServer {
+	return application.runtime.GrpcServer
+}
+
+func (application *BaseApplication) GetGrpcService(name string) (svr interface{}, ok bool) {
+	svr, ok = application.runtime.GrpcServer.GetService(name)
+	return
 }
 
 func (application *BaseApplication) StopService(service gira.Service) error {

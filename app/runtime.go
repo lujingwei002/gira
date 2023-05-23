@@ -95,7 +95,7 @@ type Runtime struct {
 	AdminDbClient      gira.DbClient
 	Sdk                *sdk.Sdk
 	Gate               *gate.Server
-	GrpcServer         *grpc.GrpcServer
+	GrpcServer         *grpc.Server
 	ServiceContainer   *service.ServiceContainer
 	ModuleContainer    *module.ModuleContainer
 }

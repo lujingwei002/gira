@@ -7,7 +7,6 @@ import (
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
-	"google.golang.org/grpc"
 )
 
 type AdminService struct {
@@ -49,15 +48,10 @@ func (self *AdminService) OnStart(ctx context.Context) error {
 		return err
 	}
 	// 注册handler
-	if err := facade.RegisterGrpc(func(server *grpc.Server) error {
-		admin_grpc.RegisterAdminServer(server, self.adminServer)
-		return nil
-	}); err != nil {
-		return err
-	}
+	admin_grpc.RegisterAdminServer(facade.GrpcServer(), self.adminServer)
 	return nil
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(admin_grpc.AdminServerName, service_options.WithAsAppServiceOption(true))
+	return facade.NewServiceName(admin_grpc.AdminServerName, service_options.WithAsAppServiceOption())
 }

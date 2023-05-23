@@ -7,7 +7,6 @@ import (
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/peer/peer_grpc"
-	"google.golang.org/grpc"
 )
 
 type PeerService struct {
@@ -44,13 +43,10 @@ func (self *PeerService) OnStart(ctx context.Context) error {
 	if _, err := facade.RegisterServiceName(GetServiceName()); err != nil {
 		return err
 	}
-	facade.RegisterGrpc(func(server *grpc.Server) error {
-		peer_grpc.RegisterPeerServer(server, self.peerServer)
-		return nil
-	})
+	peer_grpc.RegisterPeerServer(facade.GrpcServer(), self.peerServer)
 	return nil
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(peer_grpc.PeerServerName, service_options.WithAsAppServiceOption(true))
+	return facade.NewServiceName(peer_grpc.PeerServerName, service_options.WithAsAppServiceOption())
 }
