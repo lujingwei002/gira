@@ -167,7 +167,7 @@ func (session *hall_sesssion) serve() {
 				}
 			}
 		case r := <-session.Inbox():
-			r.Call()
+			r.Next()
 		case <-session.ctx.Done():
 			log.Infow("session exit", "session_id", sessionId)
 			session.close(context.TODO())
@@ -414,7 +414,7 @@ type hall_sesssioncloseArgument struct {
 	__caller__ chan*hall_sesssioncloseArgument
 }
 
-func (__arg__ *hall_sesssioncloseArgument) Call() {
+func (__arg__ *hall_sesssioncloseArgument) Next() {
 	__arg__.err = __arg__.session.close(__arg__.ctx)
 	__arg__.__caller__ <- __arg__
 }
@@ -463,7 +463,7 @@ type hall_sesssionKickArgument struct {
 	__caller__ chan*hall_sesssionKickArgument
 }
 
-func (__arg__ *hall_sesssionKickArgument) Call() {
+func (__arg__ *hall_sesssionKickArgument) Next() {
 	__arg__.err = __arg__.self.Kick(__arg__.ctx, __arg__.reason)
 	__arg__.__caller__ <- __arg__
 }
@@ -513,7 +513,7 @@ type hall_sesssioninsteadArgument struct {
 	__caller__ chan*hall_sesssioninsteadArgument
 }
 
-func (__arg__ *hall_sesssioninsteadArgument) Call() {
+func (__arg__ *hall_sesssioninsteadArgument) Next() {
 	__arg__.err = __arg__.self.instead(__arg__.ctx, __arg__.reason)
 	__arg__.__caller__ <- __arg__
 }

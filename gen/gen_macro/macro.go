@@ -530,7 +530,7 @@ type <<.Method.ReceiverType>><<.Method.MethodName>>Argument struct {
 	<<- end>>
 }
 
-func (__arg__ *<<.Method.ReceiverType>><<.Method.MethodName>>Argument) Call() {
+func (__arg__ *<<.Method.ReceiverType>><<.Method.MethodName>>Argument) Next() {
 	<<join_args "__arg__." .Method.Returns>> = __arg__.<<.Method.ReceiverName>>.<<.Method.MethodName>>(<<join_args "__arg__." .Method.Args>>)
 	<<- if eq .Macro.Arg0 "call">>
 	__arg__.__caller__ <- __arg__

@@ -95,7 +95,7 @@ func (hall *HallService) Serve() error {
 		select {
 		// 处理actor请求
 		case r := <-hall.Inbox():
-			r.Call()
+			r.Next()
 		case <-hall.ctx.Done():
 			log.Infow("hall exit")
 			goto TAG_CLEAN_UP

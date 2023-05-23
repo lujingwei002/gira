@@ -5,7 +5,7 @@ import (
 )
 
 type Request interface {
-	Call()
+	Next()
 }
 
 type Actor struct {

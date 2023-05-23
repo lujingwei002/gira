@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/actor"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -31,6 +32,7 @@ type Session interface {
 	// 推送消息给当前session
 	Push(resp gira.ProtoPush) (err error)
 	Kick(ctx context.Context, reason string) (err error)
+	Inbox() chan actor.Request
 }
 type HallHandler interface {
 	// 由memberId创建账号

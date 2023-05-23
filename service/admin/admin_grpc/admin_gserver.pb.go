@@ -26,17 +26,69 @@ type AdminCatalogServerHandler interface {
 	AdminServer
 }
 
+// AdminCatalogServer is the default catalog server middleware for Admin service.
+type AdminCatalogServerMiddleware interface {
+	AdminCatalogServerMiddlewareInvoke(ctx AdminCatalogServerMiddlewareContext) error
+}
+
+// AdminCatalogServer is the default catalog server middleware context for Admin service.
+type AdminCatalogServerMiddlewareContext interface {
+	Next()
+	Wait() error
+}
+
+type adminCatalogServerMiddlewareContext struct {
+	handler    func() (resp interface{}, err error)
+	ctx        context.Context
+	fullMethod string
+	in         interface{}
+	out        interface{}
+	err        error
+	method     string
+	c          chan struct{}
+}
+
+func (m *adminCatalogServerMiddlewareContext) Next() {
+	defer func() {
+		if e := recover(); e != nil {
+			m.err = e.(error)
+		}
+	}()
+	m.out, m.err = m.handler()
+	if m.c != nil {
+		m.c <- struct{}{}
+	}
+}
+func (m *adminCatalogServerMiddlewareContext) Wait() error {
+	if m.c == nil {
+		m.c = make(chan struct{}, 1)
+	}
+	select {
+	case <-m.c:
+		return nil
+	case <-m.ctx.Done():
+		m.err = m.ctx.Err()
+		return m.err
+	}
+}
+
 // AdminCatalogServer is the default catalog server for Admin service.
 type AdminCatalogServer interface {
 	RegisterHandler(key string, handler AdminCatalogServerHandler)
+	RegisterMiddleware(key string, middle AdminCatalogServerMiddleware)
 	UnregisterHandler(key string, handler AdminCatalogServerHandler)
 }
 
 // adminCatalogServer is the default catalog server for Admin service.
 type adminCatalogServer struct {
 	UnimplementedAdminServer
-	mu       sync.Mutex
-	handlers sync.Map
+	mu          sync.Mutex
+	handlers    sync.Map
+	middlewares sync.Map
+}
+
+func (svr *adminCatalogServer) RegisterMiddleware(key string, middleware AdminCatalogServerMiddleware) {
+	svr.middlewares.Store(key, middleware)
 }
 
 func (svr *adminCatalogServer) RegisterHandler(key string, handler AdminCatalogServerHandler) {
@@ -45,21 +97,46 @@ func (svr *adminCatalogServer) RegisterHandler(key string, handler AdminCatalogS
 
 func (svr *adminCatalogServer) UnregisterHandler(key string, handler AdminCatalogServerHandler) {
 	svr.handlers.Delete(key)
+	svr.middlewares.Delete(key)
 }
 
 func (svr *adminCatalogServer) ReloadResource(ctx context.Context, in *ReloadResourceRequest) (*ReloadResourceResponse, error) {
 	if kv, ok := metadata.FromIncomingContext(ctx); !ok {
-		return nil, gira.ErrTodo
+		return nil, gira.ErrCatalogServerMetaNotFound
 	} else if keys, ok := kv["catalog-key"]; !ok {
-		return nil, gira.ErrTodo
+		return nil, gira.ErrCatalogServerKeyNotFound
 	} else if len(keys) <= 0 {
-		return nil, gira.ErrTodo
-	} else if handler, ok := svr.handlers.Load(keys[0]); !ok {
-		return nil, gira.ErrTodo
-	} else if svr, ok := handler.(AdminServer); !ok {
-		return nil, gira.ErrTodo
+		return nil, gira.ErrCatalogServerKeyNotFound
+	} else if v, ok := svr.handlers.Load(keys[0]); !ok {
+		return nil, gira.ErrCatalogServerHandlerNotRegist
+	} else if handler, ok := v.(AdminServer); !ok {
+		return nil, gira.ErrCatalogServerHandlerNotImplement
 	} else {
-		return svr.ReloadResource(ctx, in)
+		if v, ok := svr.middlewares.Load(keys[0]); !ok {
+			return handler.ReloadResource(ctx, in)
+		} else if middleware, ok := v.(AdminCatalogServerMiddleware); ok {
+			r := &adminCatalogServerMiddlewareContext{
+				fullMethod: Admin_ReloadResource_FullMethodName,
+				method:     "ReloadResource",
+				ctx:        ctx,
+				in:         in,
+				handler: func() (resp interface{}, err error) {
+					return handler.ReloadResource(ctx, in)
+				},
+			}
+			if err := middleware.AdminCatalogServerMiddlewareInvoke(r); err != nil {
+				return nil, err
+			}
+			if r.out == nil && r.err == nil {
+				return nil, gira.ErrCatalogServerHandlerNotImplement
+			} else if r.out == nil && r.err != nil {
+				return nil, r.err
+			} else {
+				return r.out.(*ReloadResourceResponse), r.err
+			}
+		} else {
+			return handler.ReloadResource(ctx, in)
+		}
 	}
 }
 func (svr *adminCatalogServer) ReloadResource1(s Admin_ReloadResource1Server) error {
