@@ -44,13 +44,20 @@ func (self *AdminService) Serve() error {
 
 func (self *AdminService) OnStart(ctx context.Context) error {
 	self.ctx = ctx
-	facade.RegisterGrpc(func(server *grpc.Server) error {
+	// 注册服务名字
+	if _, err := facade.RegisterServiceName(GetServiceName()); err != nil {
+		return err
+	}
+	// 注册handler
+	if err := facade.RegisterGrpc(func(server *grpc.Server) error {
 		admin_grpc.RegisterAdminServer(server, self.adminServer)
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(admin_grpc.AdminServiceName, service_options.WithAsAppServiceOption(true))
+	return facade.NewServiceName(admin_grpc.AdminServerName, service_options.WithAsAppServiceOption(true))
 }

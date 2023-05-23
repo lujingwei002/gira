@@ -55,7 +55,7 @@ func newSession(hall *HallService, sessionId uint64, memberId string) (session *
 			// 顶号下线
 			log.Infow("user instead", "session_id", userId)
 			var resp *hall_grpc.UserInsteadResponse
-			if resp, err = hall_grpc.DefaultHallClients.WithUnicast().WithPeer(peer).UserInstead(ctx, &hall_grpc.UserInsteadRequest{
+			if resp, err = hall_grpc.DefaultHallClients.Unicast().WherePeer(peer).UserInstead(ctx, &hall_grpc.UserInsteadRequest{
 				UserId:  userId,
 				Address: fmt.Sprintf("%d服", facade.GetAppId()),
 			}); err != nil {

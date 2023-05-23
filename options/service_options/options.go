@@ -18,10 +18,8 @@ func WithWhereMaxCountOption(count int) WhereMaxCountOption {
 }
 
 // 设置正则表达式查找
-func WithWhereRegexOption(regex string) WhereRegexOption {
-	return WhereRegexOption{
-		regex: regex,
-	}
+func WithWhereRegexOption() WhereRegexOption {
+	return WhereRegexOption{}
 }
 
 // 前缀查找
@@ -37,7 +35,7 @@ func WithWhereCatalogOption() WhereCatalogOption {
 // ====== where options ===================
 type WhereOptions struct {
 	MaxCount int
-	Regex    string
+	Regex    bool
 	Prefix   bool
 	Catalog  bool
 }
@@ -55,11 +53,10 @@ func (opt WhereMaxCountOption) ConfigWhereOption(opts *WhereOptions) {
 }
 
 type WhereRegexOption struct {
-	regex string
 }
 
 func (opt WhereRegexOption) ConfigWhereOption(opts *WhereOptions) {
-	opts.Regex = opt.regex
+	opts.Regex = true
 }
 
 type WherePrefixOption struct {

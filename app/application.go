@@ -221,7 +221,7 @@ func (application *BaseApplication) BroadcastReloadResource(ctx context.Context,
 	req := &admin_grpc.ReloadResourceRequest{
 		Name: name,
 	}
-	result, err = admin_grpc.DefaultAdminClients.WithBroadcast().ReloadResource(ctx, req)
+	result, err = admin_grpc.DefaultAdminClients.Broadcast().ReloadResource(ctx, req)
 	return
 }
 

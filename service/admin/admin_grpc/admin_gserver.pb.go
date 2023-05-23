@@ -8,9 +8,12 @@ package admin_grpc
 
 import (
 	context "context"
+	gira "github.com/lujingwei002/gira"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
+	metadata "google.golang.org/grpc/metadata"
 	status "google.golang.org/grpc/status"
+	sync "sync"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -18,25 +21,61 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// AdminCatalogServer is the default catalog server for Admin service.
-type AdminCatalogServer struct {
+// AdminCatalogServer is the default catalog server handler for Admin service.
+type AdminCatalogServerHandler interface {
+	AdminServer
 }
 
-func (AdminCatalogServer) ReloadResource(context.Context, *ReloadResourceRequest) (*ReloadResourceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource not implemented")
+// AdminCatalogServer is the default catalog server for Admin service.
+type AdminCatalogServer interface {
+	RegisterHandler(key string, handler AdminCatalogServerHandler)
+	UnregisterHandler(key string, handler AdminCatalogServerHandler)
 }
-func (AdminCatalogServer) ReloadResource1(Admin_ReloadResource1Server) error {
+
+// adminCatalogServer is the default catalog server for Admin service.
+type adminCatalogServer struct {
+	UnimplementedAdminServer
+	mu       sync.Mutex
+	handlers sync.Map
+}
+
+func (svr *adminCatalogServer) RegisterHandler(key string, handler AdminCatalogServerHandler) {
+	svr.handlers.Store(key, handler)
+}
+
+func (svr *adminCatalogServer) UnregisterHandler(key string, handler AdminCatalogServerHandler) {
+	svr.handlers.Delete(key)
+}
+
+func (svr *adminCatalogServer) ReloadResource(ctx context.Context, in *ReloadResourceRequest) (*ReloadResourceResponse, error) {
+	if kv, ok := metadata.FromIncomingContext(ctx); !ok {
+		return nil, gira.ErrTodo
+	} else if keys, ok := kv["catalog-key"]; !ok {
+		return nil, gira.ErrTodo
+	} else if len(keys) <= 0 {
+		return nil, gira.ErrTodo
+	} else if handler, ok := svr.handlers.Load(keys[0]); !ok {
+		return nil, gira.ErrTodo
+	} else if svr, ok := handler.(AdminServer); !ok {
+		return nil, gira.ErrTodo
+	} else {
+		return svr.ReloadResource(ctx, in)
+	}
+}
+func (svr *adminCatalogServer) ReloadResource1(s Admin_ReloadResource1Server) error {
 	return status.Errorf(codes.Unimplemented, "method ReloadResource1 not implemented")
 }
-func (AdminCatalogServer) ReloadResource2(*ReloadResourceRequest2, Admin_ReloadResource2Server) error {
+func (svr *adminCatalogServer) ReloadResource2(in *ReloadResourceRequest2, s Admin_ReloadResource2Server) error {
 	return status.Errorf(codes.Unimplemented, "method ReloadResource2 not implemented")
 }
-func (AdminCatalogServer) ReloadResource3(Admin_ReloadResource3Server) error {
+func (svr *adminCatalogServer) ReloadResource3(s Admin_ReloadResource3Server) error {
 	return status.Errorf(codes.Unimplemented, "method ReloadResource3 not implemented")
 }
 
-func RegisterAdminServerAsCatalog(s grpc.ServiceRegistrar, srv *AdminCatalogServer) {
-	s.RegisterService(&Admin_ServiceCatalogDesc, srv)
+func RegisterAdminServerAsCatalog(s grpc.ServiceRegistrar, handler AdminCatalogServerHandler) AdminCatalogServer {
+	svr := &adminCatalogServer{}
+	s.RegisterService(&Admin_ServiceCatalogDesc, svr)
+	return svr
 }
 
 func _Admin_ReloadResource_CatalogHandler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {

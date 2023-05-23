@@ -40,6 +40,7 @@ const (
 	giraPackage    = protogen.GoImportPath("github.com/lujingwei002/gira")
 	facadePackage  = protogen.GoImportPath("github.com/lujingwei002/gira/facade")
 	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/options/service_options")
+	metaPackage    = protogen.GoImportPath("google.golang.org/grpc/metadata")
 )
 
 type serviceGenerateHelperInterface interface {
@@ -63,7 +64,7 @@ func (serviceGenerateHelper) formatFullMethodSymbol(service *protogen.Service, m
 
 func (serviceGenerateHelper) genServiceName(g *protogen.GeneratedFile, service *protogen.Service) {
 	g.P("const (")
-	g.P(service.GoName, `ServiceName = "`, service.Desc.FullName(), `"`)
+	g.P(service.GoName, `ServerName = "`, service.Desc.FullName(), `"`)
 	g.P(")")
 	g.P()
 }
@@ -97,6 +98,7 @@ func (serviceGenerateHelper) generateClientsUnicastStruct(g *protogen.GeneratedF
 	g.P("address 		string")
 	g.P("userId 		string")
 	g.P("client 		*" + unexport(clientsName))
+	g.P("headers		", metaPackage.Ident("MD"))
 	g.P("}")
 	g.P()
 }
@@ -104,11 +106,10 @@ func (serviceGenerateHelper) generateClientsUnicastStruct(g *protogen.GeneratedF
 func (serviceGenerateHelper) generateClientsMulticastStruct(g *protogen.GeneratedFile, clientsMulticastName string, clientsName string) {
 	g.P("type ", unexport(clientsMulticastName), " struct {")
 	// g.P("cc ", grpcPackage.Ident("ClientConnInterface"))
-	g.P("// 不变")
 	g.P("count 			int")
 	g.P("serviceName 	string")
-	g.P("// 可变")
 	g.P("regex 			string")
+	g.P("prefix			string")
 	g.P("client 		*" + unexport(clientsName))
 	g.P("}")
 	g.P()
@@ -116,7 +117,7 @@ func (serviceGenerateHelper) generateClientsMulticastStruct(g *protogen.Generate
 
 func (serviceGenerateHelper) generateNewClientsDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string) {
 	g.P("return &", unexport(clientName), "{")
-	g.P("	serviceName: ", service.GoName, "ServiceName,")
+	g.P("	serviceName: ", service.GoName, "ServerName,")
 	g.P("	clientPool:  make(map[string]*sync.Pool, 0),")
 	g.P("}")
 }
@@ -301,9 +302,9 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.Annotate(clientsName, service.Location)
 	g.P("type ", clientsName, " interface {")
 	g.P("    WithServiceName(serviceName string) " + clientsName)
-	g.P("    WithUnicast() " + clientsUnicastName)
-	g.P("    WithMulticast(count int) " + clientsMulticastName)
-	g.P("    WithBroadcast() " + clientsMulticastName)
+	g.P("    Unicast() " + clientsUnicastName)
+	g.P("    Multicast(count int) " + clientsMulticastName)
+	g.P("    Broadcast() " + clientsMulticastName)
 	g.P()
 	for _, method := range service.Methods {
 		g.Annotate(clientsName+"."+method.GoName, method.Location)
@@ -317,7 +318,8 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P()
 
 	g.P("type ", clientsMulticastName, " interface {")
-	g.P("    WithRegex(regex string) " + clientsMulticastName)
+	g.P("    WhereRegex(regex string) " + clientsMulticastName)
+	g.P("    WherePrefix(prefix string) " + clientsMulticastName)
 	for _, method := range service.Methods {
 		g.Annotate(clientsMulticastName+"."+method.GoName, method.Location)
 		if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
@@ -330,10 +332,11 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P()
 
 	g.P("type ", clientsUnicastName, " interface {")
-	g.P("    WithServiceName(serviceName string) " + clientsUnicastName)
-	g.P("    WithPeer(peer *gira.Peer) " + clientsUnicastName)
-	g.P("    WithAddress(address string) " + clientsUnicastName)
-	g.P("    WithUserId(userId string) " + clientsUnicastName)
+	g.P("    Where(serviceName string) " + clientsUnicastName)
+	g.P("    WherePeer(peer *gira.Peer) " + clientsUnicastName)
+	g.P("    WhereAddress(address string) " + clientsUnicastName)
+	g.P("    WhereUserId(userId string) " + clientsUnicastName)
+	g.P("    WhereUserCatalog(userId string) " + clientsUnicastName)
 	g.P()
 	for _, method := range service.Methods {
 		g.Annotate(clientsUnicastName+"."+method.GoName, method.Location)
@@ -402,24 +405,26 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("}")
 	g.P()
 
-	// func WithServiceName
+	// func Where
 	g.P("func (c *", unexport(service.GoName), "Clients) WithServiceName(serviceName string) ", clientsName, " {")
 	g.P("    c.serviceName = serviceName")
 	g.P("    return c")
 	g.P("}")
 	g.P()
 
-	// func WithUnicast
-	g.P("func (c *", unexport(service.GoName), "Clients) WithUnicast() ", clientsUnicastName, " {")
+	// func Unicast
+	g.P("func (c *", unexport(service.GoName), "Clients) Unicast() ", clientsUnicastName, " {")
+	g.P("   headers := make(map[string]string)")
 	g.P("	u := &" + unexport(clientsUnicastName) + "{")
+	g.P("       headers: ", metaPackage.Ident("New"), "(headers),")
 	g.P("		client: c,")
 	g.P("	}")
 	g.P("	return u")
 	g.P("}")
 	g.P()
 
-	// func WithMulticast
-	g.P("func (c *", unexport(service.GoName), "Clients) WithMulticast(count int) ", clientsMulticastName, " {")
+	// func Multicast
+	g.P("func (c *", unexport(service.GoName), "Clients) Multicast(count int) ", clientsMulticastName, " {")
 	g.P("	u := &" + unexport(clientsMulticastName) + "{")
 	g.P("		count: count,")
 	g.P("		serviceName: ", fmtPackage.Ident("Sprintf"), "(\"%s/\", c.serviceName),")
@@ -429,8 +434,8 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("}")
 	g.P()
 
-	// func WithBroadcast
-	g.P("func (c *", unexport(service.GoName), "Clients) WithBroadcast() ", clientsMulticastName, " {")
+	// func Broadcast
+	g.P("func (c *", unexport(service.GoName), "Clients) Broadcast() ", clientsMulticastName, " {")
 	g.P("	u := &" + unexport(clientsMulticastName) + "{")
 	g.P("		count: -1,")
 	g.P("		serviceName: ", fmtPackage.Ident("Sprintf"), "(\"%s/\", c.serviceName),")
@@ -455,40 +460,35 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 
 	// ClientsUnicast structure.
 	helper.generateClientsUnicastStruct(g, clientsUnicastName, clientsName)
-	// func WithServiceName
-	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WithServiceName(serviceName string) ", clientsUnicastName, " {")
-	g.P("	u := &" + unexport(clientsUnicastName) + "{")
-	g.P("		client: c.client,")
-	g.P("    	serviceName: ", fmtPackage.Ident("Sprintf"), "(\"%s/%s\", c.client.serviceName, serviceName),")
-	g.P("	}")
-	g.P("	return u")
+	// func Where
+	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) Where(serviceName string) ", clientsUnicastName, " {")
+	g.P("   c.serviceName = ", fmtPackage.Ident("Sprintf"), "(\"%s/%s\", c.client.serviceName, serviceName)")
+	g.P("	return c")
 	g.P("}")
 	g.P()
-	// func WithPeer
-	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WithPeer(peer *gira.Peer) ", clientsUnicastName, " {")
-	g.P("	u := &" + unexport(clientsUnicastName) + "{")
-	g.P("		client: c.client,")
-	g.P("		peer: peer,")
-	g.P("	}")
-	g.P("	return u")
+	// func WherePeer
+	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WherePeer(peer *gira.Peer) ", clientsUnicastName, " {")
+	g.P("	c.peer = peer")
+	g.P("	return c")
 	g.P("}")
 	g.P()
-	// func WithAddress
-	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WithAddress(address string) ", clientsUnicastName, " {")
-	g.P("	u := &" + unexport(clientsUnicastName) + "{")
-	g.P("		client: c.client,")
-	g.P("		address: address,")
-	g.P("	}")
-	g.P("	return u")
+	// func WhereAddress
+	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereAddress(address string) ", clientsUnicastName, " {")
+	g.P("	c.address = address")
+	g.P("	return c")
 	g.P("}")
 	g.P()
-	// func WithUserId
-	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WithUserId(userId string) ", clientsUnicastName, " {")
-	g.P("	u := &" + unexport(clientsUnicastName) + "{")
-	g.P("		client: c.client,")
-	g.P("		userId: userId,")
-	g.P("	}")
-	g.P("	return u")
+	// func WhereUserId
+	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereUserId(userId string) ", clientsUnicastName, " {")
+	g.P("	c.userId = userId")
+	g.P("	return c")
+	g.P("}")
+	g.P()
+	// func WhereUserCatalog
+	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereUserCatalog(userId string) ", clientsUnicastName, " {")
+	g.P("	c.userId = userId")
+	g.P("	c.headers.Append(\"catalog-key\", userId)")
+	g.P("	return c")
 	g.P("}")
 	g.P()
 	methodIndex = 0
@@ -548,14 +548,17 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 			g.P("}")
 		}
 	}
-	// func WithRegex
-	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) WithRegex(regex string) ", clientsMulticastName, " {")
-	g.P("	u := &" + unexport(clientsMulticastName) + "{")
-	g.P("		client: c.client,")
-	g.P("		count: c.count,")
-	g.P("		regex: regex,")
-	g.P("	}")
-	g.P("	return u")
+	// func WhereRegex
+	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) WhereRegex(regex string) ", clientsMulticastName, " {")
+	g.P("	c.regex = regex")
+	g.P("	return c")
+	g.P("}")
+	g.P()
+
+	// func WherePrefix
+	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) WherePrefix(prefix string) ", clientsMulticastName, " {")
+	g.P("	c.prefix = prefix")
+	g.P("	return c")
 	g.P("}")
 	g.P()
 	methodIndex = 0
@@ -746,6 +749,9 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 		g.P("client, err := c.client.getClient(address)")
 		g.P("if err != nil { return nil, err }")
 		g.P("defer c.client.putClient(address, client)")
+		g.P("if c.headers.Len() > 0 {")
+		g.P("    ctx = metadata.NewOutgoingContext(ctx, c.headers)")
+		g.P("}")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -756,6 +762,9 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 		g.P("client, err := c.client.getClient(address)")
 		g.P("if err != nil { return nil, err }")
 		g.P("defer c.client.putClient(address, client)")
+		g.P("if c.headers.Len() > 0 {")
+		g.P("    ctx = metadata.NewOutgoingContext(ctx, c.headers)")
+		g.P("}")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -766,6 +775,9 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 		g.P("client, err := c.client.getClient(address)")
 		g.P("if err != nil { return nil, err }")
 		g.P("defer c.client.putClient(address, client)")
+		g.P("if c.headers.Len() > 0 {")
+		g.P("    ctx = metadata.NewOutgoingContext(ctx, c.headers)")
+		g.P("}")
 		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, opts...)`)
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
@@ -787,8 +799,16 @@ func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *pro
 	g.P("// 多播")
 	g.P("whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereCatalogOption"), "())")
 	g.P("if c.count > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereMaxCountOption"), "(c.count))}")
-	g.P("if len(c.regex) > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereRegexOption"), "(c.regex))}")
-	g.P("peers, err := ", facadePackage.Ident("WhereIsService"), "(c.serviceName, whereOpts...)")
+	g.P("serviceName := c.serviceName")
+	g.P("if len(c.regex) > 0 {")
+	g.P("    serviceName = fmt.Sprintf(\"%s/%s\", c.serviceName, c.regex)")
+	g.P("    whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereRegexOption"), "())")
+	g.P("}")
+	g.P("if len(c.prefix) > 0 {")
+	g.P("    serviceName = fmt.Sprintf(\"%s/%s\", c.serviceName, c.prefix)")
+	g.P("    whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWherePrefixOption"), "())")
+	g.P("}")
+	g.P("peers, err := ", facadePackage.Ident("WhereIsService"), "(serviceName, whereOpts...)")
 	g.P("if err != nil {")
 	g.P("	return nil, err")
 	g.P("}")

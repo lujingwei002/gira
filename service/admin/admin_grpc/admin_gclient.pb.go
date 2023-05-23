@@ -13,6 +13,7 @@ import (
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
+	metadata "google.golang.org/grpc/metadata"
 	sync "sync"
 )
 
@@ -166,7 +167,7 @@ func (r *ReloadResourceResponse2_MulticastResult) Errors(index int) error {
 }
 
 const (
-	AdminServiceName = "admin_grpc.Admin"
+	AdminServerName = "admin_grpc.Admin"
 )
 
 // AdminClient is the client API for Admin service.
@@ -174,9 +175,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdminClients interface {
 	WithServiceName(serviceName string) AdminClients
-	WithUnicast() AdminClientsUnicast
-	WithMulticast(count int) AdminClientsMulticast
-	WithBroadcast() AdminClientsMulticast
+	Unicast() AdminClientsUnicast
+	Multicast(count int) AdminClientsMulticast
+	Broadcast() AdminClientsMulticast
 
 	ReloadResource(ctx context.Context, address string, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
 	ReloadResource1(ctx context.Context, address string, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
@@ -185,7 +186,8 @@ type AdminClients interface {
 }
 
 type AdminClientsMulticast interface {
-	WithRegex(regex string) AdminClientsMulticast
+	WhereRegex(regex string) AdminClientsMulticast
+	WherePrefix(prefix string) AdminClientsMulticast
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource1Client_MulticastResult, error)
 	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (*Admin_ReloadResource2Client_MulticastResult, error)
@@ -193,10 +195,11 @@ type AdminClientsMulticast interface {
 }
 
 type AdminClientsUnicast interface {
-	WithServiceName(serviceName string) AdminClientsUnicast
-	WithPeer(peer *gira.Peer) AdminClientsUnicast
-	WithAddress(address string) AdminClientsUnicast
-	WithUserId(userId string) AdminClientsUnicast
+	Where(serviceName string) AdminClientsUnicast
+	WherePeer(peer *gira.Peer) AdminClientsUnicast
+	WhereAddress(address string) AdminClientsUnicast
+	WhereUserId(userId string) AdminClientsUnicast
+	WhereUserCatalog(userId string) AdminClientsUnicast
 
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
@@ -212,7 +215,7 @@ type adminClients struct {
 
 func NewAdminClients() AdminClients {
 	return &adminClients{
-		serviceName: AdminServiceName,
+		serviceName: AdminServerName,
 		clientPool:  make(map[string]*sync.Pool, 0),
 	}
 }
@@ -263,14 +266,16 @@ func (c *adminClients) WithServiceName(serviceName string) AdminClients {
 	return c
 }
 
-func (c *adminClients) WithUnicast() AdminClientsUnicast {
+func (c *adminClients) Unicast() AdminClientsUnicast {
+	headers := make(map[string]string)
 	u := &adminClientsUnicast{
-		client: c,
+		headers: metadata.New(headers),
+		client:  c,
 	}
 	return u
 }
 
-func (c *adminClients) WithMulticast(count int) AdminClientsMulticast {
+func (c *adminClients) Multicast(count int) AdminClientsMulticast {
 	u := &adminClientsMulticast{
 		count:       count,
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
@@ -279,7 +284,7 @@ func (c *adminClients) WithMulticast(count int) AdminClientsMulticast {
 	return u
 }
 
-func (c *adminClients) WithBroadcast() AdminClientsMulticast {
+func (c *adminClients) Broadcast() AdminClientsMulticast {
 	u := &adminClientsMulticast{
 		count:       -1,
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
@@ -346,38 +351,33 @@ type adminClientsUnicast struct {
 	address     string
 	userId      string
 	client      *adminClients
+	headers     metadata.MD
 }
 
-func (c *adminClientsUnicast) WithServiceName(serviceName string) AdminClientsUnicast {
-	u := &adminClientsUnicast{
-		client:      c.client,
-		serviceName: fmt.Sprintf("%s/%s", c.client.serviceName, serviceName),
-	}
-	return u
+func (c *adminClientsUnicast) Where(serviceName string) AdminClientsUnicast {
+	c.serviceName = fmt.Sprintf("%s/%s", c.client.serviceName, serviceName)
+	return c
 }
 
-func (c *adminClientsUnicast) WithPeer(peer *gira.Peer) AdminClientsUnicast {
-	u := &adminClientsUnicast{
-		client: c.client,
-		peer:   peer,
-	}
-	return u
+func (c *adminClientsUnicast) WherePeer(peer *gira.Peer) AdminClientsUnicast {
+	c.peer = peer
+	return c
 }
 
-func (c *adminClientsUnicast) WithAddress(address string) AdminClientsUnicast {
-	u := &adminClientsUnicast{
-		client:  c.client,
-		address: address,
-	}
-	return u
+func (c *adminClientsUnicast) WhereAddress(address string) AdminClientsUnicast {
+	c.address = address
+	return c
 }
 
-func (c *adminClientsUnicast) WithUserId(userId string) AdminClientsUnicast {
-	u := &adminClientsUnicast{
-		client: c.client,
-		userId: userId,
-	}
-	return u
+func (c *adminClientsUnicast) WhereUserId(userId string) AdminClientsUnicast {
+	c.userId = userId
+	return c
+}
+
+func (c *adminClientsUnicast) WhereUserCatalog(userId string) AdminClientsUnicast {
+	c.userId = userId
+	c.headers.Append("catalog-key", userId)
+	return c
 }
 
 func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error) {
@@ -409,6 +409,9 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.ReloadResource(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -445,6 +448,9 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.ReloadResource1(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -481,6 +487,9 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.ReloadResource2(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -517,6 +526,9 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.ReloadResource3(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -525,12 +537,11 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 }
 
 type adminClientsMulticast struct {
-	// 不变
 	count       int
 	serviceName string
-	// 可变
-	regex  string
-	client *adminClients
+	regex       string
+	prefix      string
+	client      *adminClients
 }
 
 type Admin_ReloadResource1Client_MulticastResult struct {
@@ -676,13 +687,14 @@ func (r *Admin_ReloadResource3Client_MulticastResult) Errors(index int) error {
 	}
 	return r.errors[index]
 }
-func (c *adminClientsMulticast) WithRegex(regex string) AdminClientsMulticast {
-	u := &adminClientsMulticast{
-		client: c.client,
-		count:  c.count,
-		regex:  regex,
-	}
-	return u
+func (c *adminClientsMulticast) WhereRegex(regex string) AdminClientsMulticast {
+	c.regex = regex
+	return c
+}
+
+func (c *adminClientsMulticast) WherePrefix(prefix string) AdminClientsMulticast {
+	c.prefix = prefix
+	return c
 }
 
 func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error) {
@@ -693,10 +705,16 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -731,10 +749,16 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -768,10 +792,16 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -805,10 +835,16 @@ func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grp
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}

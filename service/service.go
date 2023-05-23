@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -53,9 +52,6 @@ func (self *ServiceContainer) StartService(name string, service gira.Service) er
 		return gira.ErrTodo.Trace()
 	}
 	s.ctx, s.cancelFunc = context.WithCancel(self.ctx)
-	if _, err := facade.RegisterServiceName(name); err != nil {
-		return err
-	}
 	if err := service.OnStart(s.ctx); err != nil {
 		return err
 	}

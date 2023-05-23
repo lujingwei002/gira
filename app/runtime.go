@@ -304,14 +304,14 @@ func (runtime *Runtime) onStart() error {
 		// ==== admin service ================
 		{
 			service := admin_service.NewService(runtime.Application)
-			if err := runtime.ServiceContainer.StartService(admin_service.GetServiceName(), service); err != nil {
+			if err := runtime.ServiceContainer.StartService("admin", service); err != nil {
 				return err
 			}
 		}
 		// ==== peer service ================
 		{
 			service := peer_service.NewService(runtime.Application)
-			if err := runtime.ServiceContainer.StartService(peer_service.GetServiceName(), service); err != nil {
+			if err := runtime.ServiceContainer.StartService("peer", service); err != nil {
 				return err
 			}
 		}

@@ -41,6 +41,9 @@ func (self *PeerService) OnStop() error {
 
 func (self *PeerService) OnStart(ctx context.Context) error {
 	self.ctx = ctx
+	if _, err := facade.RegisterServiceName(GetServiceName()); err != nil {
+		return err
+	}
 	facade.RegisterGrpc(func(server *grpc.Server) error {
 		peer_grpc.RegisterPeerServer(server, self.peerServer)
 		return nil
@@ -49,5 +52,5 @@ func (self *PeerService) OnStart(ctx context.Context) error {
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(peer_grpc.PeerServiceName, service_options.WithAsAppServiceOption(true))
+	return facade.NewServiceName(peer_grpc.PeerServerName, service_options.WithAsAppServiceOption(true))
 }

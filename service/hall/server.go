@@ -31,7 +31,7 @@ func NewService(application gira.Application, proto gira.Proto, config Config, h
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(hall_grpc.HallServiceName, service_options.WithAsAppServiceOption(true))
+	return facade.NewServiceName(hall_grpc.HallServerName, service_options.WithAsAppServiceOption(true))
 }
 
 type HallService struct {
@@ -52,6 +52,9 @@ type HallService struct {
 
 func (hall *HallService) OnStart(ctx context.Context) error {
 	hall.ctx = ctx
+	if _, err := facade.RegisterServiceName(GetServiceName()); err != nil {
+		return err
+	}
 	// 后台运行
 	hall.cancelCtx, hall.cancelFunc = context.WithCancel(context.Background())
 	if err := facade.RegisterGrpc(func(server *grpc.Server) error {
@@ -185,7 +188,7 @@ func (hall *HallService) Push(ctx context.Context, userId string, push gira.Prot
 		if err != nil {
 			return
 		}
-		if _, err = hall_grpc.DefaultHallClients.WithUnicast().WithPeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
+		if _, err = hall_grpc.DefaultHallClients.Unicast().WherePeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
 			UserId: userId,
 			Data:   data,
 		}); err != nil {
@@ -221,7 +224,7 @@ func (hall *HallService) MustPush(ctx context.Context, userId string, push gira.
 		if err != nil {
 			return
 		}
-		if _, err = hall_grpc.DefaultHallClients.WithUnicast().WithPeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
+		if _, err = hall_grpc.DefaultHallClients.Unicast().WherePeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
 			UserId: userId,
 			Data:   data,
 		}); err != nil {

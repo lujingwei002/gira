@@ -13,6 +13,7 @@ import (
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
+	metadata "google.golang.org/grpc/metadata"
 	sync "sync"
 )
 
@@ -454,7 +455,7 @@ func (r *KickResponse_MulticastResult) Errors(index int) error {
 }
 
 const (
-	HallServiceName = "hall_grpc.Hall"
+	HallServerName = "hall_grpc.Hall"
 )
 
 // HallClient is the client API for Hall service.
@@ -462,9 +463,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HallClients interface {
 	WithServiceName(serviceName string) HallClients
-	WithUnicast() HallClientsUnicast
-	WithMulticast(count int) HallClientsMulticast
-	WithBroadcast() HallClientsMulticast
+	Unicast() HallClientsUnicast
+	Multicast(count int) HallClientsMulticast
+	Broadcast() HallClientsMulticast
 
 	// client消息流
 	ClientStream(ctx context.Context, address string, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
@@ -487,7 +488,8 @@ type HallClients interface {
 }
 
 type HallClientsMulticast interface {
-	WithRegex(regex string) HallClientsMulticast
+	WhereRegex(regex string) HallClientsMulticast
+	WherePrefix(prefix string) HallClientsMulticast
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error)
 	// 网关消息流
@@ -509,10 +511,11 @@ type HallClientsMulticast interface {
 }
 
 type HallClientsUnicast interface {
-	WithServiceName(serviceName string) HallClientsUnicast
-	WithPeer(peer *gira.Peer) HallClientsUnicast
-	WithAddress(address string) HallClientsUnicast
-	WithUserId(userId string) HallClientsUnicast
+	Where(serviceName string) HallClientsUnicast
+	WherePeer(peer *gira.Peer) HallClientsUnicast
+	WhereAddress(address string) HallClientsUnicast
+	WhereUserId(userId string) HallClientsUnicast
+	WhereUserCatalog(userId string) HallClientsUnicast
 
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
@@ -542,7 +545,7 @@ type hallClients struct {
 
 func NewHallClients() HallClients {
 	return &hallClients{
-		serviceName: HallServiceName,
+		serviceName: HallServerName,
 		clientPool:  make(map[string]*sync.Pool, 0),
 	}
 }
@@ -593,14 +596,16 @@ func (c *hallClients) WithServiceName(serviceName string) HallClients {
 	return c
 }
 
-func (c *hallClients) WithUnicast() HallClientsUnicast {
+func (c *hallClients) Unicast() HallClientsUnicast {
+	headers := make(map[string]string)
 	u := &hallClientsUnicast{
-		client: c,
+		headers: metadata.New(headers),
+		client:  c,
 	}
 	return u
 }
 
-func (c *hallClients) WithMulticast(count int) HallClientsMulticast {
+func (c *hallClients) Multicast(count int) HallClientsMulticast {
 	u := &hallClientsMulticast{
 		count:       count,
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
@@ -609,7 +614,7 @@ func (c *hallClients) WithMulticast(count int) HallClientsMulticast {
 	return u
 }
 
-func (c *hallClients) WithBroadcast() HallClientsMulticast {
+func (c *hallClients) Broadcast() HallClientsMulticast {
 	u := &hallClientsMulticast{
 		count:       -1,
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
@@ -741,38 +746,33 @@ type hallClientsUnicast struct {
 	address     string
 	userId      string
 	client      *hallClients
+	headers     metadata.MD
 }
 
-func (c *hallClientsUnicast) WithServiceName(serviceName string) HallClientsUnicast {
-	u := &hallClientsUnicast{
-		client:      c.client,
-		serviceName: fmt.Sprintf("%s/%s", c.client.serviceName, serviceName),
-	}
-	return u
+func (c *hallClientsUnicast) Where(serviceName string) HallClientsUnicast {
+	c.serviceName = fmt.Sprintf("%s/%s", c.client.serviceName, serviceName)
+	return c
 }
 
-func (c *hallClientsUnicast) WithPeer(peer *gira.Peer) HallClientsUnicast {
-	u := &hallClientsUnicast{
-		client: c.client,
-		peer:   peer,
-	}
-	return u
+func (c *hallClientsUnicast) WherePeer(peer *gira.Peer) HallClientsUnicast {
+	c.peer = peer
+	return c
 }
 
-func (c *hallClientsUnicast) WithAddress(address string) HallClientsUnicast {
-	u := &hallClientsUnicast{
-		client:  c.client,
-		address: address,
-	}
-	return u
+func (c *hallClientsUnicast) WhereAddress(address string) HallClientsUnicast {
+	c.address = address
+	return c
 }
 
-func (c *hallClientsUnicast) WithUserId(userId string) HallClientsUnicast {
-	u := &hallClientsUnicast{
-		client: c.client,
-		userId: userId,
-	}
-	return u
+func (c *hallClientsUnicast) WhereUserId(userId string) HallClientsUnicast {
+	c.userId = userId
+	return c
+}
+
+func (c *hallClientsUnicast) WhereUserCatalog(userId string) HallClientsUnicast {
+	c.userId = userId
+	c.headers.Append("catalog-key", userId)
+	return c
 }
 
 func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error) {
@@ -804,6 +804,9 @@ func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.Call
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.ClientStream(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -840,6 +843,9 @@ func (c *hallClientsUnicast) GateStream(ctx context.Context, opts ...grpc.CallOp
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.GateStream(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -876,6 +882,9 @@ func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.Info(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -912,6 +921,9 @@ func (c *hallClientsUnicast) Heartbeat(ctx context.Context, in *HeartbeatRequest
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.Heartbeat(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -948,6 +960,9 @@ func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, 
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.MustPush(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -984,6 +999,9 @@ func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageReq
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.SendMessage(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -1020,6 +1038,9 @@ func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageReq
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.CallMessage(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -1056,6 +1077,9 @@ func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadReq
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.UserInstead(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -1092,6 +1116,9 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.Kick(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -1100,12 +1127,11 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 }
 
 type hallClientsMulticast struct {
-	// 不变
 	count       int
 	serviceName string
-	// 可变
-	regex  string
-	client *hallClients
+	regex       string
+	prefix      string
+	client      *hallClients
 }
 
 type Hall_ClientStreamClient_MulticastResult struct {
@@ -1203,13 +1229,14 @@ func (r *Hall_GateStreamClient_MulticastResult) Errors(index int) error {
 	}
 	return r.errors[index]
 }
-func (c *hallClientsMulticast) WithRegex(regex string) HallClientsMulticast {
-	u := &hallClientsMulticast{
-		client: c.client,
-		count:  c.count,
-		regex:  regex,
-	}
-	return u
+func (c *hallClientsMulticast) WhereRegex(regex string) HallClientsMulticast {
+	c.regex = regex
+	return c
+}
+
+func (c *hallClientsMulticast) WherePrefix(prefix string) HallClientsMulticast {
+	c.prefix = prefix
+	return c
 }
 
 func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error) {
@@ -1220,10 +1247,16 @@ func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.Ca
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1257,10 +1290,16 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1294,10 +1333,16 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1332,10 +1377,16 @@ func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatReque
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1370,10 +1421,16 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1408,10 +1465,16 @@ func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageR
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1446,10 +1509,16 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1484,10 +1553,16 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1522,10 +1597,16 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}

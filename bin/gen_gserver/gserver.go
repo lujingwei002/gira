@@ -40,17 +40,16 @@ const (
 	giraPackage    = protogen.GoImportPath("github.com/lujingwei002/gira")
 	facadePackage  = protogen.GoImportPath("github.com/lujingwei002/gira/facade")
 	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/options/service_options")
+	metaPackage    = protogen.GoImportPath("google.golang.org/grpc/metadata")
 )
 
 type serviceGenerateHelperInterface interface {
 	formatFullMethodSymbol(service *protogen.Service, method *protogen.Method) string
 	genServiceName(g *protogen.GeneratedFile, service *protogen.Service)
 	genFullMethods(g *protogen.GeneratedFile, service *protogen.Service)
-	generateClientsStruct(g *protogen.GeneratedFile, clientsName string, clientName string)
-	generateClientsUnicastStruct(g *protogen.GeneratedFile, clientsUnicastName string, clientsName string)
-	generateClientsMulticastStruct(g *protogen.GeneratedFile, clientsMulticastName string, clientsName string)
-	generateNewClientsDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string)
 	generateCatalogServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
+	generateCatalogServerInterface(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
+	generateCatalogServerHandler(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
 	generateServerFunctions(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, serverType string, serviceDescVar string)
 	formatHandlerFuncName(service *protogen.Service, hname string) string
 }
@@ -79,53 +78,45 @@ func (serviceGenerateHelper) genFullMethods(g *protogen.GeneratedFile, service *
 	g.P()
 }
 
-func (serviceGenerateHelper) generateClientsStruct(g *protogen.GeneratedFile, clientsName string, clientName string) {
-	g.P("type ", unexport(clientsName), " struct {")
-	// g.P("cc ", grpcPackage.Ident("ClientConnInterface"))
-	g.P("mu  ", syncPackage.Ident("Mutex"))
-	g.P("clientPool  map[string]*sync.Pool")
-	g.P("serviceName string")
+func (serviceGenerateHelper) generateCatalogServerHandler(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	catalogServerType := service.GoName + "CatalogServer"
+	serverType := service.GoName + "Server"
+	// Server Unimplemented struct for forward compatibility.
+	g.P("// ", catalogServerType, " is the default catalog server handler for ", service.GoName, " service.")
+	g.P("type ", catalogServerType, "Handler interface {")
+	g.P("    ", serverType)
 	g.P("}")
 	g.P()
 }
 
-func (serviceGenerateHelper) generateClientsUnicastStruct(g *protogen.GeneratedFile, clientsUnicastName string, clientsName string) {
-	g.P("type ", unexport(clientsUnicastName), " struct {")
-	// g.P("cc ", grpcPackage.Ident("ClientConnInterface"))
-	g.P("peer 			*gira.Peer")
-	g.P("serviceName 	string")
-	g.P("address 		string")
-	g.P("userId 		string")
-	g.P("client 		*" + unexport(clientsName))
-	g.P("}")
-	g.P()
-}
-
-func (serviceGenerateHelper) generateClientsMulticastStruct(g *protogen.GeneratedFile, clientsMulticastName string, clientsName string) {
-	g.P("type ", unexport(clientsMulticastName), " struct {")
-	// g.P("cc ", grpcPackage.Ident("ClientConnInterface"))
-	g.P("// 不变")
-	g.P("count 			int")
-	g.P("serviceName 	string")
-	g.P("// 可变")
-	g.P("regex 			string")
-	g.P("client 		*" + unexport(clientsName))
-	g.P("}")
-	g.P()
-}
-
-func (serviceGenerateHelper) generateNewClientsDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string) {
-	g.P("return &", unexport(clientName), "{")
-	g.P("	serviceName: ", service.GoName, "ServiceName,")
-	g.P("	clientPool:  make(map[string]*sync.Pool, 0),")
-	g.P("}")
-}
-
-func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+func (serviceGenerateHelper) generateCatalogServerInterface(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
 	serverType := service.GoName + "CatalogServer"
 	// Server Unimplemented struct for forward compatibility.
 	g.P("// ", serverType, " is the default catalog server for ", service.GoName, " service.")
-	g.P("type ", serverType, " struct {")
+	g.P("type ", serverType, " interface {")
+	g.P("RegisterHandler(key string, handler ", serverType, "Handler)")
+	g.P("UnregisterHandler(key string, handler ", serverType, "Handler)")
+	g.P("}")
+	g.P()
+}
+
+func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	catalogServerType := service.GoName + "CatalogServer"
+	serverType := service.GoName + "Server"
+	// Server Unimplemented struct for forward compatibility.
+	g.P("// ", unexport(catalogServerType), " is the default catalog server for ", service.GoName, " service.")
+	g.P("type ", unexport(catalogServerType), " struct {")
+	g.P("    Unimplemented", serverType)
+	g.P("    mu ", syncPackage.Ident("Mutex"))
+	g.P("    handlers ", syncPackage.Ident("Map"))
+	g.P("}")
+	g.P()
+	g.P("func (svr *", unexport(catalogServerType), ")RegisterHandler(key string, handler ", catalogServerType, "Handler){")
+	g.P("	svr.handlers.Store(key, handler)")
+	g.P("}")
+	g.P()
+	g.P("func (svr *", unexport(catalogServerType), ")UnregisterHandler(key string, handler ", catalogServerType, "Handler){")
+	g.P("	svr.handlers.Delete(key)")
 	g.P("}")
 	g.P()
 	for _, method := range service.Methods {
@@ -133,8 +124,25 @@ func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, fil
 		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			nilArg = "nil,"
 		}
-		g.P("func (", serverType, ") ", serverSignature(g, method), "{")
-		g.P("return ", nilArg, statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		g.P("func (svr* ", unexport(catalogServerType), ") ", serverSignature(g, method), "{")
+
+		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+			g.P("	if kv, ok := ", metaPackage.Ident("FromIncomingContext"), "(ctx); !ok {")
+			g.P("       return nil, ", giraPackage.Ident("ErrTodo"))
+			g.P("	} else if keys, ok := kv[\"catalog-key\"]; !ok {")
+			g.P("       return nil, ", giraPackage.Ident("ErrTodo"))
+			g.P("	} else if len(keys) <= 0 {")
+			g.P("       return nil, ", giraPackage.Ident("ErrTodo"))
+			g.P("	} else if handler, ok := svr.handlers.Load(keys[0]); !ok {")
+			g.P("       return nil, ", giraPackage.Ident("ErrTodo"))
+			g.P("	} else if svr, ok := handler.(", serverType, "); !ok {")
+			g.P("       return nil, ", giraPackage.Ident("ErrTodo"))
+			g.P("	} else {")
+			g.P("		return svr.", method.GoName, "(ctx, in)")
+			g.P("   }")
+		} else {
+			g.P("return ", nilArg, statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		}
 		g.P("}")
 	}
 	g.P()
@@ -225,6 +233,8 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	// Server interface.
 	serverType := service.GoName + "CatalogServer"
 	// Server Unimplemented struct for forward compatibility.
+	helper.generateCatalogServerHandler(gen, file, g, service)
+	helper.generateCatalogServerInterface(gen, file, g, service)
 	helper.generateCatalogServerType(gen, file, g, service)
 
 	// Server registration.
@@ -232,267 +242,27 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 		g.P(deprecationComment)
 	}
 	serviceDescVar := service.GoName + "_ServiceCatalogDesc"
-	g.P("func Register", service.GoName, "ServerAsCatalog(s ", grpcPackage.Ident("ServiceRegistrar"), ", srv *", serverType, ") {")
-	g.P("s.RegisterService(&", serviceDescVar, `, srv)`)
-	g.P("}")
+	g.P("func Register", service.GoName, "ServerAsCatalog(s ", grpcPackage.Ident("ServiceRegistrar"), " ,handler ", serverType, "Handler) ", serverType, " {")
+	g.P("svr := &", unexport(serverType), "{}")
+	g.P("s.RegisterService(&", serviceDescVar, `, svr)`)
+	g.P("return svr}")
 	g.P()
 
 	helper.generateServerFunctions(gen, file, g, service, serverType, serviceDescVar)
-}
-
-func clientsSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
-	s := method.GoName + "(ctx " + g.QualifiedGoIdent(contextPackage.Ident("Context"))
-	s += ", address string"
-	if !method.Desc.IsStreamingClient() {
-		s += ", in *" + g.QualifiedGoIdent(method.Input.GoIdent)
-	}
-	s += ", opts ..." + g.QualifiedGoIdent(grpcPackage.Ident("CallOption")) + ") ("
-	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-		s += "*" + g.QualifiedGoIdent(method.Output.GoIdent)
-	} else {
-		s += method.Parent.GoName + "_" + method.GoName + "Client"
-	}
-	s += ", error)"
-	return s
-}
-
-func clientsMulticastSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
-	s := method.GoName + "(ctx " + g.QualifiedGoIdent(contextPackage.Ident("Context"))
-	if !method.Desc.IsStreamingClient() {
-		s += ", in *" + g.QualifiedGoIdent(method.Input.GoIdent)
-	}
-	s += ", opts ..." + g.QualifiedGoIdent(grpcPackage.Ident("CallOption")) + ") ("
-	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-		s += "*" + g.QualifiedGoIdent(method.Output.GoIdent) + "_MulticastResult"
-	} else {
-		s += "*" + method.Parent.GoName + "_" + method.GoName + "Client_MulticastResult"
-	}
-	s += ", error)"
-	return s
-}
-
-func clientsUnicastSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
-	s := method.GoName + "(ctx " + g.QualifiedGoIdent(contextPackage.Ident("Context"))
-	if !method.Desc.IsStreamingClient() {
-		s += ", in *" + g.QualifiedGoIdent(method.Input.GoIdent)
-	}
-	s += ", opts ..." + g.QualifiedGoIdent(grpcPackage.Ident("CallOption")) + ") ("
-	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-		s += "*" + g.QualifiedGoIdent(method.Output.GoIdent)
-	} else {
-		s += method.Parent.GoName + "_" + method.GoName + "Client"
-	}
-	s += ", error)"
-	return s
-}
-
-func genClientsMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, index int) {
-	service := method.Parent
-
-	if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
-		g.P(deprecationComment)
-	}
-	g.P("func (c *", unexport(service.GoName), "Clients) ", clientsSignature(g, method), "{")
-	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("client, err := c.getClient(address)")
-		g.P("if err != nil { return nil, err }")
-		g.P("defer c.putClient(address, client)")
-		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("if err != nil { return nil, err }")
-		g.P("return out, nil")
-		g.P("}")
-		g.P()
-		return
-	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("client, err := c.getClient(address)")
-		g.P("if err != nil { return nil, err }")
-		g.P("defer c.putClient(address, client)")
-		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("if err != nil { return nil, err }")
-		g.P("return out, nil")
-		g.P("}")
-		g.P()
-		return
-	} else {
-		g.P("client, err := c.getClient(address)")
-		g.P("if err != nil { return nil, err }")
-		g.P("defer c.putClient(address, client)")
-		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, opts...)`)
-		g.P("if err != nil { return nil, err }")
-		g.P("return out, nil")
-		g.P("}")
-		g.P()
-		return
-	}
-}
-
-func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, index int) {
-	service := method.Parent
-
-	if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
-		g.P(deprecationComment)
-	}
-	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) ", clientsUnicastSignature(g, method), "{")
-	g.P("var address string")
-	g.P("if len(c.address) > 0 {")
-	g.P("	address = c.address")
-	g.P("} else if c.peer != nil {")
-	g.P("	address = c.peer.GrpcAddr")
-	g.P("} else if len(c.serviceName) > 0 {")
-	g.P("	if peers, err := ", facadePackage.Ident("WhereIsService"), "(c.serviceName); err != nil {")
-	g.P("		return nil, err")
-	g.P("	} else if len(peers) < 1 {")
-	g.P("		return nil, gira.ErrPeerNotFound.Trace()")
-	g.P("	} else {")
-	g.P("		address = peers[0].GrpcAddr")
-	g.P("	}")
-	g.P("} else if len(c.userId) > 0 {")
-	g.P("	if peer, err := ", facadePackage.Ident("WhereIsUser"), "(c.userId); err != nil {")
-	g.P("		return nil, err")
-	g.P("	} else {")
-	g.P("		address = peer.GrpcAddr")
-	g.P("	}")
-	g.P("}")
-	g.P("if len(address) <= 0 {")
-	g.P("	return nil, gira.ErrInvalidArgs.Trace()")
-	g.P("}")
-	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("client, err := c.client.getClient(address)")
-		g.P("if err != nil { return nil, err }")
-		g.P("defer c.client.putClient(address, client)")
-		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("if err != nil { return nil, err }")
-		g.P("return out, nil")
-		g.P("}")
-		g.P()
-		return
-	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("client, err := c.client.getClient(address)")
-		g.P("if err != nil { return nil, err }")
-		g.P("defer c.client.putClient(address, client)")
-		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("if err != nil { return nil, err }")
-		g.P("return out, nil")
-		g.P("}")
-		g.P()
-		return
-	} else {
-		g.P("client, err := c.client.getClient(address)")
-		g.P("if err != nil { return nil, err }")
-		g.P("defer c.client.putClient(address, client)")
-		g.P(`out, err := client.`, method.Desc.Name(), `(ctx, opts...)`)
-		g.P("if err != nil { return nil, err }")
-		g.P("return out, nil")
-		g.P("}")
-		g.P()
-		return
-	}
-}
-
-func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, index int) {
-	service := method.Parent
-
-	if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
-		g.P(deprecationComment)
-	}
-	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) ", clientsMulticastSignature(g, method), "{")
-	g.P("var peers []*gira.Peer")
-	g.P("var whereOpts []", optionsPackage.Ident("WhereOption"))
-	g.P("// 多播")
-	g.P("whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereCatalogOption"), "())")
-	g.P("if c.count > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereMaxCountOption"), "(c.count))}")
-	g.P("if len(c.regex) > 0 {whereOpts = append(whereOpts, ", optionsPackage.Ident("WithWhereRegexOption"), "(c.regex))}")
-	g.P("peers, err := ", facadePackage.Ident("WhereIsService"), "(c.serviceName, whereOpts...)")
-	g.P("if err != nil {")
-	g.P("	return nil, err")
-	g.P("}")
-	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("result := &", method.Output.GoIdent, "_MulticastResult{}")
-	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("result := &", method.Parent.GoName, "_", method.GoName, "Client_MulticastResult{}")
-	} else {
-		g.P("result := &", method.Parent.GoName, "_", method.GoName, "Client_MulticastResult{}")
-	}
-	g.P("result.peerCount = len(peers)")
-	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("for _, peer := range peers {")
-		g.P("	client, err := c.client.getClient(peer.GrpcAddr)")
-		g.P("	if err != nil { ")
-		g.P("		result.errors = append(result.errors, err)")
-		g.P("		result.errorPeers = append(result.errorPeers, peer)")
-		g.P("		continue")
-		g.P("	}")
-		g.P(`	out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("	if err != nil { ")
-		g.P("		result.errors = append(result.errors, err)")
-		g.P("		result.errorPeers = append(result.errorPeers, peer)")
-		g.P("		c.client.putClient(peer.GrpcAddr, client)")
-		g.P("		continue")
-		g.P("	}")
-		g.P("	c.client.putClient(peer.GrpcAddr, client)")
-		g.P("	result.responses = append(result.responses, out)")
-		g.P("	result.successPeers = append(result.successPeers, peer)")
-		g.P("}")
-		g.P("return result, nil")
-		g.P("}")
-		g.P()
-	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("for _, peer := range peers {")
-		g.P("	client, err := c.client.getClient(peer.GrpcAddr)")
-		g.P("	if err != nil { ")
-		g.P("		result.errors = append(result.errors, err)")
-		g.P("		result.errorPeers = append(result.errorPeers, peer)")
-		g.P("		continue")
-		g.P("	}")
-		g.P(`	out, err := client.`, method.Desc.Name(), `(ctx, in, opts...)`)
-		g.P("	if err != nil { ")
-		g.P("		result.errors = append(result.errors, err)")
-		g.P("		result.errorPeers = append(result.errorPeers, peer)")
-		g.P("		c.client.putClient(peer.GrpcAddr, client)")
-		g.P("		continue")
-		g.P("	}")
-		g.P("	result.responses = append(result.responses, out)")
-		g.P("	result.successPeers = append(result.successPeers, peer)")
-		g.P("}")
-		g.P("return result, nil")
-		g.P("}")
-		g.P()
-	} else {
-		g.P("for _, peer := range peers {")
-		g.P("	client, err := c.client.getClient(peer.GrpcAddr)")
-		g.P("	if err != nil { ")
-		g.P("		result.errors = append(result.errors, err)")
-		g.P("		result.errorPeers = append(result.errorPeers, peer)")
-		g.P("		continue")
-		g.P("	}")
-		g.P(`	out, err := client.`, method.Desc.Name(), `(ctx, opts...)`)
-		g.P("	if err != nil { ")
-		g.P("		result.errors = append(result.errors, err)")
-		g.P("		result.errorPeers = append(result.errorPeers, peer)")
-		g.P("		c.client.putClient(peer.GrpcAddr, client)")
-		g.P("		continue")
-		g.P("	}")
-		g.P("	result.responses = append(result.responses, out)")
-		g.P("	result.successPeers = append(result.successPeers, peer)")
-		g.P("}")
-		g.P("return result, nil")
-		g.P("}")
-		g.P()
-	}
 }
 
 func serverSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
 	var reqArgs []string
 	ret := "error"
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-		reqArgs = append(reqArgs, g.QualifiedGoIdent(contextPackage.Ident("Context")))
+		reqArgs = append(reqArgs, "ctx "+g.QualifiedGoIdent(contextPackage.Ident("Context")))
 		ret = "(*" + g.QualifiedGoIdent(method.Output.GoIdent) + ", error)"
 	}
 	if !method.Desc.IsStreamingClient() {
-		reqArgs = append(reqArgs, "*"+g.QualifiedGoIdent(method.Input.GoIdent))
+		reqArgs = append(reqArgs, "in *"+g.QualifiedGoIdent(method.Input.GoIdent))
 	}
 	if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-		reqArgs = append(reqArgs, method.Parent.GoName+"_"+method.GoName+"Server")
+		reqArgs = append(reqArgs, "s "+method.Parent.GoName+"_"+method.GoName+"Server")
 	}
 	return method.GoName + "(" + strings.Join(reqArgs, ", ") + ") " + ret
 }

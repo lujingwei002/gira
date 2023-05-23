@@ -13,6 +13,7 @@ import (
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
+	metadata "google.golang.org/grpc/metadata"
 	sync "sync"
 )
 
@@ -70,7 +71,7 @@ func (r *HealthCheckResponse_MulticastResult) Errors(index int) error {
 }
 
 const (
-	PeerServiceName = "peer_grpc.Peer"
+	PeerServerName = "peer_grpc.Peer"
 )
 
 // PeerClient is the client API for Peer service.
@@ -78,23 +79,25 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PeerClients interface {
 	WithServiceName(serviceName string) PeerClients
-	WithUnicast() PeerClientsUnicast
-	WithMulticast(count int) PeerClientsMulticast
-	WithBroadcast() PeerClientsMulticast
+	Unicast() PeerClientsUnicast
+	Multicast(count int) PeerClientsMulticast
+	Broadcast() PeerClientsMulticast
 
 	HealthCheck(ctx context.Context, address string, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
 
 type PeerClientsMulticast interface {
-	WithRegex(regex string) PeerClientsMulticast
+	WhereRegex(regex string) PeerClientsMulticast
+	WherePrefix(prefix string) PeerClientsMulticast
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error)
 }
 
 type PeerClientsUnicast interface {
-	WithServiceName(serviceName string) PeerClientsUnicast
-	WithPeer(peer *gira.Peer) PeerClientsUnicast
-	WithAddress(address string) PeerClientsUnicast
-	WithUserId(userId string) PeerClientsUnicast
+	Where(serviceName string) PeerClientsUnicast
+	WherePeer(peer *gira.Peer) PeerClientsUnicast
+	WhereAddress(address string) PeerClientsUnicast
+	WhereUserId(userId string) PeerClientsUnicast
+	WhereUserCatalog(userId string) PeerClientsUnicast
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
@@ -107,7 +110,7 @@ type peerClients struct {
 
 func NewPeerClients() PeerClients {
 	return &peerClients{
-		serviceName: PeerServiceName,
+		serviceName: PeerServerName,
 		clientPool:  make(map[string]*sync.Pool, 0),
 	}
 }
@@ -158,14 +161,16 @@ func (c *peerClients) WithServiceName(serviceName string) PeerClients {
 	return c
 }
 
-func (c *peerClients) WithUnicast() PeerClientsUnicast {
+func (c *peerClients) Unicast() PeerClientsUnicast {
+	headers := make(map[string]string)
 	u := &peerClientsUnicast{
-		client: c,
+		headers: metadata.New(headers),
+		client:  c,
 	}
 	return u
 }
 
-func (c *peerClients) WithMulticast(count int) PeerClientsMulticast {
+func (c *peerClients) Multicast(count int) PeerClientsMulticast {
 	u := &peerClientsMulticast{
 		count:       count,
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
@@ -174,7 +179,7 @@ func (c *peerClients) WithMulticast(count int) PeerClientsMulticast {
 	return u
 }
 
-func (c *peerClients) WithBroadcast() PeerClientsMulticast {
+func (c *peerClients) Broadcast() PeerClientsMulticast {
 	u := &peerClientsMulticast{
 		count:       -1,
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
@@ -202,38 +207,33 @@ type peerClientsUnicast struct {
 	address     string
 	userId      string
 	client      *peerClients
+	headers     metadata.MD
 }
 
-func (c *peerClientsUnicast) WithServiceName(serviceName string) PeerClientsUnicast {
-	u := &peerClientsUnicast{
-		client:      c.client,
-		serviceName: fmt.Sprintf("%s/%s", c.client.serviceName, serviceName),
-	}
-	return u
+func (c *peerClientsUnicast) Where(serviceName string) PeerClientsUnicast {
+	c.serviceName = fmt.Sprintf("%s/%s", c.client.serviceName, serviceName)
+	return c
 }
 
-func (c *peerClientsUnicast) WithPeer(peer *gira.Peer) PeerClientsUnicast {
-	u := &peerClientsUnicast{
-		client: c.client,
-		peer:   peer,
-	}
-	return u
+func (c *peerClientsUnicast) WherePeer(peer *gira.Peer) PeerClientsUnicast {
+	c.peer = peer
+	return c
 }
 
-func (c *peerClientsUnicast) WithAddress(address string) PeerClientsUnicast {
-	u := &peerClientsUnicast{
-		client:  c.client,
-		address: address,
-	}
-	return u
+func (c *peerClientsUnicast) WhereAddress(address string) PeerClientsUnicast {
+	c.address = address
+	return c
 }
 
-func (c *peerClientsUnicast) WithUserId(userId string) PeerClientsUnicast {
-	u := &peerClientsUnicast{
-		client: c.client,
-		userId: userId,
-	}
-	return u
+func (c *peerClientsUnicast) WhereUserId(userId string) PeerClientsUnicast {
+	c.userId = userId
+	return c
+}
+
+func (c *peerClientsUnicast) WhereUserCatalog(userId string) PeerClientsUnicast {
+	c.userId = userId
+	c.headers.Append("catalog-key", userId)
+	return c
 }
 
 func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
@@ -265,6 +265,9 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 		return nil, err
 	}
 	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
 	out, err := client.HealthCheck(ctx, in, opts...)
 	if err != nil {
 		return nil, err
@@ -273,21 +276,21 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 }
 
 type peerClientsMulticast struct {
-	// 不变
 	count       int
 	serviceName string
-	// 可变
-	regex  string
-	client *peerClients
+	regex       string
+	prefix      string
+	client      *peerClients
 }
 
-func (c *peerClientsMulticast) WithRegex(regex string) PeerClientsMulticast {
-	u := &peerClientsMulticast{
-		client: c.client,
-		count:  c.count,
-		regex:  regex,
-	}
-	return u
+func (c *peerClientsMulticast) WhereRegex(regex string) PeerClientsMulticast {
+	c.regex = regex
+	return c
+}
+
+func (c *peerClientsMulticast) WherePrefix(prefix string) PeerClientsMulticast {
+	c.prefix = prefix
+	return c
 }
 
 func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error) {
@@ -298,10 +301,16 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 	if c.count > 0 {
 		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 	}
+	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption(c.regex))
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	peers, err := facade.WhereIsService(c.serviceName, whereOpts...)
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsService(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
