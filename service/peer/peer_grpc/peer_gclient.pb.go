@@ -243,7 +243,7 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -310,7 +310,7 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}

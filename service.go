@@ -17,3 +17,7 @@ type ServiceContainer interface {
 	// 停止服务
 	StopService(service Service) error
 }
+
+type ServiceComponent interface {
+	GetServiceContainer() ServiceContainer
+}

@@ -83,6 +83,7 @@ const (
 	E_CATALOG_SERVER_HANDLER_NOT_IMPLEMENT = -68
 	E_SERVICE_ALREADY_STOPPED              = -69
 	E_SERVICE_ALREADY_STARTED              = -70
+	E_DB_CLIENT_COMPONENT_NOT_IMPLEMENT    = -71
 )
 const (
 	E_MSG_OK                                   = "成功"
@@ -159,6 +160,7 @@ const (
 	E_MSG_CATALOG_SERVER_HANDLER_NOT_IMPLEMENT = "cata server handler not implement"
 	E_MSG_SERVICE_ALREADY_STOPPED              = "service已经停止"
 	E_MSG_SERVICE_ALREADY_STARTED              = "service已经启动"
+	E_MSG_DB_CLIENT_COMPONENT_NOT_IMPLEMENT    = "db client component not implement"
 )
 
 type Error struct {
@@ -260,6 +262,7 @@ var (
 	ErrCatalogServerHandlerNotImplement = NewError(E_CATALOG_SERVER_HANDLER_NOT_IMPLEMENT, E_MSG_CATALOG_SERVER_HANDLER_NOT_IMPLEMENT)
 	ErrServiceAlreadyStopped            = NewError(E_SERVICE_ALREADY_STOPPED, E_MSG_SERVICE_ALREADY_STOPPED)
 	ErrServiceAlreadyStarted            = NewError(E_SERVICE_ALREADY_STARTED, E_MSG_SERVICE_ALREADY_STARTED)
+	ErrDbClientComponentNotImplement    = NewError(E_DB_CLIENT_COMPONENT_NOT_IMPLEMENT, E_MSG_DB_CLIENT_COMPONENT_NOT_IMPLEMENT)
 )
 
 func ErrCode(err error) int32 {

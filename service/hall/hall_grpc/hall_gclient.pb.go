@@ -782,7 +782,7 @@ func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.Call
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -821,7 +821,7 @@ func (c *hallClientsUnicast) GateStream(ctx context.Context, opts ...grpc.CallOp
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -860,7 +860,7 @@ func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -899,7 +899,7 @@ func (c *hallClientsUnicast) Heartbeat(ctx context.Context, in *HeartbeatRequest
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -938,7 +938,7 @@ func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, 
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -977,7 +977,7 @@ func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageReq
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -1016,7 +1016,7 @@ func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageReq
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -1055,7 +1055,7 @@ func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadReq
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -1094,7 +1094,7 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -1256,7 +1256,7 @@ func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.Ca
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1299,7 +1299,7 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1342,7 +1342,7 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1386,7 +1386,7 @@ func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatReque
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1430,7 +1430,7 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1474,7 +1474,7 @@ func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageR
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1518,7 +1518,7 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1562,7 +1562,7 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1606,7 +1606,7 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}

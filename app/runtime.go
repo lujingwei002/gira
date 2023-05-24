@@ -398,8 +398,8 @@ func (runtime *Runtime) onCreate() error {
 	}
 
 	// ==== 加载resource ================
-	if resourceManager, ok := runtime.Application.(gira.ResourceManager); ok {
-		resourceLoader := resourceManager.ResourceLoader()
+	if resourceManager, ok := runtime.Application.(gira.ResourceComponent); ok {
+		resourceLoader := resourceManager.GetResourceLoader()
 		if resourceLoader != nil {
 			runtime.resourceLoader = resourceLoader
 			if err := runtime.resourceLoader.LoadResource("resource"); err != nil {
@@ -414,7 +414,7 @@ func (runtime *Runtime) onCreate() error {
 
 	// ==== grpc ================
 	if runtime.config.Module.Grpc != nil {
-		if _, ok := application.(gira.GrpcServer); !ok {
+		if _, ok := application.(gira.GrpcServerComponent); !ok {
 			return gira.ErrGrpcServerNotImplement
 		}
 		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)

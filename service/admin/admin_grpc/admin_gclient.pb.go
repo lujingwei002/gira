@@ -387,7 +387,7 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -426,7 +426,7 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -465,7 +465,7 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -504,7 +504,7 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 	} else if c.peer != nil {
 		address = c.peer.GrpcAddr
 	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsService(c.serviceName); err != nil {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
@@ -714,7 +714,7 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -758,7 +758,7 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -801,7 +801,7 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -844,7 +844,7 @@ func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grp
 		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
-	peers, err := facade.WhereIsService(serviceName, whereOpts...)
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 	if err != nil {
 		return nil, err
 	}

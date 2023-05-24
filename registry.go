@@ -21,6 +21,10 @@ type Registry interface {
 	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
 }
 
+type RegistryComponent interface {
+	GetRegistry() Registry
+}
+
 // 伙伴节点
 type Peer struct {
 	Name     string            // 服务类型

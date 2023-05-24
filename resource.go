@@ -17,9 +17,9 @@ type ResourceHandler interface {
 	OnResourcePostLoad()
 }
 
-type ResourceManager interface {
+type ResourceComponent interface {
 	// 返回资源加载器
-	ResourceLoader() ResourceLoader
+	GetResourceLoader() ResourceLoader
 }
 
 func Make1Key_int[T any](arr []*T, dict map[int]*T, key string) error {

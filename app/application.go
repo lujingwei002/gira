@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
 )
 
@@ -16,26 +15,6 @@ type BaseApplication struct {
 // 返回配置
 func (application BaseApplication) GetConfig() *gira.Config {
 	return application.runtime.config
-}
-
-// 框架启动回调
-func (application *BaseApplication) OnFrameworkStart() error {
-	return nil
-}
-
-// 框架销毁回调
-func (application *BaseApplication) OnFrameworkStop() error {
-	return nil
-}
-
-// 框架唤醒回调
-func (self *BaseApplication) OnFrameworkCreate(application gira.Application) error {
-	return nil
-}
-
-// 框架框架加载回调
-func (application *BaseApplication) OnFrameworkConfigLoad(c *gira.Config) error {
-	return nil
 }
 
 // 返回构建版本
@@ -69,27 +48,6 @@ func (application *BaseApplication) GetAppFullName() string {
 	return application.runtime.appFullName
 }
 
-func (application *BaseApplication) Go(f func() error) {
-	application.runtime.errGroup.Go(f)
-}
-
-func (application *BaseApplication) Done() <-chan struct{} {
-	return application.runtime.ctx.Done()
-}
-
-func (application *BaseApplication) Quit() {
-	application.runtime.cancelFunc()
-}
-
-func (application *BaseApplication) Context() context.Context {
-	return application.runtime.ctx
-}
-
-// 设置runtime
-func (application *BaseApplication) OnApplicationRun(runtime *Runtime) {
-	application.runtime = runtime
-}
-
 func (application *BaseApplication) GetWorkDir() string {
 	return application.runtime.WorkDir
 }
@@ -98,10 +56,69 @@ func (application *BaseApplication) GetLogDir() string {
 	return application.runtime.LogDir
 }
 
+// ================== context =========================
+
+func (application *BaseApplication) Context() context.Context {
+	return application.runtime.ctx
+}
+
+func (application *BaseApplication) Quit() {
+	application.runtime.cancelFunc()
+}
+
+func (application *BaseApplication) Done() <-chan struct{} {
+	return application.runtime.ctx.Done()
+}
+
+func (application *BaseApplication) Go(f func() error) {
+	application.runtime.errGroup.Go(f)
+}
+
 func (application *BaseApplication) Wait() error {
 	return application.runtime.Wait()
 }
 
+// ================== 回调 =========================
+// 框架启动回调
+func (application *BaseApplication) OnFrameworkStart() error {
+	return nil
+}
+
+// 设置runtime
+func (application *BaseApplication) OnApplicationRun(runtime *Runtime) {
+	application.runtime = runtime
+}
+
+// 框架销毁回调
+func (application *BaseApplication) OnFrameworkStop() error {
+	return nil
+}
+
+// 框架唤醒回调
+func (self *BaseApplication) OnFrameworkCreate(application gira.Application) error {
+	return nil
+}
+
+// 创建框架
+func (application *BaseApplication) OnFrameworkInit() []gira.Framework {
+	return nil
+}
+
+// 框架框架加载回调
+func (application *BaseApplication) OnFrameworkConfigLoad(c *gira.Config) error {
+	return nil
+}
+
+func (application *BaseApplication) OnLocalPlayerAdd(player *gira.LocalPlayer) {
+}
+
+func (application *BaseApplication) OnLocalPlayerDelete(player *gira.LocalPlayer) {
+}
+
+func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer) {
+}
+
+// ================== implement gira.DbClientComponent ==================
 func (application *BaseApplication) GetAccountDbClient() gira.DbClient {
 	return application.runtime.AccountDbClient
 }
@@ -138,9 +155,44 @@ func (application *BaseApplication) GetAdminDbClient() gira.DbClient {
 	return application.runtime.AdminDbClient
 }
 
-// implement gira.Sdk
+// ================== implement gira.Sdk ==================
 func (application *BaseApplication) SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
 	return application.runtime.Sdk.Login(accountPlat, openId, token)
+}
+
+// ================== implement gira.RegistryComponent ==================
+func (application *BaseApplication) GetRegistry() gira.Registry {
+	return application.runtime.Registry
+}
+
+// ================== implement gira.ServiceComponent ==================
+func (application *BaseApplication) GetServiceContainer() gira.ServiceContainer {
+	return application.runtime.ServiceContainer
+}
+
+// ================== implement gira.GrpcServerComponent ==================
+func (application *BaseApplication) GetGrpcServer() gira.GrpcServer {
+	return application.runtime.GrpcServer
+}
+
+// ================== implement gira.AdminClient ==================
+// 重载配置
+func (application *BaseApplication) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
+	req := &admin_grpc.ReloadResourceRequest{
+		Name: name,
+	}
+	result, err = admin_grpc.DefaultAdminClients.Broadcast().ReloadResource(ctx, req)
+	return
+}
+
+// 返回框架列表
+func (application *BaseApplication) Frameworks() []gira.Framework {
+	return application.runtime.Frameworks
+}
+
+/*
+func (application *BaseApplication) NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
+	return application.runtime.Registry.NewServiceName(serviceName, opt...)
 }
 
 func (application *BaseApplication) LockLocalUser(userId string) (*gira.Peer, error) {
@@ -155,49 +207,19 @@ func (application *BaseApplication) UnlockLocalUser(userId string) (*gira.Peer, 
 	return application.runtime.Registry.UnlockLocalUser(userId)
 }
 
-func (application *BaseApplication) OnLocalPlayerAdd(player *gira.LocalPlayer) {
-}
-
-func (application *BaseApplication) OnLocalPlayerDelete(player *gira.LocalPlayer) {
-}
-
-func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer) {
-
-}
-
-func (application *BaseApplication) NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
-	return application.runtime.Registry.NewServiceName(serviceName, opt...)
-}
-
 // 注册服务
 func (application *BaseApplication) RegisterService(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
 	return application.runtime.Registry.RegisterService(serviceName, opt...)
 }
 
 // 查找服务
-func (application *BaseApplication) WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
+func (application *BaseApplication) WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
 	return application.runtime.Registry.WhereIsService(serviceName, opt...)
 }
 
 // 反注册服务
 func (application *BaseApplication) UnregisterService(serviceName string) (*gira.Peer, error) {
 	return application.runtime.Registry.UnregisterService(serviceName)
-}
-
-// 重载配置
-func (application *BaseApplication) ReloadResource(dir string) error {
-	if application.runtime.resourceLoader == nil {
-		return gira.ErrResourceLoaderNotImplement
-	}
-	return application.runtime.resourceLoader.ReloadResource(dir)
-}
-
-// 加载配置
-func (application *BaseApplication) LoadResource(dir string) error {
-	if application.runtime.resourceLoader == nil {
-		return gira.ErrResourceLoaderNotImplement
-	}
-	return application.runtime.resourceLoader.LoadResource(dir)
 }
 
 // 返回全部节点
@@ -214,47 +236,35 @@ func (application *BaseApplication) ListServiceKvs() (services map[string][]stri
 	services, err = application.runtime.Registry.ListServiceKvs()
 	return
 }
-
+*/
 // 重载配置
-func (application *BaseApplication) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
-	req := &admin_grpc.ReloadResourceRequest{
-		Name: name,
-	}
-	result, err = admin_grpc.DefaultAdminClients.Broadcast().ReloadResource(ctx, req)
-	return
-}
+// func (application *BaseApplication) ReloadResource(dir string) error {
+// 	if application.runtime.resourceLoader == nil {
+// 		return gira.ErrResourceLoaderNotImplement
+// 	}
+// 	return application.runtime.resourceLoader.ReloadResource(dir)
+// }
 
-// 创建框架
-func (application *BaseApplication) OnFrameworkInit() []gira.Framework {
-	return nil
-}
+// 加载配置
+// func (application *BaseApplication) LoadResource(dir string) error {
+// 	if application.runtime.resourceLoader == nil {
+// 		return gira.ErrResourceLoaderNotImplement
+// 	}
+// 	return application.runtime.resourceLoader.LoadResource(dir)
+// }
 
-// 返回框架列表
-func (application *BaseApplication) Frameworks() []gira.Framework {
-	return application.runtime.Frameworks
-}
+// func (application *BaseApplication) StopService(service gira.Service) error {
+// 	if s := application.runtime.ServiceContainer; s == nil {
+// 		return gira.ErrServiceContainerNotImplement.Trace()
+// 	} else {
+// 		return s.StopService(service)
+// 	}
+// }
 
-func (application *BaseApplication) GetGrpcServer() gira.GrpcServer {
-	return application.runtime.GrpcServer
-}
-
-func (application *BaseApplication) GetGrpcService(name string) (svr interface{}, ok bool) {
-	svr, ok = application.runtime.GrpcServer.GetService(name)
-	return
-}
-
-func (application *BaseApplication) StopService(service gira.Service) error {
-	if s := application.runtime.ServiceContainer; s == nil {
-		return gira.ErrServiceContainerNotImplement.Trace()
-	} else {
-		return s.StopService(service)
-	}
-}
-
-func (application *BaseApplication) StartService(name string, service gira.Service) error {
-	if s := application.runtime.ServiceContainer; s == nil {
-		return gira.ErrServiceContainerNotImplement.Trace()
-	} else {
-		return s.StartService(name, service)
-	}
-}
+// func (application *BaseApplication) StartService(name string, service gira.Service) error {
+// 	if s := application.runtime.ServiceContainer; s == nil {
+// 		return gira.ErrServiceContainerNotImplement.Trace()
+// 	} else {
+// 		return s.StartService(name, service)
+// 	}
+// }

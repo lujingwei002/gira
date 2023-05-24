@@ -44,38 +44,14 @@ type MongoClient interface {
 	GetMongoDatabase() *mongo.Database
 }
 
-type GameDbClient interface {
+type DbClientComponent interface {
 	GetGameDbClient() DbClient
-}
-
-type StatDbClient interface {
 	GetStatDbClient() DbClient
-}
-
-type AccountDbClient interface {
 	GetAccountDbClient() DbClient
-}
-
-type ResourceDbClient interface {
 	GetResourceDbClient() DbClient
-}
-
-type AdminDbClient interface {
 	GetAdminDbClient() DbClient
-}
-
-type AccountCacheClient interface {
 	GetAccountCacheClient() DbClient
-}
-
-type LogDbClient interface {
 	GetLogDbClient() DbClient
-}
-
-type BehaviorDbClient interface {
 	GetBehaviorDbClient() DbClient
-}
-
-type AdminCacheClient interface {
 	GetAdminCacheClient() DbClient
 }

@@ -11,16 +11,6 @@ type Framework struct {
 	Config *Config
 }
 
-// 需要实现的接口
-type GatewayHandler interface {
-}
-
-// 登录后，第一个登录消息
-type LoginRequest interface {
-	GetMemberId() string
-	GetToken() string
-}
-
 // 当前会话的数量
 func (framework *Framework) SessionCount() int64 {
 	return framework.hall.sessionCount
