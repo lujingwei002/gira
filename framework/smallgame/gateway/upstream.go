@@ -12,11 +12,11 @@ import (
 )
 
 type upstream_peer struct {
-	Id           int32
-	FullName     string
-	Address      string
+	Id       int32
+	FullName string
+	Address  string
+
 	client       hall_grpc.HallClient
-	clientStream hall_grpc.Hall_ClientStreamClient
 	ctx          context.Context
 	cancelFunc   context.CancelFunc
 	playerCount  int64
@@ -33,9 +33,8 @@ func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_g
 	if client := server.client; client == nil {
 		err = gira.ErrNullPonter
 		return
-	} else if stream, err = client.ClientStream(ctx); err != nil {
-		return
 	} else {
+		stream, err = client.ClientStream(ctx)
 		return
 	}
 }
@@ -47,12 +46,10 @@ func (server *upstream_peer) serve() error {
 	var err error
 	address := server.Address
 	ticker := time.NewTicker(1 * time.Second)
-	heartbeatTicker := time.NewTicker(time.Duration(server.hall.framework.Config.Framework.Gateway.Upstream.HeartbeatInvertal) * time.Second)
 	streamCtx, streamCancelFunc := context.WithCancel(server.ctx)
 	defer func() {
 		streamCancelFunc()
 		ticker.Stop()
-		heartbeatTicker.Stop()
 		// 关闭链接
 		if conn != nil {
 			conn.Close()
@@ -95,6 +92,11 @@ func (server *upstream_peer) serve() error {
 			break
 		}
 	}
+	ticker.Stop()
+	heartbeatTicker := time.NewTicker(time.Duration(server.hall.framework.Config.Framework.Gateway.Upstream.HeartbeatInvertal) * time.Second)
+	defer func() {
+		heartbeatTicker.Stop()
+	}()
 	// init
 	{
 		req := &hall_grpc.InfoRequest{}

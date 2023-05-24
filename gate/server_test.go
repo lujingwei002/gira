@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 type GateHandler_TestManyClient struct {
 }
 
-func (self *GateHandler_TestManyClient) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler_TestManyClient) ServeClientStream(s gira.GatewayConn) {
 	//var req gira.GateRequest
 	for {
 		_, err := s.Recv(context.TODO())
@@ -177,7 +177,7 @@ func TestManyClient(t *testing.T) {
 type GateHandler_TestOnlineClient struct {
 }
 
-func (self *GateHandler_TestOnlineClient) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler_TestOnlineClient) ServeClientStream(s gira.GatewayConn) {
 	// var req gira.GatewayMessage
 	var err error
 	for {
@@ -304,7 +304,7 @@ type GateHandler_TestClientClose1 struct {
 	ExpectRecvMessageCount int64
 }
 
-func (self *GateHandler_TestClientClose1) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler_TestClientClose1) ServeClientStream(s gira.GatewayConn) {
 	// var req gira.GatewayMessage
 	var err error
 	for {
@@ -391,7 +391,7 @@ func TestClientClose1(t *testing.T) {
 type GateHandler2 struct {
 }
 
-func (self *GateHandler2) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler2) ServeClientStream(s gira.GatewayConn) {
 	var req gira.GatewayMessage
 	var err error
 	req, err = s.Recv(context.TODO())
@@ -457,7 +457,7 @@ func TestClientClose2(t *testing.T) {
 type GateHandler_TestServerClose struct {
 }
 
-func (self *GateHandler_TestServerClose) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler_TestServerClose) ServeClientStream(s gira.GatewayConn) {
 	var req gira.GatewayMessage
 	var err error
 	req, err = s.Recv(context.TODO())
@@ -521,7 +521,7 @@ func TestServerClose(t *testing.T) {
 type GateHandler_TestClientClose4 struct {
 }
 
-func (self *GateHandler_TestClientClose4) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler_TestClientClose4) ServeClientStream(s gira.GatewayConn) {
 	var req gira.GatewayMessage
 	var err error
 	req, err = s.Recv(context.TODO())
@@ -597,7 +597,7 @@ type GateHandler_TestServeKick struct {
 }
 
 // 发送100个消息马上关闭
-func (self *GateHandler_TestServeKick) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler_TestServeKick) ServeClientStream(s gira.GatewayConn) {
 	//var req gira.GateRequest
 	var i int64
 	for i = 1; i <= self.ExpectSendMessageCount; i++ {
@@ -674,7 +674,7 @@ func TestServeKick(t *testing.T) {
 type GateHandler_TestClientHandshakeTimeout struct {
 }
 
-func (self *GateHandler_TestClientHandshakeTimeout) OnClientStream(s gira.GatewayConn) {
+func (self *GateHandler_TestClientHandshakeTimeout) ServeClientStream(s gira.GatewayConn) {
 	// var req gira.GatewayMessage
 	var err error
 	for {

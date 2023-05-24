@@ -497,7 +497,7 @@ func (self *Conn) serve(ctx context.Context, conn net.Conn) error {
 
 	if self.server.handler != nil {
 		//处理消息
-		self.server.handler.OnClientStream(self.session)
+		self.server.handler.ServeClientStream(self.session)
 	}
 	self.setStatus(conn_status_closed)
 	self.cancelFunc()

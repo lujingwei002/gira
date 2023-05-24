@@ -29,7 +29,7 @@ type GatewayClient interface {
 }
 
 type GatewayHandler interface {
-	OnClientStream(conn GatewayConn)
+	ServeClientStream(conn GatewayConn)
 }
 
 type GatewayMessage interface {

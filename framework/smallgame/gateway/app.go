@@ -42,8 +42,8 @@ func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
 	return framework.Config.OnConfigLoad(c)
 }
 
-func (framework *Framework) OnClientStream(conn gira.GatewayConn) {
-	framework.hall.OnClientStream(conn)
+func (framework *Framework) ServeClientStream(conn gira.GatewayConn) {
+	framework.hall.ServeClientStream(conn)
 }
 
 func (framework *Framework) OnPeerAdd(peer *gira.Peer) {
