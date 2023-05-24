@@ -398,8 +398,8 @@ func (runtime *Runtime) onCreate() error {
 	}
 
 	// ==== 加载resource ================
-	if resourceManager, ok := runtime.Application.(gira.ResourceComponent); ok {
-		resourceLoader := resourceManager.GetResourceLoader()
+	if resourceComponent, ok := runtime.Application.(gira.ResourceComponent); ok {
+		resourceLoader := resourceComponent.GetResourceLoader()
 		if resourceLoader != nil {
 			runtime.resourceLoader = resourceLoader
 			if err := runtime.resourceLoader.LoadResource("resource"); err != nil {
