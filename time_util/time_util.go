@@ -75,3 +75,9 @@ func TodayBeginTime() int64 {
 	d := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 	return d.Unix()
 }
+
+func TodayEndTime() int64 {
+	t := time.Now()
+	d := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	return d.Unix() + 86400 - 1
+}
