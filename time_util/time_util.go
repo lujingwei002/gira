@@ -69,3 +69,9 @@ func (d Duration) GetCycle(days int64) int64 {
 	passedDays := d.PassedDays()
 	return (passedDays % days) + 1
 }
+
+func TodayBeginTime() int64 {
+	t := time.Now()
+	d := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	return d.Unix()
+}
