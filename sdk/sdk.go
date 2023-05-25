@@ -4,8 +4,8 @@ import (
 	"github.com/lujingwei002/gira"
 )
 
-func NewConfigSdk(config gira.SdkConfig) *Sdk {
-	self := &Sdk{
+func NewConfigSdk(config gira.SdkConfig) *SdkComponent {
+	self := &SdkComponent{
 		sdkDict: make(map[string]sdk_server),
 	}
 	if config.Test != nil {
@@ -38,15 +38,15 @@ type sdk_server interface {
 	Login(accountPlat string, openId string, token string) (*gira.SdkAccount, error)
 }
 
-type Sdk struct {
+type SdkComponent struct {
 	testSdk *TestSdk
 	pwdSdk  *PwdSdk
 	sdkDict map[string]sdk_server
 }
 
-func (self *Sdk) Login(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
+func (self *SdkComponent) Login(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
-		return nil, gira.ErrSdkNotImplement.Trace()
+		return nil, gira.ErrSdkComponentNotImplement.Trace()
 	} else {
 		return sdk.Login(accountPlat, openId, token)
 	}

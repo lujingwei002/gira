@@ -37,6 +37,10 @@ type Application interface {
 
 	OnFrameworkInit() []Framework
 	Frameworks() []Framework
+
+	// ======= 组件 ===========
+	GetServiceComponent() ServiceComponent
+	GetSdkComponent() SdkComponent
 }
 
 var application Application
@@ -47,4 +51,7 @@ func App() Application {
 
 func OnApplicationCreate(app Application) {
 	application = app
+}
+
+type ApplicationComponent interface {
 }

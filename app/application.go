@@ -155,9 +155,13 @@ func (application *BaseApplication) GetAdminDbClient() gira.DbClient {
 	return application.runtime.AdminDbClient
 }
 
-// ================== implement gira.Sdk ==================
+// ================== implement gira.SdkComponent ==================
 func (application *BaseApplication) SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
-	return application.runtime.Sdk.Login(accountPlat, openId, token)
+	return application.runtime.SdkComponent.Login(accountPlat, openId, token)
+}
+
+func (application *BaseApplication) GetSdkComponent() gira.SdkComponent {
+	return application.runtime.SdkComponent
 }
 
 // ================== implement gira.RegistryComponent ==================
@@ -166,8 +170,8 @@ func (application *BaseApplication) GetRegistry() gira.Registry {
 }
 
 // ================== implement gira.ServiceComponent ==================
-func (application *BaseApplication) GetServiceContainer() gira.ServiceContainer {
-	return application.runtime.ServiceContainer
+func (application *BaseApplication) GetServiceComponent() gira.ServiceComponent {
+	return application.runtime.ServiceComponent
 }
 
 // ================== implement gira.GrpcServerComponent ==================

@@ -11,13 +11,9 @@ type Service interface {
 	OnStop() error
 }
 
-type ServiceContainer interface {
+type ServiceComponent interface {
 	// 启动服务
 	StartService(name string, service Service) error
 	// 停止服务
 	StopService(service Service) error
-}
-
-type ServiceComponent interface {
-	GetServiceContainer() ServiceContainer
 }

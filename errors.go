@@ -27,7 +27,7 @@ const (
 	E_DATA_NOT_FOUND                       = -14
 	E_DATA_INSERT_FAIL                     = -15
 	E_DATA_DELETE_FAIL                     = -16
-	E_SDK_NOT_IMPLEMENT                    = -17
+	E_SDK_COMPONENT_NOT_IMPLEMENT          = -17
 	E_INVALID_SDK_TOKEN                    = -18
 	E_INVALID_ARGS                         = -19
 	E_INVALID_JWT                          = -20
@@ -70,7 +70,7 @@ const (
 	E_SERVICE_NOT_FOUND                    = -57
 	E_SERVICE_LOCKED                       = -58
 	E_ALREADY_DESTORY                      = -59
-	E_SERVICE_CONTAINER_NOT_IMPLEMENT      = -59
+	E_SERVICE_COMPONENT_NOT_IMPLEMENT      = -59
 	E_SERVICE_NOT_IMPLEMENT                = -59
 	E_USER_NOT_FOUND                       = -60
 	E_ACTOR_CALL_TIME_OUT                  = -61
@@ -105,7 +105,7 @@ const (
 	E_MSG_DATA_NOT_FOUND                       = "data not found"
 	E_MSG_DATA_INSERT_FAIL                     = "data insert fail"
 	E_MSG_DATA_DELETE_FAIL                     = "data delete fail"
-	E_MSG_SDK_NOT_IMPLEMENT                    = "无法识别的sdk"
+	E_MSG_SDK_COMPONENT_NOT_IMPLEMENT          = "无法识别的sdk"
 	E_MSG_INVALID_SDK_TOKEN                    = "无效的sdk token"
 	E_MSG_INVALID_ARGS                         = "无效参数"
 	E_MSG_INVALID_JWT                          = "无效的token"
@@ -148,7 +148,7 @@ const (
 	E_MSG_SERVICE_NOT_FOUND                    = "查找不到service"
 	E_MSG_SERVICE_LOCKED                       = "注册service失败"
 	E_MSG_ALREADY_DESTORY                      = "已经销毁"
-	E_MSG_SERVICE_CONTAINER_NOT_IMPLEMENT      = "service container 未实现"
+	E_MSG_SERVICE_COMPONENT_NOT_IMPLEMENT      = "service container 未实现"
 	E_MSG_SERVICE_NOT_IMPLEMENT                = "service接口未实现"
 	E_MSG_USER_NOT_FOUND                       = "用户不在线"
 	E_MSG_ACTOR_CALL_TIME_OUT                  = "actor call timeout"
@@ -208,7 +208,7 @@ var (
 	ErrDataNotFound                     = NewError(E_DATA_NOT_FOUND, E_MSG_DATA_NOT_FOUND)
 	ErrDataInsertFail                   = NewError(E_DATA_INSERT_FAIL, E_MSG_DATA_INSERT_FAIL)
 	ErrDataDeleteFail                   = NewError(E_DATA_DELETE_FAIL, E_MSG_DATA_DELETE_FAIL)
-	ErrSdkNotImplement                  = NewError(E_SDK_NOT_IMPLEMENT, E_MSG_SDK_NOT_IMPLEMENT)
+	ErrSdkComponentNotImplement         = NewError(E_SDK_COMPONENT_NOT_IMPLEMENT, E_MSG_SDK_COMPONENT_NOT_IMPLEMENT)
 	ErrInvalidSdkToken                  = NewError(E_INVALID_SDK_TOKEN, E_MSG_INVALID_SDK_TOKEN)
 	ErrInvalidArgs                      = NewError(E_INVALID_ARGS, E_MSG_INVALID_ARGS)
 	ErrInvalidJwt                       = NewError(E_INVALID_JWT, E_MSG_INVALID_JWT)
@@ -251,7 +251,7 @@ var (
 	ErrServiceNotFound                  = NewError(E_SERVICE_NOT_FOUND, E_MSG_SERVICE_NOT_FOUND)
 	ErrServiceLocked                    = NewError(E_SERVICE_LOCKED, E_MSG_SERVICE_LOCKED)
 	ErrAlreadyDestory                   = NewError(E_ALREADY_DESTORY, E_MSG_ALREADY_DESTORY)
-	ErrServiceContainerNotImplement     = NewError(E_SERVICE_CONTAINER_NOT_IMPLEMENT, E_MSG_SERVICE_CONTAINER_NOT_IMPLEMENT)
+	ErrServiceComponentNotImplement     = NewError(E_SERVICE_COMPONENT_NOT_IMPLEMENT, E_MSG_SERVICE_COMPONENT_NOT_IMPLEMENT)
 	ErrServiceNotImplement              = NewError(E_SERVICE_NOT_IMPLEMENT, E_MSG_SERVICE_NOT_IMPLEMENT)
 	ErrUserNotFound                     = NewError(E_USER_NOT_FOUND, E_MSG_USER_NOT_FOUND)
 	ErrActorCallTimeOut                 = NewError(E_ACTOR_CALL_TIME_OUT, E_MSG_ACTOR_CALL_TIME_OUT)

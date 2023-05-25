@@ -11,7 +11,7 @@ type SdkAccount struct {
 	LargePic        string // 大头像地址
 }
 
-type Sdk interface {
+type SdkComponent interface {
 	// 登录
-	SdkLogin(accountPlat string, openId string, token string) (*SdkAccount, error)
+	Login(accountPlat string, openId string, token string) (*SdkAccount, error)
 }

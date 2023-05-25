@@ -93,10 +93,10 @@ type Runtime struct {
 	AccountCacheClient gira.DbClient
 	AdminCacheClient   gira.DbClient
 	AdminDbClient      gira.DbClient
-	Sdk                *sdk.Sdk
+	SdkComponent       *sdk.SdkComponent
 	Gate               *gate.Server
 	GrpcServer         *grpc.Server
-	ServiceContainer   *service.ServiceContainer
+	ServiceComponent   *service.ServiceComponent
 	ModuleContainer    *module.ModuleContainer
 }
 
@@ -116,7 +116,7 @@ func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
 		errCtx:           errCtx,
 		errGroup:         errGroup,
 		stopChan:         make(chan struct{}, 1),
-		ServiceContainer: service.New(ctx),
+		ServiceComponent: service.New(ctx),
 		ModuleContainer:  module.New(ctx),
 	}
 	return runtime
@@ -214,7 +214,7 @@ func (runtime *Runtime) start() (err error) {
 			runtime.onStop()
 			runtime.cancelFunc()
 			runtime.ModuleContainer.Wait()
-			runtime.ServiceContainer.Wait()
+			runtime.ServiceComponent.Wait()
 			runtime.errGroup.Wait()
 		}
 	}()
@@ -222,7 +222,7 @@ func (runtime *Runtime) start() (err error) {
 		return
 	}
 	runtime.Go(func() error {
-		runtime.ServiceContainer.Wait()
+		runtime.ServiceComponent.Wait()
 		runtime.ModuleContainer.Wait()
 		return nil
 	})
@@ -281,7 +281,7 @@ func (runtime *Runtime) onStop() {
 			log.Warnw("framework on stop fail", "error", err)
 		}
 	}
-	runtime.ServiceContainer.Stop()
+	runtime.ServiceComponent.Stop()
 	runtime.ModuleContainer.Stop()
 	// runtime.ModuleContainer.UninstallModule(runtime.Registry)
 	// runtime.ModuleContainer.UninstallModule(runtime.GrpcServer)
@@ -304,14 +304,14 @@ func (runtime *Runtime) onStart() error {
 		// ==== admin service ================
 		{
 			service := admin_service.NewService(runtime.Application)
-			if err := runtime.ServiceContainer.StartService("admin", service); err != nil {
+			if err := runtime.ServiceComponent.StartService("admin", service); err != nil {
 				return err
 			}
 		}
 		// ==== peer service ================
 		{
 			service := peer_service.NewService(runtime.Application)
-			if err := runtime.ServiceContainer.StartService("peer", service); err != nil {
+			if err := runtime.ServiceComponent.StartService("peer", service); err != nil {
 				return err
 			}
 		}
@@ -422,7 +422,7 @@ func (runtime *Runtime) onCreate() error {
 
 	// ==== sdk================
 	if runtime.config.Module.Sdk != nil {
-		runtime.Sdk = sdk.NewConfigSdk(*runtime.config.Module.Sdk)
+		runtime.SdkComponent = sdk.NewConfigSdk(*runtime.config.Module.Sdk)
 	}
 
 	// ==== http ================

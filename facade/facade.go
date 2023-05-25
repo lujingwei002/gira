@@ -316,10 +316,10 @@ func WhereIsServer(name string) (svr interface{}, ok bool) {
 // 登录sdk
 func SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
 	application := gira.App()
-	if s, ok := application.(gira.Sdk); !ok {
-		return nil, gira.ErrSdkNotImplement
+	if s := application.GetSdkComponent(); s == nil {
+		return nil, gira.ErrSdkComponentNotImplement
 	} else {
-		return s.SdkLogin(accountPlat, openId, token)
+		return s.Login(accountPlat, openId, token)
 	}
 }
 
@@ -327,10 +327,8 @@ func SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount
 // 停止服务
 func StopService(service gira.Service) error {
 	application := gira.App()
-	if c, ok := application.(gira.ServiceComponent); !ok {
-		return gira.ErrServiceContainerNotImplement
-	} else if s := c.GetServiceContainer(); s == nil {
-		return gira.ErrServiceContainerNotImplement
+	if s := application.GetServiceComponent(); s == nil {
+		return gira.ErrServiceComponentNotImplement
 	} else {
 		return s.StopService(service)
 	}
@@ -339,10 +337,8 @@ func StopService(service gira.Service) error {
 // 启动服务
 func StartService(name string, service gira.Service) error {
 	application := gira.App()
-	if c, ok := application.(gira.ServiceComponent); !ok {
-		return gira.ErrServiceContainerNotImplement
-	} else if s := c.GetServiceContainer(); s == nil {
-		return gira.ErrServiceContainerNotImplement
+	if s := application.GetServiceComponent(); s == nil {
+		return gira.ErrServiceComponentNotImplement
 	} else {
 		return s.StartService(name, service)
 	}
