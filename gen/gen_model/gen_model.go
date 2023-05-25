@@ -623,10 +623,10 @@ func (self *<<.MongoDaoStructName>>) Find(ctx context.Context, filter interface{
 	return results, nil
 }
 
-func (self *<<.MongoDaoStructName>>) UpdateOne(ctx context.Context, filter interface{}, update *<<.DataStructName>>, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+func (self *<<.MongoDaoStructName>>) UpdateOne(ctx context.Context, filter interface{}, update bson.D, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
-	result, err := coll.UpdateOne(ctx, filter, &update, opts...)
+	result, err := coll.UpdateOne(ctx, filter, update, opts...)
 	return result, err
 }
 
