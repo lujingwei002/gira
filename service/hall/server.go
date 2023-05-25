@@ -14,9 +14,8 @@ import (
 	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 )
 
-func NewService(application gira.Application, proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (*HallService, error) {
+func NewService(proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (*HallService, error) {
 	service := &HallService{
-		facade:        application,
 		proto:         proto,
 		config:        config,
 		hallHandler:   hallHandler,
@@ -35,7 +34,6 @@ func GetServiceName() string {
 
 type HallService struct {
 	*actor.Actor
-	facade        gira.Application
 	hallServer    *hall_server
 	ctx           context.Context
 	cancelCtx     context.Context
