@@ -13,8 +13,11 @@ import (
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
 	metadata "google.golang.org/grpc/metadata"
+	status "google.golang.org/grpc/status"
 	sync "sync"
+	time "time"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -463,6 +466,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HallClients interface {
 	WithServiceName(serviceName string) HallClients
+	Local() HallClientsLocal
 	Unicast() HallClientsUnicast
 	Multicast(count int) HallClientsMulticast
 	Broadcast() HallClientsMulticast
@@ -516,6 +520,30 @@ type HallClientsUnicast interface {
 	WhereAddress(address string) HallClientsUnicast
 	WhereUserId(userId string) HallClientsUnicast
 	WhereUserCatalog(userId string) HallClientsUnicast
+
+	// client消息流
+	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
+	// 网关消息流
+	GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error)
+	// 状态
+	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
+	// 心跳
+	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
+	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
+	// 发送消息
+	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	// 发送消息
+	CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error)
+	// 顶号下线
+	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
+	// 踢人下线
+	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
+}
+
+type HallClientsLocal interface {
+	WhereUserCatalog(userId string) HallClientsLocal
+	WithTimeout(timeout int64) HallClientsLocal
 
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
@@ -594,6 +622,16 @@ func (c *hallClients) putClient(address string, client HallClient) {
 func (c *hallClients) WithServiceName(serviceName string) HallClients {
 	c.serviceName = serviceName
 	return c
+}
+
+func (c *hallClients) Local() HallClientsLocal {
+	headers := make(map[string]string)
+	u := &hallClientsLocal{
+		timeout: 5,
+		headers: metadata.New(headers),
+		client:  c,
+	}
+	return u
 }
 
 func (c *hallClients) Unicast() HallClientsUnicast {
@@ -740,6 +778,137 @@ func (c *hallClients) Kick(ctx context.Context, address string, in *KickRequest,
 	return out, nil
 }
 
+type hallClientsLocal struct {
+	timeout int64
+	userId  string
+	client  *hallClients
+	headers metadata.MD
+}
+
+func (c *hallClientsLocal) WhereUserCatalog(userId string) HallClientsLocal {
+	c.userId = userId
+	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
+	return c
+}
+
+func (c *hallClientsLocal) WithTimeout(timeout int64) HallClientsLocal {
+	c.timeout = timeout
+	return c
+}
+
+func (c *hallClientsLocal) ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClientStream not implemented")
+}
+
+func (c *hallClientsLocal) GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GateStream not implemented")
+}
+
+func (c *hallClientsLocal) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(HallServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.Info(cancelCtx, in)
+	}
+}
+
+func (c *hallClientsLocal) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(HallServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.Heartbeat(cancelCtx, in)
+	}
+}
+
+func (c *hallClientsLocal) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(HallServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.MustPush(cancelCtx, in)
+	}
+}
+
+func (c *hallClientsLocal) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(HallServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.SendMessage(cancelCtx, in)
+	}
+}
+
+func (c *hallClientsLocal) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(HallServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.CallMessage(cancelCtx, in)
+	}
+}
+
+func (c *hallClientsLocal) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(HallServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.UserInstead(cancelCtx, in)
+	}
+}
+
+func (c *hallClientsLocal) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(HallServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.Kick(cancelCtx, in)
+	}
+}
+
 type hallClientsUnicast struct {
 	peer        *gira.Peer
 	serviceName string
@@ -771,7 +940,7 @@ func (c *hallClientsUnicast) WhereUserId(userId string) HallClientsUnicast {
 
 func (c *hallClientsUnicast) WhereUserCatalog(userId string) HallClientsUnicast {
 	c.userId = userId
-	c.headers.Append("catalog-key", userId)
+	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
 	return c
 }
 

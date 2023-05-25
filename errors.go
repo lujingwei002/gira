@@ -84,6 +84,7 @@ const (
 	E_SERVICE_ALREADY_STOPPED              = -69
 	E_SERVICE_ALREADY_STARTED              = -70
 	E_DB_CLIENT_COMPONENT_NOT_IMPLEMENT    = -71
+	E_SERVER_NOT_FOUND                     = -72
 )
 const (
 	E_MSG_OK                                   = "成功"
@@ -161,6 +162,7 @@ const (
 	E_MSG_SERVICE_ALREADY_STOPPED              = "service已经停止"
 	E_MSG_SERVICE_ALREADY_STARTED              = "service已经启动"
 	E_MSG_DB_CLIENT_COMPONENT_NOT_IMPLEMENT    = "db client component not implement"
+	E_MSG_SERVER_NOT_FOUND                     = "server not found"
 )
 
 type Error struct {
@@ -263,6 +265,7 @@ var (
 	ErrServiceAlreadyStopped            = NewError(E_SERVICE_ALREADY_STOPPED, E_MSG_SERVICE_ALREADY_STOPPED)
 	ErrServiceAlreadyStarted            = NewError(E_SERVICE_ALREADY_STARTED, E_MSG_SERVICE_ALREADY_STARTED)
 	ErrDbClientComponentNotImplement    = NewError(E_DB_CLIENT_COMPONENT_NOT_IMPLEMENT, E_MSG_DB_CLIENT_COMPONENT_NOT_IMPLEMENT)
+	ErrServerNotFound                   = NewError(E_SERVER_NOT_FOUND, E_MSG_SERVER_NOT_FOUND)
 )
 
 func ErrCode(err error) int32 {

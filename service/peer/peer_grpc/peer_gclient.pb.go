@@ -15,6 +15,7 @@ import (
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
 	sync "sync"
+	time "time"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -79,6 +80,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PeerClients interface {
 	WithServiceName(serviceName string) PeerClients
+	Local() PeerClientsLocal
 	Unicast() PeerClientsUnicast
 	Multicast(count int) PeerClientsMulticast
 	Broadcast() PeerClientsMulticast
@@ -98,6 +100,13 @@ type PeerClientsUnicast interface {
 	WhereAddress(address string) PeerClientsUnicast
 	WhereUserId(userId string) PeerClientsUnicast
 	WhereUserCatalog(userId string) PeerClientsUnicast
+
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
+}
+
+type PeerClientsLocal interface {
+	WhereUserCatalog(userId string) PeerClientsLocal
+	WithTimeout(timeout int64) PeerClientsLocal
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
@@ -161,6 +170,16 @@ func (c *peerClients) WithServiceName(serviceName string) PeerClients {
 	return c
 }
 
+func (c *peerClients) Local() PeerClientsLocal {
+	headers := make(map[string]string)
+	u := &peerClientsLocal{
+		timeout: 5,
+		headers: metadata.New(headers),
+		client:  c,
+	}
+	return u
+}
+
 func (c *peerClients) Unicast() PeerClientsUnicast {
 	headers := make(map[string]string)
 	u := &peerClientsUnicast{
@@ -201,6 +220,39 @@ func (c *peerClients) HealthCheck(ctx context.Context, address string, in *Healt
 	return out, nil
 }
 
+type peerClientsLocal struct {
+	timeout int64
+	userId  string
+	client  *peerClients
+	headers metadata.MD
+}
+
+func (c *peerClientsLocal) WhereUserCatalog(userId string) PeerClientsLocal {
+	c.userId = userId
+	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
+	return c
+}
+
+func (c *peerClientsLocal) WithTimeout(timeout int64) PeerClientsLocal {
+	c.timeout = timeout
+	return c
+}
+
+func (c *peerClientsLocal) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(PeerServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.HealthCheck(cancelCtx, in)
+	}
+}
+
 type peerClientsUnicast struct {
 	peer        *gira.Peer
 	serviceName string
@@ -232,7 +284,7 @@ func (c *peerClientsUnicast) WhereUserId(userId string) PeerClientsUnicast {
 
 func (c *peerClientsUnicast) WhereUserCatalog(userId string) PeerClientsUnicast {
 	c.userId = userId
-	c.headers.Append("catalog-key", userId)
+	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
 	return c
 }
 

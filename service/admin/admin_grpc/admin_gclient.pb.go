@@ -13,8 +13,11 @@ import (
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
 	metadata "google.golang.org/grpc/metadata"
+	status "google.golang.org/grpc/status"
 	sync "sync"
+	time "time"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -175,6 +178,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdminClients interface {
 	WithServiceName(serviceName string) AdminClients
+	Local() AdminClientsLocal
 	Unicast() AdminClientsUnicast
 	Multicast(count int) AdminClientsMulticast
 	Broadcast() AdminClientsMulticast
@@ -200,6 +204,16 @@ type AdminClientsUnicast interface {
 	WhereAddress(address string) AdminClientsUnicast
 	WhereUserId(userId string) AdminClientsUnicast
 	WhereUserCatalog(userId string) AdminClientsUnicast
+
+	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
+	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
+	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (Admin_ReloadResource2Client, error)
+	ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error)
+}
+
+type AdminClientsLocal interface {
+	WhereUserCatalog(userId string) AdminClientsLocal
+	WithTimeout(timeout int64) AdminClientsLocal
 
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
@@ -264,6 +278,16 @@ func (c *adminClients) putClient(address string, client AdminClient) {
 func (c *adminClients) WithServiceName(serviceName string) AdminClients {
 	c.serviceName = serviceName
 	return c
+}
+
+func (c *adminClients) Local() AdminClientsLocal {
+	headers := make(map[string]string)
+	u := &adminClientsLocal{
+		timeout: 5,
+		headers: metadata.New(headers),
+		client:  c,
+	}
+	return u
 }
 
 func (c *adminClients) Unicast() AdminClientsUnicast {
@@ -345,6 +369,51 @@ func (c *adminClients) ReloadResource3(ctx context.Context, address string, opts
 	return out, nil
 }
 
+type adminClientsLocal struct {
+	timeout int64
+	userId  string
+	client  *adminClients
+	headers metadata.MD
+}
+
+func (c *adminClientsLocal) WhereUserCatalog(userId string) AdminClientsLocal {
+	c.userId = userId
+	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
+	return c
+}
+
+func (c *adminClientsLocal) WithTimeout(timeout int64) AdminClientsLocal {
+	c.timeout = timeout
+	return c
+}
+
+func (c *adminClientsLocal) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(AdminServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.ReloadResource(cancelCtx, in)
+	}
+}
+
+func (c *adminClientsLocal) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource1 not implemented")
+}
+
+func (c *adminClientsLocal) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (Admin_ReloadResource2Client, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource2 not implemented")
+}
+
+func (c *adminClientsLocal) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource3 not implemented")
+}
+
 type adminClientsUnicast struct {
 	peer        *gira.Peer
 	serviceName string
@@ -376,7 +445,7 @@ func (c *adminClientsUnicast) WhereUserId(userId string) AdminClientsUnicast {
 
 func (c *adminClientsUnicast) WhereUserCatalog(userId string) AdminClientsUnicast {
 	c.userId = userId
-	c.headers.Append("catalog-key", userId)
+	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
 	return c
 }
 

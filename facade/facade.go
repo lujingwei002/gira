@@ -301,14 +301,14 @@ func GrpcServer() gira.GrpcServer {
 	}
 }
 
-func GetGrpcService(name string) (svr interface{}, ok bool) {
+func WhereIsServer(name string) (svr interface{}, ok bool) {
 	application := gira.App()
 	if c, ok := application.(gira.GrpcServerComponent); !ok {
 		return nil, false
 	} else if s := c.GetGrpcServer(); s == nil {
 		return nil, false
 	} else {
-		return s.GetService(name)
+		return s.GetServer(name)
 	}
 }
 

@@ -193,9 +193,14 @@ func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, fil
 
 		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			fmSymbol := helper.formatFullMethodSymbol(service, method)
-			g.P("	if kv, ok := ", metaPackage.Ident("FromIncomingContext"), "(ctx); !ok {")
-			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerMetaNotFound"))
-			g.P("	} else if keys, ok := kv[\"catalog-key\"]; !ok {")
+			g.P("	var kv metadata.MD")
+			g.P("   var ok bool")
+			g.P("	if kv, ok = ", metaPackage.Ident("FromIncomingContext"), "(ctx); !ok {")
+			g.P("		if kv, ok = ", metaPackage.Ident("FromOutgoingContext"), "(ctx); !ok {")
+			g.P("       	return nil, ", giraPackage.Ident("ErrCatalogServerMetaNotFound"))
+			g.P("		}")
+			g.P("	}")
+			g.P("	if keys, ok := kv[\"catalog-key\"]; !ok {")
 			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerKeyNotFound"))
 			g.P("	} else if len(keys) <= 0 {")
 			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerKeyNotFound"))

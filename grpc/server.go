@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"net"
+	"sync"
 
 	"github.com/lujingwei002/gira/log"
 
@@ -17,14 +18,15 @@ type Server struct {
 	server   *grpc.Server
 	ctx      context.Context
 	listener net.Listener
-	services map[string]interface{}
+	servers  map[string]interface{}
+	mu       sync.Mutex
 }
 
 func NewConfigGrpcServer(config gira.GrpcConfig) *Server {
 	self := &Server{
-		config:   config,
-		server:   grpc.NewServer(),
-		services: make(map[string]interface{}),
+		config:  config,
+		server:  grpc.NewServer(),
+		servers: make(map[string]interface{}),
 	}
 	return self
 }
@@ -33,11 +35,15 @@ func NewConfigGrpcServer(config gira.GrpcConfig) *Server {
 // 将impl保存起来，转发的时候要用到
 func (self *Server) RegisterService(desc *grpc.ServiceDesc, impl interface{}) {
 	self.server.RegisterService(desc, impl)
-	self.services[desc.ServiceName] = impl
+	self.mu.Lock()
+	self.servers[desc.ServiceName] = impl
+	self.mu.Unlock()
 }
 
-func (self *Server) GetService(name string) (svr interface{}, ok bool) {
-	svr, ok = self.services[name]
+func (self *Server) GetServer(name string) (svr interface{}, ok bool) {
+	self.mu.Lock()
+	svr, ok = self.servers[name]
+	self.mu.Unlock()
 	return
 }
 

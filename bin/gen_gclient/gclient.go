@@ -41,6 +41,7 @@ const (
 	facadePackage  = protogen.GoImportPath("github.com/lujingwei002/gira/facade")
 	optionsPackage = protogen.GoImportPath("github.com/lujingwei002/gira/options/service_options")
 	metaPackage    = protogen.GoImportPath("google.golang.org/grpc/metadata")
+	timePackage    = protogen.GoImportPath("time")
 )
 
 type serviceGenerateHelperInterface interface {
@@ -48,6 +49,7 @@ type serviceGenerateHelperInterface interface {
 	genServiceName(g *protogen.GeneratedFile, service *protogen.Service)
 	genFullMethods(g *protogen.GeneratedFile, service *protogen.Service)
 	generateClientsStruct(g *protogen.GeneratedFile, clientsName string, clientName string)
+	generateClientsLocalStruct(g *protogen.GeneratedFile, clientsLocalName string, clientsName string)
 	generateClientsUnicastStruct(g *protogen.GeneratedFile, clientsUnicastName string, clientsName string)
 	generateClientsMulticastStruct(g *protogen.GeneratedFile, clientsMulticastName string, clientsName string)
 	generateNewClientsDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string)
@@ -86,6 +88,17 @@ func (serviceGenerateHelper) generateClientsStruct(g *protogen.GeneratedFile, cl
 	g.P("mu  ", syncPackage.Ident("Mutex"))
 	g.P("clientPool  map[string]*sync.Pool")
 	g.P("serviceName string")
+	g.P("}")
+	g.P()
+}
+
+func (serviceGenerateHelper) generateClientsLocalStruct(g *protogen.GeneratedFile, clientsLocalName string, clientsName string) {
+	g.P("type ", unexport(clientsLocalName), " struct {")
+	// g.P("cc ", grpcPackage.Ident("ClientConnInterface"))
+	g.P("timeout 		int64")
+	g.P("userId 		string")
+	g.P("client 		*" + unexport(clientsName))
+	g.P("headers		", metaPackage.Ident("MD"))
 	g.P("}")
 	g.P()
 }
@@ -290,6 +303,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	clientsName := service.GoName + "Clients"
 	clientsMulticastName := service.GoName + "ClientsMulticast"
 	clientsUnicastName := service.GoName + "ClientsUnicast"
+	clientsLocalName := service.GoName + "ClientsLocal"
 
 	g.P("// ", clientName, " is the client API for ", service.GoName, " service.")
 	g.P("//")
@@ -300,8 +314,10 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 		g.P(deprecationComment)
 	}
 	g.Annotate(clientsName, service.Location)
+	// clients interface
 	g.P("type ", clientsName, " interface {")
 	g.P("    WithServiceName(serviceName string) " + clientsName)
+	g.P("    Local() " + clientsLocalName)
 	g.P("    Unicast() " + clientsUnicastName)
 	g.P("    Multicast(count int) " + clientsMulticastName)
 	g.P("    Broadcast() " + clientsMulticastName)
@@ -317,6 +333,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("}")
 	g.P()
 
+	// clients multicast interface
 	g.P("type ", clientsMulticastName, " interface {")
 	g.P("    WhereRegex(regex string) " + clientsMulticastName)
 	g.P("    WherePrefix(prefix string) " + clientsMulticastName)
@@ -331,6 +348,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("}")
 	g.P()
 
+	// clients unicast interface
 	g.P("type ", clientsUnicastName, " interface {")
 	g.P("    Where(serviceName string) " + clientsUnicastName)
 	g.P("    WherePeer(peer *gira.Peer) " + clientsUnicastName)
@@ -345,6 +363,22 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 		}
 		g.P(method.Comments.Leading,
 			clientsUnicastSignature(g, method))
+	}
+	g.P("}")
+	g.P()
+
+	// clients local interface
+	g.P("type ", clientsLocalName, " interface {")
+	g.P("    WhereUserCatalog(userId string) " + clientsLocalName)
+	g.P("    WithTimeout(timeout int64) " + clientsLocalName)
+	g.P()
+	for _, method := range service.Methods {
+		g.Annotate(clientsLocalName+"."+method.GoName, method.Location)
+		if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
+			g.P(deprecationComment)
+		}
+		g.P(method.Comments.Leading,
+			clientsLocalSignature(g, method))
 	}
 	g.P("}")
 	g.P()
@@ -412,6 +446,18 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("}")
 	g.P()
 
+	// func Local
+	g.P("func (c *", unexport(service.GoName), "Clients) Local() ", clientsLocalName, " {")
+	g.P("   headers := make(map[string]string)")
+	g.P("	u := &" + unexport(clientsLocalName) + "{")
+	g.P("		timeout: 5,")
+	g.P("       headers: ", metaPackage.Ident("New"), "(headers),")
+	g.P("		client: c,")
+	g.P("	}")
+	g.P("	return u")
+	g.P("}")
+	g.P()
+
 	// func Unicast
 	g.P("func (c *", unexport(service.GoName), "Clients) Unicast() ", clientsUnicastName, " {")
 	g.P("   headers := make(map[string]string)")
@@ -458,6 +504,35 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 		}
 	}
 
+	// ClientsLocal structure.
+	helper.generateClientsLocalStruct(g, clientsLocalName, clientsName)
+	// func WhereUserCatalog
+	g.P("func (c *", unexport(service.GoName), "ClientsLocal) WhereUserCatalog(userId string) ", clientsLocalName, " {")
+	g.P("	c.userId = userId")
+	g.P("	c.headers.Append(", giraPackage.Ident("GRPC_CATALOG_KEY"), ", userId)")
+	g.P("	return c")
+	g.P("}")
+	g.P()
+	// func WithTimeout
+	g.P("func (c *", unexport(service.GoName), "ClientsLocal) WithTimeout(timeout int64) ", clientsLocalName, " {")
+	g.P("	c.timeout = timeout")
+	g.P("	return c")
+	g.P("}")
+	g.P()
+	methodIndex = 0
+	streamIndex = 0
+	for _, method := range service.Methods {
+		if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
+			// Unary RPC method
+			genClientsLocalMethod(gen, file, g, method, methodIndex)
+			methodIndex++
+		} else {
+			// Streaming RPC method
+			genClientsLocalMethod(gen, file, g, method, streamIndex)
+			streamIndex++
+		}
+	}
+
 	// ClientsUnicast structure.
 	helper.generateClientsUnicastStruct(g, clientsUnicastName, clientsName)
 	// func Where
@@ -487,7 +562,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	// func WhereUserCatalog
 	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereUserCatalog(userId string) ", clientsUnicastName, " {")
 	g.P("	c.userId = userId")
-	g.P("	c.headers.Append(\"catalog-key\", userId)")
+	g.P("	c.headers.Append(", giraPackage.Ident("GRPC_CATALOG_KEY"), ", userId)")
 	g.P("	return c")
 	g.P("}")
 	g.P()
@@ -675,6 +750,21 @@ func clientsUnicastSignature(g *protogen.GeneratedFile, method *protogen.Method)
 	return s
 }
 
+func clientsLocalSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
+	s := method.GoName + "(ctx " + g.QualifiedGoIdent(contextPackage.Ident("Context"))
+	if !method.Desc.IsStreamingClient() {
+		s += ", in *" + g.QualifiedGoIdent(method.Input.GoIdent)
+	}
+	s += ", opts ..." + g.QualifiedGoIdent(grpcPackage.Ident("CallOption")) + ") ("
+	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+		s += "*" + g.QualifiedGoIdent(method.Output.GoIdent)
+	} else {
+		s += method.Parent.GoName + "_" + method.GoName + "Client"
+	}
+	s += ", error)"
+	return s
+}
+
 func genClientsMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, index int) {
 	service := method.Parent
 
@@ -710,6 +800,43 @@ func genClientsMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gen
 		g.P("if err != nil { return nil, err }")
 		g.P("return out, nil")
 		g.P("}")
+		g.P()
+		return
+	}
+}
+
+func genClientsLocalMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, index int) {
+	service := method.Parent
+
+	if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
+		g.P(deprecationComment)
+	}
+	g.P("func (c *", unexport(service.GoName), "ClientsLocal) ", clientsLocalSignature(g, method), "{")
+
+	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
+		g.P("    cancelCtx, cancelFunc := ", contextPackage.Ident("WithTimeout"), "(ctx, ", timePackage.Ident("Second"), "*", timePackage.Ident("Duration"), "(c.timeout))")
+		g.P("    defer cancelFunc()")
+		g.P("    if c.headers.Len() > 0 {")
+		g.P("        cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)")
+		g.P("    }")
+		g.P("    if s, ok := ", facadePackage.Ident("WhereIsServer"), "(c.client.serviceName); !ok {")
+		g.P("	     return nil, ", giraPackage.Ident("ErrServerNotFound"))
+		g.P(" 	 } else if svr, ok := s.(", service.GoName, "Server); !ok {")
+		g.P("	     return nil, ", giraPackage.Ident("ErrServerNotFound"))
+		g.P(" 	 } else {")
+		g.P(" 	     return svr.", method.GoName, "(cancelCtx, in)")
+		g.P(" 	 } ")
+		g.P("}")
+		g.P()
+		return
+	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
+		g.P("return nil, ", statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		g.P("} ")
+		g.P()
+		return
+	} else {
+		g.P("return nil, ", statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		g.P("} ")
 		g.P()
 		return
 	}

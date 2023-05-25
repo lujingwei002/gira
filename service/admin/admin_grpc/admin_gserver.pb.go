@@ -101,9 +101,14 @@ func (svr *adminCatalogServer) UnregisterHandler(key string, handler AdminCatalo
 }
 
 func (svr *adminCatalogServer) ReloadResource(ctx context.Context, in *ReloadResourceRequest) (*ReloadResourceResponse, error) {
-	if kv, ok := metadata.FromIncomingContext(ctx); !ok {
-		return nil, gira.ErrCatalogServerMetaNotFound
-	} else if keys, ok := kv["catalog-key"]; !ok {
+	var kv metadata.MD
+	var ok bool
+	if kv, ok = metadata.FromIncomingContext(ctx); !ok {
+		if kv, ok = metadata.FromOutgoingContext(ctx); !ok {
+			return nil, gira.ErrCatalogServerMetaNotFound
+		}
+	}
+	if keys, ok := kv["catalog-key"]; !ok {
 		return nil, gira.ErrCatalogServerKeyNotFound
 	} else if len(keys) <= 0 {
 		return nil, gira.ErrCatalogServerKeyNotFound
