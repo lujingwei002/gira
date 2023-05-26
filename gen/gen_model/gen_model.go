@@ -1027,6 +1027,12 @@ type Key struct {
 	Key   string
 	Value interface{}
 }
+type SortIndexKeyByName []*Key
+
+func (self SortIndexKeyByName) Len() int           { return len(self) }
+func (self SortIndexKeyByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self SortIndexKeyByName) Less(i, j int) bool { return self[i].Key < self[j].Key }
+
 type Index struct {
 	Name     string
 	KeyDict  map[string]*Key
@@ -1137,14 +1143,16 @@ func (coll *Collection) parseIndex(attrs map[string]interface{}) error {
 			return err
 		}
 		indexName = args[0]
+		indexName = strings.TrimSpace(indexName)
 		index := &Index{
-			Name: indexName,
-			Tag:  tag,
+			Name:     indexName,
+			Tag:      tag,
+			FullName: indexName,
 		}
 		for _, option := range optionArr {
 			optionDict := option.(map[string]interface{})
 			if keyArr, ok := optionDict["key"]; ok {
-				var fullName string
+				// var fullName string
 				index.KeyDict = make(map[string]*Key)
 				if keyArr2, ok := keyArr.([]interface{}); ok {
 					for _, keyObject := range keyArr2 {
@@ -1153,16 +1161,20 @@ func (coll *Collection) parseIndex(attrs map[string]interface{}) error {
 								indexKey := &Key{Key: k, Value: v}
 								index.KeyDict[k] = indexKey
 								index.KeyArr = append(index.KeyArr, indexKey)
-								if len(index.KeyDict) == 1 {
-									fullName = fmt.Sprintf("%s_%v", k, v)
-								} else {
-									fullName = fmt.Sprintf("%s_%s_%v", fullName, k, v)
-								}
 							}
 						}
 					}
 				}
-				index.FullName = fullName
+				// sort.Sort(SortIndexKeyByName(index.KeyArr))
+				// for _, v := range index.KeyArr {
+				// 	if len(index.KeyArr) == 1 {
+				// 		log.Println("qqqqqqqqqqqqqqq")
+				// 		fullName = fmt.Sprintf("%s_%v", v.Key, v.Value)
+				// 	} else {
+				// 		fullName = fmt.Sprintf("%s_%s_%v", fullName, v.Key, v.Value)
+				// 	}
+				// }
+				// index.FullName = fullName
 			}
 		}
 		// log.Println(index.KeyDict)
