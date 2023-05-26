@@ -17,5 +17,6 @@
 pkg
 gira-cli
 protoc-gen-go-gclient
+protoc-gen-go-gserver
 protoc-gen-go-gira
 
