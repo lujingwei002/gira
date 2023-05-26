@@ -52,7 +52,7 @@ func NewConfigUltraSdk(config gira.UltraSdkConfig) *UltraSdk {
 // 服务端sdk接口
 type sdk_server interface {
 	Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error)
-	PayOrderCheck(accountPlat string, odata string, sign string, paySecret string) (*gira.SdkPayOrder, error)
+	PayOrderCheck(accountPlat string, args map[string][]byte, paySecret string) (*gira.SdkPayOrder, error)
 }
 
 type SdkComponent struct {
@@ -70,11 +70,11 @@ func (self *SdkComponent) Login(accountPlat string, openId string, token string,
 	}
 }
 
-func (self *SdkComponent) PayOrderCheck(accountPlat string, data string, sign string, paySecret string) (*gira.SdkPayOrder, error) {
+func (self *SdkComponent) PayOrderCheck(accountPlat string, args map[string][]byte, paySecret string) (*gira.SdkPayOrder, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
 		return nil, gira.ErrSdkComponentNotImplement.Trace()
 	} else {
-		return sdk.PayOrderCheck(accountPlat, data, sign, paySecret)
+		return sdk.PayOrderCheck(accountPlat, args, paySecret)
 	}
 }
 
@@ -93,8 +93,8 @@ func (self *TestSdk) Login(accountPlat string, openId string, token string, auth
 	return result, nil
 }
 
-func (self *TestSdk) PayOrderCheck(accountPlat string, data string, sign string, paySecret string) (*gira.SdkPayOrder, error) {
-	return nil, gira.ErrSdkComponentNotImplement
+func (self *TestSdk) PayOrderCheck(accountPlat string, args map[string][]byte, paySecret string) (*gira.SdkPayOrder, error) {
+	return nil, gira.ErrSdkPayOrderCheckMethodNotImplement
 }
 
 type PwdSdk struct {
@@ -110,8 +110,8 @@ func (self *PwdSdk) Login(accountPlat string, openId string, token string, authU
 	return result, nil
 }
 
-func (self *PwdSdk) PayOrderCheck(accountPlat string, data string, sign string, paySecret string) (*gira.SdkPayOrder, error) {
-	return nil, gira.ErrSdkComponentNotImplement
+func (self *PwdSdk) PayOrderCheck(accountPlat string, args map[string][]byte, paySecret string) (*gira.SdkPayOrder, error) {
+	return nil, gira.ErrSdkPayOrderCheckMethodNotImplement
 }
 
 type UltraSdk struct {
@@ -141,11 +141,20 @@ func (self *UltraSdk) Login(accountPlat string, openId string, token string, aut
 	}
 }
 
-func (self *UltraSdk) PayOrderCheck(accountPlat string, data string, sign string, paySecret string) (*gira.SdkPayOrder, error) {
+func (self *UltraSdk) PayOrderCheck(accountPlat string, args map[string][]byte, paySecret string) (*gira.SdkPayOrder, error) {
+	var data []byte
+	var sign []byte
+	var ok bool
+	if data, ok = args["data"]; !ok {
+		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+	}
+	if sign, ok = args["sign"]; !ok {
+		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+	}
 	if sdk, err := ultra.NewUSDK(context.Background(), "", "", "", paySecret, ultra.AreaGlobal); err != nil {
 		return nil, err
 	} else {
-		if _, _, payInfo, err := sdk.PayCallback(data, sign); err != nil {
+		if response, _, payInfo, err := sdk.PayCallback(string(data), string(sign)); err != nil {
 			return nil, err
 		} else {
 			log.Printf("支付回调 gameOrder: %v\t游戏的订单号", payInfo.GameOrder)
@@ -161,8 +170,9 @@ func (self *UltraSdk) PayOrderCheck(accountPlat string, data string, sign string
 				CporderId: payInfo.GameOrder,
 				OrderId:   payInfo.OrderNo,
 				// PayTime: payInfo.PayTime,
-				Amount: int64(payInfo.Amount) * 100,
-				OpenId: fmt.Sprintf("%v_%v", payInfo.ChannelId, payInfo.ChannelUid),
+				Amount:   int64(payInfo.Amount) * 100,
+				OpenId:   fmt.Sprintf("%v_%v", payInfo.ChannelId, payInfo.ChannelUid),
+				Response: response,
 			}
 			return result, nil
 		}

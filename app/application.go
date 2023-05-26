@@ -120,39 +120,75 @@ func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer
 
 // ================== implement gira.DbClientComponent ==================
 func (application *BaseApplication) GetAccountDbClient() gira.DbClient {
-	return application.runtime.AccountDbClient
+	if application.runtime.AccountDbClient == nil {
+		return nil
+	} else {
+		return application.runtime.AccountDbClient
+	}
 }
 
 func (application *BaseApplication) GetGameDbClient() gira.DbClient {
-	return application.runtime.GameDbClient
+	if application.runtime.GameDbClient == nil {
+		return nil
+	} else {
+		return application.runtime.GameDbClient
+	}
 }
 
 func (application *BaseApplication) GetLogDbClient() gira.DbClient {
-	return application.runtime.LogDbClient
+	if application.runtime.LogDbClient == nil {
+		return nil
+	} else {
+		return application.runtime.LogDbClient
+	}
 }
 
 func (application *BaseApplication) GetBehaviorDbClient() gira.DbClient {
-	return application.runtime.BehaviorDbClient
+	if application.runtime.BehaviorDbClient == nil {
+		return nil
+	} else {
+		return application.runtime.BehaviorDbClient
+	}
 }
 
 func (application *BaseApplication) GetStatDbClient() gira.DbClient {
-	return application.runtime.StatDbClient
+	if application.runtime.StatDbClient == nil {
+		return nil
+	} else {
+		return application.runtime.StatDbClient
+	}
 }
 
 func (application *BaseApplication) GetAccountCacheClient() gira.DbClient {
-	return application.runtime.AccountCacheClient
+	if application.runtime.AccountCacheClient == nil {
+		return nil
+	} else {
+		return application.runtime.AccountCacheClient
+	}
 }
 
 func (application *BaseApplication) GetAdminCacheClient() gira.DbClient {
-	return application.runtime.AdminCacheClient
+	if application.runtime.AdminCacheClient == nil {
+		return nil
+	} else {
+		return application.runtime.AdminCacheClient
+	}
 }
 
 func (application *BaseApplication) GetResourceDbClient() gira.DbClient {
-	return application.runtime.ResourceDbClient
+	if application.runtime.ResourceDbClient == nil {
+		return nil
+	} else {
+		return application.runtime.ResourceDbClient
+	}
 }
 
 func (application *BaseApplication) GetAdminDbClient() gira.DbClient {
-	return application.runtime.AdminDbClient
+	if application.runtime.AdminDbClient == nil {
+		return nil
+	} else {
+		return application.runtime.AdminDbClient
+	}
 }
 
 // ================== implement gira.SdkComponent ==================
@@ -161,22 +197,38 @@ func (application *BaseApplication) GetAdminDbClient() gira.DbClient {
 // }
 
 func (application *BaseApplication) GetSdkComponent() gira.SdkComponent {
-	return application.runtime.SdkComponent
+	if application.runtime.SdkComponent == nil {
+		return nil
+	} else {
+		return application.runtime.SdkComponent
+	}
 }
 
 // ================== implement gira.RegistryComponent ==================
 func (application *BaseApplication) GetRegistry() gira.Registry {
-	return application.runtime.Registry
+	if application.runtime.Registry == nil {
+		return nil
+	} else {
+		return application.runtime.Registry
+	}
 }
 
 // ================== implement gira.ServiceComponent ==================
 func (application *BaseApplication) GetServiceComponent() gira.ServiceComponent {
-	return application.runtime.ServiceComponent
+	if application.runtime.ServiceComponent == nil {
+		return nil
+	} else {
+		return application.runtime.ServiceComponent
+	}
 }
 
 // ================== implement gira.GrpcServerComponent ==================
 func (application *BaseApplication) GetGrpcServer() gira.GrpcServer {
-	return application.runtime.GrpcServer
+	if application.runtime.GrpcServer == nil {
+		return nil
+	} else {
+		return application.runtime.GrpcServer
+	}
 }
 
 // ================== implement gira.AdminClient ==================

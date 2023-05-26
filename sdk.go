@@ -19,9 +19,11 @@ type SdkPayOrder struct {
 	Amount     int64 // 单位 分
 	OpenId     string
 	UserDefine string
+	Response   string
 }
+
 type SdkComponent interface {
 	// 登录
 	Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*SdkAccount, error)
-	PayOrderCheck(accountPlat string, data string, sign string, paySecret string) (*SdkPayOrder, error)
+	PayOrderCheck(accountPlat string, args map[string][]byte, paySecret string) (*SdkPayOrder, error)
 }
