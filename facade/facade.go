@@ -314,12 +314,21 @@ func WhereIsServer(name string) (svr interface{}, ok bool) {
 
 // ================= sdk =============================
 // 登录sdk
-func SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
+func SdkLogin(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	application := gira.App()
 	if s := application.GetSdkComponent(); s == nil {
 		return nil, gira.ErrSdkComponentNotImplement
 	} else {
-		return s.Login(accountPlat, openId, token)
+		return s.Login(accountPlat, openId, token, authUrl, appId, appSecret)
+	}
+}
+
+func PayOrderCheck(accountPlat string, data string, sign string, paySecret string) (*gira.SdkPayOrder, error) {
+	application := gira.App()
+	if s := application.GetSdkComponent(); s == nil {
+		return nil, gira.ErrSdkComponentNotImplement
+	} else {
+		return s.PayOrderCheck(accountPlat, data, sign, paySecret)
 	}
 }
 

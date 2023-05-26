@@ -156,9 +156,9 @@ func (application *BaseApplication) GetAdminDbClient() gira.DbClient {
 }
 
 // ================== implement gira.SdkComponent ==================
-func (application *BaseApplication) SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
-	return application.runtime.SdkComponent.Login(accountPlat, openId, token)
-}
+// func (application *BaseApplication) SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
+// 	return application.runtime.SdkComponent.Login(accountPlat, openId, token)
+// }
 
 func (application *BaseApplication) GetSdkComponent() gira.SdkComponent {
 	return application.runtime.SdkComponent

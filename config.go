@@ -255,9 +255,14 @@ type TestSdkConfig struct {
 type PwdSdkConfig struct {
 	Secret string `yaml:"secret"`
 }
+
+type UltraSdkConfig struct {
+	Secret string `yaml:"secret"`
+}
 type SdkConfig struct {
-	Test *TestSdkConfig `yaml:"test"`
-	Pwd  *PwdSdkConfig  `yaml:"pwd"`
+	Test  *TestSdkConfig  `yaml:"test"`
+	Pwd   *PwdSdkConfig   `yaml:"pwd"`
+	Ultra *UltraSdkConfig `yaml:"ultra"`
 }
 
 type GrpcConfig struct {
