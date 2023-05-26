@@ -2,7 +2,6 @@ package facade
 
 import (
 	"context"
-	"log"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/options/service_options"
@@ -324,15 +323,11 @@ func SdkLogin(accountPlat string, openId string, token string, authUrl string, a
 	}
 }
 
-func SdkPayOrderCheck(accountPlat string, args map[string][]byte, paySecret string) (*gira.SdkPayOrder, error) {
+func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	application := gira.App()
-	log.Println("aaaaaaaaaaaaaaaa")
 	if s := application.GetSdkComponent(); s == nil {
-		log.Println("cccccccccccccccccccccccccc")
 		return nil, gira.ErrSdkComponentNotImplement
 	} else {
-		log.Println("aaaaaaaaaaaaaaaa222", s)
-
 		return s.PayOrderCheck(accountPlat, args, paySecret)
 	}
 }

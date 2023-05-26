@@ -89,6 +89,8 @@ const (
 	E_SDK_PAY_ORDER_CHECK_ARGS_INVALID         = -74
 	E_ACCOUNT_PLATFORM_NOT_SUPPORT             = -75
 	E_PAY_ORDER_STATUS_INVALID                 = -76
+	E_PAY_ORDER_AMOUNT_INVALID                 = -77
+	E_PAY_ORDER_ACCOUNT_PLATFORM_INVALID       = -78
 )
 const (
 	E_MSG_OK                                       = "成功"
@@ -171,6 +173,8 @@ const (
 	E_MSG_SDK_PAY_ORDER_CHECK_ARGS_INVALID         = "sdk pay order check 参数错误"
 	E_MSG_ACCOUNT_PLATFORM_NOT_SUPPORT             = "account platform 不支持"
 	E_MSG_PAY_ORDER_STATUS_INVALID                 = " pay order 状态错误"
+	E_MSG_PAY_ORDER_AMOUNT_INVALID                 = " pay order 价格错误"
+	E_MSG_PAY_ORDER_ACCOUNT_PLATFORM_INVALID       = " pay order 账号平台错误"
 )
 
 type Error struct {
@@ -278,6 +282,8 @@ var (
 	ErrSdkPayOrderCheckArgsInvalid        = NewError(E_SDK_PAY_ORDER_CHECK_ARGS_INVALID, E_MSG_SDK_PAY_ORDER_CHECK_ARGS_INVALID)
 	ErrAccountPlatformNotSupport          = NewError(E_ACCOUNT_PLATFORM_NOT_SUPPORT, E_MSG_ACCOUNT_PLATFORM_NOT_SUPPORT)
 	ErrPayOrderStatusInvalid              = NewError(E_PAY_ORDER_STATUS_INVALID, E_MSG_PAY_ORDER_STATUS_INVALID)
+	ErrPayOrderAmountInvalid              = NewError(E_PAY_ORDER_AMOUNT_INVALID, E_MSG_PAY_ORDER_AMOUNT_INVALID)
+	ErrPayOrderAccountPlatformInvalid     = NewError(E_PAY_ORDER_ACCOUNT_PLATFORM_INVALID, E_MSG_PAY_ORDER_ACCOUNT_PLATFORM_INVALID)
 )
 
 func ErrCode(err error) int32 {
