@@ -51,64 +51,60 @@ const (
 
 // / @Component
 type Runtime struct {
-	gira.BaseComponent
-
-	zone           string // 区名 wc|qq|hw|quick
-	env            string // dev|local|qa|prd
-	appId          int32
-	appType        string /// 服务类型
-	appName        string /// 服务名
-	appFullName    string /// 完整的服务名 Name_Id
-	cancelFunc     context.CancelFunc
-	ctx            context.Context
-	errCtx         context.Context
-	errGroup       *errgroup.Group
-	resourceLoader gira.ResourceLoader
-	config         *gira.Config
-	stopChan       chan struct{}
-	status         int64
-
-	BuildVersion       string
-	BuildTime          int64
-	ProjectFilePath    string /// 配置文件绝对路径, gira.yaml
-	ConfigDir          string /// config目录
-	EnvDir             string /// env目录
-	ConfigFilePath     string /// 内置配置文件
-	RunConfigFilePath  string /// 运行时的配置文件
-	WorkDir            string /// 工作目录
-	LogDir             string /// 日志目录
-	RunDir             string /// 运行目录
-	Application        gira.Application
-	Frameworks         []gira.Framework
-	MainScene          *gira.Scene
-	HttpServer         *gins.HttpServer
-	Registry           *registry.Registry
-	DbClients          map[string]gira.DbClient
-	GameDbClient       gira.DbClient
-	LogDbClient        gira.DbClient
-	BehaviorDbClient   gira.DbClient
-	AccountDbClient    gira.DbClient
-	StatDbClient       gira.DbClient
-	ResourceDbClient   gira.DbClient
-	AccountCacheClient gira.DbClient
-	AdminCacheClient   gira.DbClient
-	AdminDbClient      gira.DbClient
-	SdkComponent       *sdk.SdkComponent
-	Gate               *gate.Server
-	GrpcServer         *grpc.Server
-	ServiceComponent   *service.ServiceComponent
-	ModuleContainer    *module.ModuleContainer
+	zone              string // 区名 wc|qq|hw|quick
+	env               string // dev|local|qa|prd
+	appId             int32
+	appType           string /// 服务类型
+	appName           string /// 服务名
+	appFullName       string /// 完整的服务名 Name_Id
+	cancelFunc        context.CancelFunc
+	ctx               context.Context
+	errCtx            context.Context
+	errGroup          *errgroup.Group
+	resourceLoader    gira.ResourceLoader
+	config            *gira.Config
+	stopChan          chan struct{}
+	status            int64
+	buildVersion      string
+	buildTime         int64
+	projectFilePath   string /// 配置文件绝对路径, gira.yaml
+	configDir         string /// config目录
+	envDir            string /// env目录
+	runConfigFilePath string /// 运行时的配置文件
+	workDir           string /// 工作目录
+	logDir            string /// 日志目录
+	runDir            string /// 运行目录
+	application       gira.Application
+	frameworks        []gira.Framework
+	// mainScene          *gira.Scene
+	httpServer         *gins.HttpServer
+	registry           *registry.Registry
+	dbClients          map[string]gira.DbClient
+	gameDbClient       gira.DbClient
+	logDbClient        gira.DbClient
+	behaviorDbClient   gira.DbClient
+	accountDbClient    gira.DbClient
+	statDbClient       gira.DbClient
+	resourceDbClient   gira.DbClient
+	accountCacheClient gira.DbClient
+	adminCacheClient   gira.DbClient
+	adminDbClient      gira.DbClient
+	sdkComponent       *sdk.SdkComponent
+	gate               *gate.Server
+	grpcServer         *grpc.Server
+	serviceComponent   *service.ServiceComponent
+	moduleContainer    *module.ModuleContainer
 }
 
 func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
 	runtime := &Runtime{
-		BuildVersion:     args.BuildVersion,
-		BuildTime:        args.BuildTime,
+		buildVersion:     args.BuildVersion,
+		buildTime:        args.BuildTime,
 		appId:            args.AppId,
-		Application:      application,
-		Frameworks:       make([]gira.Framework, 0),
+		application:      application,
+		frameworks:       make([]gira.Framework, 0),
 		appType:          args.AppType,
 		appName:          fmt.Sprintf("%s_%d", args.AppType, args.AppId),
 		ctx:              ctx,
@@ -116,8 +112,8 @@ func newRuntime(args ApplicationArgs, application gira.Application) *Runtime {
 		errCtx:           errCtx,
 		errGroup:         errGroup,
 		stopChan:         make(chan struct{}, 1),
-		ServiceComponent: service.New(ctx),
-		ModuleContainer:  module.New(ctx),
+		serviceComponent: service.New(),
+		moduleContainer:  module.New(),
 	}
 	return runtime
 }
@@ -134,25 +130,27 @@ func (runtime *Runtime) init() error {
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
 	// 项目配置初始化
-	runtime.WorkDir = proj.Config.ProjectDir
-	os.Chdir(runtime.WorkDir)
-	runtime.ProjectFilePath = proj.Config.ProjectConfFilePath
-	if _, err := os.Stat(runtime.ProjectFilePath); err != nil {
+	runtime.workDir = proj.Config.ProjectDir
+	if err := os.Chdir(runtime.workDir); err != nil {
 		return err
 	}
-	runtime.EnvDir = proj.Config.EnvDir
-	runtime.ConfigDir = proj.Config.ConfigDir
-	if _, err := os.Stat(runtime.ConfigDir); err != nil {
+	runtime.projectFilePath = proj.Config.ProjectConfFilePath
+	if _, err := os.Stat(runtime.projectFilePath); err != nil {
 		return err
 	}
-	runtime.RunDir = proj.Config.RunDir
-	if _, err := os.Stat(runtime.RunDir); err != nil {
-		if err := os.Mkdir(runtime.RunDir, 0755); err != nil {
+	runtime.envDir = proj.Config.EnvDir
+	runtime.configDir = proj.Config.ConfigDir
+	if _, err := os.Stat(runtime.configDir); err != nil {
+		return err
+	}
+	runtime.runDir = proj.Config.RunDir
+	if _, err := os.Stat(runtime.runDir); err != nil {
+		if err := os.Mkdir(runtime.runDir, 0755); err != nil {
 			return err
 		}
 	}
-	runtime.RunConfigFilePath = filepath.Join(runtime.RunDir, fmt.Sprintf("%s", runtime.appFullName))
-	runtime.LogDir = proj.Config.LogDir
+	runtime.runConfigFilePath = filepath.Join(runtime.runDir, fmt.Sprintf("%s", runtime.appFullName))
+	runtime.logDir = proj.Config.LogDir
 
 	/*
 		app.ConfigFilePath = filepath.Join(app.ConfigDir, fmt.Sprintf("%sconf.yaml", app.Name))
@@ -160,7 +158,7 @@ func (runtime *Runtime) init() error {
 			return err
 		}*/
 	// 读应用配置文件
-	if c, err := gira.LoadConfig(runtime.ConfigDir, runtime.EnvDir, runtime.appType, runtime.appId); err != nil {
+	if c, err := gira.LoadConfig(runtime.configDir, runtime.envDir, runtime.appType, runtime.appId); err != nil {
 		return err
 	} else {
 		runtime.env = c.Env
@@ -169,18 +167,19 @@ func (runtime *Runtime) init() error {
 		runtime.config = c
 	}
 	// 初始化框架
-	runtime.Frameworks = runtime.Application.OnFrameworkInit()
-	for _, fw := range runtime.Frameworks {
+	runtime.frameworks = runtime.application.OnFrameworkInit()
+	// 加载配置回调
+	for _, fw := range runtime.frameworks {
 		if err := fw.OnFrameworkConfigLoad(runtime.config); err != nil {
 			return err
 		}
 	}
-	if err := runtime.Application.OnConfigLoad(runtime.config); err != nil {
+	if err := runtime.application.OnConfigLoad(runtime.config); err != nil {
 		return err
 	}
 	// 初始化日志
 	if runtime.config.Log != nil {
-		if err := log.ConfigLog(runtime.Application, *runtime.config.Log); err != nil {
+		if err := log.ConfigLog(runtime.application, *runtime.config.Log); err != nil {
 			return err
 		}
 	}
@@ -189,7 +188,7 @@ func (runtime *Runtime) init() error {
 }
 
 func (runtime *Runtime) start() (err error) {
-	if r, ok := runtime.Application.(RunnableApplication); !ok {
+	if r, ok := runtime.application.(RunnableApplication); !ok {
 		return gira.ErrTodo
 	} else {
 		r.OnApplicationRun(runtime)
@@ -199,33 +198,13 @@ func (runtime *Runtime) start() (err error) {
 		return
 	}
 	// 设置全局对象
-	gira.OnApplicationCreate(runtime.Application)
+	gira.OnApplicationCreate(runtime.application)
 	if err = runtime.onCreate(); err != nil {
 		return
 	}
-	defer func() {
-		if e := recover(); e != nil {
-			err = e.(error)
-		}
-		if err != nil {
-			log.Errorw("+++++++++++++++++++++++++++++")
-			log.Errorw("++         启动异常       +++", "error", err)
-			log.Errorw("+++++++++++++++++++++++++++++")
-			runtime.onStop()
-			runtime.cancelFunc()
-			runtime.ModuleContainer.Wait()
-			runtime.ServiceComponent.Wait()
-			runtime.errGroup.Wait()
-		}
-	}()
 	if err = runtime.onStart(); err != nil {
 		return
 	}
-	runtime.Go(func() error {
-		runtime.ServiceComponent.Wait()
-		runtime.ModuleContainer.Wait()
-		return nil
-	})
 	runtime.Go(func() error {
 		quit := make(chan os.Signal, 1)
 		defer close(quit)
@@ -268,79 +247,89 @@ func (runtime *Runtime) Stop() error {
 		return nil
 	}
 	runtime.stopChan <- struct{}{}
-	err := runtime.errGroup.Wait()
-	return err
+	return nil
 }
 
 func (runtime *Runtime) onStop() {
 	log.Infow("runtime on stop")
-	runtime.Application.OnStop()
-	for _, fw := range runtime.Frameworks {
+	runtime.application.OnStop()
+	for _, fw := range runtime.frameworks {
 		log.Info("framework on stop", "name")
 		if err := fw.OnFrameworkStop(); err != nil {
 			log.Warnw("framework on stop fail", "error", err)
 		}
 	}
-	runtime.ServiceComponent.Stop()
-	runtime.ModuleContainer.Stop()
-	// runtime.ModuleContainer.UninstallModule(runtime.Registry)
-	// runtime.ModuleContainer.UninstallModule(runtime.GrpcServer)
-	// if runtime.HttpServer != nil {
-	// 	runtime.ModuleContainer.UninstallModule(runtime.HttpServer)
-	// }
+	runtime.serviceComponent.Stop()
+	runtime.moduleContainer.Stop()
 }
 
-func (runtime *Runtime) onStart() error {
-
+func (runtime *Runtime) onStart() (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+		if err != nil {
+			log.Errorw("+++++++++++++++++++++++++++++")
+			log.Errorw("++         启动异常       +++", "error", err)
+			log.Errorw("+++++++++++++++++++++++++++++")
+			runtime.onStop()
+			runtime.cancelFunc()
+			runtime.errGroup.Wait()
+		}
+	}()
+	runtime.errGroup.Go(func() error {
+		return runtime.moduleContainer.Serve(runtime.errCtx)
+	})
+	runtime.errGroup.Go(func() error {
+		return runtime.serviceComponent.Serve(runtime.errCtx)
+	})
 	// ==== registry ================
-	if runtime.Registry != nil {
-		if err := runtime.ModuleContainer.InstallModule("registry", runtime.Registry); err != nil {
-			return err
+	if runtime.registry != nil {
+		if err = runtime.moduleContainer.InstallModule("registry", runtime.registry); err != nil {
+			return
 		}
 	}
-
+	// ==== http ================
+	if runtime.httpServer != nil {
+		if err = runtime.moduleContainer.InstallModule("http server", runtime.httpServer); err != nil {
+			return
+		}
+	}
 	// ==== service ================
-	if runtime.GrpcServer != nil {
+	if runtime.grpcServer != nil {
 		// ==== admin service ================
 		{
-			service := admin_service.NewService(runtime.Application)
-			if err := runtime.ServiceComponent.StartService("admin", service); err != nil {
-				return err
+			service := admin_service.NewService(runtime.application)
+			if err = runtime.serviceComponent.StartService("admin", service); err != nil {
+				return
 			}
 		}
 		// ==== peer service ================
 		{
-			service := peer_service.NewService(runtime.Application)
-			if err := runtime.ServiceComponent.StartService("peer", service); err != nil {
-				return err
+			service := peer_service.NewService(runtime.application)
+			if err = runtime.serviceComponent.StartService("peer", service); err != nil {
+				return
 			}
 		}
 	}
 	// ==== registry ================
-	if runtime.Registry != nil {
-		runtime.Registry.Notify()
-	}
-
-	// ==== http ================
-	if runtime.HttpServer != nil {
-		if err := runtime.ModuleContainer.InstallModule("http server", runtime.HttpServer); err != nil {
-			return err
-		}
+	if runtime.registry != nil {
+		runtime.registry.Notify()
 	}
 	// ==== framework start ================
-	for _, fw := range runtime.Frameworks {
-		if err := fw.OnFrameworkStart(); err != nil {
-			return err
+	for _, fw := range runtime.frameworks {
+		if err = fw.OnFrameworkStart(); err != nil {
+			return
 		}
 	}
 	// ==== application start ================
-	if err := runtime.Application.OnStart(); err != nil {
-		return err
+	if err = runtime.application.OnStart(); err != nil {
+		return
 	}
 	// ==== grpc ================
-	if runtime.GrpcServer != nil {
-		if err := runtime.ModuleContainer.InstallModule("grpc server", runtime.GrpcServer); err != nil {
-			return err
+	if runtime.grpcServer != nil {
+		if err = runtime.moduleContainer.InstallModule("grpc server", runtime.grpcServer); err != nil {
+			return
 		}
 	}
 	return nil
@@ -348,9 +337,7 @@ func (runtime *Runtime) onStart() error {
 
 func (runtime *Runtime) onCreate() error {
 	// log.Info("application", app.FullName, "start")
-	application := runtime.Application
-
-	// ==== 模块 =============
+	application := runtime.application
 
 	// ==== pprof ================
 	if runtime.config.Pprof.Port != 0 {
@@ -365,40 +352,40 @@ func (runtime *Runtime) onCreate() error {
 		if r, err := registry.NewConfigRegistry(runtime.config.Module.Etcd, application); err != nil {
 			return err
 		} else {
-			runtime.Registry = r
+			runtime.registry = r
 		}
 	}
 	// ==== db ================
-	runtime.DbClients = make(map[string]gira.DbClient)
+	runtime.dbClients = make(map[string]gira.DbClient)
 	for name, c := range runtime.config.Db {
 		if client, err := db.NewConfigDbClient(runtime.ctx, name, *c); err != nil {
 			return err
 		} else {
-			runtime.DbClients[name] = client
+			runtime.dbClients[name] = client
 			if name == gira.GAMEDB_NAME {
-				runtime.GameDbClient = client
+				runtime.gameDbClient = client
 			} else if name == gira.RESOURCEDB_NAME {
-				runtime.ResourceDbClient = client
+				runtime.resourceDbClient = client
 			} else if name == gira.STATDB_NAME {
-				runtime.StatDbClient = client
+				runtime.statDbClient = client
 			} else if name == gira.ACCOUNTDB_NAME {
-				runtime.AccountDbClient = client
+				runtime.accountDbClient = client
 			} else if name == gira.LOGDB_NAME {
-				runtime.LogDbClient = client
+				runtime.logDbClient = client
 			} else if name == gira.BEHAVIORDB_NAME {
-				runtime.BehaviorDbClient = client
+				runtime.behaviorDbClient = client
 			} else if name == gira.ACCOUNTCACHE_NAME {
-				runtime.AccountCacheClient = client
+				runtime.accountCacheClient = client
 			} else if name == gira.ADMINCACHE_NAME {
-				runtime.AdminCacheClient = client
+				runtime.adminCacheClient = client
 			} else if name == gira.ADMINDB_NAME {
-				runtime.AdminDbClient = client
+				runtime.adminDbClient = client
 			}
 		}
 	}
 
 	// ==== 加载resource ================
-	if resourceComponent, ok := runtime.Application.(gira.ResourceComponent); ok {
+	if resourceComponent, ok := runtime.application.(gira.ResourceComponent); ok {
 		resourceLoader := resourceComponent.GetResourceLoader()
 		if resourceLoader != nil {
 			runtime.resourceLoader = resourceLoader
@@ -417,12 +404,12 @@ func (runtime *Runtime) onCreate() error {
 		if _, ok := application.(gira.GrpcServerComponent); !ok {
 			return gira.ErrGrpcServerNotImplement
 		}
-		runtime.GrpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)
+		runtime.grpcServer = grpc.NewConfigGrpcServer(*runtime.config.Module.Grpc)
 	}
 
 	// ==== sdk================
 	if runtime.config.Module.Sdk != nil {
-		runtime.SdkComponent = sdk.NewConfigSdk(*runtime.config.Module.Sdk)
+		runtime.sdkComponent = sdk.NewConfigSdk(*runtime.config.Module.Sdk)
 	}
 
 	// ==== http ================
@@ -434,7 +421,7 @@ func (runtime *Runtime) onCreate() error {
 			if httpServer, err := gins.NewConfigHttpServer(*runtime.config.Module.Http, router); err != nil {
 				return err
 			} else {
-				runtime.HttpServer = httpServer
+				runtime.httpServer = httpServer
 			}
 		}
 	}
@@ -445,7 +432,7 @@ func (runtime *Runtime) onCreate() error {
 		if h, ok := application.(gira.GatewayHandler); ok {
 			handler = h
 		} else {
-			for _, fw := range runtime.Frameworks {
+			for _, fw := range runtime.frameworks {
 				if h, ok = fw.(gira.GatewayHandler); ok {
 					handler = h
 					break
@@ -455,15 +442,15 @@ func (runtime *Runtime) onCreate() error {
 		if handler == nil {
 			return gira.ErrGateHandlerNotImplement
 		}
-		if gate, err := gate.NewConfigServer(runtime.Application, handler, *runtime.config.Module.Gateway); err != nil {
+		if gate, err := gate.NewConfigServer(runtime.application, handler, *runtime.config.Module.Gateway); err != nil {
 			return err
 		} else {
-			runtime.Gate = gate
+			runtime.gate = gate
 		}
 	}
 
 	// ==== framework create ================
-	for _, fw := range runtime.Frameworks {
+	for _, fw := range runtime.frameworks {
 		if err := fw.OnFrameworkCreate(application); err != nil {
 			return err
 		}

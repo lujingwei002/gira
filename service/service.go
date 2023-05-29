@@ -22,6 +22,7 @@ type Service struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 }
+
 type ServiceComponent struct {
 	Services   sync.Map
 	ctx        context.Context
@@ -30,15 +31,14 @@ type ServiceComponent struct {
 	errGroup   *errgroup.Group
 }
 
-func New(ctx context.Context) *ServiceComponent {
-	cancelCtx, cancelFunc := context.WithCancel(ctx)
-	errGroup, errCtx := errgroup.WithContext(cancelCtx)
-	return &ServiceComponent{
-		ctx:        cancelCtx,
-		cancelFunc: cancelFunc,
-		errCtx:     errCtx,
-		errGroup:   errGroup,
-	}
+func New() *ServiceComponent {
+	return &ServiceComponent{}
+}
+
+func (self *ServiceComponent) Serve(ctx context.Context) error {
+	self.ctx, self.cancelFunc = context.WithCancel(ctx)
+	self.errGroup, self.errCtx = errgroup.WithContext(self.ctx)
+	return self.errGroup.Wait()
 }
 
 // 启动服务
@@ -78,11 +78,6 @@ func (self *ServiceComponent) StopService(service gira.Service) error {
 			return nil
 		}
 	}
-}
-
-// 等待全部服务停止
-func (self *ServiceComponent) Wait() error {
-	return self.errGroup.Wait()
 }
 
 // 停止服务并等待
