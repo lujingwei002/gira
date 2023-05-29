@@ -601,6 +601,11 @@ func (self *<<.MongoDaoStructName>>) FindOne(ctx context.Context, filter interfa
 	return doc, err
 }
 
+func (self *<<.MongoDaoStructName>>) CountDocuments(ctx context.Context, filter interface{}, opts ...*options.CountOptions) (int64, error) {
+	database := self.db.database
+	coll := database.Collection("<<.CollName>>")
+	return coll.CountDocuments(ctx, filter, opts...)
+}
 
 func (self *<<.MongoDaoStructName>>) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) ([]*<<.DataStructName>>, error) {
 	database := self.db.database
