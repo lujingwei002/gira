@@ -13,7 +13,7 @@ import (
 )
 
 // 需要两个系参数 xx -id 1 start|stop|restart
-func Cli(name string, buildVersion string, buildTime string, application gira.Application) error {
+func Cli(name string, buildVersion string, buildTime string, applicationFacade gira.ApplicationFacade) error {
 
 	app := &cli.App{
 		Name: "gira service",
@@ -22,7 +22,7 @@ func Cli(name string, buildVersion string, buildTime string, application gira.Ap
 		Flags:       []cli.Flag{},
 		Action:      runAction,
 		Metadata: map[string]interface{}{
-			"application":  application,
+			"application":  applicationFacade,
 			"name":         name,
 			"buildTime":    buildTime,
 			"buildVersion": buildVersion,
@@ -103,18 +103,18 @@ func Cli(name string, buildVersion string, buildTime string, application gira.Ap
 	return nil
 }
 
-func Start(application gira.Application, appId int32, appType string) error {
-	runtime := newRuntime(ApplicationArgs{
+func Start(applicationFacade gira.ApplicationFacade, appId int32, appType string) error {
+	application := newApplication(ApplicationArgs{
 		AppType: appType,
 		AppId:   appId,
-	}, application)
-	return runtime.start()
+	}, applicationFacade)
+	return application.start()
 }
 
 // 启动应用
 func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	application, _ := args.App.Metadata["application"].(gira.Application)
+	applicationFacade, _ := args.App.Metadata["application"].(gira.ApplicationFacade)
 	appType, _ := args.App.Metadata["name"].(string)
 	buildVersion, _ := args.App.Metadata["buildVersion"].(string)
 	var buildTime int64
@@ -128,12 +128,12 @@ func startAction(args *cli.Context) error {
 	log.Println("build version:", buildVersion)
 	log.Println("build time:", buildTime)
 	log.Infof("%s %d starting...", appType, appId)
-	runtime := newRuntime(ApplicationArgs{
+	runtime := newApplication(ApplicationArgs{
 		AppType:      appType,
 		AppId:        appId,
 		BuildVersion: buildVersion,
 		BuildTime:    buildTime,
-	}, application)
+	}, applicationFacade)
 	if err := runtime.start(); err != nil {
 		return err
 	}

@@ -15,8 +15,15 @@ const (
 	module_status_stopped = 2
 )
 
-func New() *ModuleContainer {
-	return &ModuleContainer{}
+func New(ctx context.Context) *ModuleContainer {
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	errGroup, errCtx := errgroup.WithContext(cancelCtx)
+	return &ModuleContainer{
+		ctx:        cancelCtx,
+		cancelFunc: cancelFunc,
+		errCtx:     errCtx,
+		errGroup:   errGroup,
+	}
 }
 
 type Module struct {
@@ -36,9 +43,8 @@ type ModuleContainer struct {
 	errGroup   *errgroup.Group
 }
 
-func (self *ModuleContainer) Serve(ctx context.Context) error {
-	self.ctx, self.cancelFunc = context.WithCancel(ctx)
-	self.errGroup, self.errCtx = errgroup.WithContext(self.ctx)
+func (self *ModuleContainer) Serve() error {
+	<-self.ctx.Done()
 	return self.errGroup.Wait()
 }
 

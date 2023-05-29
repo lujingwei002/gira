@@ -32,7 +32,7 @@ var buildVersion string
 var buildTime string
 
 // 检查是否满足接口
-var _ = (gira.Application)(&{{.ApplicationName}}_app.Application{})
+var _ = (gira.ApplicationFacade)(&{{.ApplicationName}}_app.Application{})
 var _ = (gira.ResourceComponent)(&{{.ApplicationName}}_app.Application{})
 
 func main() {

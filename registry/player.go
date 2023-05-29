@@ -83,7 +83,7 @@ func (self *player_registry) onLocalPlayerAdd(r *Registry, player *gira.LocalPla
 			handler.OnLocalPlayerAdd(player)
 		}
 	}
-	if handler, ok := r.application.(gira.LocalPlayerWatchHandler); ok {
+	if handler, ok := r.applicationFacade.(gira.LocalPlayerWatchHandler); ok {
 		handler.OnLocalPlayerAdd(player)
 	}
 }
@@ -95,7 +95,7 @@ func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.Local
 			handler.OnLocalPlayerDelete(player)
 		}
 	}
-	if handler, ok := r.application.(gira.LocalPlayerWatchHandler); ok {
+	if handler, ok := r.applicationFacade.(gira.LocalPlayerWatchHandler); ok {
 		handler.OnLocalPlayerDelete(player)
 	}
 }

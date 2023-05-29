@@ -3,7 +3,6 @@ package admin
 import (
 	"context"
 
-	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
@@ -26,7 +25,7 @@ func (self *admin_server) ReloadResource(context.Context, *admin_grpc.ReloadReso
 	return resp, nil
 }
 
-func NewService(facade gira.Application) *AdminService {
+func NewService() *AdminService {
 	return &AdminService{
 		adminServer: &admin_server{},
 	}

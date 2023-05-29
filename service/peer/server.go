@@ -3,7 +3,6 @@ package peer
 import (
 	"context"
 
-	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/peer/peer_grpc"
@@ -23,7 +22,7 @@ func (self *peer_server) HealthCheck(context.Context, *peer_grpc.HealthCheckRequ
 	return resp, nil
 }
 
-func NewService(facade gira.Application) *PeerService {
+func NewService() *PeerService {
 	return &PeerService{
 		peerServer: &peer_server{},
 	}

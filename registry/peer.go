@@ -124,7 +124,7 @@ func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 			handler.OnPeerAdd(peer)
 		}
 	}
-	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
+	if handler, ok := r.applicationFacade.(gira.PeerWatchHandler); ok {
 		handler.OnPeerAdd(peer)
 	}
 	return nil
@@ -137,7 +137,7 @@ func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 			handler.OnPeerDelete(peer)
 		}
 	}
-	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
+	if handler, ok := r.applicationFacade.(gira.PeerWatchHandler); ok {
 		handler.OnPeerDelete(peer)
 	}
 	if peer.FullName == r.fullName {
@@ -161,7 +161,7 @@ func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
 			handler.OnPeerUpdate(peer)
 		}
 	}
-	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
+	if handler, ok := r.applicationFacade.(gira.PeerWatchHandler); ok {
 		handler.OnPeerUpdate(peer)
 	}
 	return nil

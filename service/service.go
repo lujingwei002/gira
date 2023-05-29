@@ -23,7 +23,7 @@ type Service struct {
 	cancelFunc context.CancelFunc
 }
 
-type ServiceComponent struct {
+type ServiceContainer struct {
 	Services   sync.Map
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -31,18 +31,24 @@ type ServiceComponent struct {
 	errGroup   *errgroup.Group
 }
 
-func New() *ServiceComponent {
-	return &ServiceComponent{}
+func New(ctx context.Context) *ServiceContainer {
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	errGroup, errCtx := errgroup.WithContext(cancelCtx)
+	return &ServiceContainer{
+		ctx:        cancelCtx,
+		cancelFunc: cancelFunc,
+		errCtx:     errCtx,
+		errGroup:   errGroup,
+	}
 }
 
-func (self *ServiceComponent) Serve(ctx context.Context) error {
-	self.ctx, self.cancelFunc = context.WithCancel(ctx)
-	self.errGroup, self.errCtx = errgroup.WithContext(self.ctx)
+func (self *ServiceContainer) Serve() error {
+	<-self.ctx.Done()
 	return self.errGroup.Wait()
 }
 
 // 启动服务
-func (self *ServiceComponent) StartService(name string, service gira.Service) error {
+func (self *ServiceContainer) StartService(name string, service gira.Service) error {
 	log.Debugw("start service", "name", name)
 	s := &Service{
 		name:    name,
@@ -65,7 +71,7 @@ func (self *ServiceComponent) StartService(name string, service gira.Service) er
 }
 
 // 停止服务
-func (self *ServiceComponent) StopService(service gira.Service) error {
+func (self *ServiceContainer) StopService(service gira.Service) error {
 	if v, ok := self.Services.Load(service); !ok {
 		return gira.ErrServiceNotFound.Trace()
 	} else {
@@ -81,7 +87,7 @@ func (self *ServiceComponent) StopService(service gira.Service) error {
 }
 
 // 停止服务并等待
-func (self *ServiceComponent) Stop() error {
+func (self *ServiceContainer) Stop() error {
 	self.Services.Range(func(key, value any) bool {
 		s := value.(*Service)
 		s.cancelFunc()

@@ -50,6 +50,10 @@ func Done() <-chan struct{} {
 	return gira.App().Done()
 }
 
+func GetLogDir() string {
+	return gira.App().GetLogDir()
+}
+
 // ================= resource component =============================
 // 重载配置
 func ReloadResource() error {
@@ -79,9 +83,7 @@ func BroadcastReloadResource(ctx context.Context, name string) (result gira.Broa
 // 解锁user
 func UnlockLocalUser(userId string) (*gira.Peer, error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return nil, gira.ErrRegistryNOtImplement
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.UnlockLocalUser(userId)
@@ -91,9 +93,7 @@ func UnlockLocalUser(userId string) (*gira.Peer, error) {
 // 锁定user
 func LockLocalUser(userId string) (*gira.Peer, error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return nil, gira.ErrRegistryNOtImplement
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.LockLocalUser(userId)
@@ -103,9 +103,7 @@ func LockLocalUser(userId string) (*gira.Peer, error) {
 // 查找user所在的节点
 func WhereIsUser(userId string) (*gira.Peer, error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return nil, gira.ErrRegistryNOtImplement
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.WhereIsUser(userId)
@@ -114,10 +112,7 @@ func WhereIsUser(userId string) (*gira.Peer, error) {
 
 func ListPeerKvs() (peers map[string]string, err error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		err = gira.ErrRegistryNOtImplement
-		return
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		err = gira.ErrRegistryNOtImplement
 		return
 	} else {
@@ -129,9 +124,7 @@ func ListPeerKvs() (peers map[string]string, err error) {
 // 遍历节点
 func RangePeers(f func(k any, v any) bool) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return
 	} else {
 		r.RangePeers(f)
@@ -140,10 +133,7 @@ func RangePeers(f func(k any, v any) bool) {
 
 func ListServiceKvs() (peers map[string][]string, err error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		err = gira.ErrRegistryNOtImplement
-		return
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		err = gira.ErrRegistryNOtImplement
 		return
 	} else {
@@ -155,9 +145,7 @@ func ListServiceKvs() (peers map[string][]string, err error) {
 // 构造服务名
 func NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return ""
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return ""
 	} else {
 		return r.NewServiceName(serviceName, opt...)
@@ -167,9 +155,7 @@ func NewServiceName(serviceName string, opt ...service_options.RegisterOption) s
 // 注册服务名
 func RegisterServiceName(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return nil, gira.ErrRegistryNOtImplement
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.RegisterService(serviceName, opt...)
@@ -179,9 +165,7 @@ func RegisterServiceName(serviceName string, opt ...service_options.RegisterOpti
 // 反注册服务名
 func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return nil, gira.ErrRegistryNOtImplement
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.UnregisterService(serviceName)
@@ -191,9 +175,7 @@ func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 // 查找服务
 func WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
 	application := gira.App()
-	if c, ok := application.(gira.RegistryComponent); !ok {
-		return nil, gira.ErrRegistryNOtImplement
-	} else if r := c.GetRegistry(); r == nil {
+	if r := application.GetRegistry(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.WhereIsService(serviceName, opt...)
@@ -294,18 +276,12 @@ func GetGameDbClient() gira.DbClient {
 // ================= grpc server component =============================
 func GrpcServer() gira.GrpcServer {
 	application := gira.App()
-	if s, ok := application.(gira.GrpcServerComponent); !ok {
-		return nil
-	} else {
-		return s.GetGrpcServer()
-	}
+	return application.GetGrpcServer()
 }
 
 func WhereIsServer(name string) (svr interface{}, ok bool) {
 	application := gira.App()
-	if c, ok := application.(gira.GrpcServerComponent); !ok {
-		return nil, false
-	} else if s := c.GetGrpcServer(); s == nil {
+	if s := application.GetGrpcServer(); s == nil {
 		return nil, false
 	} else {
 		return s.GetServer(name)
@@ -316,7 +292,7 @@ func WhereIsServer(name string) (svr interface{}, ok bool) {
 // 登录sdk
 func SdkLogin(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	application := gira.App()
-	if s := application.GetSdkComponent(); s == nil {
+	if s := application.GetSdk(); s == nil {
 		return nil, gira.ErrSdkComponentNotImplement
 	} else {
 		return s.Login(accountPlat, openId, token, authUrl, appId, appSecret)
@@ -325,7 +301,7 @@ func SdkLogin(accountPlat string, openId string, token string, authUrl string, a
 
 func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	application := gira.App()
-	if s := application.GetSdkComponent(); s == nil {
+	if s := application.GetSdk(); s == nil {
 		return nil, gira.ErrSdkComponentNotImplement
 	} else {
 		return s.PayOrderCheck(accountPlat, args, paySecret)
@@ -336,8 +312,8 @@ func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret
 // 停止服务
 func StopService(service gira.Service) error {
 	application := gira.App()
-	if s := application.GetServiceComponent(); s == nil {
-		return gira.ErrServiceComponentNotImplement
+	if s := application.GetServiceContainer(); s == nil {
+		return gira.ErrServiceContainerNotImplement
 	} else {
 		return s.StopService(service)
 	}
@@ -346,8 +322,8 @@ func StopService(service gira.Service) error {
 // 启动服务
 func StartService(name string, service gira.Service) error {
 	application := gira.App()
-	if s := application.GetServiceComponent(); s == nil {
-		return gira.ErrServiceComponentNotImplement
+	if s := application.GetServiceContainer(); s == nil {
+		return gira.ErrServiceContainerNotImplement
 	} else {
 		return s.StartService(name, service)
 	}

@@ -11,13 +11,20 @@ type Framework interface {
 	OnFrameworkStop() error
 }
 
-type Application interface {
+type ApplicationFacade interface {
 	// ======= 生命周期回调 ===========
 	// 配置加载完成后接收通知
 	OnConfigLoad(c *Config) error
 	OnCreate() error
 	OnStart() error
 	OnStop() error
+}
+
+type ApplicationFramework interface {
+	OnFrameworkInit() []Framework
+}
+
+type Application interface {
 
 	// ======= 状态数据 ===========
 	GetConfig() *Config
@@ -35,23 +42,23 @@ type Application interface {
 	Go(f func() error)
 	Done() <-chan struct{}
 
-	OnFrameworkInit() []Framework
 	Frameworks() []Framework
 
 	// ======= 组件 ===========
-	GetServiceComponent() ServiceComponent
-	GetSdkComponent() SdkComponent
+	GetServiceContainer() ServiceContainer
+	GetSdk() Sdk
+	GetGrpcServer() GrpcServer
+	GetRegistry() Registry
 }
 
+// 当前正在运行的应用
 var application Application
 
 func App() Application {
 	return application
 }
 
+// 创建完成时回调
 func OnApplicationCreate(app Application) {
 	application = app
-}
-
-type ApplicationComponent interface {
 }

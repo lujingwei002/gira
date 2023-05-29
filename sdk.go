@@ -21,7 +21,7 @@ type SdkPayOrder struct {
 	Response   string
 }
 
-type SdkComponent interface {
+type Sdk interface {
 	// 登录
 	Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*SdkAccount, error)
 	PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*SdkPayOrder, error)

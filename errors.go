@@ -70,7 +70,7 @@ const (
 	E_SERVICE_NOT_FOUND                        = -57
 	E_SERVICE_LOCKED                           = -58
 	E_ALREADY_DESTORY                          = -59
-	E_SERVICE_COMPONENT_NOT_IMPLEMENT          = -59
+	E_SERVICE_CONTAINER_NOT_IMPLEMENT          = -59
 	E_SERVICE_NOT_IMPLEMENT                    = -59
 	E_USER_NOT_FOUND                           = -60
 	E_ACTOR_CALL_TIME_OUT                      = -61
@@ -154,7 +154,7 @@ const (
 	E_MSG_SERVICE_NOT_FOUND                        = "查找不到service"
 	E_MSG_SERVICE_LOCKED                           = "注册service失败"
 	E_MSG_ALREADY_DESTORY                          = "已经销毁"
-	E_MSG_SERVICE_COMPONENT_NOT_IMPLEMENT          = "service container 未实现"
+	E_MSG_SERVICE_ONTAINER_NOT_IMPLEMENT           = "service container 未实现"
 	E_MSG_SERVICE_NOT_IMPLEMENT                    = "service接口未实现"
 	E_MSG_USER_NOT_FOUND                           = "用户不在线"
 	E_MSG_ACTOR_CALL_TIME_OUT                      = "actor call timeout"
@@ -263,7 +263,7 @@ var (
 	ErrServiceNotFound                    = NewError(E_SERVICE_NOT_FOUND, E_MSG_SERVICE_NOT_FOUND)
 	ErrServiceLocked                      = NewError(E_SERVICE_LOCKED, E_MSG_SERVICE_LOCKED)
 	ErrAlreadyDestory                     = NewError(E_ALREADY_DESTORY, E_MSG_ALREADY_DESTORY)
-	ErrServiceComponentNotImplement       = NewError(E_SERVICE_COMPONENT_NOT_IMPLEMENT, E_MSG_SERVICE_COMPONENT_NOT_IMPLEMENT)
+	ErrServiceContainerNotImplement       = NewError(E_SERVICE_CONTAINER_NOT_IMPLEMENT, E_MSG_SERVICE_ONTAINER_NOT_IMPLEMENT)
 	ErrServiceNotImplement                = NewError(E_SERVICE_NOT_IMPLEMENT, E_MSG_SERVICE_NOT_IMPLEMENT)
 	ErrUserNotFound                       = NewError(E_USER_NOT_FOUND, E_MSG_USER_NOT_FOUND)
 	ErrActorCallTimeOut                   = NewError(E_ACTOR_CALL_TIME_OUT, E_MSG_ACTOR_CALL_TIME_OUT)

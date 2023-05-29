@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/options/service_options"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -33,13 +34,15 @@ import (
 const GRPC_KEY string = "grpc"
 
 type Registry struct {
-	config          gira.EtcdConfig
-	appId           int32
-	fullName        string // 节点全名
-	name            string // 节点名
-	client          *clientv3.Client
-	ctx             context.Context
-	application     gira.Application
+	config            gira.EtcdConfig
+	appId             int32
+	fullName          string // 节点全名
+	name              string // 节点名
+	client            *clientv3.Client
+	ctx               context.Context
+	application       gira.Application
+	applicationFacade gira.ApplicationFacade
+
 	peerRegistry    *peer_registry
 	playerRegistry  *player_registry
 	serviceRegistry *service_registry
@@ -119,12 +122,12 @@ func (r *Registry) SelfPeer() *gira.Peer {
 	return r.peerRegistry.SelfPeer
 }
 
-func NewConfigRegistry(config *gira.EtcdConfig, application gira.Application) (*Registry, error) {
+func NewConfigRegistry(application gira.Application, applicationFacade gira.ApplicationFacade, config *gira.EtcdConfig) (*Registry, error) {
 	r := &Registry{
 		config:      *config,
-		fullName:    application.GetAppFullName(),
-		appId:       application.GetAppId(),
-		name:        application.GetAppType(),
+		fullName:    facade.GetAppFullName(),
+		appId:       facade.GetAppId(),
+		name:        facade.GetAppType(),
 		application: application,
 	}
 

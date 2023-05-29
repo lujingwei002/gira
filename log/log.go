@@ -119,7 +119,7 @@ func (s *MongoSink) Write(data []byte) (n int, err error) {
 	}
 }
 
-func ConfigLog(facade gira.Application, config gira.LogConfig) error {
+func ConfigLog(application gira.Application, config gira.LogConfig) error {
 	cores := make([]zapcore.Core, 0)
 	// 1.控制台输出
 	if config.Console {
@@ -179,11 +179,11 @@ func ConfigLog(facade gira.Application, config gira.LogConfig) error {
 		rollingCore := zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderCfg), // 滚动日志输出格式
 			zapcore.AddSync(&lumberjack.Logger{
-				Filename:   filepath.Join(facade.GetLogDir(), fmt.Sprintf("%s.log", facade.GetAppFullName())), // 日志文件路径
-				MaxSize:    config.MaxSize,                                                                    // 每个日志文件的最大大小，单位为 MB
-				MaxBackups: config.MaxBackups,                                                                 // 保留的旧日志文件的最大个数
-				MaxAge:     config.MaxAge,                                                                     // 保留的旧日志文件的最大天数
-				Compress:   config.Compress,                                                                   // 是否压缩旧日志文件
+				Filename:   filepath.Join(application.GetLogDir(), fmt.Sprintf("%s.log", application.GetAppFullName())), // 日志文件路径
+				MaxSize:    config.MaxSize,                                                                              // 每个日志文件的最大大小，单位为 MB
+				MaxBackups: config.MaxBackups,                                                                           // 保留的旧日志文件的最大个数
+				MaxAge:     config.MaxAge,                                                                               // 保留的旧日志文件的最大天数
+				Compress:   config.Compress,                                                                             // 是否压缩旧日志文件
 			}),
 			enabler,
 		)

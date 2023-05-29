@@ -8,7 +8,3 @@ type GrpcServer interface {
 	RegisterService(desc *grpc.ServiceDesc, impl interface{})
 	GetServer(name string) (svr interface{}, ok bool)
 }
-
-type GrpcServerComponent interface {
-	GetGrpcServer() GrpcServer
-}

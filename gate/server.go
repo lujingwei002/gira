@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/gorilla/websocket"
@@ -102,7 +103,7 @@ func newServer() *Server {
 	return gate
 }
 
-func NewConfigServer(facade gira.Application, handler gira.GatewayHandler, config gira.GatewayConfig) (*Server, error) {
+func NewConfigServer(handler gira.GatewayHandler, config gira.GatewayConfig) (*Server, error) {
 	opts := []Option{
 		WithDebugMode(config.Debug),
 		WithIsWebsocket(true),

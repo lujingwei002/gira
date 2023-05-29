@@ -8,232 +8,124 @@ import (
 )
 
 // 负载实现gira声明的接口和启动的模块
-type BaseApplication struct {
-	runtime *Runtime
-}
 
+// ================== implement gira.Application ==================
 // 返回配置
-func (application BaseApplication) GetConfig() *gira.Config {
-	return application.runtime.config
+func (application *Application) GetConfig() *gira.Config {
+	return application.config
 }
 
 // 返回构建版本
-func (application *BaseApplication) GetBuildVersion() string {
-	return application.runtime.buildVersion
+func (application *Application) GetBuildVersion() string {
+	return application.buildVersion
 
 }
 
 // 返回构建时间
-func (application *BaseApplication) GetBuildTime() int64 {
-	return application.runtime.buildTime
+func (application *Application) GetBuildTime() int64 {
+	return application.buildTime
 }
 
 // 返回应用id
-func (application *BaseApplication) GetAppId() int32 {
-	return application.runtime.appId
+func (application *Application) GetAppId() int32 {
+	return application.appId
 }
 
 // 返回应用类型
-func (application *BaseApplication) GetAppType() string {
-	return application.runtime.appType
+func (application *Application) GetAppType() string {
+	return application.appType
 }
 
 // 返回应用名
-func (application *BaseApplication) GetAppName() string {
-	return application.runtime.appName
+func (application *Application) GetAppName() string {
+	return application.appName
 }
 
 // 返回应用全名
-func (application *BaseApplication) GetAppFullName() string {
-	return application.runtime.appFullName
+func (application *Application) GetAppFullName() string {
+	return application.appFullName
 }
 
-func (application *BaseApplication) GetWorkDir() string {
-	return application.runtime.workDir
+func (application *Application) GetWorkDir() string {
+	return application.workDir
 }
 
-func (application *BaseApplication) GetLogDir() string {
-	return application.runtime.logDir
+func (application *Application) GetLogDir() string {
+	return application.logDir
 }
 
 // ================== context =========================
 
-func (application *BaseApplication) Context() context.Context {
-	return application.runtime.ctx
+func (application *Application) Context() context.Context {
+	return application.ctx
 }
 
-func (application *BaseApplication) Quit() {
-	application.runtime.cancelFunc()
+func (application *Application) Quit() {
+	application.cancelFunc()
 }
 
-func (application *BaseApplication) Done() <-chan struct{} {
-	return application.runtime.ctx.Done()
+func (application *Application) Done() <-chan struct{} {
+	return application.ctx.Done()
 }
 
-func (application *BaseApplication) Go(f func() error) {
-	application.runtime.errGroup.Go(f)
+func (application *Application) Go(f func() error) {
+	application.errGroup.Go(f)
 }
 
-func (application *BaseApplication) Wait() error {
-	return application.runtime.Wait()
+func (application *Application) Err() error {
+	return application.errCtx.Err()
 }
 
-// ================== 回调 =========================
-// 框架启动回调
-func (application *BaseApplication) OnFrameworkStart() error {
-	return nil
+// ================== framework =========================
+// 返回框架列表
+func (application *Application) Frameworks() []gira.Framework {
+	return application.frameworks
 }
 
-// 设置runtime
-func (application *BaseApplication) OnApplicationRun(runtime *Runtime) {
-	application.runtime = runtime
-}
-
-// 框架销毁回调
-func (application *BaseApplication) OnFrameworkStop() error {
-	return nil
-}
-
-// 框架唤醒回调
-func (self *BaseApplication) OnFrameworkCreate(application gira.Application) error {
-	return nil
-}
-
-// 创建框架
-func (application *BaseApplication) OnFrameworkInit() []gira.Framework {
-	return nil
-}
-
-// 框架框架加载回调
-func (application *BaseApplication) OnFrameworkConfigLoad(c *gira.Config) error {
-	return nil
-}
-
-func (application *BaseApplication) OnLocalPlayerAdd(player *gira.LocalPlayer) {
-}
-
-func (application *BaseApplication) OnLocalPlayerDelete(player *gira.LocalPlayer) {
-}
-
-func (application *BaseApplication) OnLocalPlayerUpdate(player *gira.LocalPlayer) {
-}
-
-// ================== implement gira.DbClientComponent ==================
-func (application *BaseApplication) GetAccountDbClient() gira.DbClient {
-	if application.runtime.accountDbClient == nil {
+// ================== gira.SdkComponent ==================
+func (application *Application) GetSdk() gira.Sdk {
+	if application.sdk == nil {
 		return nil
 	} else {
-		return application.runtime.accountDbClient
+		return application.sdk
 	}
 }
 
-func (application *BaseApplication) GetGameDbClient() gira.DbClient {
-	if application.runtime.gameDbClient == nil {
+// ================== gira.RegistryComponent ==================
+func (application *Application) GetRegistry() gira.Registry {
+	if application.registry == nil {
 		return nil
 	} else {
-		return application.runtime.gameDbClient
+		return application.registry
 	}
 }
 
-func (application *BaseApplication) GetLogDbClient() gira.DbClient {
-	if application.runtime.logDbClient == nil {
+// ================== gira.ServiceContainer ==================
+func (application *Application) GetServiceContainer() gira.ServiceContainer {
+	if application.serviceContainer == nil {
 		return nil
 	} else {
-		return application.runtime.logDbClient
+		return application.serviceContainer
 	}
 }
 
-func (application *BaseApplication) GetBehaviorDbClient() gira.DbClient {
-	if application.runtime.behaviorDbClient == nil {
+// ================== gira.GrpcServerComponent ==================
+func (application *Application) GetGrpcServer() gira.GrpcServer {
+	if application.grpcServer == nil {
 		return nil
 	} else {
-		return application.runtime.behaviorDbClient
+		return application.grpcServer
 	}
 }
 
-func (application *BaseApplication) GetStatDbClient() gira.DbClient {
-	if application.runtime.statDbClient == nil {
-		return nil
-	} else {
-		return application.runtime.statDbClient
-	}
-}
-
-func (application *BaseApplication) GetAccountCacheClient() gira.DbClient {
-	if application.runtime.accountCacheClient == nil {
-		return nil
-	} else {
-		return application.runtime.accountCacheClient
-	}
-}
-
-func (application *BaseApplication) GetAdminCacheClient() gira.DbClient {
-	if application.runtime.adminCacheClient == nil {
-		return nil
-	} else {
-		return application.runtime.adminCacheClient
-	}
-}
-
-func (application *BaseApplication) GetResourceDbClient() gira.DbClient {
-	if application.runtime.resourceDbClient == nil {
-		return nil
-	} else {
-		return application.runtime.resourceDbClient
-	}
-}
-
-func (application *BaseApplication) GetAdminDbClient() gira.DbClient {
-	if application.runtime.adminDbClient == nil {
-		return nil
-	} else {
-		return application.runtime.adminDbClient
-	}
-}
-
-// ================== implement gira.SdkComponent ==================
-// func (application *BaseApplication) SdkLogin(accountPlat string, openId string, token string) (*gira.SdkAccount, error) {
-// 	return application.runtime.SdkComponent.Login(accountPlat, openId, token)
-// }
-
-func (application *BaseApplication) GetSdkComponent() gira.SdkComponent {
-	if application.runtime.sdkComponent == nil {
-		return nil
-	} else {
-		return application.runtime.sdkComponent
-	}
-}
-
-// ================== implement gira.RegistryComponent ==================
-func (application *BaseApplication) GetRegistry() gira.Registry {
-	if application.runtime.registry == nil {
-		return nil
-	} else {
-		return application.runtime.registry
-	}
-}
-
-// ================== implement gira.ServiceComponent ==================
-func (application *BaseApplication) GetServiceComponent() gira.ServiceComponent {
-	if application.runtime.serviceComponent == nil {
-		return nil
-	} else {
-		return application.runtime.serviceComponent
-	}
-}
-
-// ================== implement gira.GrpcServerComponent ==================
-func (application *BaseApplication) GetGrpcServer() gira.GrpcServer {
-	if application.runtime.grpcServer == nil {
-		return nil
-	} else {
-		return application.runtime.grpcServer
-	}
+// ================== implement gira.ResourceComponent ==================
+func (application *Application) GetResourceLoader() gira.ResourceLoader {
+	return application.resourceLoader
 }
 
 // ================== implement gira.AdminClient ==================
 // 重载配置
-func (application *BaseApplication) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
+func (application *Application) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
 	req := &admin_grpc.ReloadResourceRequest{
 		Name: name,
 	}
@@ -241,86 +133,75 @@ func (application *BaseApplication) BroadcastReloadResource(ctx context.Context,
 	return
 }
 
-// 返回框架列表
-func (application *BaseApplication) Frameworks() []gira.Framework {
-	return application.runtime.frameworks
+// ================== implement gira.DbClientComponent ==================
+func (application *Application) GetAccountDbClient() gira.DbClient {
+	if application.accountDbClient == nil {
+		return nil
+	} else {
+		return application.accountDbClient
+	}
 }
 
-/*
-func (application *BaseApplication) NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
-	return application.runtime.Registry.NewServiceName(serviceName, opt...)
+func (application *Application) GetGameDbClient() gira.DbClient {
+	if application.gameDbClient == nil {
+		return nil
+	} else {
+		return application.gameDbClient
+	}
 }
 
-func (application *BaseApplication) LockLocalUser(userId string) (*gira.Peer, error) {
-	return application.runtime.Registry.LockLocalUser(userId)
+func (application *Application) GetLogDbClient() gira.DbClient {
+	if application.logDbClient == nil {
+		return nil
+	} else {
+		return application.logDbClient
+	}
 }
 
-func (application *BaseApplication) WhereIsUser(userId string) (*gira.Peer, error) {
-	return application.runtime.Registry.WhereIsUser(userId)
+func (application *Application) GetBehaviorDbClient() gira.DbClient {
+	if application.behaviorDbClient == nil {
+		return nil
+	} else {
+		return application.behaviorDbClient
+	}
 }
 
-func (application *BaseApplication) UnlockLocalUser(userId string) (*gira.Peer, error) {
-	return application.runtime.Registry.UnlockLocalUser(userId)
+func (application *Application) GetStatDbClient() gira.DbClient {
+	if application.statDbClient == nil {
+		return nil
+	} else {
+		return application.statDbClient
+	}
 }
 
-// 注册服务
-func (application *BaseApplication) RegisterService(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
-	return application.runtime.Registry.RegisterService(serviceName, opt...)
+func (application *Application) GetAccountCacheClient() gira.DbClient {
+	if application.accountCacheClient == nil {
+		return nil
+	} else {
+		return application.accountCacheClient
+	}
 }
 
-// 查找服务
-func (application *BaseApplication) WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
-	return application.runtime.Registry.WhereIsService(serviceName, opt...)
+func (application *Application) GetAdminCacheClient() gira.DbClient {
+	if application.adminCacheClient == nil {
+		return nil
+	} else {
+		return application.adminCacheClient
+	}
 }
 
-// 反注册服务
-func (application *BaseApplication) UnregisterService(serviceName string) (*gira.Peer, error) {
-	return application.runtime.Registry.UnregisterService(serviceName)
+func (application *Application) GetResourceDbClient() gira.DbClient {
+	if application.resourceDbClient == nil {
+		return nil
+	} else {
+		return application.resourceDbClient
+	}
 }
 
-// 返回全部节点
-func (application *BaseApplication) RangePeers(f func(k any, v any) bool) {
-	application.runtime.Registry.RangePeers(f)
+func (application *Application) GetAdminDbClient() gira.DbClient {
+	if application.adminDbClient == nil {
+		return nil
+	} else {
+		return application.adminDbClient
+	}
 }
-
-func (application *BaseApplication) ListPeerKvs() (peers map[string]string, err error) {
-	peers, err = application.runtime.Registry.ListPeerKvs()
-	return
-}
-
-func (application *BaseApplication) ListServiceKvs() (services map[string][]string, err error) {
-	services, err = application.runtime.Registry.ListServiceKvs()
-	return
-}
-*/
-// 重载配置
-// func (application *BaseApplication) ReloadResource(dir string) error {
-// 	if application.runtime.resourceLoader == nil {
-// 		return gira.ErrResourceLoaderNotImplement
-// 	}
-// 	return application.runtime.resourceLoader.ReloadResource(dir)
-// }
-
-// 加载配置
-// func (application *BaseApplication) LoadResource(dir string) error {
-// 	if application.runtime.resourceLoader == nil {
-// 		return gira.ErrResourceLoaderNotImplement
-// 	}
-// 	return application.runtime.resourceLoader.LoadResource(dir)
-// }
-
-// func (application *BaseApplication) StopService(service gira.Service) error {
-// 	if s := application.runtime.ServiceContainer; s == nil {
-// 		return gira.ErrServiceContainerNotImplement.Trace()
-// 	} else {
-// 		return s.StopService(service)
-// 	}
-// }
-
-// func (application *BaseApplication) StartService(name string, service gira.Service) error {
-// 	if s := application.runtime.ServiceContainer; s == nil {
-// 		return gira.ErrServiceContainerNotImplement.Trace()
-// 	} else {
-// 		return s.StartService(name, service)
-// 	}
-// }

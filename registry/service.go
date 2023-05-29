@@ -337,7 +337,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 			handler.OnServiceAdd(service)
 		}
 	}
-	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
+	if handler, ok := r.applicationFacade.(gira.ServiceWatchHandler); ok {
 		handler.OnServiceAdd(service)
 	}
 	// self.prefixIndex.debugTrace()
@@ -351,7 +351,7 @@ func (self *service_registry) onServiceDelete(r *Registry, service *gira.Service
 			handler.OnServiceDelete(service)
 		}
 	}
-	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
+	if handler, ok := r.applicationFacade.(gira.ServiceWatchHandler); ok {
 		handler.OnServiceDelete(service)
 	}
 }
