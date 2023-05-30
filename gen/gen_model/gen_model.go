@@ -635,6 +635,13 @@ func (self *<<.MongoDaoStructName>>) UpdateOne(ctx context.Context, filter inter
 	return result, err
 }
 
+func (self *<<.MongoDaoStructName>>) UpdateMany(ctx context.Context, filter interface{}, update bson.D, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+	database := self.db.database
+	coll := database.Collection("<<.CollName>>")
+	result, err := coll.UpdateMany(ctx, filter, update, opts...)
+	return result, err
+}
+
 func (self *<<.MongoDaoStructName>>) ReplaceOne(ctx context.Context, filter interface{}, replacement *<<.DataStructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
