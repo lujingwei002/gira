@@ -1,4 +1,4 @@
-package gateway
+package hall
 
 import (
 	"context"
@@ -21,11 +21,11 @@ type client_session struct {
 	memberId        string
 	client          gira.GatewayConn
 	stream          hall_grpc.Hall_ClientStreamClient
-	hall            *hall_server
+	hall            *HallServer
 	pendingMessages []gira.GatewayMessage
 }
 
-func newSession(hall *hall_server, sessionId uint64, memberId string) *client_session {
+func newSession(hall *HallServer, sessionId uint64, memberId string) *client_session {
 	return &client_session{
 		hall:            hall,
 		sessionId:       sessionId,
@@ -60,10 +60,10 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 	// session 绑定 hall
 	session.ctx, session.cancelFunc = context.WithCancel(hall.ctx)
 	errGroup, _ := errgroup.WithContext(session.ctx)
-	atomic.AddInt64(&session.hall.sessionCount, 1)
+	atomic.AddInt64(&session.hall.SessionCount, 1)
 	defer func() {
 		log.Infow("session close", "session_id", sessionId)
-		atomic.AddInt64(&session.hall.sessionCount, -1)
+		atomic.AddInt64(&session.hall.SessionCount, -1)
 		session.cancelFunc()
 	}()
 	// 将上游消息转发到客户端

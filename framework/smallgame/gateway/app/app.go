@@ -2,27 +2,29 @@ package gateway
 
 import (
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
+	"github.com/lujingwei002/gira/framework/smallgame/gateway/hall"
 )
 
 type Framework struct {
-	hall *hall_server
+	hall *hall.HallServer
 	// 使用的协议，当中必须包括名为Login的协议
 	Proto  gira.Proto
-	Config *Config
+	Config *config.Config
 }
 
 // 当前会话的数量
 func (framework *Framework) SessionCount() int64 {
-	return framework.hall.sessionCount
+	return framework.hall.SessionCount
 }
 
 // 当前连接的数量
 func (framework *Framework) ConnectionCount() int64 {
-	return framework.hall.connectionCount
+	return framework.hall.ConnectionCount
 }
 
 func (framework *Framework) OnFrameworkCreate(application gira.Application) error {
-	framework.hall = newHall(framework, framework.Proto, framework.Config)
+	framework.hall = hall.NewHall(framework.Proto)
 	if err := framework.hall.OnCreate(); err != nil {
 		return err
 	}
@@ -38,7 +40,7 @@ func (framework *Framework) OnFrameworkStop() error {
 }
 
 func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
-	framework.Config = &Config{}
+	framework.Config = &config.Config{}
 	return framework.Config.OnConfigLoad(c)
 }
 

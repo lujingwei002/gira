@@ -1,4 +1,4 @@
-package gateway
+package hall
 
 import (
 	"context"
@@ -9,42 +9,34 @@ import (
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/framework/smallgame/gateway"
+	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 	jwt "github.com/lujingwei002/gira/jwt/account"
 )
 
-type hall_server struct {
-	framework       *Framework
-	proto           gira.Proto
-	peers           sync.Map
-	ctx             context.Context
-	cancelFunc      context.CancelFunc
-	sessionCount    int64 // 会话数量
-	connectionCount int64 // 连接数量
-	handler         GatewayHandler
-	config          *Config
+type HallServer struct {
+	proto      gira.Proto
+	peers      sync.Map
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+
+	SessionCount    int64 // 会话数量
+	ConnectionCount int64 // 连接数量
 }
 
-func newHall(framework *Framework, proto gira.Proto, config *Config) *hall_server {
-	return &hall_server{
-		framework: framework,
-		proto:     proto,
-		config:    config,
+func NewHall(proto gira.Proto) *HallServer {
+	return &HallServer{
+		proto: proto,
 	}
 }
 
-func (hall *hall_server) OnCreate() error {
-	var a interface{} = hall.framework
-	if handler, ok := a.(GatewayHandler); !ok {
-		return gira.ErrGateHandlerNotImplement
-	} else {
-		hall.handler = handler
-	}
+func (hall *HallServer) OnCreate() error {
 	hall.ctx, hall.cancelFunc = context.WithCancel(facade.Context())
 	return nil
 }
 
 // 选择一个节点
-func (hall *hall_server) SelectPeer() *upstream_peer {
+func (hall *HallServer) SelectPeer() *upstream_peer {
 	var selected *upstream_peer
 	// 最大版本
 	var maxBuildTime int64 = 0
@@ -68,7 +60,7 @@ func (hall *hall_server) SelectPeer() *upstream_peer {
 	return selected
 }
 
-func (hall *hall_server) loginErrResponse(r gira.GatewayMessage, req gira.ProtoRequest, err error) error {
+func (hall *HallServer) loginErrResponse(message gira.GatewayMessage, req gira.ProtoRequest, err error) error {
 	log.Info(err)
 	resp, err := hall.proto.NewResponse(req)
 	if err == nil {
@@ -76,22 +68,22 @@ func (hall *hall_server) loginErrResponse(r gira.GatewayMessage, req gira.ProtoR
 	}
 	resp.SetErrorCode(gira.ErrCode(err))
 	resp.SetErrorMsg(gira.ErrMsg(err))
-	if data, err := hall.proto.ResponseEncode("Login", int32(r.ReqId()), resp); err != nil {
+	if data, err := hall.proto.ResponseEncode("Login", int32(message.ReqId()), resp); err != nil {
 		return err
 	} else {
-		r.Response(data)
+		message.Response(data)
 	}
 	return nil
 }
 
 // 客户端流数据
-func (hall *hall_server) ServeClientStream(client gira.GatewayConn) {
+func (hall *HallServer) ServeClientStream(client gira.GatewayConn) {
 	sessionId := client.Id()
 	// 最大人数判断
-	if hall.config.Framework.Gateway.MaxSessionCount == -1 {
+	if config.Gateway.Framework.Gateway.MaxSessionCount == -1 {
 		log.Infow("client stream close", "session_id", sessionId)
-	} else if hall.config.Framework.Gateway.MaxSessionCount == 0 || hall.sessionCount >= hall.config.Framework.Gateway.MaxSessionCount {
-		log.Warnw("reach max session count", "session_id", sessionId, "session_count", hall.sessionCount, "max_session_count", hall.config.Framework.Gateway.MaxSessionCount)
+	} else if config.Gateway.Framework.Gateway.MaxSessionCount == 0 || hall.SessionCount >= config.Gateway.Framework.Gateway.MaxSessionCount {
+		log.Warnw("reach max session count", "session_id", sessionId, "session_count", hall.SessionCount, "max_session_count", config.Gateway.Framework.Gateway.MaxSessionCount)
 		return
 	}
 	log.Infow("client stream open", "session_id", sessionId)
@@ -102,7 +94,7 @@ func (hall *hall_server) ServeClientStream(client gira.GatewayConn) {
 	var err error
 	var memberId string
 	// 需要在一定时间内发登录协议
-	timeoutCtx, timeoutFunc := context.WithTimeout(hall.ctx, time.Duration(hall.config.Framework.Gateway.WaitLoginTimeout)*time.Second)
+	timeoutCtx, timeoutFunc := context.WithTimeout(hall.ctx, time.Duration(config.Gateway.Framework.Gateway.WaitLoginTimeout)*time.Second)
 	defer timeoutFunc()
 	req, err = client.Recv(timeoutCtx)
 	if err != nil {
@@ -118,7 +110,7 @@ func (hall *hall_server) ServeClientStream(client gira.GatewayConn) {
 		return
 	} else {
 		// 检验token
-		loginReq, ok := dataReq.(LoginRequest)
+		loginReq, ok := dataReq.(gateway.LoginRequest)
 		if !ok {
 			log.Infow("login request cast fail", "session_id", sessionId)
 			return
@@ -128,7 +120,7 @@ func (hall *hall_server) ServeClientStream(client gira.GatewayConn) {
 		log.Infow("client login", "session_id", sessionId, "member_id", memberId)
 		log.Infow("token", "session_id", sessionId, "token", token)
 		// 验证memberid和token
-		if claims, err := jwt.ParseJwtToken(token, hall.config.Module.Jwt.Secret); err != nil {
+		if claims, err := jwt.ParseJwtToken(token, config.Gateway.Module.Jwt.Secret); err != nil {
 			log.Errorw("token无效", "session_id", sessionId, "token", token, "error", err)
 			hall.loginErrResponse(req, dataReq, err)
 			return
@@ -144,11 +136,11 @@ func (hall *hall_server) ServeClientStream(client gira.GatewayConn) {
 	}
 }
 
-func (hall *hall_server) OnPeerAdd(peer *gira.Peer) {
-	if peer.Name != hall.config.Framework.Gateway.Upstream.Name {
+func (hall *HallServer) OnPeerAdd(peer *gira.Peer) {
+	if peer.Name != config.Gateway.Framework.Gateway.Upstream.Name {
 		return
 	}
-	if peer.Id < hall.config.Framework.Gateway.Upstream.MinId || peer.Id > hall.config.Framework.Gateway.Upstream.MaxId {
+	if peer.Id < config.Gateway.Framework.Gateway.Upstream.MinId || peer.Id > config.Gateway.Framework.Gateway.Upstream.MaxId {
 		return
 	}
 	log.Infow("add upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
@@ -168,11 +160,11 @@ func (hall *hall_server) OnPeerAdd(peer *gira.Peer) {
 	go server.serve()
 }
 
-func (hall *hall_server) OnPeerDelete(peer *gira.Peer) {
-	if peer.Name != hall.config.Framework.Gateway.Upstream.Name {
+func (hall *HallServer) OnPeerDelete(peer *gira.Peer) {
+	if peer.Name != config.Gateway.Framework.Gateway.Upstream.Name {
 		return
 	}
-	if peer.Id < hall.config.Framework.Gateway.Upstream.MinId || peer.Id > hall.config.Framework.Gateway.Upstream.MaxId {
+	if peer.Id < config.Gateway.Framework.Gateway.Upstream.MinId || peer.Id > config.Gateway.Framework.Gateway.Upstream.MaxId {
 		return
 	}
 	log.Infow("remove upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
@@ -182,11 +174,11 @@ func (hall *hall_server) OnPeerDelete(peer *gira.Peer) {
 	}
 }
 
-func (hall *hall_server) OnPeerUpdate(peer *gira.Peer) {
-	if peer.Name != hall.config.Framework.Gateway.Upstream.Name {
+func (hall *HallServer) OnPeerUpdate(peer *gira.Peer) {
+	if peer.Name != config.Gateway.Framework.Gateway.Upstream.Name {
 		return
 	}
-	if peer.Id < hall.config.Framework.Gateway.Upstream.MinId || peer.Id > hall.config.Framework.Gateway.Upstream.MaxId {
+	if peer.Id < config.Gateway.Framework.Gateway.Upstream.MinId || peer.Id > config.Gateway.Framework.Gateway.Upstream.MaxId {
 		return
 	}
 	log.Infow("update upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)

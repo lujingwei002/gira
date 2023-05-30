@@ -1,10 +1,11 @@
-package gateway
+package hall
 
 import (
 	"context"
 	"time"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"golang.org/x/sync/errgroup"
@@ -22,11 +23,11 @@ type upstream_peer struct {
 	playerCount  int64
 	buildTime    int64
 	buildVersion string
-	hall         *hall_server
+	hall         *HallServer
 }
 
-func (peer *upstream_peer) close() {
-	peer.cancelFunc()
+func (server *upstream_peer) close() {
+	server.cancelFunc()
 }
 
 func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_grpc.Hall_ClientStreamClient, err error) {
@@ -93,7 +94,7 @@ func (server *upstream_peer) serve() error {
 		}
 	}
 	ticker.Stop()
-	heartbeatTicker := time.NewTicker(time.Duration(server.hall.framework.Config.Framework.Gateway.Upstream.HeartbeatInvertal) * time.Second)
+	heartbeatTicker := time.NewTicker(time.Duration(config.Gateway.Framework.Gateway.Upstream.HeartbeatInvertal) * time.Second)
 	defer func() {
 		heartbeatTicker.Stop()
 	}()
