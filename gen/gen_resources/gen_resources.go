@@ -112,6 +112,9 @@ import (
 	"os"
 	"fmt"
 	"context"
+<<range .ImportArr>>
+	"<<.>>"
+<<- end>>
 )
 
 // 将Db类型的bundle推送覆盖到db上
@@ -655,6 +658,7 @@ type gen_state struct {
 	BundleDict   map[string]*Bundle
 	BundleArr    []*Bundle
 	LoaderArr    []*Loader
+	ImportArr    []string
 }
 
 func capUpperString(s string) string {
@@ -725,6 +729,8 @@ type struct_type struct {
 	Map       []string               `yaml:"map"`
 	Object    []string               `yaml:"object"`
 }
+
+type import_type []string
 
 func (r *Resource) readExcel(filePath string) error {
 	f, err := excelize.OpenFile(filePath)
@@ -900,10 +906,42 @@ func parse(state *gen_state) error {
 	if data, err := ioutil.ReadFile(proj.Config.DocResourceFilePath); err != nil {
 		return err
 	} else {
-		structDict := make(map[string]*struct_type)
-		if err := yaml.Unmarshal(data, &structDict); err != nil {
+		kv := make(map[string]interface{})
+		if err := yaml.Unmarshal(data, kv); err != nil {
 			return err
 		}
+		structDict := make(map[string]*struct_type)
+		for name, v := range kv {
+			// log.Println(name)
+			if name == "$import" {
+				if vdata, err := yaml.Marshal(v); err != nil {
+					return err
+				} else {
+					var importType import_type
+					if err := yaml.Unmarshal(vdata, &importType); err != nil {
+						return err
+					} else {
+						for _, v := range importType {
+							state.ImportArr = append(state.ImportArr, v)
+						}
+					}
+				}
+			} else {
+				if vdata, err := yaml.Marshal(v); err != nil {
+					return err
+				} else {
+					structType := &struct_type{}
+					if err := yaml.Unmarshal(vdata, &structType); err != nil {
+						return err
+					} else {
+						structDict[name] = structType
+					}
+				}
+			}
+		}
+		// if err := yaml.Unmarshal(data, &structDict); err != nil {
+		// 	return err
+		// }
 		for name, v := range structDict {
 			// bundle
 			if len(v.Resources) > 0 {

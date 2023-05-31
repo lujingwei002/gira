@@ -130,6 +130,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	<<- range .ImportArr>> 
+	"<<.>>"
+	<<- end>> 
 )
 
 
@@ -1093,6 +1096,7 @@ func (self SortCollectionByName) Less(i, j int) bool { return self[i].CollName <
 type Database struct {
 	Module                string
 	Driver                string
+	ImportArr             []string
 	DbStructName          string // 数据库名的驼峰格式
 	MongoDriverStructName string // mongo 的 dao 结构名字
 	RedisDriverStructName string // redis 的 dao 结构名字
@@ -1379,6 +1383,10 @@ func parse(state *gen_state, filePathArr []string) error {
 		for k, v := range result {
 			if k == "$driver" {
 				database.Driver = v.(string)
+			} else if k == "$import" {
+				for _, v := range v.([]interface{}) {
+					database.ImportArr = append(database.ImportArr, v.(string))
+				}
 			} else {
 				collName := k
 				coll := &Collection{
