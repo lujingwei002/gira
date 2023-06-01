@@ -20,8 +20,8 @@ import (
 	"github.com/lujingwei002/gira/gen/gen_const"
 	"github.com/lujingwei002/gira/gen/gen_macro"
 	"github.com/lujingwei002/gira/gen/gen_model"
-	"github.com/lujingwei002/gira/gen/gen_protocols"
-	"github.com/lujingwei002/gira/gen/gen_resources"
+	"github.com/lujingwei002/gira/gen/gen_protocol"
+	"github.com/lujingwei002/gira/gen/gen_resource"
 	"github.com/lujingwei002/gira/proj"
 )
 
@@ -354,7 +354,7 @@ func beforeAction(args *cli.Context) error {
 }
 
 func genResourceAction(args *cli.Context) error {
-	if err := gen_resources.Gen(gen_resources.Config{
+	if err := gen_resource.Gen(gen_resource.Config{
 		Force: true,
 	}); err != nil {
 		return err
@@ -363,7 +363,7 @@ func genResourceAction(args *cli.Context) error {
 }
 
 func genProtocolAction(args *cli.Context) error {
-	if err := gen_protocols.Gen(); err != nil {
+	if err := gen_protocol.Gen(); err != nil {
 		return err
 	}
 	return nil
@@ -398,13 +398,13 @@ func genBehaviorAction(args *cli.Context) error {
 }
 
 func genAllAction(args *cli.Context) error {
-	if err := gen_protocols.Gen(); err != nil {
+	if err := gen_protocol.Gen(); err != nil {
 		return err
 	}
 	if err := gen_application.Gen(); err != nil {
 		return err
 	}
-	if err := gen_resources.Gen(gen_resources.Config{
+	if err := gen_resource.Gen(gen_resource.Config{
 		Force: true,
 	}); err != nil {
 		return err

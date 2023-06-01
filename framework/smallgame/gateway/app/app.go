@@ -1,4 +1,4 @@
-package gateway
+package app
 
 import (
 	"github.com/lujingwei002/gira"
@@ -21,6 +21,10 @@ func (framework *Framework) SessionCount() int64 {
 // 当前连接的数量
 func (framework *Framework) ConnectionCount() int64 {
 	return framework.hall.ConnectionCount
+}
+
+func (framework *Framework) GetConfig() *config.GatewayConfig {
+	return &framework.Config.Framework.Gateway
 }
 
 func (framework *Framework) OnFrameworkCreate(application gira.Application) error {

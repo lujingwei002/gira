@@ -1,4 +1,4 @@
-package gen_configs
+package gen_config
 
 import (
 	"fmt"

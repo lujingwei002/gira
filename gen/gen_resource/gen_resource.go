@@ -1,4 +1,4 @@
-package gen_resources
+package gen_resource
 
 /// 参考 https://www.cnblogs.com/f-ck-need-u/p/10053124.html
 

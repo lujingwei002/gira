@@ -377,7 +377,7 @@ func (application *Application) onCreate() error {
 	}
 
 	// ==== 加载resource ================
-	if resourceComponent, ok := application.applicationFacade.(gira.ResourceComponent); ok {
+	if resourceComponent, ok := application.applicationFacade.(gira.ResourceSource); ok {
 		resourceLoader := resourceComponent.GetResourceLoader()
 		if resourceLoader != nil {
 			application.resourceLoader = resourceLoader

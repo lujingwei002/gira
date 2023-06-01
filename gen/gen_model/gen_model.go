@@ -669,7 +669,7 @@ func (self *<<.MongoDaoStructName>>) InsertOne(ctx context.Context, doc *<<.Data
 <<- if .IsDeriveUser>>
 
 func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructName>>) error {
-	log.Infow("<<.CollName>> save", "dirty", doc.dirty, "id", doc.Id)
+	log.Debugw("<<.CollName>> save", "dirty", doc.dirty, "id", doc.Id)
 	if !doc.dirty {
 		return nil
 	}
@@ -695,7 +695,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructNam
 func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, id primitive.ObjectID) (*<<.StructName>>, error) {
     doc := new<<.StructName>>()
 	database := self.db.database
-	log.Infow("<<.CollName>> load", "id", id)
+	log.Debugw("<<.CollName>> load", "id", id)
 	coll := database.Collection("<<.CollName>>")
 	err := coll.FindOne(ctx, bson.D{{"_id", id}}).Decode(&doc.<<.DataStructName>>)
 	if err != nil {
@@ -746,7 +746,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	// opts := options.Replace().SetUpsert(true)
-	log.Infow("<<.CollName>> save", "<<.CapCamelPrimaryKey>>", doc.<<.CamelPrimaryKey>>)
+	log.Debugw("<<.CollName>> save", "<<.CapCamelPrimaryKey>>", doc.<<.CamelPrimaryKey>>)
 	models := make([]mongo.WriteModel, 0)
 	if len(doc.del) > 0 {
 		for _, v := range(doc.del) {
@@ -795,7 +795,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimaryKey>> <<.PrimaryKeyField.GoTypeName>>) (*<<.ArrStructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
-	log.Infow("<<.CollName>> load", "<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>)
+	log.Debugw("<<.CollName>> load", "<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>)
 	cursor, err := coll.Find(ctx, bson.D{{"<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>}})
 	if err != nil {
 		return nil, err

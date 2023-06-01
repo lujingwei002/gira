@@ -1,4 +1,4 @@
-package gen_protocols
+package gen_protocol
 
 import (
 	"bufio"

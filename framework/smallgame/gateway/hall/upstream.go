@@ -46,11 +46,11 @@ func (server *upstream_peer) serve() error {
 	var stream hall_grpc.Hall_GateStreamClient
 	var err error
 	address := server.Address
-	ticker := time.NewTicker(1 * time.Second)
+	dialTicker := time.NewTicker(1 * time.Second)
 	streamCtx, streamCancelFunc := context.WithCancel(server.ctx)
 	defer func() {
 		streamCancelFunc()
-		ticker.Stop()
+		dialTicker.Stop()
 		// 关闭链接
 		if conn != nil {
 			conn.Close()
@@ -67,7 +67,7 @@ func (server *upstream_peer) serve() error {
 			select {
 			case <-server.ctx.Done():
 				return server.ctx.Err()
-			case <-ticker.C:
+			case <-dialTicker.C:
 				// 重连
 				continue
 			}
@@ -84,7 +84,7 @@ func (server *upstream_peer) serve() error {
 			select {
 			case <-server.ctx.Done():
 				return server.ctx.Err()
-			case <-ticker.C:
+			case <-dialTicker.C:
 				// 重连
 				continue
 			}
@@ -93,7 +93,7 @@ func (server *upstream_peer) serve() error {
 			break
 		}
 	}
-	ticker.Stop()
+	dialTicker.Stop()
 	heartbeatTicker := time.NewTicker(time.Duration(config.Gateway.Framework.Gateway.Upstream.HeartbeatInvertal) * time.Second)
 	defer func() {
 		heartbeatTicker.Stop()

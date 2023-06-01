@@ -58,7 +58,7 @@ func GetLogDir() string {
 // 重载配置
 func ReloadResource() error {
 	application := gira.App()
-	if c, ok := application.(gira.ResourceComponent); !ok {
+	if c, ok := application.(gira.ResourceSource); !ok {
 		return gira.ErrResourceManagerNotImplement
 	} else if r := c.GetResourceLoader(); r == nil {
 		return gira.ErrResourceManagerNotImplement

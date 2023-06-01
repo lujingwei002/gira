@@ -17,7 +17,7 @@ type ResourceHandler interface {
 	OnResourcePostLoad()
 }
 
-type ResourceComponent interface {
+type ResourceSource interface {
 	// 返回资源加载器
 	GetResourceLoader() ResourceLoader
 }

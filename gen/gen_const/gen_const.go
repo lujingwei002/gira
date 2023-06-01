@@ -24,8 +24,10 @@ package <<.Descriptor.Name>>
 
 <<- if eq .Descriptor.Name "ec">>
 
-import "github.com/lujingwei002/gira"
-
+import (
+	"github.com/lujingwei002/gira"
+	"encoding/json"
+)
 
 <<- $commentField := .CommentField >>
 <<- $keyField := .KeyField >>
@@ -57,6 +59,35 @@ var (
 <<- end>>
 )
 
+
+<<- range $row := .ValueArr >>
+<<- $key := index $row $keyField.Tag >>
+<<- $value := index $row $valueField.Tag >>
+// << index $row $commentField.Tag >>
+func NewErr<<camelString $key>>(values ...interface{}) *gira.Error {
+	var kv map[string]interface{}
+	for i := 0; i < len(values); i+=2 {
+		j := i + 1
+		if j < len(values) {
+			if kv == nil {
+				kv = make(map[string]interface{})
+			}
+			if k, ok := values[i].(string); ok {
+				kv[k] = values[j]
+			}
+		}
+	}
+	if kv != nil {
+		if s, err := json.Marshal(kv); err != nil {
+			return Err<<camelString $key>>
+		} else {
+			return gira.NewError(<<$value>>, "<<index $row $commentField.Tag>> "+string(s))
+		}
+	} else {
+		return Err<<camelString $key>>
+	}
+}
+<<- end>>
 <<- else >>
 
 <<- $commentField := .CommentField >>

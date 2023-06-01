@@ -9,11 +9,14 @@ import (
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/framework/smallgame/gateway"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 	jwt "github.com/lujingwei002/gira/jwt/account"
 )
 
+type LoginRequest interface {
+	GetMemberId() string
+	GetToken() string
+}
 type HallServer struct {
 	proto      gira.Proto
 	peers      sync.Map
@@ -77,11 +80,15 @@ func (hall *HallServer) loginErrResponse(message gira.GatewayMessage, req gira.P
 }
 
 // 客户端流数据
+// 1.处理客户端发过来的第1个消息，必须满足LoginRequest接口
+// 2.验证token
+// 3.验证成功后，创建session,交给session处理接下来的客户端消息
 func (hall *HallServer) ServeClientStream(client gira.GatewayConn) {
 	sessionId := client.Id()
 	// 最大人数判断
 	if config.Gateway.Framework.Gateway.MaxSessionCount == -1 {
-		log.Infow("client stream close", "session_id", sessionId)
+		log.Warnw("reach max session count", "session_id", sessionId, "session_count", hall.SessionCount, "max_session_count", config.Gateway.Framework.Gateway.MaxSessionCount)
+		return
 	} else if config.Gateway.Framework.Gateway.MaxSessionCount == 0 || hall.SessionCount >= config.Gateway.Framework.Gateway.MaxSessionCount {
 		log.Warnw("reach max session count", "session_id", sessionId, "session_count", hall.SessionCount, "max_session_count", config.Gateway.Framework.Gateway.MaxSessionCount)
 		return
@@ -98,41 +105,36 @@ func (hall *HallServer) ServeClientStream(client gira.GatewayConn) {
 	defer timeoutFunc()
 	req, err = client.Recv(timeoutCtx)
 	if err != nil {
-		log.Infow("recv fail", "session_id", sessionId, "error", err)
+		log.Warnw("client recv fail", "session_id", sessionId, "error", err)
 		return
 	}
 	// log.Infow("client=>gate request", "session_id", sessionId, "req_id", req.ReqId)
 	if name, _, dataReq, err := hall.proto.RequestDecode(req.Payload()); err != nil {
-		log.Infow("client=>gate request decode fail", "session_id", sessionId, "error", err)
-		return
+		log.Warnw("client=>gate request decode fail", "session_id", sessionId, "error", err)
 	} else if name != "Login" {
-		log.Infow("expeted login request", "name", name, "session_id", sessionId)
-		return
+		log.Warnw("expeted login request", "name", name, "session_id", sessionId)
 	} else {
 		// 检验token
-		loginReq, ok := dataReq.(gateway.LoginRequest)
+		loginReq, ok := dataReq.(LoginRequest)
 		if !ok {
-			log.Infow("login request cast fail", "session_id", sessionId)
+			log.Errorw("login request cast fail", "session_id", sessionId)
 			return
 		}
 		memberId = loginReq.GetMemberId()
 		token := loginReq.GetToken()
-		log.Infow("client login", "session_id", sessionId, "member_id", memberId)
-		log.Infow("token", "session_id", sessionId, "token", token)
+		log.Infow("client login", "session_id", sessionId, "member_id", memberId, "token", token)
 		// 验证memberid和token
 		if claims, err := jwt.ParseJwtToken(token, config.Gateway.Module.Jwt.Secret); err != nil {
-			log.Errorw("token无效", "session_id", sessionId, "token", token, "error", err)
+			log.Errorw("invalid token", "session_id", sessionId, "token", token, "error", err)
 			hall.loginErrResponse(req, dataReq, err)
-			return
 		} else if claims.MemberId != memberId {
-			log.Errorw("memberid无效", "token", token, "member_id", memberId, "expected_member_id", claims.MemberId)
+			log.Errorw("invalid memberid", "token", token, "member_id", memberId, "expected_member_id", claims.MemberId)
 			hall.loginErrResponse(req, dataReq, gira.ErrInvalidJwt)
-			return
 		} else {
 			memberId = claims.MemberId
+			session := newSession(hall, sessionId, memberId)
+			session.serve(client, req, dataReq)
 		}
-		session := newSession(hall, sessionId, memberId)
-		session.serve(client, req, dataReq)
 	}
 }
 
