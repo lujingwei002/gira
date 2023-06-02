@@ -275,15 +275,15 @@ type PprofConfig struct {
 }
 
 type Config struct {
-	Raw    []byte
-	Thread int `yaml:"thread"`
-	Env    string
-	Zone   string
-	Log    *LogConfig  `yaml:"log"`
-	Pprof  PprofConfig `yaml:"pprof"`
-
-	Db     map[string]*DbConfig
-	Module struct {
+	Raw     []byte
+	Thread  int `yaml:"thread"`
+	Env     string
+	Zone    string
+	Log     *LogConfig  `yaml:"log"`
+	Pprof   PprofConfig `yaml:"pprof"`
+	Sandbox int         `yaml:"sandbox"`
+	Db      map[string]*DbConfig
+	Module  struct {
 		// ResourceDb   *DbConfig `yaml:"resourcedb"`
 		// GameDb       *DbConfig `yaml:"gamedb"`
 		// BehaviorDb   *DbConfig `yaml:"behaviordb"`
