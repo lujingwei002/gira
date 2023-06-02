@@ -1,13 +1,13 @@
 package hall
 
+// grpc server 服务
+
 import (
 	"context"
 	"fmt"
 	"runtime/debug"
-	"time"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/actor"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/service/hall/hall_grpc"
@@ -16,7 +16,7 @@ import (
 
 type hall_server struct {
 	hall_grpc.UnimplementedHallServer
-	hall *HallService
+	hall *hall_service
 }
 
 // 踢用户下线
@@ -151,13 +151,13 @@ func (self *hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) erro
 	if self.hall.isDestory {
 		return gira.ErrAlreadyDestory
 	}
-	errGroup, errCtx := errgroup.WithContext(self.hall.cancelCtx)
+	errGroup, errCtx := errgroup.WithContext(self.hall.backgroundCtx)
 	// 定时发送在线人数
 	errGroup.Go(func() error {
 		for {
 			select {
-			case <-self.hall.cancelCtx.Done():
-				return self.hall.cancelCtx.Err()
+			case <-self.hall.backgroundCtx.Done():
+				return self.hall.backgroundCtx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
 			}
@@ -167,8 +167,8 @@ func (self *hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) erro
 	errGroup.Go(func() error {
 		for {
 			select {
-			case <-self.hall.cancelCtx.Done():
-				return self.hall.cancelCtx.Err()
+			case <-self.hall.backgroundCtx.Done():
+				return self.hall.backgroundCtx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
 			default:
@@ -221,12 +221,12 @@ func (self *hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) 
 	session.chClientRequest = make(chan *hall_grpc.ClientMessageRequest, hall.config.RequestBufferSize)
 
 	// 绑定到hall
-	clientCtx, clientCancelFunc := context.WithCancel(self.hall.cancelCtx)
+	clientCtx, clientCancelFunc := context.WithCancel(self.hall.backgroundCtx)
 	session.clientCancelFunc = clientCancelFunc
 	// recv ctrl context
 	defer func() {
 		clientCancelFunc()
-		if err := session.Call_close(self.hall.cancelCtx, actor.WithCallTimeOut(5*time.Second)); err != nil {
+		if err := session.Close(self.hall.backgroundCtx); err != nil {
 			log.Errorw("session close fail", "session_id", sessionId, "error", err)
 		}
 	}()

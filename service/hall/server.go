@@ -7,20 +7,18 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/actor"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/options/service_options"
 	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 )
 
-func NewService(proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (*HallService, error) {
-	service := &HallService{
+func NewService(proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (Hall, error) {
+	service := &hall_service{
 		proto:         proto,
 		config:        config,
 		hallHandler:   hallHandler,
 		playerHandler: playerHandler,
-		Actor:         actor.NewActor(16),
 	}
 	service.hallServer = &hall_server{
 		hall: service,
@@ -32,37 +30,36 @@ func GetServiceName() string {
 	return facade.NewServiceName(hall_grpc.HallServerName, service_options.WithAsAppServiceOption())
 }
 
-type HallService struct {
-	*actor.Actor
-	hallServer    *hall_server
-	ctx           context.Context
-	cancelCtx     context.Context
-	cancelFunc    context.CancelFunc
-	sessionDict   sync.Map
-	sessionCount  int64
-	hallHandler   HallHandler
-	playerHandler gira.ProtoHandler
-	proto         gira.Proto
-	config        Config
-	isDestory     bool
+type hall_service struct {
+	hallServer           *hall_server
+	ctx                  context.Context
+	backgroundCtx        context.Context
+	backgroundCancelFunc context.CancelFunc
+	sessionDict          sync.Map
+	sessionCount         int64
+	hallHandler          HallHandler
+	playerHandler        gira.ProtoHandler
+	proto                gira.Proto
+	config               Config
+	isDestory            bool
 }
 
-func (hall *HallService) OnStart(ctx context.Context) error {
+func (hall *hall_service) OnStart(ctx context.Context) error {
 	hall.ctx = ctx
 	if _, err := facade.RegisterServiceName(GetServiceName()); err != nil {
 		return err
 	}
 	// 后台运行
-	hall.cancelCtx, hall.cancelFunc = context.WithCancel(context.Background())
+	hall.backgroundCtx, hall.backgroundCancelFunc = context.WithCancel(context.Background())
 	hall_grpc.RegisterHallServer(facade.GrpcServer(), hall.hallServer)
 	return nil
 }
 
-func (hall *HallService) OnStop() error {
+func (hall *hall_service) OnStop() error {
 	return nil
 }
 
-func (hall *HallService) Serve() error {
+func (hall *hall_service) Serve() error {
 	//
 	// 1.服务器关闭时保存数据后再退出
 	// 2.处理actor调用
@@ -85,9 +82,6 @@ func (hall *HallService) Serve() error {
 	// })
 	for {
 		select {
-		// 处理actor请求
-		case r := <-hall.Inbox():
-			r.Next()
 		case <-hall.ctx.Done():
 			log.Infow("hall exit")
 			goto TAG_CLEAN_UP
@@ -104,7 +98,7 @@ TAG_CLEAN_UP:
 			return true
 		})
 		for _, session := range sessions {
-			session.Call_close(hall.cancelCtx, actor.WithCallTimeOut(5*time.Second))
+			session.Close(hall.backgroundCtx)
 		}
 		log.Infow("hall on stop++++++++", "session_count", hall.sessionCount)
 		if hall.sessionCount <= 0 {
@@ -112,28 +106,32 @@ TAG_CLEAN_UP:
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	hall.cancelFunc()
+	hall.backgroundCancelFunc()
 	return nil
 }
 
-func (hall *HallService) SessionCount() int64 {
+func (hall *hall_service) SessionCount() int64 {
 	return hall.sessionCount
+}
+
+func (hall *hall_service) GetConfig() *Config {
+	return &hall.config
 }
 
 // 踢用户下线
 // 协程程安全
-func (hall *HallService) Kick(ctx context.Context, userId string, reason string) (err error) {
+func (hall *hall_service) Kick(ctx context.Context, userId string, reason string) (err error) {
 	if v, ok := hall.sessionDict.Load(userId); !ok {
 		return gira.ErrUserNotFound
 	} else {
 		session := v.(*hall_sesssion)
-		return session.Call_Kick(ctx, reason, actor.WithCallTimeOut(5*time.Second))
+		return session.Kick(ctx, reason)
 	}
 }
 
 // 顶号下线
 // 协程程安全
-func (hall *HallService) Instead(ctx context.Context, userId string, reason string) error {
+func (hall *hall_service) Instead(ctx context.Context, userId string, reason string) error {
 	log.Infow("user instead", "user_id", userId)
 	if v, ok := hall.sessionDict.Load(userId); !ok {
 		// 偿试解锁
@@ -146,9 +144,7 @@ func (hall *HallService) Instead(ctx context.Context, userId string, reason stri
 		}
 	} else {
 		session := v.(*hall_sesssion)
-		timeoutCtx, timeoutFunc := context.WithTimeout(ctx, 10*time.Second)
-		defer timeoutFunc()
-		if err := session.Call_instead(timeoutCtx, reason, actor.WithCallTimeOut(1*time.Second)); err != nil {
+		if err := session.Instead(ctx, reason); err != nil {
 			log.Errorw("user instead fail", "user_id", userId, "error", err)
 			return err
 		} else {
@@ -159,7 +155,7 @@ func (hall *HallService) Instead(ctx context.Context, userId string, reason stri
 }
 
 // 推送消息给其他玩家
-func (hall *HallService) Push(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
+func (hall *hall_service) Push(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
 	defer func() {
 		log.Warnw("hall_server push panic", "user_id", userId, "route", push.GetPushName())
 		if e := recover(); e != nil {
@@ -168,7 +164,6 @@ func (hall *HallService) Push(ctx context.Context, userId string, push gira.Prot
 			err = e.(error)
 		}
 	}()
-
 	if v, ok := hall.sessionDict.Load(userId); !ok {
 		var data []byte
 		var peer *gira.Peer
@@ -196,7 +191,7 @@ func (hall *HallService) Push(ctx context.Context, userId string, push gira.Prot
 }
 
 // 推送消息给其他玩家
-func (hall *HallService) MustPush(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
+func (hall *hall_service) MustPush(ctx context.Context, userId string, push gira.ProtoPush) (err error) {
 	defer func() {
 		log.Warnw("hall_server must push panic", "user_id", userId, "route", push.GetPushName())
 		if e := recover(); e != nil {
