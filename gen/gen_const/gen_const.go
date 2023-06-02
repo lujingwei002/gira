@@ -341,7 +341,7 @@ func parse(constState *const_state) error {
 	return nil
 }
 
-func gen(constState *const_state) error {
+func genCode(constState *const_state) error {
 	log.Info("生成go文件")
 	// 生成cost文件夹
 	dir := proj.Config.SrcGenConstDir
@@ -377,7 +377,7 @@ func Gen() error {
 	if err := parse(constState); err != nil {
 		return err
 	}
-	if err := gen(constState); err != nil {
+	if err := genCode(constState); err != nil {
 		return err
 	}
 	log.Info("===============gen const finished===============")

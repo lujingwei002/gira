@@ -7,9 +7,9 @@ import (
 	"go/token"
 	"path"
 	"regexp"
-	"strings"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/gen"
 	"github.com/lujingwei002/gira/proj"
 )
 
@@ -29,49 +29,31 @@ func (p *golang_parser) extraTag(str string) map[string]string {
 	return values
 }
 
-func (p *golang_parser) extraAnnotate(comments []*ast.Comment) map[string]string {
-	re := regexp.MustCompile(`// @(\w+)\((.*)\)`)
-
-	values := make(map[string]string)
-	for _, comment := range comments {
-		if !strings.HasPrefix(comment.Text, "// @") {
-			continue
-		}
-		fmt.Println(comment.Text)
-
-		matches := re.FindAllStringSubmatch(comment.Text, -1)
-		for _, match := range matches {
-			fmt.Println(match)
-
-		}
-	}
-
-	return values
-}
-
 func (p *golang_parser) parseConstStruct(state *const_state, s *ast.StructType) error {
 	for _, field := range s.Fields.List {
-		p.extraAnnotate(field.Doc.List)
-		name := field.Names[0].Name
-		tags := p.extraTag(field.Tag.Value)
-		var filePath string
-		var keyArr []string
-		if v, ok := tags["xlsx"]; !ok {
-			return gira.ErrTodo.Trace()
+		if annotates, err := gen.ExtraAnnotate(field.Doc.List); err != nil {
+			return err
 		} else {
-			filePath = v
+			name := field.Names[0].Name
+			var filePath string
+			var keyArr []string
+			if v, ok := annotates["excel"]; !ok {
+				return gira.ErrTodo.Trace()
+			} else {
+				filePath = v.Values[0]
+			}
+			if v, ok := annotates["keys"]; !ok {
+				return gira.ErrTodo.Trace()
+			} else {
+				keyArr = v.Values
+			}
+			descriptor := &Descriptor{
+				Name:     name,
+				filePath: filePath,
+				keyArr:   keyArr,
+			}
+			state.constFile.descriptorDict[name] = descriptor
 		}
-		if v, ok := tags["keys"]; !ok {
-			return gira.ErrTodo.Trace()
-		} else {
-			keyArr = strings.Split(v, ",")
-		}
-		descriptor := &Descriptor{
-			Name:     name,
-			filePath: filePath,
-			keyArr:   keyArr,
-		}
-		state.constFile.descriptorDict[name] = descriptor
 	}
 	return nil
 }
