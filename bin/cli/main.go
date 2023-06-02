@@ -68,9 +68,9 @@ func main() {
 						Action: genConstAction,
 					},
 					{
-						Name:   "app",
-						Usage:  "gen app",
-						Action: genAppAction,
+						Name:   "application",
+						Usage:  "gen application",
+						Action: genApplicationAction,
 					},
 					{
 						Name:   "behavior",
@@ -376,7 +376,7 @@ func genModelAction(args *cli.Context) error {
 	return nil
 }
 
-func genAppAction(args *cli.Context) error {
+func genApplicationAction(args *cli.Context) error {
 	if err := gen_application.Gen(); err != nil {
 		return err
 	}

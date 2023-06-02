@@ -2,16 +2,13 @@ package gen_application
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"text/template"
 
 	"github.com/lujingwei002/gira/log"
-
 	"github.com/lujingwei002/gira/proj"
-	"gopkg.in/yaml.v2"
 )
 
 var code = `
@@ -45,48 +42,33 @@ func main() {
 
 `
 
-type applications_file struct {
-	Application []struct {
-		Name string `yaml:"name"`
-	} `yaml:"application"`
+type application struct {
+	ApplicationName string
+	ModuleName      string
 }
-
 type gen_state struct {
-	applicationFilePath string
-	applicationsFile    applications_file
+	applications []application
 }
 
-func capUpperString(s string) string {
-	return strings.ToUpper(s[0:1]) + s[1:]
+type Parser interface {
+	parse(state *gen_state) error
 }
 
-func parse(state *gen_state) error {
-	if data, err := ioutil.ReadFile(state.applicationFilePath); err != nil {
-		return err
-	} else {
-		if err := yaml.Unmarshal(data, &state.applicationsFile); err != nil {
+func gen(state *gen_state) error {
+	if _, err := os.Stat(proj.Config.SrcGenApplicationDir); err != nil && os.IsNotExist(err) {
+		if err := os.Mkdir(proj.Config.SrcGenApplicationDir, 0755); err != nil {
 			return err
 		}
 	}
-	return nil
-}
-
-func genApplications(state *gen_state) error {
-	log.Info("生成go文件")
-	for _, v := range state.applicationsFile.Application {
+	for _, v := range state.applications {
 		sb := strings.Builder{}
-		if _, err := os.Stat(proj.Config.SrcGenApplicationDir); err != nil && os.IsNotExist(err) {
-			if err := os.Mkdir(proj.Config.SrcGenApplicationDir, 0755); err != nil {
-				return err
-			}
-		}
-		srcGenApplicationDir := path.Join(proj.Config.SrcGenApplicationDir, v.Name)
+		srcGenApplicationDir := path.Join(proj.Config.SrcGenApplicationDir, v.ApplicationName)
 		if _, err := os.Stat(srcGenApplicationDir); err != nil && os.IsNotExist(err) {
 			if err := os.Mkdir(srcGenApplicationDir, 0755); err != nil {
 				return err
 			}
 		}
-		applicationPath := path.Join(srcGenApplicationDir, fmt.Sprintf("%s.gen.go", v.Name))
+		applicationPath := path.Join(srcGenApplicationDir, fmt.Sprintf("%s.gen.go", v.ApplicationName))
 		file, err := os.OpenFile(applicationPath, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err
@@ -98,29 +80,33 @@ func genApplications(state *gen_state) error {
 		if err != nil {
 			return err
 		}
-		params := map[string]string{
-			"ModuleName":      proj.Config.Module,
-			"ApplicationName": v.Name,
-		}
-		if err := tmpl.Execute(&sb, params); err != nil {
+		if err := tmpl.Execute(&sb, v); err != nil {
 			return err
 		}
+		log.Printf("gen application %v", v.ApplicationName)
 		file.WriteString(sb.String())
 	}
 	return nil
 }
 
 func Gen() error {
-	log.Info("===============gen app start.===============")
+	log.Info("===============gen app start===============")
 	// 初始化
-	state := &gen_state{
-		applicationFilePath: path.Join(proj.Config.DocDir, "application.yaml"),
+	state := &gen_state{}
+	if true {
+
 	}
-	if err := parse(state); err != nil {
+	var p Parser
+	if true {
+		p = &golang_parser{}
+	} else {
+		p = &yaml_parser{}
+	}
+	if err := p.parse(state); err != nil {
 		log.Info(err)
 		return err
 	}
-	if err := genApplications(state); err != nil {
+	if err := gen(state); err != nil {
 		log.Info(err)
 		return err
 	}

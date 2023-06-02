@@ -2,7 +2,6 @@ package gen_const
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/lujingwei002/gira/proj"
 	excelize "github.com/xuri/excelize/v2"
-	yaml "gopkg.in/yaml.v3"
 )
 
 var const_template = `
@@ -136,7 +134,7 @@ type Field struct {
 	typeName string
 }
 
-type ExcelData struct {
+type excel_data struct {
 	FieldDict    map[string]*Field // 字段信息
 	FieldArr     []*Field          // 字段信息
 	ValueArr     [][]interface{}   // 字段值
@@ -153,14 +151,18 @@ type Descriptor struct {
 	keyArr    []string
 }
 
-type ConstFile struct {
+type const_file struct {
 	descriptorDict map[string]*Descriptor
 }
 
 // 生成协议的状态
-type ConstState struct {
-	constFile     ConstFile
-	excelDataDict map[string]*ExcelData
+type const_state struct {
+	constFile     const_file
+	excelDataDict map[string]*excel_data
+}
+
+type Parser interface {
+	parse(constState *const_state) error
 }
 
 func capUpperString(s string) string {
@@ -195,7 +197,7 @@ func camelString(s string) string {
 	return string(data[:])
 }
 
-func genConstFile(constState *ConstState, descriptor *Descriptor, data *ExcelData) error {
+func genConstFile(constState *const_state, descriptor *Descriptor, data *excel_data) error {
 
 	log.Info("gen const", descriptor.Name)
 	dir := path.Join(proj.Config.SrcGenConstDir, descriptor.Name)
@@ -233,60 +235,7 @@ func genConstFile(constState *ConstState, descriptor *Descriptor, data *ExcelDat
 	return nil
 }
 
-func (f *ConstFile) read(filePath string) error {
-	if data, err := ioutil.ReadFile(filePath); err != nil {
-		return err
-	} else {
-		result := make(map[string]interface{})
-		if err := yaml.Unmarshal(data, result); err != nil {
-			return err
-		}
-		descriptors, _ := result["descriptor"]
-		if descriptors == nil {
-			return nil
-		}
-		for _, row := range descriptors.([]interface{}) {
-			arr := row.([]interface{})
-			if len(arr) < 3 {
-				return fmt.Errorf("descriptor %+v at least need 3 argument", row)
-			}
-			var ok bool
-			var filePath string
-			var name string
-			filePath, ok = arr[0].(string)
-			if !ok {
-				return fmt.Errorf("descriptor %+v arg1 not string", row)
-			}
-			name, ok = arr[1].(string)
-			if !ok {
-				return fmt.Errorf("descriptor %+v arg2 not string", row)
-			}
-			keyArr := make([]string, 0)
-			if _, ok := arr[2].([]interface{}); !ok {
-				return fmt.Errorf("descriptor %+v arg3 not a array", name)
-			}
-			for _, v := range arr[2].([]interface{}) {
-				vv, ok := v.(string)
-				if !ok {
-					return fmt.Errorf("descriptor %+v arg3 not a string array", name)
-				}
-				keyArr = append(keyArr, vv)
-			}
-			if len(keyArr) != 2 && len(keyArr) != 3 {
-				return fmt.Errorf("descriptor %+v arg3 array length must equal 2 or 3", name)
-			}
-			item := &Descriptor{
-				Name:     name,
-				filePath: filePath,
-				keyArr:   keyArr,
-			}
-			f.descriptorDict[name] = item
-		}
-	}
-	return nil
-}
-
-func (r *ExcelData) read(name string, descriptor *Descriptor, filePath string) error {
+func (r *excel_data) read(name string, descriptor *Descriptor, filePath string) error {
 	f, err := excelize.OpenFile(filePath)
 	if err != nil {
 		log.Info(err)
@@ -365,15 +314,20 @@ func (r *ExcelData) read(name string, descriptor *Descriptor, filePath string) e
 	return nil
 }
 
-func genConst1(constState *ConstState) error {
-	// 分析const.yaml文件
-	if err := constState.constFile.read(proj.Config.ConstDocFilePath); err != nil {
+func parse(constState *const_state) error {
+	var p Parser
+	if true {
+		p = &golang_parser{}
+	} else {
+		p = &yaml_parser{}
+	}
+	if err := p.parse(constState); err != nil {
 		return err
 	}
 	// 读取excel文件
 	for name, v := range constState.constFile.descriptorDict {
 		filePath := path.Join(proj.Config.ExcelDir, v.filePath)
-		resource := &ExcelData{
+		resource := &excel_data{
 			Descriptor: v,
 			FieldDict:  make(map[string]*Field, 0),
 			FieldArr:   make([]*Field, 0),
@@ -387,7 +341,7 @@ func genConst1(constState *ConstState) error {
 	return nil
 }
 
-func genConst2(constState *ConstState) error {
+func gen(constState *const_state) error {
 	log.Info("生成go文件")
 	// 生成cost文件夹
 	dir := proj.Config.SrcGenConstDir
@@ -414,16 +368,16 @@ func genConst2(constState *ConstState) error {
 func Gen() error {
 	log.Info("===============gen const start===============")
 	// 初始化
-	constState := &ConstState{
-		excelDataDict: make(map[string]*ExcelData),
-		constFile: ConstFile{
+	constState := &const_state{
+		excelDataDict: make(map[string]*excel_data),
+		constFile: const_file{
 			descriptorDict: make(map[string]*Descriptor, 0),
 		},
 	}
-	if err := genConst1(constState); err != nil {
+	if err := parse(constState); err != nil {
 		return err
 	}
-	if err := genConst2(constState); err != nil {
+	if err := gen(constState); err != nil {
 		return err
 	}
 	log.Info("===============gen const finished===============")
