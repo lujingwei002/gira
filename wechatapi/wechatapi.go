@@ -267,7 +267,7 @@ func StsGetCredential(appId string, secretId string, secretKey string, bucket st
 	)
 	// 策略概述 https://cloud.tencent.com/document/product/436/18023
 	opt := &sts.CredentialOptions{
-		DurationSeconds: int64(24 * time.Hour.Seconds()),
+		DurationSeconds: int64(1 * time.Hour.Seconds()),
 		Region:          region,
 		Policy: &sts.CredentialPolicy{
 			Statement: []sts.CredentialPolicyStatement{
