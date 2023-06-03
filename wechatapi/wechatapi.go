@@ -67,6 +67,65 @@ func JsCode2Session(appId string, secret string, jsCode string, grantType string
 	return resp, nil
 }
 
+type GetPhoneNumberRequest struct {
+	Code string `json:"code"`
+}
+
+type GetPhoneNumberResponse struct {
+	ErrCode   int32  `json:"errcode"`
+	ErrMsg    string `json:"errmsg"`
+	PhoneInfo struct {
+		PhoneNumber     string `json:"phoneNumber"`
+		PurePhoneNumber string `json:"purePhoneNumber"`
+		CountryCode     string `json:"countryCode"`
+	} `json:"phone_info"`
+}
+
+// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-info/phone-number/getPhoneNumber.html
+// 获取手机号码
+func GetPhoneNumber(accessToken string, code string) (*GetPhoneNumberResponse, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	host := "https://api.weixin.qq.com"
+	params := url.Values{}
+	params.Set("access_token", accessToken)
+	url := fmt.Sprintf("%s/wxa/business/getuserphonenumber?%s", host, params.Encode())
+	req := &GetPhoneNumberRequest{
+		Code: code,
+	}
+	var httpReq *http.Request
+	var result *http.Response
+	var data []byte
+	var err error
+	data, err = json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(string(data))
+	httpReq, err = http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{Transport: tr}
+	// Send the HTTP request
+	result, err = client.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer result.Body.Close()
+	var body []byte
+	body, err = io.ReadAll(result.Body)
+	if err != nil {
+		return nil, err
+	}
+	resp := &GetPhoneNumberResponse{}
+	if err = json.Unmarshal(body, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 type GetAccessTokenResponse struct {
 	AccessToken string `json:"access_token"`
 	ExpiresIn   int64  `json:"expires_in"`
@@ -105,7 +164,6 @@ func GetAccessToken(appId string, secret string, grantType string) (*GetAccessTo
 	if err = json.Unmarshal(body, resp); err != nil {
 		return nil, err
 	}
-	log.Println("f", resp)
 	return resp, nil
 }
 
