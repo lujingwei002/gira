@@ -2,6 +2,7 @@ package gen
 
 import (
 	"go/ast"
+	"log"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -23,6 +24,7 @@ func ExtraAnnotate(comments []*ast.Comment) (map[string]*Annotate, error) {
 	}
 	str := strings.Join(lines, "\n")
 	if err := yaml.Unmarshal([]byte(str), values); err != nil {
+		log.Printf("\n%s\n", str)
 		return nil, err
 	}
 	annotates := make(map[string]*Annotate)

@@ -199,7 +199,7 @@ func camelString(s string) string {
 
 func genConstFile(constState *const_state, descriptor *Descriptor, data *excel_data) error {
 
-	log.Info("gen const", descriptor.Name)
+	log.Info("gen const ", descriptor.Name)
 	dir := path.Join(proj.Config.SrcGenConstDir, descriptor.Name)
 	if err := os.RemoveAll(dir); err != nil {
 		return err

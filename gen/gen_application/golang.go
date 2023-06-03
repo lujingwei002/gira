@@ -26,12 +26,16 @@ func (p *golang_parser) parseApplicationStruct(state *gen_state, s *ast.StructTy
 func (p *golang_parser) parse(state *gen_state) (err error) {
 	applicationFilePath := path.Join(proj.Config.DocDir, "application.go")
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, applicationFilePath, nil, parser.ParseComments)
+	var f *ast.File
+	f, err = parser.ParseFile(fset, applicationFilePath, nil, parser.ParseComments)
 	if err != nil {
 		fmt.Println(err)
-		return err
+		return
 	}
 	ast.Inspect(f, func(n ast.Node) bool {
+		if err != nil {
+			return false
+		}
 		switch x := n.(type) {
 		case *ast.TypeSpec:
 			if x.Name.Name == "Application" {
@@ -43,5 +47,5 @@ func (p *golang_parser) parse(state *gen_state) (err error) {
 		return true
 	})
 	// ast.Print(fset, f)
-	return nil
+	return
 }

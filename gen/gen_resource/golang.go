@@ -6,11 +6,9 @@ import (
 	"go/parser"
 	"go/token"
 	"path"
-	"regexp"
-	"sort"
-	"strconv"
 	"strings"
 
+	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/gen"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/proj"
@@ -19,40 +17,29 @@ import (
 type golang_parser struct {
 }
 
-func (p *golang_parser) parseStruct(resource *Resource, attrs map[string]interface{}) error {
-	spaceRegexp := regexp.MustCompile("[^\\s]+")
-	equalRegexp := regexp.MustCompile("[^=]+")
-	fileArr := make([]*Field, 0)
+func (p *golang_parser) parseStruct(resource *Resource, s *ast.StructType) error {
 
-	for valueStr, v := range attrs {
+	fileArr := make([]*Field, 0)
+	for _, f := range s.Fields.List {
 		var tag int
-		var err error
 		var fieldName string
 		var typeStr string
-		var tagStr string
-		var optionArr []interface{}
-		switch v.(type) {
-		case nil:
-			break
-		case []interface{}:
-			optionArr = v.([]interface{})
-		default:
-			return fmt.Errorf("%+v invalid11", v)
-		}
-		args := equalRegexp.FindAllString(valueStr, -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
-		}
-		tagStr = strings.TrimSpace(args[1])
-		if tag, err = strconv.Atoi(tagStr); err != nil {
+		if tags, err := gen.ExplodeTag(f.Tag); err != nil {
+			log.Println("eeee1", err)
 			return err
+		} else {
+			if v, err := tags.Int("tag"); err != nil {
+				log.Println("eeee", err)
+				return err
+			} else {
+				tag = v
+			}
 		}
-		args = spaceRegexp.FindAllString(args[0], -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
+		log.Println(f.Names)
+		fieldName = f.Names[0].Name
+		if v, ok := f.Type.(*ast.Ident); ok {
+			typeStr = v.Name
 		}
-		fieldName = args[0]
-		typeStr = args[1]
 		field := &Field{
 			FieldName:       fieldName,
 			StructFieldName: camelString(fieldName),
@@ -65,16 +52,21 @@ func (p *golang_parser) parseStruct(resource *Resource, attrs map[string]interfa
 			field.Type = field_type_struct
 			field.GoTypeName = typeStr
 		}
-		for _, option := range optionArr {
-			log.Println(option)
-			optionDict := option.(map[string]interface{})
-			if defaultVal, ok := optionDict["default"]; ok {
-				field.Default = defaultVal
-			}
-			if comment, ok := optionDict["comment"]; ok {
-				field.Comment = comment.(string)
-			}
+		if comments, err := gen.ExtraComment(f.Doc); err != nil {
+			return err
+		} else {
+			field.Comment = strings.Join(comments, "\n")
 		}
+		// for _, option := range optionArr {
+		// 	log.Println(option)
+		// 	optionDict := option.(map[string]interface{})
+		// 	if defaultVal, ok := optionDict["default"]; ok {
+		// 		field.Default = defaultVal
+		// 	}
+		// 	if comment, ok := optionDict["comment"]; ok {
+		// 		field.Comment = comment.(string)
+		// 	}
+		// }
 		if last, ok := resource.FieldDict[fieldName]; ok {
 			resource.FieldDict[fieldName] = field
 			// 替换之前的
@@ -90,7 +82,7 @@ func (p *golang_parser) parseStruct(resource *Resource, attrs map[string]interfa
 
 		}
 	}
-	sort.Sort(SortFieldByName(fileArr))
+	// sort.Sort(SortFieldByName(fileArr))
 	resource.FieldArr = append(resource.FieldArr, fileArr...)
 	return nil
 }
@@ -99,7 +91,6 @@ func (p *golang_parser) parseBundleStruct(state *gen_state, s *ast.StructType) e
 	for _, v := range s.Fields.List {
 		name := v.Names[0].Name
 		bundleType := v.Type.(*ast.StructType)
-
 		if annotates, err := gen.ExtraAnnotate(v.Doc.List); err != nil {
 			return err
 		} else {
@@ -111,6 +102,7 @@ func (p *golang_parser) parseBundleStruct(state *gen_state, s *ast.StructType) e
 			for _, v2 := range bundleType.Fields.List {
 				resources = append(resources, v2.Names[0].Name)
 			}
+			log.Println("parse bundle ", name, resources)
 			bundle := &Bundle{
 				BundleType:          format,
 				BundleName:          name,
@@ -134,6 +126,7 @@ func (p *golang_parser) parseLoaderStruct(state *gen_state, s *ast.StructType) e
 		for _, v2 := range loaderType.Fields.List {
 			bundles = append(bundles, v2.Names[0].Name)
 		}
+		log.Println("parse loader ", name, bundles)
 		loader := &Loader{
 			LoaderName:        name,
 			LoaderStructName:  name,
@@ -148,12 +141,18 @@ func (p *golang_parser) parseLoaderStruct(state *gen_state, s *ast.StructType) e
 
 func (p *golang_parser) parseResourceStruct(state *gen_state, s *ast.StructType) error {
 	for _, field := range s.Fields.List {
+		name := field.Names[0].Name
+		log.Println("parse resource ", name)
+
 		if annotates, err := gen.ExtraAnnotate(field.Doc.List); err != nil {
+
 			return err
 		} else {
-			name := field.Names[0].Name
 			var filePath string
 			var keyArr []string
+			if v, ok := annotates["excel"]; ok {
+				filePath = v.Values[0]
+			}
 			// 类型
 			var typ resource_type = resource_type_array
 			if v, ok := annotates["map"]; ok {
@@ -164,6 +163,7 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, s *ast.StructType)
 				typ = resource_type_object
 				keyArr = v.Values
 			}
+
 			yamlFileName := fmt.Sprintf("%s.yaml", name)
 			camelName := camelString(name)
 			r := &Resource{
@@ -196,13 +196,12 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, s *ast.StructType)
 				return err
 			}
 			// 解析struct
-			// if len(v.Struct) > 0 {
-			// 	if err := p.parseStruct(r, v.Struct); err != nil {
-			// 		return err
-			// 	}
-			// }
+			if v, ok := field.Type.(*ast.StructType); ok {
+				if err := p.parseStruct(r, v); err != nil {
+					return err
+				}
+			}
 			// 处理不同的转换类型， 转map, 转object
-			//GoMapTypeName
 			r.GoMapTypeName = ""
 			for _, v := range r.MapKeyArr {
 				if field, ok := r.FieldDict[v]; ok {
@@ -251,21 +250,28 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, s *ast.StructType)
 			}
 			r.ObjectKeyGoTypeNameArr = objectKeyGoTypeNameArr
 			state.ResourceDict[name] = r
+
 			state.ResourceArr = append(state.ResourceArr, r)
 		}
 	}
 	return nil
 }
 
-func (p *golang_parser) parse(state *gen_state) error {
+func (p *golang_parser) parse(state *gen_state) (err error) {
 	filePath := path.Join(proj.Config.DocDir, "resource.go")
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	var f *ast.File
+	f, err = parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
 		fmt.Println(err)
-		return err
+		return
 	}
+	ast.Print(fset, f)
+	return gira.ErrTodo
 	ast.Inspect(f, func(n ast.Node) bool {
+		if err != nil {
+			return false
+		}
 		switch x := n.(type) {
 		case *ast.TypeSpec:
 			if x.Name.Name == "Resource" {
@@ -284,6 +290,20 @@ func (p *golang_parser) parse(state *gen_state) error {
 		}
 		return true
 	})
-	ast.Print(fset, f)
-	return nil
+	for _, v := range state.BundleArr {
+		for _, name := range v.ResourceNameArr {
+			if r, ok := state.ResourceDict[name]; ok {
+				v.ResourceArr = append(v.ResourceArr, r)
+			}
+		}
+	}
+	for _, v := range state.LoaderArr {
+		for _, name := range v.bundleNameArr {
+			if r, ok := state.BundleDict[name]; ok {
+				v.BundleArr = append(v.BundleArr, r)
+
+			}
+		}
+	}
+	return
 }

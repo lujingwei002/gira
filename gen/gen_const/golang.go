@@ -1,7 +1,6 @@
 package gen_const
 
 import (
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -44,15 +43,18 @@ func (p *golang_parser) parseConstStruct(state *const_state, s *ast.StructType) 
 	return nil
 }
 
-func (p *golang_parser) parse(state *const_state) error {
+func (p *golang_parser) parse(state *const_state) (err error) {
 	filePath := path.Join(proj.Config.DocDir, "const.go")
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	var f *ast.File
+	f, err = parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return
 	}
 	ast.Inspect(f, func(n ast.Node) bool {
+		if err != nil {
+			return false
+		}
 		switch x := n.(type) {
 		case *ast.TypeSpec:
 			if x.Name.Name == "Const" {
@@ -64,5 +66,5 @@ func (p *golang_parser) parse(state *const_state) error {
 		return true
 	})
 	// ast.Print(fset, f)
-	return nil
+	return
 }

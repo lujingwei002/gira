@@ -932,7 +932,7 @@ func Gen(config Config) error {
 	//}
 	// proj.Update("gen_resource_hash", srcHash)
 	var p Parser
-	if false {
+	if true {
 		p = &golang_parser{}
 	} else {
 		p = &yaml_parser{}
