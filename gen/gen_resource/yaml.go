@@ -14,6 +14,30 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type sort_field_by_name []*Field
+
+func (self sort_field_by_name) Len() int           { return len(self) }
+func (self sort_field_by_name) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self sort_field_by_name) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
+
+type sort_resource_by_name []*Resource
+
+func (self sort_resource_by_name) Len() int           { return len(self) }
+func (self sort_resource_by_name) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self sort_resource_by_name) Less(i, j int) bool { return self[i].StructName < self[j].StructName }
+
+type sort_bundle_by_name []*Bundle
+
+func (self sort_bundle_by_name) Len() int           { return len(self) }
+func (self sort_bundle_by_name) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self sort_bundle_by_name) Less(i, j int) bool { return self[i].BundleName < self[j].BundleName }
+
+type sort_loader_by_name []*Loader
+
+func (self sort_loader_by_name) Len() int           { return len(self) }
+func (self sort_loader_by_name) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
+func (self sort_loader_by_name) Less(i, j int) bool { return self[i].LoaderName < self[j].LoaderName }
+
 type yaml_parser struct {
 }
 
@@ -66,9 +90,6 @@ func (p *yaml_parser) parseStruct(resource *Resource, attrs map[string]interface
 		for _, option := range optionArr {
 			log.Println(option)
 			optionDict := option.(map[string]interface{})
-			if defaultVal, ok := optionDict["default"]; ok {
-				field.Default = defaultVal
-			}
 			if comment, ok := optionDict["comment"]; ok {
 				field.Comment = comment.(string)
 			}
@@ -88,7 +109,7 @@ func (p *yaml_parser) parseStruct(resource *Resource, attrs map[string]interface
 
 		}
 	}
-	sort.Sort(SortFieldByName(fileArr))
+	sort.Sort(sort_field_by_name(fileArr))
 	resource.FieldArr = append(resource.FieldArr, fileArr...)
 	return nil
 }
@@ -280,9 +301,9 @@ func (p *yaml_parser) parse(state *gen_state) error {
 			}
 		}
 		// 排序
-		sort.Sort(SortResourceByName(state.ResourceArr))
-		sort.Sort(SortBundleByName(state.BundleArr))
-		sort.Sort(SortLoaderByName(state.LoaderArr))
+		sort.Sort(sort_resource_by_name(state.ResourceArr))
+		sort.Sort(sort_bundle_by_name(state.BundleArr))
+		sort.Sort(sort_loader_by_name(state.LoaderArr))
 	}
 	return nil
 }

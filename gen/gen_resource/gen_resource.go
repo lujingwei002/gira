@@ -564,13 +564,7 @@ type Field struct {
 	Type            field_type // 字段类型
 	GoTypeName      string
 	Comment         string
-	Default         interface{}
 }
-type SortFieldByName []*Field
-
-func (self SortFieldByName) Len() int           { return len(self) }
-func (self SortFieldByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortFieldByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 type Resource struct {
 	ResourceName   string
@@ -602,12 +596,6 @@ type Resource struct {
 	ValueArr  [][]interface{}   // 字段值
 }
 
-type SortResourceByName []*Resource
-
-func (self SortResourceByName) Len() int           { return len(self) }
-func (self SortResourceByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortResourceByName) Less(i, j int) bool { return self[i].StructName < self[j].StructName }
-
 func (self *Resource) IsDeriveMap() bool {
 	return self.Type == resource_type_map
 }
@@ -625,12 +613,6 @@ type Bundle struct {
 	ResourceArr         []*Resource
 }
 
-type SortBundleByName []*Bundle
-
-func (self SortBundleByName) Len() int           { return len(self) }
-func (self SortBundleByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortBundleByName) Less(i, j int) bool { return self[i].BundleName < self[j].BundleName }
-
 type Loader struct {
 	LoaderStructName  string
 	LoaderName        string
@@ -638,12 +620,6 @@ type Loader struct {
 	bundleNameArr     []string
 	BundleArr         []*Bundle
 }
-
-type SortLoaderByName []*Loader
-
-func (self SortLoaderByName) Len() int           { return len(self) }
-func (self SortLoaderByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortLoaderByName) Less(i, j int) bool { return self[i].LoaderName < self[j].LoaderName }
 
 // 生成协议的状态
 type gen_state struct {
@@ -806,7 +782,6 @@ func (r *Resource) readExcel(filePath string) error {
 		r.ValueArr = append(r.ValueArr, valueArr)
 	}
 	// sort.Sort(SortFieldByName(r.FieldArr))
-
 	return nil
 }
 

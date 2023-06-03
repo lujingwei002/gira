@@ -5,10 +5,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"path"
 	"strings"
 
-	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/gen"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/proj"
@@ -17,33 +17,18 @@ import (
 type golang_parser struct {
 }
 
-func (p *golang_parser) parseStruct(resource *Resource, s *ast.StructType) error {
-
+func (p *golang_parser) parseStruct(resource *Resource, fileContent []byte, s *ast.StructType) error {
 	fileArr := make([]*Field, 0)
 	for _, f := range s.Fields.List {
-		var tag int
 		var fieldName string
 		var typeStr string
-		if tags, err := gen.ExplodeTag(f.Tag); err != nil {
-			log.Println("eeee1", err)
-			return err
-		} else {
-			if v, err := tags.Int("tag"); err != nil {
-				log.Println("eeee", err)
-				return err
-			} else {
-				tag = v
-			}
-		}
-		log.Println(f.Names)
+
 		fieldName = f.Names[0].Name
-		if v, ok := f.Type.(*ast.Ident); ok {
-			typeStr = v.Name
-		}
+		fmt.Println(string(fileContent[f.Type.Pos()-1 : f.Type.End()-1]))
+		typeStr = string(fileContent[f.Type.Pos()-1 : f.Type.End()-1])
 		field := &Field{
 			FieldName:       fieldName,
 			StructFieldName: camelString(fieldName),
-			Tag:             tag,
 		}
 		if typeValue, ok := type_name_dict[typeStr]; ok {
 			field.Type = typeValue
@@ -55,18 +40,8 @@ func (p *golang_parser) parseStruct(resource *Resource, s *ast.StructType) error
 		if comments, err := gen.ExtraComment(f.Doc); err != nil {
 			return err
 		} else {
-			field.Comment = strings.Join(comments, "\n")
+			field.Comment = strings.Join(comments, ",")
 		}
-		// for _, option := range optionArr {
-		// 	log.Println(option)
-		// 	optionDict := option.(map[string]interface{})
-		// 	if defaultVal, ok := optionDict["default"]; ok {
-		// 		field.Default = defaultVal
-		// 	}
-		// 	if comment, ok := optionDict["comment"]; ok {
-		// 		field.Comment = comment.(string)
-		// 	}
-		// }
 		if last, ok := resource.FieldDict[fieldName]; ok {
 			resource.FieldDict[fieldName] = field
 			// 替换之前的
@@ -82,7 +57,6 @@ func (p *golang_parser) parseStruct(resource *Resource, s *ast.StructType) error
 
 		}
 	}
-	// sort.Sort(SortFieldByName(fileArr))
 	resource.FieldArr = append(resource.FieldArr, fileArr...)
 	return nil
 }
@@ -139,13 +113,11 @@ func (p *golang_parser) parseLoaderStruct(state *gen_state, s *ast.StructType) e
 	return nil
 }
 
-func (p *golang_parser) parseResourceStruct(state *gen_state, s *ast.StructType) error {
+func (p *golang_parser) parseResourceStruct(state *gen_state, fileContent []byte, s *ast.StructType) error {
 	for _, field := range s.Fields.List {
 		name := field.Names[0].Name
 		log.Println("parse resource ", name)
-
 		if annotates, err := gen.ExtraAnnotate(field.Doc.List); err != nil {
-
 			return err
 		} else {
 			var filePath string
@@ -197,7 +169,7 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, s *ast.StructType)
 			}
 			// 解析struct
 			if v, ok := field.Type.(*ast.StructType); ok {
-				if err := p.parseStruct(r, v); err != nil {
+				if err := p.parseStruct(r, fileContent, v); err != nil {
 					return err
 				}
 			}
@@ -261,13 +233,17 @@ func (p *golang_parser) parse(state *gen_state) (err error) {
 	filePath := path.Join(proj.Config.DocDir, "resource.go")
 	fset := token.NewFileSet()
 	var f *ast.File
-	f, err = parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	var fileContent []byte
+	fileContent, err = ioutil.ReadFile(filePath)
 	if err != nil {
-		fmt.Println(err)
+		return err
+	}
+	f, err = parser.ParseFile(fset, "", fileContent, parser.ParseComments)
+	if err != nil {
 		return
 	}
-	ast.Print(fset, f)
-	return gira.ErrTodo
+	// ast.Print(fset, f)
+	// return gira.ErrTodo
 	ast.Inspect(f, func(n ast.Node) bool {
 		if err != nil {
 			return false
@@ -275,7 +251,7 @@ func (p *golang_parser) parse(state *gen_state) (err error) {
 		switch x := n.(type) {
 		case *ast.TypeSpec:
 			if x.Name.Name == "Resource" {
-				if err = p.parseResourceStruct(state, x.Type.(*ast.StructType)); err != nil {
+				if err = p.parseResourceStruct(state, fileContent, x.Type.(*ast.StructType)); err != nil {
 					return false
 				}
 			} else if x.Name.Name == "Bundle" {
