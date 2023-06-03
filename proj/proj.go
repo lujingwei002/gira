@@ -70,6 +70,7 @@ type ProjectConfig struct {
 	GenModelDir          string // gen/model
 	GenProtocolDir       string // gen/protocol
 	SrcDir               string // src
+	SrcDocDir            string // src/doc
 	SrcGenDir            string // src/gen/
 	SrcGenApplicationDir string // src/gen/application
 	SrcGenModelDir       string // src/gen/model/
@@ -154,6 +155,7 @@ func (p *ProjectConfig) load() error {
 	p.GenModelDir = path.Join(p.ProjectDir, "gen", "model")
 	p.SrcDir = path.Join(p.ProjectDir, "src")
 	p.SrcGenDir = path.Join(p.ProjectDir, "src", "gen")
+	p.SrcDocDir = path.Join(p.ProjectDir, "src", "doc")
 	p.SrcGenConstDir = path.Join(p.SrcGenDir, "const")
 	p.SrcGenModelDir = path.Join(p.SrcGenDir, "model")
 	p.SrcGenApplicationDir = path.Join(p.SrcGenDir, "application")

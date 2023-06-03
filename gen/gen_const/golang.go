@@ -44,7 +44,7 @@ func (p *golang_parser) parseConstStruct(state *const_state, s *ast.StructType) 
 }
 
 func (p *golang_parser) parse(state *const_state) (err error) {
-	filePath := path.Join(proj.Config.DocDir, "const.go")
+	filePath := path.Join(proj.Config.SrcDocDir, "const.go")
 	fset := token.NewFileSet()
 	var f *ast.File
 	f, err = parser.ParseFile(fset, filePath, nil, parser.ParseComments)
