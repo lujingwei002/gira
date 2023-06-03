@@ -6,7 +6,6 @@ import (
 	"go/parser"
 	"go/token"
 	"path"
-	"regexp"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/gen"
@@ -14,19 +13,6 @@ import (
 )
 
 type golang_parser struct {
-}
-
-func (p *golang_parser) extraTag(str string) map[string]string {
-	re := regexp.MustCompile(`(\w+):"([^"]*)"`)
-	matches := re.FindAllStringSubmatch(str, -1)
-
-	values := make(map[string]string)
-	for _, match := range matches {
-		if len(match) >= 3 {
-			values[match[1]] = match[2]
-		}
-	}
-	return values
 }
 
 func (p *golang_parser) parseConstStruct(state *const_state, s *ast.StructType) error {
