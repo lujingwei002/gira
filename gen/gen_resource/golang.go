@@ -24,7 +24,6 @@ func (p *golang_parser) parseStruct(resource *Resource, fileContent []byte, s *a
 		var typeStr string
 
 		fieldName = f.Names[0].Name
-		fmt.Println(string(fileContent[f.Type.Pos()-1 : f.Type.End()-1]))
 		typeStr = string(fileContent[f.Type.Pos()-1 : f.Type.End()-1])
 		field := &Field{
 			FieldName:       fieldName,

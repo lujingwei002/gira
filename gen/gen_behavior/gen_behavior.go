@@ -1,22 +1,13 @@
 package gen_behavior
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
-	"path/filepath"
-	"regexp"
-	"sort"
-	"strconv"
 	"strings"
 	"text/template"
 
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira/proj"
-
-	yaml "gopkg.in/yaml.v3"
 )
 
 var cli_code = `
@@ -511,11 +502,6 @@ type Field struct {
 	Comment    string
 	Coll       *Collection
 }
-type SortFieldByName []*Field
-
-func (self SortFieldByName) Len() int           { return len(self) }
-func (self SortFieldByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortFieldByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 func (f *Field) IsComparable() bool {
 	switch f.GoTypeName {
@@ -574,11 +560,6 @@ type Index struct {
 	Tag      int
 	FullName string
 }
-type SortIndexByName []*Index
-
-func (self SortIndexByName) Len() int           { return len(self) }
-func (self SortIndexByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortIndexByName) Less(i, j int) bool { return self[i].Tag < self[j].Tag }
 
 type Collection struct {
 	CollName              string // 表名
@@ -594,11 +575,6 @@ type Collection struct {
 	HasCreateTimeField    bool
 	MongoDriverStructName string
 }
-type SortCollectionByName []*Collection
-
-func (self SortCollectionByName) Len() int           { return len(self) }
-func (self SortCollectionByName) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self SortCollectionByName) Less(i, j int) bool { return self[i].CollName < self[j].CollName }
 
 type Database struct {
 	Module                string
@@ -631,224 +607,8 @@ func (coll *Collection) IsDeriveUserArr() bool {
 	return coll.Derive == "userarr"
 }
 
-func (coll *Collection) parseIndex(attrs map[string]interface{}) error {
-	coll.IndexDict = make(map[string]*Index)
-	coll.IndexArr = make([]*Index, 0)
-	equalRegexp := regexp.MustCompile("[^=]+")
-
-	for valueStr, v := range attrs {
-		var indexName string
-		var tagStr string
-		var tag int
-		var err error
-		var optionArr []interface{}
-		switch v.(type) {
-		case nil:
-			break
-		case []interface{}:
-			optionArr = v.([]interface{})
-		default:
-			return fmt.Errorf("%+v invalid11", v)
-		}
-		args := equalRegexp.FindAllString(valueStr, -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
-		}
-		tagStr = strings.TrimSpace(args[1])
-		if tag, err = strconv.Atoi(tagStr); err != nil {
-			return err
-		}
-		indexName = args[0]
-		index := &Index{
-			Name: indexName,
-			Tag:  tag,
-		}
-		for _, option := range optionArr {
-			optionDict := option.(map[string]interface{})
-			if keyArr, ok := optionDict["key"]; ok {
-				var fullName string
-				index.KeyDict = make(map[string]*Key)
-				if keyArr2, ok := keyArr.([]interface{}); ok {
-					for _, keyObject := range keyArr2 {
-						if keyObject2, ok := keyObject.(map[string]interface{}); ok {
-							for k, v := range keyObject2 {
-								indexKey := &Key{Key: k, Value: v}
-								index.KeyDict[k] = indexKey
-								index.KeyArr = append(index.KeyArr, indexKey)
-								if len(index.KeyDict) == 1 {
-									fullName = fmt.Sprintf("%s_%v", k, v)
-								} else {
-									fullName = fmt.Sprintf("%s_%s_%v", fullName, k, v)
-								}
-							}
-						}
-					}
-				}
-				index.FullName = fullName
-			}
-		}
-		// log.Println(index.KeyDict)
-		// log.Println(index.FullName)
-		coll.IndexDict[indexName] = index
-		coll.IndexArr = append(coll.IndexArr, index)
-	}
-	sort.Sort(SortIndexByName(coll.IndexArr))
-	return nil
-}
-
-func (coll *Collection) parseStruct(attrs map[string]interface{}) error {
-	coll.FieldDict = make(map[string]*Field)
-	coll.FieldArr = make([]*Field, 0)
-	spaceRegexp := regexp.MustCompile("[^\\s]+")
-	equalRegexp := regexp.MustCompile("[^=]+")
-
-	for valueStr, v := range attrs {
-		var tag int
-		var err error
-		var fieldName string
-		var typeStr string
-		var tagStr string
-		var optionArr []interface{}
-		switch v.(type) {
-		case nil:
-			break
-		case []interface{}:
-			optionArr = v.([]interface{})
-		default:
-			return fmt.Errorf("%+v invalid11", v)
-		}
-		args := equalRegexp.FindAllString(valueStr, -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
-		}
-		tagStr = strings.TrimSpace(args[1])
-		if tag, err = strconv.Atoi(tagStr); err != nil {
-			return err
-		}
-		args = spaceRegexp.FindAllString(args[0], -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
-		}
-		typeStr = args[1]
-		fieldName = args[0]
-		field := &Field{
-			Coll:      coll,
-			Name:      fieldName,
-			CamelName: camelString(fieldName),
-			Tag:       tag,
-		}
-		if fieldName == "id" {
-			field.Name = "_id"
-			field.CamelName = "Id"
-		} else {
-			field.Name = fieldName
-			field.CamelName = camelString(fieldName)
-		}
-		field.TypeName = typeStr
-		if typeValue, ok := type_name_dict[typeStr]; ok {
-			field.Type = typeValue
-			field.GoTypeName = go_type_name_dict[field.Type]
-		} else {
-			field.Type = field_type_struct
-			field.GoTypeName = typeStr
-		}
-		// fmt.Println(optionArr)
-		for _, option := range optionArr {
-			optionDict := option.(map[string]interface{})
-			if defaultVal, ok := optionDict["default"]; ok {
-				field.Default = defaultVal
-			}
-			if comment, ok := optionDict["comment"]; ok {
-				field.Comment = comment.(string)
-			}
-		}
-		coll.FieldDict[fieldName] = field
-		coll.FieldArr = append(coll.FieldArr, field)
-	}
-	for _, f := range coll.FieldArr {
-		if f.Name == "log_time" && f.Type == field_type_int64 {
-			f.Coll.HasLogTimeField = true
-		}
-		if f.Name == "create_time" && f.Type == field_type_int64 {
-			f.Coll.HasCreateTimeField = true
-		}
-	}
-	sort.Sort(SortFieldByName(coll.FieldArr))
-	return nil
-}
-
-func (coll *Collection) Unmarshal(genState *gen_state, v interface{}) error {
-	var derive string
-	row := v.(map[string]interface{})
-	if _, ok := row["struct"]; !ok {
-		return fmt.Errorf("collection %s struct part not found", coll.CollName)
-	}
-	structPart := row["struct"]
-	if _, ok := structPart.(map[string]interface{}); !ok {
-		return fmt.Errorf("collection %s struct part not map", coll.CollName)
-	}
-	coll.Derive = derive
-	if err := coll.parseStruct(row["struct"].(map[string]interface{})); err != nil {
-		return err
-	}
-	// 解析index
-	if v, ok := row["index"]; !ok {
-	} else if v2, ok := v.(map[string]interface{}); !ok {
-	} else if err := coll.parseIndex(v2); err != nil {
-		return err
-	}
-	if v, ok := row["comment"]; ok {
-		coll.Comment = v.(string)
-	}
-	return nil
-}
-
-func parse(state *gen_state, filePathArr []string) error {
-	for _, fileName := range filePathArr {
-		filePath := path.Join(proj.Config.DocBehaviorDir, fileName)
-		log.Info("处理文件", filePath)
-		data, err := ioutil.ReadFile(filePath)
-		if err != nil {
-			return err
-		}
-		dbName := strings.Replace(fileName, ".yaml", "", 1)
-		database := &Database{
-			Module:                proj.Config.Module,
-			CollectionArr:         make([]*Collection, 0),
-			GenModelDir:           path.Join(proj.Config.SrcGenBehaviorDir, dbName),
-			GenModelFilePath:      path.Join(proj.Config.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-			GenBinFilePath:        path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-			GenBinDir:             path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin"),
-			DbName:                dbName,
-			DbStructName:          camelString(dbName),
-			MongoDriverStructName: fmt.Sprintf("%sMongoDriver", camelString(dbName)),
-			DriverInterfaceName:   fmt.Sprintf("%sDriver", camelString(dbName)),
-		}
-		result := make(map[string]interface{})
-		if err := yaml.Unmarshal(data, result); err != nil {
-			return err
-		}
-		for k, v := range result {
-			if k == "$driver" {
-				database.Driver = v.(string)
-			} else {
-				collName := k
-				coll := &Collection{
-					MongoDriverStructName: database.MongoDriverStructName,
-					CollName:              collName,
-					StructName:            camelString(collName),
-					MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
-				}
-				if err := coll.Unmarshal(state, v); err != nil {
-					return err
-				}
-				database.CollectionArr = append(database.CollectionArr, coll)
-			}
-		}
-		sort.Sort(SortCollectionByName(database.CollectionArr))
-		state.databaseArr = append(state.databaseArr, database)
-	}
-	return nil
+type Parser interface {
+	parse(state *gen_state) error
 }
 
 func genModel(state *gen_state) error {
@@ -926,27 +686,16 @@ func Gen() error {
 			return err
 		}
 	}
-	fileNameArr := make([]string, 0)
-	if err := filepath.WalkDir(proj.Config.DocBehaviorDir, func(path string, d os.DirEntry, err error) error {
-		if d == nil {
-			return nil
-		}
-		if d.IsDir() {
-			return nil
-		}
-		if filepath.Ext(d.Name()) == ".yaml" {
-			fileNameArr = append(fileNameArr, d.Name())
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	sort.Strings(fileNameArr)
 	state := &gen_state{
 		databaseArr: make([]*Database, 0),
 	}
-	if err := parse(state, fileNameArr); err != nil {
-		log.Info(err)
+	var p Parser
+	if true {
+		p = &golang_parser{}
+	} else {
+		p = &yaml_parser{}
+	}
+	if err := p.parse(state); err != nil {
 		return err
 	}
 	if err := genModel(state); err != nil {

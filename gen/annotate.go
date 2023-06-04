@@ -13,6 +13,13 @@ type Annotate struct {
 	Values []string
 }
 
+func (a *Annotate) String() string {
+	if a.Values == nil {
+		return ""
+	} else {
+		return strings.Join(a.Values, ",")
+	}
+}
 func ExtraAnnotate(comments []*ast.Comment) (map[string]*Annotate, error) {
 	values := make(map[string]interface{})
 	lines := make([]string, 0)
