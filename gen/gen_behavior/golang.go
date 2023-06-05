@@ -1,7 +1,6 @@
 package gen_behavior
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -10,15 +9,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/gen"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/proj"
-	"gopkg.in/yaml.v3"
 )
 
 type golang_parser struct {
@@ -49,12 +46,12 @@ func (p *golang_parser) parse(state *gen_state) error {
 	return nil
 }
 
+func (p *golang_parser) reportError(fset *token.FileSet, filePath string, pos token.Pos, msg string) error {
+	return fmt.Errorf("%s %v %s", filePath, fset.Position(pos), msg)
+}
+
 func (p *golang_parser) parseFile(state *gen_state, filePath string) (err error) {
 	log.Info("处理文件", filePath)
-	data, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return err
-	}
 	fileName := path.Base(filePath)
 	dbName := strings.Replace(fileName, ".go", "", 1)
 	database := &Database{
@@ -89,140 +86,126 @@ func (p *golang_parser) parseFile(state *gen_state, filePath string) (err error)
 			for _, spec := range x.Specs {
 				switch s := spec.(type) {
 				case *ast.ValueSpec:
-					fmt.Println("aa", s.Names[0].Name)
 					if s.Names[0].Name == "Driver" {
 						// database.Driver = v.(string)
-						if arr, ok := s.Values[0].(*ast.CompositeLit); !ok {
-							err = errors.New("fffaaa1")
+						if values0, ok := s.Values[0].(*ast.CompositeLit); !ok {
+							err = p.reportError(fset, filePath, s.Pos(), "driver必须是string数组")
 							return false
-						} else if len(arr.Elts) <= 0 {
-							err = errors.New("fffaaa2")
-							fmt.Println(s.Pos())
+						} else if typ, ok := values0.Type.(*ast.ArrayType); !ok {
+							err = p.reportError(fset, filePath, values0.Pos(), "driver必须是string数组")
+							return false
+						} else if elt, ok := typ.Elt.(*ast.Ident); !ok {
+							err = p.reportError(fset, filePath, values0.Pos(), "driver必须是string数组")
+							return false
+						} else if elt.Name != "string" {
+							err = p.reportError(fset, filePath, values0.Pos(), "driver必须是string数组")
+							return false
+						} else if len(values0.Elts) <= 0 {
+							err = p.reportError(fset, filePath, values0.Pos(), "至少一个元素")
 							return false
 						} else {
-							if v, ok := arr.Elts[0].(*ast.BasicLit); !ok {
-								err = errors.New("fffaaa3")
+							if v, ok := values0.Elts[0].(*ast.BasicLit); !ok {
+								err = p.reportError(fset, filePath, values0.Pos(), "至少一个元素")
 								return false
 							} else {
 								database.Driver = v.Value
 							}
 						}
 					}
+				case *ast.TypeSpec:
+					var comment string
+					if x.Doc != nil {
+						// if annotates, err := gen.ExtraAnnotate(x.Doc.List); err == nil {
+						// 	log.Println("ccccc", annotates)
+						// }
+						if comments, err := gen.ExtraComment(x.Doc); err == nil {
+							comment = strings.Join(comments, ",")
+						}
+					}
+					if typ, ok := s.Type.(*ast.StructType); ok {
+						var coll *Collection
+						if coll, err = p.parseCollection(state, database, fileContent, s.Name.Name, fset, typ); err != nil {
+							return false
+						} else {
+							coll.Comment = comment
+							database.CollectionArr = append(database.CollectionArr, coll)
+						}
+					}
 				}
 			}
-			// if t, ok := x.Specs[0].(*ast.TypeSpec); ok {
-			// 	log.Println(t.Name)
-			// 	log.Println(x.Doc)
-			// 	if x.Doc != nil {
-			// 		a, err := gen.ExtraAnnotate(x.Doc.List)
-			// 		log.Println(a, err)
-			// 	}
-			// }
 		}
 		return true
 	})
+	// ast.Print(fset, f)
 	if err != nil {
 		return err
 	}
-	log.Println(database.Driver)
-	// ast.Print(fset, f)
-	return gira.ErrTodo
-
-	ast.Print(fset, f)
-	return gira.ErrTodo
-
-	result := make(map[string]interface{})
-	if err := yaml.Unmarshal(data, result); err != nil {
-		return err
-	}
-	for k, v := range result {
-		if k == "$driver" {
-			database.Driver = v.(string)
-		} else {
-			collName := k
-			coll := &Collection{
-				MongoDriverStructName: database.MongoDriverStructName,
-				CollName:              collName,
-				StructName:            camelString(collName),
-				MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
-			}
-			if err := p.collUnmarshal(state, coll, v); err != nil {
-				return err
-			}
-			database.CollectionArr = append(database.CollectionArr, coll)
-		}
-	}
-	sort.Sort(sort_collection_by_name(database.CollectionArr))
+	// for _, coll := range database.CollectionArr {
+	// 	log.Println(coll.CollName)
+	// 	for _, v := range coll.FieldArr {
+	// 		log.Println("==", v.CamelName, v.GoTypeName)
+	// 	}
+	// 	for _, v := range coll.IndexArr {
+	// 		log.Println("==", v.FullName)
+	// 	}
+	// }
 	state.databaseArr = append(state.databaseArr, database)
 	return nil
 }
 
-func (p *golang_parser) collUnmarshal(genState *gen_state, coll *Collection, v interface{}) error {
-	var derive string
-	row := v.(map[string]interface{})
-	if _, ok := row["struct"]; !ok {
-		return fmt.Errorf("collection %s struct part not found", coll.CollName)
+func (p *golang_parser) parseCollection(state *gen_state, database *Database, fileContent []byte, collName string, fset *token.FileSet, s *ast.StructType) (*Collection, error) {
+	coll := &Collection{
+		MongoDriverStructName: database.MongoDriverStructName,
+		CollName:              collName,
+		StructName:            camelString(collName),
+		MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
 	}
-	structPart := row["struct"]
-	if _, ok := structPart.(map[string]interface{}); !ok {
-		return fmt.Errorf("collection %s struct part not map", coll.CollName)
+	for _, f := range s.Fields.List {
+		if f.Names[0].Name == "Model" {
+			if model, ok := f.Type.(*ast.StructType); ok {
+				if err := p.parseStruct(state, coll, fileContent, fset, model); err != nil {
+					return nil, err
+				}
+			}
+		} else if f.Names[0].Name == "Index" {
+			if index, ok := f.Type.(*ast.StructType); ok {
+				if err := p.parseIndex(state, coll, fileContent, fset, index); err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
-	coll.Derive = derive
-	if err := p.parseStruct(coll, row["struct"].(map[string]interface{})); err != nil {
-		return err
-	}
-	// 解析index
-	if v, ok := row["index"]; !ok {
-	} else if v2, ok := v.(map[string]interface{}); !ok {
-	} else if err := p.parseIndex(coll, v2); err != nil {
-		return err
-	}
-	if v, ok := row["comment"]; ok {
-		coll.Comment = v.(string)
-	}
-	return nil
+	return coll, nil
 }
 
-func (p *golang_parser) parseStruct(coll *Collection, attrs map[string]interface{}) error {
+func (p *golang_parser) parseStruct(state *gen_state, coll *Collection, fileContent []byte, fset *token.FileSet, s *ast.StructType) error {
 	coll.FieldDict = make(map[string]*Field)
 	coll.FieldArr = make([]*Field, 0)
-	spaceRegexp := regexp.MustCompile("[^\\s]+")
-	equalRegexp := regexp.MustCompile("[^=]+")
-
-	for valueStr, v := range attrs {
+	for _, f := range s.Fields.List {
 		var tag int
 		var err error
 		var fieldName string
 		var typeStr string
 		var tagStr string
-		var optionArr []interface{}
-		switch v.(type) {
-		case nil:
-			break
-		case []interface{}:
-			optionArr = v.([]interface{})
-		default:
-			return fmt.Errorf("%+v invalid11", v)
-		}
-		args := equalRegexp.FindAllString(valueStr, -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
-		}
-		tagStr = strings.TrimSpace(args[1])
+		tagStr = f.Tag.Value
+		tagStr = strings.Replace(tagStr, "`", "", 2)
 		if tag, err = strconv.Atoi(tagStr); err != nil {
 			return err
 		}
-		args = spaceRegexp.FindAllString(args[0], -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
-		}
-		typeStr = args[1]
-		fieldName = args[0]
+
+		// ast.Print(fset, s)
+		fieldName = f.Names[0].Name
+		typeStr = string(fileContent[f.Type.Pos()-1 : f.Type.End()-1])
 		field := &Field{
 			Coll:      coll,
 			Name:      fieldName,
 			CamelName: camelString(fieldName),
 			Tag:       tag,
+		}
+		if f.Doc != nil {
+			if comments, err := gen.ExtraComment(f.Doc); err == nil {
+				field.CommentArr = comments
+			}
 		}
 		if fieldName == "id" {
 			field.Name = "_id"
@@ -239,19 +222,10 @@ func (p *golang_parser) parseStruct(coll *Collection, attrs map[string]interface
 			field.Type = field_type_struct
 			field.GoTypeName = typeStr
 		}
-		// fmt.Println(optionArr)
-		for _, option := range optionArr {
-			optionDict := option.(map[string]interface{})
-			if defaultVal, ok := optionDict["default"]; ok {
-				field.Default = defaultVal
-			}
-			if comment, ok := optionDict["comment"]; ok {
-				field.Comment = comment.(string)
-			}
-		}
 		coll.FieldDict[fieldName] = field
 		coll.FieldArr = append(coll.FieldArr, field)
 	}
+
 	for _, f := range coll.FieldArr {
 		if f.Name == "log_time" && f.Type == field_type_int64 {
 			f.Coll.HasLogTimeField = true
@@ -264,67 +238,106 @@ func (p *golang_parser) parseStruct(coll *Collection, attrs map[string]interface
 	return nil
 }
 
-func (p *golang_parser) parseIndex(coll *Collection, attrs map[string]interface{}) error {
+func (p *golang_parser) parseIndex(state *gen_state, coll *Collection, fileContent []byte, fset *token.FileSet, s *ast.StructType) error {
 	coll.IndexDict = make(map[string]*Index)
 	coll.IndexArr = make([]*Index, 0)
-	equalRegexp := regexp.MustCompile("[^=]+")
 
-	for valueStr, v := range attrs {
+	for _, f := range s.Fields.List {
 		var indexName string
 		var tagStr string
 		var tag int
 		var err error
-		var optionArr []interface{}
-		switch v.(type) {
-		case nil:
-			break
-		case []interface{}:
-			optionArr = v.([]interface{})
-		default:
-			return fmt.Errorf("%+v invalid11", v)
-		}
-		args := equalRegexp.FindAllString(valueStr, -1)
-		if len(args) != 2 {
-			return fmt.Errorf("%s invalid", valueStr)
-		}
-		tagStr = strings.TrimSpace(args[1])
+		tagStr = f.Tag.Value
+		tagStr = strings.Replace(tagStr, "`", "", 2)
 		if tag, err = strconv.Atoi(tagStr); err != nil {
 			return err
 		}
-		indexName = args[0]
+		indexName = f.Names[0].Name
 		index := &Index{
 			Name: indexName,
 			Tag:  tag,
 		}
-		for _, option := range optionArr {
-			optionDict := option.(map[string]interface{})
-			if keyArr, ok := optionDict["key"]; ok {
-				var fullName string
-				index.KeyDict = make(map[string]*Key)
-				if keyArr2, ok := keyArr.([]interface{}); ok {
-					for _, keyObject := range keyArr2 {
-						if keyObject2, ok := keyObject.(map[string]interface{}); ok {
-							for k, v := range keyObject2 {
-								indexKey := &Key{Key: k, Value: v}
-								index.KeyDict[k] = indexKey
-								index.KeyArr = append(index.KeyArr, indexKey)
-								if len(index.KeyDict) == 1 {
-									fullName = fmt.Sprintf("%s_%v", k, v)
-								} else {
-									fullName = fmt.Sprintf("%s_%s_%v", fullName, k, v)
-								}
-							}
-						}
-					}
+		// log.Println(index, indexName)
+		// ast.Print(fset, s)
+		if st, ok := f.Type.(*ast.StructType); ok {
+			var fullName string
+			index.KeyDict = make(map[string]*Key)
+			for _, f1 := range st.Fields.List {
+				k := f1.Names[0].Name
+				v := f1.Tag.Value
+				v = strings.Replace(v, "`", "", 2)
+				indexKey := &Key{Key: k, Value: v}
+				index.KeyDict[k] = indexKey
+				index.KeyArr = append(index.KeyArr, indexKey)
+				if len(index.KeyDict) == 1 {
+					fullName = fmt.Sprintf("%s_%v", k, v)
+				} else {
+					fullName = fmt.Sprintf("%s_%s_%v", fullName, k, v)
 				}
-				index.FullName = fullName
 			}
+			index.FullName = fullName
 		}
-		// log.Println(index.KeyDict)
-		// log.Println(index.FullName)
 		coll.IndexDict[indexName] = index
 		coll.IndexArr = append(coll.IndexArr, index)
 	}
-	sort.Sort(sort_index_by_name(coll.IndexArr))
+	return nil
+
+	// for valueStr, v := range attrs {
+	// 	var indexName string
+	// 	var tagStr string
+	// 	var tag int
+	// 	var err error
+	// 	var optionArr []interface{}
+	// 	switch v.(type) {
+	// 	case nil:
+	// 		break
+	// 	case []interface{}:
+	// 		optionArr = v.([]interface{})
+	// 	default:
+	// 		return fmt.Errorf("%+v invalid11", v)
+	// 	}
+	// 	args := equalRegexp.FindAllString(valueStr, -1)
+	// 	if len(args) != 2 {
+	// 		return fmt.Errorf("%s invalid", valueStr)
+	// 	}
+	// 	tagStr = strings.TrimSpace(args[1])
+	// 	if tag, err = strconv.Atoi(tagStr); err != nil {
+	// 		return err
+	// 	}
+	// 	indexName = args[0]
+	// 	index := &Index{
+	// 		Name: indexName,
+	// 		Tag:  tag,
+	// 	}
+	// 	for _, option := range optionArr {
+	// 		optionDict := option.(map[string]interface{})
+	// 		if keyArr, ok := optionDict["key"]; ok {
+	// 			var fullName string
+	// 			index.KeyDict = make(map[string]*Key)
+	// 			if keyArr2, ok := keyArr.([]interface{}); ok {
+	// 				for _, keyObject := range keyArr2 {
+	// 					if keyObject2, ok := keyObject.(map[string]interface{}); ok {
+	// 						for k, v := range keyObject2 {
+	// 							indexKey := &Key{Key: k, Value: v}
+	// 							index.KeyDict[k] = indexKey
+	// 							index.KeyArr = append(index.KeyArr, indexKey)
+	// 							if len(index.KeyDict) == 1 {
+	// 								fullName = fmt.Sprintf("%s_%v", k, v)
+	// 							} else {
+	// 								fullName = fmt.Sprintf("%s_%s_%v", fullName, k, v)
+	// 							}
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 			index.FullName = fullName
+	// 		}
+	// 	}
+	// 	// log.Println(index.KeyDict)
+	// 	// log.Println(index.FullName)
+	// 	coll.IndexDict[indexName] = index
+	// 	coll.IndexArr = append(coll.IndexArr, index)
+	// }
+	// sort.Sort(sort_index_by_name(coll.IndexArr))
 	return nil
 }

@@ -119,7 +119,10 @@ import (
 // <<.Comment>>
 type <<.StructName>> struct {
 	<<- range .FieldArr>> 
-	/// <<.Comment>>
+	<<- range .CommentArr>>
+	<<.>>
+	<<- end>>
+	<<.Comment>>
 	<<.CamelName>> <<.GoTypeName>> <<quote>>bson:"<<.Name>>" json:"<<.Name>>"<<quote>>
 	<<- end>>
 }
@@ -285,7 +288,11 @@ func (self *<<.MongoDaoStructName>>) Log(doc *<<.StructName>>) error {
 	<<- end>>
 	log.Infow("<<.CollName>>",
 	<<- range .FieldArr>> 
-		"<<.Name>>", doc.<<.CamelName>>, // <<.Comment>>
+		<<- range .CommentArr>>
+		<<.>>
+		<<- end>>
+		<<.Comment>>
+		"<<.Name>>", doc.<<.CamelName>>, 
 	<<- end>>
 	)
 	self.mu.Lock()
@@ -500,6 +507,7 @@ type Field struct {
 	GoTypeName string
 	Default    interface{}
 	Comment    string
+	CommentArr []string
 	Coll       *Collection
 }
 
@@ -621,6 +629,10 @@ func genModel(state *gen_state) error {
 			} else {
 				return err
 			}
+		}
+		log.Printf("gen %s %s ", db.DbName, db.GenModelFilePath)
+		for _, coll := range db.CollectionArr {
+			log.Printf("gen behavior %s", coll.CollName)
 		}
 		var err error
 		file, err := os.OpenFile(db.GenModelFilePath, os.O_WRONLY|os.O_CREATE, 0644)
