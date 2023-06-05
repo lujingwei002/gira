@@ -24,7 +24,7 @@ func (p *golang_parser) parseApplicationStruct(state *gen_state, s *ast.StructTy
 }
 
 func (p *golang_parser) parse(state *gen_state) (err error) {
-	applicationFilePath := path.Join(proj.Config.SrcDocDir, "application.go")
+	applicationFilePath := path.Join(proj.Config.DocDir, "application.go")
 	fset := token.NewFileSet()
 	var f *ast.File
 	f, err = parser.ParseFile(fset, applicationFilePath, nil, parser.ParseComments)

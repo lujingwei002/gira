@@ -23,7 +23,7 @@ type golang_parser struct {
 
 func (p *golang_parser) parse(state *gen_state) error {
 	filePathArr := make([]string, 0)
-	if err := filepath.WalkDir(path.Join(proj.Config.SrcDocDir, "behavior"), func(path string, d os.DirEntry, err error) error {
+	if err := filepath.WalkDir(path.Join(proj.Config.DocDir, "behavior"), func(path string, d os.DirEntry, err error) error {
 		if d == nil {
 			return nil
 		}

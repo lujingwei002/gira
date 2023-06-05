@@ -229,7 +229,7 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, fileContent []byte
 }
 
 func (p *golang_parser) parse(state *gen_state) (err error) {
-	filePath := path.Join(proj.Config.SrcDocDir, "resource.go")
+	filePath := path.Join(proj.Config.DocDir, "resource.go")
 	fset := token.NewFileSet()
 	var f *ast.File
 	var fileContent []byte
