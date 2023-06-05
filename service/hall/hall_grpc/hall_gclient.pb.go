@@ -169,48 +169,48 @@ func (r *InfoResponse_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
-type HeartbeatResponse_MulticastResult struct {
+type HealthCheckResponse_MulticastResult struct {
 	errors       []error
 	peerCount    int
 	successPeers []*gira.Peer
 	errorPeers   []*gira.Peer
-	responses    []*HeartbeatResponse
+	responses    []*HealthCheckResponse
 }
 
-func (r *HeartbeatResponse_MulticastResult) Error() error {
+func (r *HealthCheckResponse_MulticastResult) Error() error {
 	if len(r.errors) <= 0 {
 		return nil
 	}
 	return r.errors[0]
 }
-func (r *HeartbeatResponse_MulticastResult) Response(index int) *HeartbeatResponse {
+func (r *HealthCheckResponse_MulticastResult) Response(index int) *HealthCheckResponse {
 	if index < 0 || index >= len(r.responses) {
 		return nil
 	}
 	return r.responses[index]
 }
-func (r *HeartbeatResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+func (r *HealthCheckResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.successPeers) {
 		return nil
 	}
 	return r.successPeers[index]
 }
-func (r *HeartbeatResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+func (r *HealthCheckResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
 	if index < 0 || index >= len(r.errorPeers) {
 		return nil
 	}
 	return r.errorPeers[index]
 }
-func (r *HeartbeatResponse_MulticastResult) PeerCount() int {
+func (r *HealthCheckResponse_MulticastResult) PeerCount() int {
 	return r.peerCount
 }
-func (r *HeartbeatResponse_MulticastResult) SuccessCount() int {
+func (r *HealthCheckResponse_MulticastResult) SuccessCount() int {
 	return len(r.successPeers)
 }
-func (r *HeartbeatResponse_MulticastResult) ErrorCount() int {
+func (r *HealthCheckResponse_MulticastResult) ErrorCount() int {
 	return len(r.errorPeers)
 }
-func (r *HeartbeatResponse_MulticastResult) Errors(index int) error {
+func (r *HealthCheckResponse_MulticastResult) Errors(index int) error {
 	if index < 0 || index >= len(r.errors) {
 		return nil
 	}
@@ -478,7 +478,7 @@ type HallClients interface {
 	// 状态
 	Info(ctx context.Context, address string, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	// 心跳
-	Heartbeat(ctx context.Context, address string, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	HealthCheck(ctx context.Context, address string, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, address string, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 发送消息
@@ -501,7 +501,7 @@ type HallClientsMulticast interface {
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse_MulticastResult, error)
 	// 心跳
-	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse_MulticastResult, error)
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error)
 	// 发送消息
@@ -528,7 +528,7 @@ type HallClientsUnicast interface {
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	// 心跳
-	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 发送消息
@@ -552,7 +552,7 @@ type HallClientsLocal interface {
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	// 心跳
-	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 发送消息
@@ -700,13 +700,13 @@ func (c *hallClients) Info(ctx context.Context, address string, in *InfoRequest,
 	return out, nil
 }
 
-func (c *hallClients) Heartbeat(ctx context.Context, address string, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+func (c *hallClients) HealthCheck(ctx context.Context, address string, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
 	client, err := c.getClient(address)
 	if err != nil {
 		return nil, err
 	}
 	defer c.putClient(address, client)
-	out, err := client.Heartbeat(ctx, in, opts...)
+	out, err := client.HealthCheck(ctx, in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -819,7 +819,7 @@ func (c *hallClientsLocal) Info(ctx context.Context, in *InfoRequest, opts ...gr
 	}
 }
 
-func (c *hallClientsLocal) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+func (c *hallClientsLocal) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
 	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
 	defer cancelFunc()
 	if c.headers.Len() > 0 {
@@ -830,7 +830,7 @@ func (c *hallClientsLocal) Heartbeat(ctx context.Context, in *HeartbeatRequest, 
 	} else if svr, ok := s.(HallServer); !ok {
 		return nil, gira.ErrServerNotFound
 	} else {
-		return svr.Heartbeat(cancelCtx, in)
+		return svr.HealthCheck(cancelCtx, in)
 	}
 }
 
@@ -1061,7 +1061,7 @@ func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...
 	return out, nil
 }
 
-func (c *hallClientsUnicast) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+func (c *hallClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
@@ -1093,7 +1093,7 @@ func (c *hallClientsUnicast) Heartbeat(ctx context.Context, in *HeartbeatRequest
 	if c.headers.Len() > 0 {
 		ctx = metadata.NewOutgoingContext(ctx, c.headers)
 	}
-	out, err := client.Heartbeat(ctx, in, opts...)
+	out, err := client.HealthCheck(ctx, in, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1538,7 +1538,7 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 	return result, nil
 }
 
-func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse_MulticastResult, error) {
+func (c *hallClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error) {
 	var peers []*gira.Peer
 	var whereOpts []service_options.WhereOption
 	// 多播
@@ -1559,7 +1559,7 @@ func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatReque
 	if err != nil {
 		return nil, err
 	}
-	result := &HeartbeatResponse_MulticastResult{}
+	result := &HealthCheckResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
 		client, err := c.client.getClient(peer.GrpcAddr)
@@ -1568,7 +1568,7 @@ func (c *hallClientsMulticast) Heartbeat(ctx context.Context, in *HeartbeatReque
 			result.errorPeers = append(result.errorPeers, peer)
 			continue
 		}
-		out, err := client.Heartbeat(ctx, in, opts...)
+		out, err := client.HealthCheck(ctx, in, opts...)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)

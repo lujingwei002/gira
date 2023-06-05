@@ -22,7 +22,7 @@ const (
 	Hall_ClientStream_FullMethodName = "/hall_grpc.Hall/ClientStream"
 	Hall_GateStream_FullMethodName   = "/hall_grpc.Hall/GateStream"
 	Hall_Info_FullMethodName         = "/hall_grpc.Hall/Info"
-	Hall_Heartbeat_FullMethodName    = "/hall_grpc.Hall/Heartbeat"
+	Hall_HealthCheck_FullMethodName  = "/hall_grpc.Hall/HealthCheck"
 	Hall_MustPush_FullMethodName     = "/hall_grpc.Hall/MustPush"
 	Hall_SendMessage_FullMethodName  = "/hall_grpc.Hall/SendMessage"
 	Hall_CallMessage_FullMethodName  = "/hall_grpc.Hall/CallMessage"
@@ -41,7 +41,7 @@ type HallClient interface {
 	// 状态
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	// 心跳
-	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
 	// 发送消息
@@ -133,9 +133,9 @@ func (c *hallClient) Info(ctx context.Context, in *InfoRequest, opts ...grpc.Cal
 	return out, nil
 }
 
-func (c *hallClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
-	out := new(HeartbeatResponse)
-	err := c.cc.Invoke(ctx, Hall_Heartbeat_FullMethodName, in, out, opts...)
+func (c *hallClient) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, Hall_HealthCheck_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ type HallServer interface {
 	// 状态
 	Info(context.Context, *InfoRequest) (*InfoResponse, error)
 	// 心跳
-	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
+	HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
 	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
 	MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error)
 	// 发送消息
@@ -225,8 +225,8 @@ func (UnimplementedHallServer) GateStream(Hall_GateStreamServer) error {
 func (UnimplementedHallServer) Info(context.Context, *InfoRequest) (*InfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Info not implemented")
 }
-func (UnimplementedHallServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+func (UnimplementedHallServer) HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HealthCheck not implemented")
 }
 func (UnimplementedHallServer) MustPush(context.Context, *MustPushRequest) (*MustPushResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MustPush not implemented")
@@ -326,20 +326,20 @@ func _Hall_Info_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Hall_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HeartbeatRequest)
+func _Hall_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(HallServer).Heartbeat(ctx, in)
+		return srv.(HallServer).HealthCheck(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Hall_Heartbeat_FullMethodName,
+		FullMethod: Hall_HealthCheck_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HallServer).Heartbeat(ctx, req.(*HeartbeatRequest))
+		return srv.(HallServer).HealthCheck(ctx, req.(*HealthCheckRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -446,8 +446,8 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Hall_Info_Handler,
 		},
 		{
-			MethodName: "Heartbeat",
-			Handler:    _Hall_Heartbeat_Handler,
+			MethodName: "HealthCheck",
+			Handler:    _Hall_HealthCheck_Handler,
 		},
 		{
 			MethodName: "MustPush",

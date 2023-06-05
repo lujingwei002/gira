@@ -40,6 +40,24 @@ func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_g
 	}
 }
 
+func (server *upstream_peer) HealthCheck() (err error) {
+	if client := server.client; client == nil {
+		err = gira.ErrNullPonter
+		return
+	} else {
+		req := &hall_grpc.HealthCheckRequest{}
+		var resp *hall_grpc.HealthCheckResponse
+		if resp, err = client.HealthCheck(server.ctx, req); err != nil {
+			return
+		} else if resp.Status != hall_grpc.HallStatus_Start {
+			err = gira.ErrTodo
+			return
+		} else {
+			return
+		}
+	}
+}
+
 func (server *upstream_peer) serve() error {
 	var conn *grpc.ClientConn
 	var client hall_grpc.HallClient
@@ -113,13 +131,13 @@ func (server *upstream_peer) serve() error {
 	server.client = client
 	errGroup, errCtx := errgroup.WithContext(server.ctx)
 	errGroup.Go(func() error {
-		req := &hall_grpc.HeartbeatRequest{}
+		req := &hall_grpc.HealthCheckRequest{}
 		for {
 			select {
 			case <-errCtx.Done():
 				return errCtx.Err()
 			case <-heartbeatTicker.C:
-				resp, err := client.Heartbeat(server.ctx, req)
+				resp, err := client.HealthCheck(server.ctx, req)
 				if err != nil {
 					log.Warnw("hall heartbeat fail", "error", err)
 				} else {

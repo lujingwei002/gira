@@ -135,9 +135,14 @@ func (self *hall_server) Info(ctx context.Context, req *hall_grpc.InfoRequest) (
 	return resp, nil
 }
 
-func (self *hall_server) Heartbeat(ctx context.Context, req *hall_grpc.HeartbeatRequest) (*hall_grpc.HeartbeatResponse, error) {
-	resp := &hall_grpc.HeartbeatResponse{
+func (self *hall_server) HealthCheck(ctx context.Context, req *hall_grpc.HealthCheckRequest) (*hall_grpc.HealthCheckResponse, error) {
+	resp := &hall_grpc.HealthCheckResponse{
 		PlayerCount: self.hall.sessionCount,
+	}
+	if self.hall.isDestory {
+		resp.Status = hall_grpc.HallStatus_Stop
+	} else {
+		resp.Status = hall_grpc.HallStatus_Start
 	}
 	return resp, nil
 }

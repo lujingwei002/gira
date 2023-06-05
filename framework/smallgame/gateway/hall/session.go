@@ -123,6 +123,7 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 						case <-session.ctx.Done():
 							return session.ctx.Err()
 						default:
+							log.Infow("无节点可用,1秒后重试", "session_id", sessionId)
 							time.Sleep(1 * time.Second)
 						}
 					}
