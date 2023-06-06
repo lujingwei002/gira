@@ -913,7 +913,7 @@ const (
 	field_type_message
 	field_type_objectid
 	field_type_bool
-	field_type_bytes
+	field_type_byte_arr
 	field_type_int_arr
 	field_type_int64_arr
 	field_type_struct
@@ -928,7 +928,7 @@ var type_name_dict = map[string]field_type{
 	"string":  field_type_string,
 	"id":      field_type_objectid,
 	"bool":    field_type_bool,
-	"bytes":   field_type_bytes,
+	"[]byte":  field_type_byte_arr,
 	"[]int":   field_type_int_arr,
 	"[]int64": field_type_int64_arr,
 }
@@ -940,7 +940,7 @@ var go_type_name_dict = map[field_type]string{
 	field_type_string:    "string",
 	field_type_objectid:  "primitive.ObjectID",
 	field_type_bool:      "bool",
-	field_type_bytes:     "[]byte",
+	field_type_byte_arr:  "[]byte",
 	field_type_int_arr:   "[]int64",
 	field_type_int64_arr: "[]int64",
 }
@@ -952,7 +952,7 @@ var protobuf_type_name_dict = map[field_type]string{
 	field_type_string:    "string",
 	field_type_objectid:  "string",
 	field_type_bool:      "bool",
-	field_type_bytes:     "bytes",
+	field_type_byte_arr:  "bytes",
 	field_type_int64_arr: "repeated int64",
 	field_type_int_arr:   "repeated int64",
 }
