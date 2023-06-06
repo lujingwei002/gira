@@ -261,7 +261,7 @@ func (p *yaml_parser) parseStruct(descriptor *Collection, attrs map[string]inter
 				field.Default = defaultVal
 			}
 			if comment, ok := optionDict["comment"]; ok {
-				field.Comment = comment.(string)
+				field.CommentArr = append(field.CommentArr, comment.(string))
 			}
 		}
 

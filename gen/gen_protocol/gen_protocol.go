@@ -547,7 +547,7 @@ const (
 	field_type_int32
 	field_type_int64
 	field_type_string
-	field_type_message
+	field_type_struct
 	field_type_bool
 )
 

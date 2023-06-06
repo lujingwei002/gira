@@ -11,13 +11,24 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/gen"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/proj"
 )
 
 type golang_parser struct {
+}
+
+func (p *golang_parser) extraComment(commentGroup *ast.CommentGroup) ([]string, error) {
+	results := make([]string, 0)
+	if commentGroup == nil {
+		return results, nil
+	}
+	for _, c := range commentGroup.List {
+		if !strings.HasPrefix(c.Text, "// @") {
+			results = append(results, c.Text)
+		}
+	}
+	return results, nil
 }
 
 func (p *golang_parser) parse(state *gen_state) error {
@@ -59,10 +70,8 @@ func (p *golang_parser) parse(state *gen_state) error {
 			PacketDict: make(map[string]*Packet),
 			PacketArr:  make([]*Packet, 0),
 		}
-
 		for _, filePath := range protocolFilePathArr {
 			if err := p.parseFile(state, proto, filePath); err != nil {
-				log.Info(err)
 				return err
 			}
 		}
@@ -72,9 +81,7 @@ func (p *golang_parser) parse(state *gen_state) error {
 }
 
 func (p *golang_parser) parseFile(state *gen_state, proto *protocol, filePath string) (err error) {
-
 	log.Info("处理文件", filePath)
-
 	fset := token.NewFileSet()
 	var f *ast.File
 	var fileContent []byte
@@ -84,9 +91,9 @@ func (p *golang_parser) parseFile(state *gen_state, proto *protocol, filePath st
 	}
 	f, err = parser.ParseFile(fset, "", fileContent, parser.ParseComments)
 	if err != nil {
+		err = fmt.Errorf("%s %s", filePath, err)
 		return
 	}
-
 	ast.Inspect(f, func(n ast.Node) bool {
 		if err != nil {
 			return false
@@ -102,25 +109,26 @@ func (p *golang_parser) parseFile(state *gen_state, proto *protocol, filePath st
 						}
 					}
 				case *ast.TypeSpec:
-					var commentArr []string
-					if x.Doc != nil {
-						if commentArr, err = gen.ExtraComment(x.Doc); err != nil {
-							return false
-						}
-					}
 					if typ, ok := s.Type.(*ast.StructType); ok {
 						var packet *Packet
 						if packet, err = p.parsePacket(state, proto, filePath, fileContent, s.Name.Name, fset, typ); err != nil {
 							return false
+						} else if packet == nil {
+							// 忽略
 						} else {
-							for _, comment := range commentArr {
-								if strings.HasPrefix(comment, "//") {
-									packet.CommentArr = append(packet.CommentArr, strings.Replace(comment, "//", "", 1))
+							if x.Doc != nil {
+								var commentArr []string
+								if commentArr, err = p.extraComment(x.Doc); err != nil {
+									return false
+								}
+								for _, comment := range commentArr {
+									if strings.HasPrefix(comment, "//") {
+										packet.CommentArr = append(packet.CommentArr, strings.Replace(comment, "//", "", 1))
+									}
 								}
 							}
 							proto.PacketArr = append(proto.PacketArr, packet)
 							proto.PacketDict[s.Name.Name] = packet
-
 						}
 					}
 				}
@@ -152,25 +160,25 @@ func (p *golang_parser) parsePacket(state *gen_state, proto *protocol, filePath 
 		if f.Names[0].Name == "Model" {
 			if m, ok := f.Type.(*ast.StructType); ok {
 				model = &Message{}
-				if err := p.parseMessage(state, model, fileContent, fset, m); err != nil {
+				if err := p.parseMessage(state, model, filePath, fileContent, name, fset, m); err != nil {
 					return nil, err
 				}
 			}
 		} else if f.Names[0].Name == "MessageId" {
-			if err := p.parseMessageId(state, packet, filePath, fileContent, fset, f); err != nil {
+			if err := p.parseMessageId(state, packet, filePath, fileContent, fset, name, f); err != nil {
 				return nil, err
 			}
 		} else if f.Names[0].Name == "Request" {
 			if m, ok := f.Type.(*ast.StructType); ok {
 				request = &Message{}
-				if err := p.parseMessage(state, request, fileContent, fset, m); err != nil {
+				if err := p.parseMessage(state, request, filePath, fileContent, name, fset, m); err != nil {
 					return nil, err
 				}
 			}
 		} else if f.Names[0].Name == "Response" {
 			if m, ok := f.Type.(*ast.StructType); ok {
 				response = &Message{}
-				if err := p.parseMessage(state, response, fileContent, fset, m); err != nil {
+				if err := p.parseMessage(state, response, filePath, fileContent, name, fset, m); err != nil {
 					return nil, err
 				}
 			}
@@ -178,44 +186,49 @@ func (p *golang_parser) parsePacket(state *gen_state, proto *protocol, filePath 
 	}
 	if request != nil && response != nil {
 		packet.Type = message_type_request
-		packet.Request = request
-		packet.Response = response
 	} else if request != nil {
 		packet.Type = message_type_push
-		packet.Push = request
 	} else if response != nil {
 		packet.Type = message_type_notify
-		packet.Notify = response
 	} else if model != nil {
-		packet.Message = model
 		packet.Type = message_type_struct
 	} else {
-		return nil, fmt.Errorf("%s request and response not found", name)
+		return nil, nil
+	}
+	if packet.Type != message_type_struct {
+		if packet.MessageId == 0 {
+			return nil, p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s MessageId not set", name))
+		}
 	}
 	if packet.Type == message_type_request {
+		packet.Request = request
+		packet.Response = response
 		packet.Request.StructName = fmt.Sprintf("%sRequest", camelString(name))
 		packet.Response.StructName = fmt.Sprintf("%sResponse", camelString(name))
 	} else if packet.Type == message_type_notify {
+		packet.Notify = response
 		packet.Notify.StructName = fmt.Sprintf("%sNotify", camelString(name))
 	} else if packet.Type == message_type_push {
+		packet.Push = request
 		packet.Push.StructName = fmt.Sprintf("%sPush", camelString(name))
 	} else if packet.Type == message_type_struct {
+		packet.Message = model
 		packet.Message.StructName = camelString(name)
 	}
 	return packet, nil
 }
 
-func (p *golang_parser) reportError(fset *token.FileSet, filePath string, pos token.Pos, msg string) error {
+func (p *golang_parser) newAstError(fset *token.FileSet, filePath string, pos token.Pos, msg string) error {
 	return fmt.Errorf("%s %v %s", filePath, fset.Position(pos), msg)
 }
 
-func (p *golang_parser) parseMessageId(state *gen_state, packet *Packet, filePath string, fileContent []byte, fset *token.FileSet, f *ast.Field) error {
+func (p *golang_parser) parseMessageId(state *gen_state, packet *Packet, filePath string, fileContent []byte, fset *token.FileSet, name string, f *ast.Field) error {
 	if f.Tag == nil {
-		return gira.ErrTodo
+		return p.newAstError(fset, filePath, f.Pos(), fmt.Sprintf("%s %s tag is empty", name, f.Names[0].Name))
 	}
 	messageId := f.Tag.Value[1 : len(f.Tag.Value)-1]
 	if v, err := strconv.Atoi(messageId); err != nil {
-		return err
+		return p.newAstError(fset, filePath, f.Pos(), fmt.Sprintf("%s %s tag is invalid %s", name, f.Names[0].Name, err))
 	} else {
 		packet.MessageId = v
 	}
@@ -224,10 +237,12 @@ func (p *golang_parser) parseMessageId(state *gen_state, packet *Packet, filePat
 
 func (p *golang_parser) parseHeader(state *gen_state, proto *protocol, filePath string, fileContent []byte, fset *token.FileSet, s *ast.ValueSpec) error {
 	if len(s.Values) <= 0 {
-		return gira.ErrTodo
+		return p.newAstError(fset, filePath, s.Pos(), "directive header is nil")
 	}
 	if a, ok := s.Values[0].(*ast.BasicLit); !ok {
-		return gira.ErrTodo
+		return p.newAstError(fset, filePath, s.Pos(), "directive header must string")
+	} else if a.Kind != token.STRING {
+		return p.newAstError(fset, filePath, s.Pos(), "directive header must string")
 	} else {
 		value := a.Value[1 : len(a.Value)-1]
 		proto.Header = value
@@ -235,7 +250,7 @@ func (p *golang_parser) parseHeader(state *gen_state, proto *protocol, filePath 
 	}
 }
 
-func (p *golang_parser) parseMessage(state *gen_state, m *Message, fileContent []byte, fset *token.FileSet, s *ast.StructType) error {
+func (p *golang_parser) parseMessage(state *gen_state, m *Message, filePath string, fileContent []byte, structName string, fset *token.FileSet, s *ast.StructType) error {
 	m.FieldDict = make(map[string]*Field)
 	m.FieldArr = make([]*Field, 0)
 	for _, f := range s.Fields.List {
@@ -245,12 +260,12 @@ func (p *golang_parser) parseMessage(state *gen_state, m *Message, fileContent [
 		var typeStr string
 		var tagStr string
 		if f.Tag == nil {
-			return p.reportError(fset, "fff", f.Pos(), "tag error")
+			return p.newAstError(fset, filePath, f.Pos(), fmt.Sprintf("%s %s tag is empty", structName, f.Names[0].Name))
 		}
 		tagStr = f.Tag.Value
 		tagStr = strings.Replace(tagStr, "`", "", 2)
 		if tag, err = strconv.Atoi(tagStr); err != nil {
-			return err
+			return p.newAstError(fset, filePath, f.Pos(), fmt.Sprintf("%s %s tag is invalid %s", structName, f.Names[0].Name, err))
 		}
 		// ast.Print(fset, s)
 		fieldName = f.Names[0].Name
@@ -280,7 +295,7 @@ func (p *golang_parser) parseMessage(state *gen_state, m *Message, fileContent [
 			Message:   m,
 		}
 		if f.Doc != nil {
-			if comments, err := gen.ExtraComment(f.Doc); err == nil {
+			if comments, err := p.extraComment(f.Doc); err == nil {
 				for _, comment := range comments {
 					if strings.HasPrefix(comment, "//") {
 						field.CommentArr = append(field.CommentArr, strings.Replace(comment, "//", "", 1))
@@ -292,7 +307,7 @@ func (p *golang_parser) parseMessage(state *gen_state, m *Message, fileContent [
 		if typeValue, ok := type_name_dict[typeStr]; ok {
 			field.Type = typeValue
 		} else {
-			field.Type = field_type_message
+			field.Type = field_type_struct
 		}
 		if typeName, ok := sp_type_name_dict[field.Type]; ok {
 			field.SpTypeName = typeName

@@ -116,13 +116,14 @@ import (
 
 <<- range .CollectionArr>> 
 <</* 模型Data */>>
-// <<.Comment>>
+<<- range .CommentArr>>
+//<<.>>
+<<- end>>
 type <<.StructName>> struct {
 	<<- range .FieldArr>> 
 	<<- range .CommentArr>>
-	<<.>>
+	//<<.>>
 	<<- end>>
-	<<.Comment>>
 	<<.CamelName>> <<.GoTypeName>> <<quote>>bson:"<<.Name>>" json:"<<.Name>>"<<quote>>
 	<<- end>>
 }
@@ -141,7 +142,9 @@ type <<.MongoDriverStructName>> struct {
 	client		*mongo.Client
 	database	*mongo.Database
 	<<range .CollectionArr>> 
-	// <<.Comment>>
+	<<- range .CommentArr>>
+	//<<.>>
+	<<- end>>
 	<<.StructName>>  *<<.MongoDaoStructName>>
 	<<- end>>
 }
@@ -207,7 +210,9 @@ func Sync(ctx context.Context, opts ...behavior.SyncOption) error {
 }
 
 <<- range .CollectionArr>>
-// <<.Comment>>
+<<- range .CommentArr>>
+//<<.>>
+<<- end>>
 func Log<<.StructName>>(doc *<<.StructName>>) error {
 	return globalDriver.Log<<.StructName>>(doc)
 }
@@ -263,7 +268,9 @@ func (self *<<.MongoDriverStructName>>) Sync(ctx context.Context, opts ...behavi
 }
 
 <<- range .CollectionArr>> 
-// <<.Comment>>
+<<- range .CommentArr>>
+//<<.>>
+<<- end>>
 func (self *<<.MongoDriverStructName>>) Log<<.StructName>>(doc *<<.StructName>>) error {
 	return self.<<.StructName>>.Log(doc)
 }
@@ -271,7 +278,9 @@ func (self *<<.MongoDriverStructName>>) Log<<.StructName>>(doc *<<.StructName>>)
 
 <<- range .CollectionArr>> 
 
-// <<.Comment>>
+<<- range .CommentArr>>
+//<<.>>
+<<- end>>
 type <<.MongoDaoStructName>> struct {
 	db 		*<<$.MongoDriverStructName>>
 	models	[]mongo.WriteModel
@@ -280,7 +289,9 @@ type <<.MongoDaoStructName>> struct {
 
 
 
-// <<.Comment>>
+<<- range .CommentArr>>
+//<<.>>
+<<- end>>
 func (self *<<.MongoDaoStructName>>) Log(doc *<<.StructName>>) error {
 	doc.Id = primitive.NewObjectID()
 	<<- if .HasLogTimeField>>
@@ -289,9 +300,8 @@ func (self *<<.MongoDaoStructName>>) Log(doc *<<.StructName>>) error {
 	log.Infow("<<.CollName>>",
 	<<- range .FieldArr>> 
 		<<- range .CommentArr>>
-		<<.>>
+		//<<.>>
 		<<- end>>
-		<<.Comment>>
 		"<<.Name>>", doc.<<.CamelName>>, 
 	<<- end>>
 	)
@@ -506,7 +516,6 @@ type Field struct {
 	TypeName   string
 	GoTypeName string
 	Default    interface{}
-	Comment    string
 	CommentArr []string
 	Coll       *Collection
 }
@@ -574,7 +583,7 @@ type Collection struct {
 	StructName            string // 表名的驼峰格式
 	MongoDaoStructName    string // mongo dao 结构的名称
 	Derive                string
-	Comment               string
+	CommentArr            []string
 	FieldDict             map[string]*Field
 	FieldArr              []*Field
 	IndexDict             map[string]*Index
@@ -601,6 +610,7 @@ type Database struct {
 // 生成协议的状态
 type gen_state struct {
 	databaseArr []*Database
+	databasDict map[string]*Database
 }
 
 func QuoteChar() interface{} {
@@ -700,6 +710,7 @@ func Gen() error {
 	}
 	state := &gen_state{
 		databaseArr: make([]*Database, 0),
+		databasDict: make(map[string]*Database),
 	}
 	var p Parser
 	if true {

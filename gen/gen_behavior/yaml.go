@@ -129,7 +129,7 @@ func (p *yaml_parser) collUnmarshal(genState *gen_state, coll *Collection, v int
 		return err
 	}
 	if v, ok := row["comment"]; ok {
-		coll.Comment = v.(string)
+		coll.CommentArr = append(coll.CommentArr, v.(string))
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func (p *yaml_parser) parseStruct(coll *Collection, attrs map[string]interface{}
 				field.Default = defaultVal
 			}
 			if comment, ok := optionDict["comment"]; ok {
-				field.Comment = comment.(string)
+				field.CommentArr = append(field.CommentArr, comment.(string))
 			}
 		}
 		coll.FieldDict[fieldName] = field

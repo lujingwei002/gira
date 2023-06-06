@@ -94,7 +94,7 @@ option go_package="src/gen/model/<<.DbName>>";
 message <<.StructName>>Pb {
 	<<- range .FieldDict>> 
 	<<- range .CommentArr>>
-	<<.>>
+	//<<.>>
 	<<- end>>
 	<<.ProtobufTypeName>> <<.CamelName>> = <<.Tag>>;
 	<<- end>>
@@ -202,7 +202,7 @@ func Migrate(ctx context.Context, client  gira.DbClient, opts ...db.MigrateOptio
 var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
 	<<- range .FieldArr>> 
 	<<- range .CommentArr>>
-	<<.>>
+	//<<.>>
 	<<- end>>
 	<<.CamelName>>: "<<.Name>>",
 	<<- end>>
@@ -215,7 +215,7 @@ var <<.StructName>>Field *<<.StructName>>_Field = &<<.StructName>>_Field{
 type <<.StructName>>_Field struct {
 	<<- range .FieldArr>> 
 	<<- range .CommentArr>>
-	<<.>>
+	//<<.>>
 	<<- end>>
 	<<.CamelName>> string;
 	<<- end>>
@@ -225,7 +225,7 @@ type <<.StructName>>_Field struct {
 type <<.DataStructName>> struct {
 	<<- range .FieldArr>> 
 	<<- range .CommentArr>>
-	<<.>>
+	//<<.>>
 	<<- end>>
 	<<.CamelName>> <<.GoTypeName>> <<quote>>bson:"<<.Name>>" json:"<<.Name>>"<<quote>>
 	<<- end>>
@@ -977,7 +977,6 @@ type Field struct {
 	GoTypeName       string
 	ProtobufTypeName string
 	Default          interface{}
-	Comment          string
 	CommentArr       []string
 	Coll             *Collection
 	IsPrimaryKey     bool /// 是否主键，目前只对userarr类型的表格有效果
@@ -1071,7 +1070,6 @@ type Collection struct {
 	IndexArr              []*Index
 	MongoDriverStructName string
 	Capped                int64
-	Comment               string
 	CommentArr            []string
 }
 
@@ -1095,6 +1093,7 @@ type Database struct {
 // 生成协议的状态
 type gen_state struct {
 	databaseArr []*Database
+	databasDict map[string]*Database
 }
 
 func QuoteChar() interface{} {
@@ -1231,6 +1230,7 @@ func Gen() error {
 
 	state := &gen_state{
 		databaseArr: make([]*Database, 0),
+		databasDict: make(map[string]*Database),
 	}
 	var p Parser
 	if false {
@@ -1239,7 +1239,6 @@ func Gen() error {
 		p = &golang_parser{}
 	}
 	if err := p.parse(state); err != nil {
-		log.Info(err)
 		return err
 	}
 	if err := genProtobuf(state); err != nil {
@@ -1247,11 +1246,9 @@ func Gen() error {
 		return err
 	}
 	if err := genModel(state); err != nil {
-		log.Info(err)
 		return err
 	}
 	if err := genCli(state); err != nil {
-		log.Info(err)
 		return err
 	}
 	log.Info("===============gen model finished===============")

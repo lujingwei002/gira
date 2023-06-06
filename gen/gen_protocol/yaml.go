@@ -298,7 +298,7 @@ func (p *yaml_parser) parseMessage(m *Message, attrs map[string]interface{}) err
 		if typeValue, ok := type_name_dict[typeStr]; ok {
 			field.Type = typeValue
 		} else {
-			field.Type = field_type_message
+			field.Type = field_type_struct
 		}
 		if typeName, ok := sp_type_name_dict[field.Type]; ok {
 			field.SpTypeName = typeName
