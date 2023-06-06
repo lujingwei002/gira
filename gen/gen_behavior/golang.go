@@ -228,7 +228,6 @@ func (p *golang_parser) parseStruct(state *gen_state, coll *Collection, fileCont
 func (p *golang_parser) parseIndex(state *gen_state, coll *Collection, fileContent []byte, fset *token.FileSet, s *ast.StructType) error {
 	coll.IndexDict = make(map[string]*Index)
 	coll.IndexArr = make([]*Index, 0)
-
 	for _, f := range s.Fields.List {
 		var indexName string
 		var tagStr string
@@ -244,7 +243,6 @@ func (p *golang_parser) parseIndex(state *gen_state, coll *Collection, fileConte
 			Name: indexName,
 			Tag:  tag,
 		}
-		// log.Println(index, indexName)
 		// ast.Print(fset, s)
 		if st, ok := f.Type.(*ast.StructType); ok {
 			var fullName string
