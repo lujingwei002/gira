@@ -222,7 +222,6 @@ func (p *golang_parser) parseModelsStruct(state *gen_state, filePath string, fil
 		if coll, err = p.parseCollection(state, database, filePath, fileContent, name, fset, f.Type.(*ast.StructType)); err != nil {
 			return err
 		} else {
-
 			var commentArr []string
 			if commentArr, err = p.extraComment(f.Doc); err != nil {
 				return err
@@ -395,6 +394,10 @@ func (p *golang_parser) parseModelStruct(state *gen_state, coll *Collection, fil
 		}
 		// ast.Print(fset, s)
 		fieldName = f.Names[0].Name
+		// WARN: 兼容type
+		if fieldName == "Type" {
+			fieldName = "type"
+		}
 		typeStr = string(fileContent[f.Type.Pos()-1 : f.Type.End()-1])
 		field := &Field{
 			Coll:      coll,
