@@ -589,7 +589,7 @@ func (c *config_reader) preprocess(sb *strings.Builder, indent string, filePath 
 					envName := match[2 : len(match)-1]
 					envValue := os.Getenv(envName)
 					// 将环境变量替换为其值
-					line = re.ReplaceAllString(line, envValue)
+					line = strings.Replace(line, match, envValue, 1)
 				}
 				// 循环匹配所有环境变量
 				sb.WriteString(indent)
