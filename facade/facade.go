@@ -27,6 +27,10 @@ func GetBuildTime() int64 {
 	return gira.App().GetBuildTime()
 }
 
+func GetUpTime() int64 {
+	return gira.App().GetUpTime()
+}
+
 // 返回app id
 func GetAppId() int32 {
 	return gira.App().GetAppId()

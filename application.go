@@ -35,6 +35,7 @@ type Application interface {
 	GetLogDir() string
 	GetBuildVersion() string
 	GetBuildTime() int64
+	GetUpTime() int64
 
 	// ======= 同步接口 ===========
 	Wait() error

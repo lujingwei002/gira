@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
@@ -24,6 +25,9 @@ func (application *Application) GetBuildVersion() string {
 // 返回构建时间
 func (application *Application) GetBuildTime() int64 {
 	return application.buildTime
+}
+func (application *Application) GetUpTime() int64 {
+	return time.Now().Unix() - application.buildTime
 }
 
 // 返回应用id

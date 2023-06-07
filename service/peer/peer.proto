@@ -13,6 +13,10 @@ message HealthCheckRequest{
 
 // 响应消息
 message HealthCheckResponse {
+    int64 BuildTime = 1;
+    string BuildVersion = 2;
+    int64 UpTime = 3;
+
 }
 
 

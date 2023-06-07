@@ -63,6 +63,7 @@ type Application struct {
 	status            int64
 	buildVersion      string
 	buildTime         int64
+	upTime            int64
 	projectFilePath   string /// 配置文件绝对路径, gira.yaml
 	configDir         string /// config目录
 	envDir            string /// env目录
@@ -118,6 +119,7 @@ func (application *Application) init() error {
 	applicationFacade := application.applicationFacade
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
+	application.upTime = time.Now().Unix()
 	// 项目配置初始化
 	application.workDir = proj.Config.ProjectDir
 	if err := os.Chdir(application.workDir); err != nil {
