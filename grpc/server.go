@@ -61,7 +61,6 @@ func (self *Server) OnStart(ctx context.Context) error {
 func (self *Server) Serve() error {
 	go func() {
 		<-self.ctx.Done()
-		log.Println("ggggggggggggggg")
 		self.server.GracefulStop()
 	}()
 	err := self.server.Serve(self.listener)
