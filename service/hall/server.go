@@ -100,7 +100,6 @@ TAG_CLEAN_UP:
 		for _, session := range sessions {
 			session.Close(hall.backgroundCtx)
 		}
-		time.Sleep(10 * time.Second)
 		log.Infow("hall on stop++++++++", "session_count", hall.sessionCount)
 		if hall.sessionCount <= 0 {
 			break
