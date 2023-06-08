@@ -92,6 +92,10 @@ const (
 	E_PAY_ORDER_AMOUNT_INVALID                 = -77
 	E_PAY_ORDER_ACCOUNT_PLATFORM_INVALID       = -78
 	E_CAST                                     = -79
+	E_PROTO_REQUEST_CAST                       = -80
+	E_PROTO_RESPONSE_CAST                      = -81
+	E_PROTO_PUSH_CAST                          = -82
+	E_PROTO_RESPONSE_NEW                       = -83
 )
 const (
 	E_MSG_OK                                       = "成功"
@@ -177,6 +181,10 @@ const (
 	E_MSG_PAY_ORDER_AMOUNT_INVALID                 = "pay order 价格错误"
 	E_MSG_PAY_ORDER_ACCOUNT_PLATFORM_INVALID       = "pay order 账号平台错误"
 	E_MSG_CAST                                     = "cast"
+	E_MSG_PROTO_REQUEST_CAST                       = "proto request cast"
+	E_MSG_PROTO_RESPONSE_CAST                      = "proto response cast"
+	E_MSG_PROTO_PUSH_CAST                          = "proto push cast"
+	E_MSG_PROTO_RESPONSE_NEW                       = "proto response new"
 )
 
 type Error struct {
@@ -287,6 +295,10 @@ var (
 	ErrPayOrderAmountInvalid              = NewError(E_PAY_ORDER_AMOUNT_INVALID, E_MSG_PAY_ORDER_AMOUNT_INVALID)
 	ErrPayOrderAccountPlatformInvalid     = NewError(E_PAY_ORDER_ACCOUNT_PLATFORM_INVALID, E_MSG_PAY_ORDER_ACCOUNT_PLATFORM_INVALID)
 	ErrCast                               = NewError(E_CAST, E_MSG_CAST)
+	ErrProtoRequestCast                   = NewError(E_PROTO_REQUEST_CAST, E_MSG_PROTO_REQUEST_CAST)
+	ErrProtoResponseCast                  = NewError(E_PROTO_RESPONSE_CAST, E_MSG_PROTO_RESPONSE_CAST)
+	ErrProtoPushCast                      = NewError(E_PROTO_PUSH_CAST, E_MSG_PROTO_PUSH_CAST)
+	ErrProtoResponseNew                   = NewError(E_PROTO_RESPONSE_NEW, E_MSG_PROTO_RESPONSE_NEW)
 )
 
 func ErrCode(err error) int32 {

@@ -134,7 +134,7 @@ func (server *upstream_peer) serve() error {
 		}
 		server.buildTime = resp.BuildTime
 		server.respositoryVersion = resp.RespositoryVersion
-		log.Infow("server init", "full_name", server.FullName, "build_time", resp.BuildTime, "build_versioin", resp.RespositoryVersion)
+		log.Infow("server init", "full_name", server.FullName, "build_time", resp.BuildTime, "respository_version", resp.RespositoryVersion)
 	}
 	server.client = client
 	errGroup, errCtx := errgroup.WithContext(server.ctx)

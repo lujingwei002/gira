@@ -426,6 +426,7 @@ func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error
 		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
 		return gira.ErrInvalidService
 	}
+	words = words[2:]
 	if len(words) == 2 {
 		serviceName = fmt.Sprintf("%s/%s", words[0], words[1])
 	} else if len(words) == 1 {
@@ -635,9 +636,6 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 	}
 	if opts.Catalog || opts.Prefix {
 		arr := self.prefixIndex.search(serviceName)
-		log.Println("aa", serviceName)
-
-		log.Println("aa", arr)
 		peers = make([]*gira.Peer, 0)
 		multicastCount := opts.MaxCount
 		for _, name := range arr {

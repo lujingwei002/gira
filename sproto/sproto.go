@@ -95,7 +95,12 @@ func (self *sproto) RequestDecode(packed []byte) (route string, session int32, r
 	if err != nil {
 		return
 	}
-	resp = sp.(gira.ProtoRequest)
+	var ok bool
+	resp, ok = sp.(gira.ProtoRequest)
+	if !ok {
+		err = gira.ErrProtoRequestCast
+		return
+	}
 	return
 }
 
@@ -107,7 +112,12 @@ func (self *sproto) ResponseDecode(packed []byte) (route string, session int32, 
 	if err != nil {
 		return
 	}
-	resp = sp.(gira.ProtoResponse)
+	var ok bool
+	resp, ok = sp.(gira.ProtoResponse)
+	if !ok {
+		err = gira.ErrProtoResponseCast
+		return
+	}
 	return
 }
 
@@ -119,7 +129,12 @@ func (self *sproto) PushDecode(packed []byte) (route string, session int32, resp
 	if err != nil {
 		return
 	}
-	resp = sp.(gira.ProtoPush)
+	var ok bool
+	resp, ok = sp.(gira.ProtoPush)
+	if !ok {
+		err = gira.ErrProtoPushCast
+		return
+	}
 	return
 }
 
@@ -128,15 +143,20 @@ func (self *sproto) PushDecode(packed []byte) (route string, session int32, resp
 func (self *sproto) NewResponse(req gira.ProtoRequest) (resp gira.ProtoResponse, err error) {
 	proto := self.rpc.GetProtocolByName(req.GetRequestName())
 	if proto == nil {
-		err = gira.ErrTodo
+		err = gira.ErrProtoResponseNew
 		return
 	}
 	sp := reflect.New(proto.Response.Elem()).Interface()
 	if sp == nil {
-		err = gira.ErrTodo
+		err = gira.ErrProtoResponseNew
 		return
 	}
-	resp = sp.(gira.ProtoResponse)
+	var ok bool
+	resp, ok = sp.(gira.ProtoResponse)
+	if !ok {
+		err = gira.ErrProtoResponseCast
+		return
+	}
 	return
 }
 

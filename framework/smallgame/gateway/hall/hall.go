@@ -94,10 +94,9 @@ func (hall *HallServer) loginErrResponse(message gira.GatewayMessage, req gira.P
 // 3.验证成功后，创建session,交给session处理接下来的客户端消息
 func (hall *HallServer) ServeClientStream(client gira.GatewayConn) {
 	sessionId := client.Id()
-	// 最大人数判断
+	// 最大人数判断 -1:无限制 0=允许登录
 	if config.Gateway.Framework.Gateway.MaxSessionCount == -1 {
 		log.Warnw("reach max session count", "session_id", sessionId, "session_count", hall.SessionCount, "max_session_count", config.Gateway.Framework.Gateway.MaxSessionCount)
-		return
 	} else if config.Gateway.Framework.Gateway.MaxSessionCount == 0 || hall.SessionCount >= config.Gateway.Framework.Gateway.MaxSessionCount {
 		log.Warnw("reach max session count", "session_id", sessionId, "session_count", hall.SessionCount, "max_session_count", config.Gateway.Framework.Gateway.MaxSessionCount)
 		return
