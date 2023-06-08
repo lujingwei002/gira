@@ -13,7 +13,7 @@ import (
 )
 
 // 需要两个系参数 xx -id 1 start|stop|restart
-func Cli(name string, buildVersion string, buildTime string, applicationFacade gira.ApplicationFacade) error {
+func Cli(name string, respositoryVersion string, buildTime string, applicationFacade gira.ApplicationFacade) error {
 
 	app := &cli.App{
 		Name: "gira service",
@@ -22,10 +22,10 @@ func Cli(name string, buildVersion string, buildTime string, applicationFacade g
 		Flags:       []cli.Flag{},
 		Action:      runAction,
 		Metadata: map[string]interface{}{
-			"application":  applicationFacade,
-			"name":         name,
-			"buildTime":    buildTime,
-			"buildVersion": buildVersion,
+			"application":        applicationFacade,
+			"name":               name,
+			"buildTime":          buildTime,
+			"respositoryVersion": respositoryVersion,
 		},
 		Commands: []*cli.Command{
 			{
@@ -116,7 +116,7 @@ func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	applicationFacade, _ := args.App.Metadata["application"].(gira.ApplicationFacade)
 	appType, _ := args.App.Metadata["name"].(string)
-	buildVersion, _ := args.App.Metadata["buildVersion"].(string)
+	respositoryVersion, _ := args.App.Metadata["respositoryVersion"].(string)
 	var buildTime int64
 	if v, ok := args.App.Metadata["buildTime"].(string); ok {
 		if t, err := strconv.Atoi(v); err != nil {
@@ -125,14 +125,14 @@ func startAction(args *cli.Context) error {
 			buildTime = int64(t)
 		}
 	}
-	log.Println("build version:", buildVersion)
+	log.Println("build version:", respositoryVersion)
 	log.Println("build time:", buildTime)
 	log.Infof("%s %d starting...", appType, appId)
 	runtime := newApplication(ApplicationArgs{
-		AppType:      appType,
-		AppId:        appId,
-		BuildVersion: buildVersion,
-		BuildTime:    buildTime,
+		AppType:            appType,
+		AppId:              appId,
+		RespositoryVersion: respositoryVersion,
+		BuildTime:          buildTime,
 	}, applicationFacade)
 	if err := runtime.start(); err != nil {
 		return err
@@ -145,8 +145,8 @@ func startAction(args *cli.Context) error {
 
 // 打印应用构建版本
 func versionAction(args *cli.Context) error {
-	buildVersion, _ := args.App.Metadata["buildVersion"].(string)
-	fmt.Println(buildVersion)
+	respositoryVersion, _ := args.App.Metadata["respositoryVersion"].(string)
+	fmt.Println(respositoryVersion)
 	return nil
 }
 

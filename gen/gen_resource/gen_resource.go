@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/log"
+	"gopkg.in/yaml.v3"
 
 	"github.com/lujingwei002/gira/proj"
 	excelize "github.com/xuri/excelize/v2"
@@ -30,11 +32,14 @@ import (
 	"context"
 	"log"
 	"os"
+	"fmt"
 	"github.com/lujingwei002/gira/db"
 	"github.com/urfave/cli/v2"
 	"<<.Module>>/gen/resource"
 )
 
+var respositoryVersion string
+var buildTime string
 var uri string
 
 func main() {
@@ -65,11 +70,33 @@ func main() {
 					},
 				},
 			},
+			{
+				Name:      "version",
+				Usage:     "Build version",
+				Action:    versionAction,
+			},
+			{
+				Name:      "time",
+				Usage:     "Build time",
+				Action:    timeAction,
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Println(err)
 	}
+}
+
+// 打印应用构建版本
+func versionAction(args *cli.Context) error {
+	fmt.Println(respositoryVersion)
+	return nil
+}
+
+// 打印应用构建时间
+func timeAction(args *cli.Context) error {
+	fmt.Println(buildTime)
+	return nil
 }
 
 func compressAction(args *cli.Context) error {
@@ -162,13 +189,50 @@ type <<.HandlerStructName>> interface {
 }
 <<end>>
 
+type version_file struct {
+	RespositoryVersion string <<quote>>yaml:"respository_version"<<quote>>
+	BuildTime          int64 <<quote>>yaml:"build_time"<<quote>>
+}
+
+<<- $config := .Config>>
 
 <<range .LoaderArr>>
 // <<.LoaderName>>加载器，负载加载拥有的bundle
 type <<.LoaderStructName>> struct {
+	version version_file
 	<<- range .BundleArr>>
 	<<.BundleStructName>>
 	<<- end>>
+}
+
+func (self *<<.LoaderStructName>>) GetFileRespositoryVersion() string {
+	return self.version.RespositoryVersion
+}
+
+func (self *<<.LoaderStructName>>) GetFileBuildTime() int64 {
+	return self.version.BuildTime
+}
+
+func (self *<<.LoaderStructName>>) GetRespositoryVersion() string {
+	return "<<$config.RespositoryVersion>>"
+}
+
+func (self *<<.LoaderStructName>>) GetBuildTime() int64 {
+	return <<$config.BuildTime>>
+}
+
+// 加载版本文件
+func (self *<<.LoaderStructName>>) LoadVersion(dir string) error {
+	filePath := filepath.Join(dir, ".version.yaml")
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	if err := yaml.Unmarshal(data, &self.version); err != nil {
+		log.Warnw("load resource version fail", "name", filePath)
+		return err
+	}
+	return nil
 }
 
 // 从yaml文件加载资源
@@ -203,6 +267,9 @@ func (self *<<.LoaderStructName>>) LoadFromDb(ctx context.Context, client gira.D
 
 // 根据bundle的类型，从相应的源中加载资源
 func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClient, dir string) error {
+	if err := self.LoadVersion(dir); err != nil {
+		return err
+	}
 	<<- range .BundleArr>>
 	<<- if eq .BundleType "db">>
 	if err := self.<<.BundleStructName>>.LoadFromDb(ctx, client); err != nil {
@@ -799,6 +866,32 @@ func getSrcFileHash(arr []string) string {
 	return md5Hash
 }
 
+type version_file struct {
+	RespositoryVersion string `yaml:"respository_version"`
+	BuildTime          int64  `yaml:"build_time"`
+}
+
+func genResourcesVersion(state *gen_state) error {
+	log.Info("生成version文件")
+	filePath := filepath.Join(proj.Config.ResourceDir, ".version.yaml")
+	v := version_file{}
+	v.BuildTime = state.Config.BuildTime
+	v.RespositoryVersion = state.Config.RespositoryVersion
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	file.Truncate(0)
+	if data, err := yaml.Marshal(&v); err != nil {
+		return err
+	} else {
+		if _, err := file.Write(data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func genResourcesYamlAndGo(state *gen_state) error {
 	log.Info("生成yaml文件")
 	if _, err := os.Stat(proj.Config.ResourceDir); os.IsNotExist(err) {
@@ -872,7 +965,9 @@ func genResourceCli(state *gen_state) error {
 }
 
 type Config struct {
-	Force bool
+	RespositoryVersion string
+	BuildTime          int64
+	Force              bool
 }
 
 // 生成协议
@@ -926,6 +1021,11 @@ func Gen(config Config) error {
 	if err := genResourceCli(state); err != nil {
 		return err
 	}
+	if err := genResourcesVersion(state); err != nil {
+		return err
+	}
+	fmt.Println("=================", config.BuildTime)
+	fmt.Println("=================", config.RespositoryVersion)
 	log.Info("===============gen resource finished===============")
 	return nil
 }

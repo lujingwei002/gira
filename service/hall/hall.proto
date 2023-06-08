@@ -70,7 +70,7 @@ message InfoRequest {
 
 message InfoResponse {
     int64 BuildTime = 1;
-    string BuildVersion = 2;
+    string RespositoryVersion = 2;
     // 在线人数
     int64 SessionCount = 3;
 }

@@ -39,8 +39,8 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 	var err error
 	var stream hall_grpc.Hall_ClientStreamClient
 	hall := session.hall
-	log.Infow("session open", "session_id", sessionId)
 	server := hall.SelectPeer()
+	log.Infow("session open", "session_id", sessionId, "peer", server)
 	if server == nil {
 		hall.loginErrResponse(message, dataReq, gira.ErrUpstreamUnavailable)
 		return gira.ErrUpstreamUnavailable

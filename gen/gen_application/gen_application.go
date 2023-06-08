@@ -25,7 +25,7 @@ import (
 	{{.ApplicationName}}_app "{{.ModuleName}}/{{.ApplicationName}}/app"
 )
 
-var buildVersion string
+var respositoryVersion string
 var buildTime string
 
 // 检查是否满足接口
@@ -34,7 +34,7 @@ var _ = (gira.ResourceSource)(&{{.ApplicationName}}_app.Application{})
 
 func main() {
 	app := {{.ApplicationName}}_app.NewApplication()
-	err := gira_app.Cli("{{.ApplicationName}}", buildVersion, buildTime, app)
+	err := gira_app.Cli("{{.ApplicationName}}", respositoryVersion, buildTime, app)
 	if err != nil {
 		log.Info(err)
 	}

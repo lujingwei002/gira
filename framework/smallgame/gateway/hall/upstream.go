@@ -2,6 +2,8 @@ package hall
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lujingwei002/gira"
@@ -17,13 +19,19 @@ type upstream_peer struct {
 	FullName string
 	Address  string
 
-	client       hall_grpc.HallClient
-	ctx          context.Context
-	cancelFunc   context.CancelFunc
-	playerCount  int64
-	buildTime    int64
-	buildVersion string
-	hall         *HallServer
+	client             hall_grpc.HallClient
+	ctx                context.Context
+	cancelFunc         context.CancelFunc
+	playerCount        int64
+	buildTime          int64
+	respositoryVersion string
+	hall               *HallServer
+}
+
+func (server *upstream_peer) String() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("full_name:%s address:%s", server.FullName, server.Address))
+	return sb.String()
 }
 
 func (server *upstream_peer) close() {
@@ -125,8 +133,8 @@ func (server *upstream_peer) serve() error {
 			return err
 		}
 		server.buildTime = resp.BuildTime
-		server.buildVersion = resp.BuildVersion
-		log.Infow("server init", "full_name", server.FullName, "build_time", resp.BuildTime, "build_versioin", resp.BuildVersion)
+		server.respositoryVersion = resp.RespositoryVersion
+		log.Infow("server init", "full_name", server.FullName, "build_time", resp.BuildTime, "build_versioin", resp.RespositoryVersion)
 	}
 	server.client = client
 	errGroup, errCtx := errgroup.WithContext(server.ctx)

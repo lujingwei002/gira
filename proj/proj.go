@@ -224,9 +224,13 @@ func Run(name string, args []string) error {
 			for k, v := range args {
 				line = strings.Replace(line, fmt.Sprintf("$(%d)", k+1), v, 1)
 			}
-			if err := execCommandLine(line); err != nil {
+			fmt.Println(line)
+			if err := system(line); err != nil {
 				return err
 			}
+			// if err := execCommandLine(line); err != nil {
+			// 	return err
+			// }
 		}
 	}
 	return nil
@@ -251,7 +255,7 @@ func Build(name string) error {
 			}
 			log.Printf(build.Description)
 			for _, v := range build.Run {
-				if err := execCommandLine(v); err != nil {
+				if err := system(v); err != nil {
 					return err
 				}
 			}
@@ -264,6 +268,54 @@ func Build(name string) error {
 		}
 	}
 	return buildFunc(name)
+}
+
+func system(command string) error {
+	cmd := exec.Command("bash", "-c", command)
+	// 获取命令的标准输出管道
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	// 启动命令
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	// 创建一个channel，用于接收信号
+	c := make(chan os.Signal, 1)
+	// 监听SIGINT信号
+	signal.Notify(c, os.Interrupt, syscall.SIGINT)
+	defer func() {
+		signal.Reset(os.Interrupt, syscall.SIGINT)
+	}()
+	// 创建一个 Scanner 对象，对命令的标准输出和标准错误输出进行扫描
+	scanner1 := bufio.NewScanner(stdout)
+	go func() {
+		for scanner1.Scan() {
+			// 输出命令的标准输出
+			log.Println(scanner1.Text())
+		}
+	}()
+	scanner2 := bufio.NewScanner(stderr)
+	go func() {
+		for scanner2.Scan() {
+			// 输出命令的标准错误输出
+			fmt.Fprintln(os.Stderr, scanner2.Text())
+		}
+	}()
+	go func() {
+		// 等待信号
+		<-c
+	}()
+	// 等待命令执行完成
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func execCommand(command CommandConfig) error {

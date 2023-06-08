@@ -34,10 +34,10 @@ import (
 )
 
 type ApplicationArgs struct {
-	AppType      string /// 服务名
-	AppId        int32  /// 服务id
-	BuildTime    int64
-	BuildVersion string
+	AppType            string /// 服务名
+	AppId              int32  /// 服务id
+	BuildTime          int64
+	RespositoryVersion string
 }
 
 const (
@@ -47,32 +47,32 @@ const (
 
 // / @Component
 type Application struct {
-	zone              string // 区名 wc|qq|hw|quick
-	env               string // dev|local|qa|prd
-	appId             int32
-	appType           string /// 服务类型
-	appName           string /// 服务名
-	appFullName       string /// 完整的服务名 Name_Id
-	cancelFunc        context.CancelFunc
-	ctx               context.Context
-	errCtx            context.Context
-	errGroup          *errgroup.Group
-	resourceLoader    gira.ResourceLoader
-	config            *gira.Config
-	stopChan          chan struct{}
-	status            int64
-	buildVersion      string
-	buildTime         int64
-	upTime            int64
-	projectFilePath   string /// 配置文件绝对路径, gira.yaml
-	configDir         string /// config目录
-	envDir            string /// env目录
-	runConfigFilePath string /// 运行时的配置文件
-	workDir           string /// 工作目录
-	logDir            string /// 日志目录
-	runDir            string /// 运行目录
-	applicationFacade gira.ApplicationFacade
-	frameworks        []gira.Framework
+	zone               string // 区名 wc|qq|hw|quick
+	env                string // dev|local|qa|prd
+	appId              int32
+	appType            string /// 服务类型
+	appName            string /// 服务名
+	appFullName        string /// 完整的服务名 Name_Id
+	cancelFunc         context.CancelFunc
+	ctx                context.Context
+	errCtx             context.Context
+	errGroup           *errgroup.Group
+	resourceLoader     gira.ResourceLoader
+	config             *gira.Config
+	stopChan           chan struct{}
+	status             int64
+	respositoryVersion string
+	buildTime          int64
+	upTime             int64
+	projectFilePath    string /// 配置文件绝对路径, gira.yaml
+	configDir          string /// config目录
+	envDir             string /// env目录
+	runConfigFilePath  string /// 运行时的配置文件
+	workDir            string /// 工作目录
+	logDir             string /// 日志目录
+	runDir             string /// 运行目录
+	applicationFacade  gira.ApplicationFacade
+	frameworks         []gira.Framework
 	// mainScene          *gira.Scene
 	httpServer         *gins.HttpServer
 	registry           *registry.Registry
@@ -97,20 +97,20 @@ func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFaca
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
 	application := &Application{
-		buildVersion:      args.BuildVersion,
-		buildTime:         args.BuildTime,
-		appId:             args.AppId,
-		applicationFacade: applicationFacade,
-		frameworks:        make([]gira.Framework, 0),
-		appType:           args.AppType,
-		appName:           fmt.Sprintf("%s_%d", args.AppType, args.AppId),
-		ctx:               ctx,
-		cancelFunc:        cancelFunc,
-		errCtx:            errCtx,
-		errGroup:          errGroup,
-		stopChan:          make(chan struct{}, 1),
-		serviceContainer:  service.New(ctx),
-		moduleContainer:   module.New(ctx),
+		respositoryVersion: args.RespositoryVersion,
+		buildTime:          args.BuildTime,
+		appId:              args.AppId,
+		applicationFacade:  applicationFacade,
+		frameworks:         make([]gira.Framework, 0),
+		appType:            args.AppType,
+		appName:            fmt.Sprintf("%s_%d", args.AppType, args.AppId),
+		ctx:                ctx,
+		cancelFunc:         cancelFunc,
+		errCtx:             errCtx,
+		errGroup:           errGroup,
+		stopChan:           make(chan struct{}, 1),
+		serviceContainer:   service.New(ctx),
+		moduleContainer:    module.New(ctx),
 	}
 	return application
 }

@@ -17,8 +17,8 @@ func (application *Application) GetConfig() *gira.Config {
 }
 
 // 返回构建版本
-func (application *Application) GetBuildVersion() string {
-	return application.buildVersion
+func (application *Application) GetRespositoryVersion() string {
+	return application.respositoryVersion
 
 }
 

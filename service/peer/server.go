@@ -19,9 +19,11 @@ type peer_server struct {
 
 func (self *peer_server) HealthCheck(context.Context, *peer_grpc.HealthCheckRequest) (*peer_grpc.HealthCheckResponse, error) {
 	resp := &peer_grpc.HealthCheckResponse{
-		BuildTime:    facade.GetBuildTime(),
-		BuildVersion: facade.GetBuildVersion(),
-		UpTime:       facade.GetUpTime(),
+		BuildTime:                  facade.GetBuildTime(),
+		RespositoryVersion:         facade.GetRespositoryVersion(),
+		UpTime:                     facade.GetUpTime(),
+		ResourceBuildTime:          facade.GetResourceBuildTime(),
+		ResourceRespositoryVersion: facade.GetResourceRespositoryVersion(),
 	}
 	return resp, nil
 }
