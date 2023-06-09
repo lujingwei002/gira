@@ -118,7 +118,7 @@ func NewConfigServer(handler gira.GatewayHandler, config gira.GatewayConfig) (*S
 	if server, err = Listen(facade.Context(), config.Bind, opts...); err != nil {
 		return nil, err
 	}
-	// log.Info("gate start...", config.Bind)
+	log.Infow("gateway start", "bind", config.Bind, "path", config.WsPath)
 	go server.Serve(handler)
 	return server, nil
 }
@@ -350,7 +350,6 @@ func (server *Server) listenAndServeWS() error {
 		WriteBufferSize: 1024,
 		CheckOrigin:     server.checkOrigin,
 	}
-	log.Println("ffffff", "/"+strings.TrimPrefix(server.wsPath, "/"))
 	http.HandleFunc("/"+strings.TrimPrefix(server.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
