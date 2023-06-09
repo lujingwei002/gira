@@ -247,6 +247,7 @@ type GatewayConfig struct {
 	Ssl      bool   `yaml:"ssl"`
 	CertFile string `yaml:"cert-file"`
 	KeyFile  string `yaml:"key-file"`
+	WsPath   string `yaml:"ws-path"`
 }
 
 type TestSdkConfig struct {

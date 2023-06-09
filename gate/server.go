@@ -106,6 +106,7 @@ func newServer() *Server {
 func NewConfigServer(handler gira.GatewayHandler, config gira.GatewayConfig) (*Server, error) {
 	opts := []Option{
 		WithDebugMode(config.Debug),
+		WithWSPath(config.WsPath),
 		WithIsWebsocket(true),
 		WithSessionModifer(uint64(facade.GetAppId()) << 48),
 	}
@@ -349,6 +350,7 @@ func (server *Server) listenAndServeWS() error {
 		WriteBufferSize: 1024,
 		CheckOrigin:     server.checkOrigin,
 	}
+	log.Println("ffffff", "/"+strings.TrimPrefix(server.wsPath, "/"))
 	http.HandleFunc("/"+strings.TrimPrefix(server.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
