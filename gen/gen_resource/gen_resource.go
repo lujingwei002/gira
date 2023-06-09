@@ -191,7 +191,6 @@ type <<.HandlerStructName>> interface {
 
 type version_file struct {
 	RespositoryVersion string <<quote>>yaml:"respository_version"<<quote>>
-	BuildTime          int64 <<quote>>yaml:"build_time"<<quote>>
 }
 
 <<- $config := .Config>>
@@ -209,18 +208,10 @@ func (self *<<.LoaderStructName>>) GetFileRespositoryVersion() string {
 	return self.version.RespositoryVersion
 }
 
-func (self *<<.LoaderStructName>>) GetFileBuildTime() int64 {
-	return self.version.BuildTime
-}
 
 func (self *<<.LoaderStructName>>) GetRespositoryVersion() string {
 	return "<<$config.RespositoryVersion>>"
 }
-
-func (self *<<.LoaderStructName>>) GetBuildTime() int64 {
-	return <<$config.BuildTime>>
-}
-
 // 加载版本文件
 func (self *<<.LoaderStructName>>) LoadVersion(dir string) error {
 	filePath := filepath.Join(dir, ".version.yaml")
@@ -868,14 +859,12 @@ func getSrcFileHash(arr []string) string {
 
 type version_file struct {
 	RespositoryVersion string `yaml:"respository_version"`
-	BuildTime          int64  `yaml:"build_time"`
 }
 
 func genResourcesVersion(state *gen_state) error {
 	log.Info("生成version文件")
 	filePath := filepath.Join(proj.Config.ResourceDir, ".version.yaml")
 	v := version_file{}
-	v.BuildTime = state.Config.BuildTime
 	v.RespositoryVersion = state.Config.RespositoryVersion
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -966,7 +955,6 @@ func genResourceCli(state *gen_state) error {
 
 type Config struct {
 	RespositoryVersion string
-	BuildTime          int64
 	Force              bool
 }
 
@@ -1024,7 +1012,6 @@ func Gen(config Config) error {
 	if err := genResourcesVersion(state); err != nil {
 		return err
 	}
-	fmt.Println("=================", config.BuildTime)
 	fmt.Println("=================", config.RespositoryVersion)
 	log.Info("===============gen resource finished===============")
 	return nil
