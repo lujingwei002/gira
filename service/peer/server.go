@@ -22,7 +22,6 @@ func (self *peer_server) HealthCheck(context.Context, *peer_grpc.HealthCheckRequ
 		BuildTime:                  facade.GetBuildTime(),
 		RespositoryVersion:         facade.GetRespositoryVersion(),
 		UpTime:                     facade.GetUpTime(),
-		ResourceBuildTime:          facade.GetResourceBuildTime(),
 		ResourceRespositoryVersion: facade.GetResourceRespositoryVersion(),
 	}
 	return resp, nil

@@ -11,7 +11,6 @@ type ResourceLoader interface {
 	// 重载资源
 	ReloadResource(dir string) error
 	GetFileRespositoryVersion() string
-	GetFileBuildTime() int64
 }
 
 type ResourceHandler interface {

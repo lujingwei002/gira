@@ -38,17 +38,6 @@ func GetResourceRespositoryVersion() string {
 	}
 }
 
-func GetResourceBuildTime() int64 {
-	application := gira.App()
-	if c, ok := application.(gira.ResourceSource); !ok {
-		return 0
-	} else if r := c.GetResourceLoader(); r == nil {
-		return 0
-	} else {
-		return r.GetFileBuildTime()
-	}
-}
-
 func GetUpTime() int64 {
 	return gira.App().GetUpTime()
 }
