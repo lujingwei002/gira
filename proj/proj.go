@@ -225,12 +225,9 @@ func Run(name string, args []string) error {
 				line = strings.Replace(line, fmt.Sprintf("$(%d)", k+1), v, 1)
 			}
 			fmt.Println(line)
-			if err := system(line); err != nil {
+			if err := shell(line); err != nil {
 				return err
 			}
-			// if err := execCommandLine(line); err != nil {
-			// 	return err
-			// }
 		}
 	}
 	return nil
@@ -255,7 +252,7 @@ func Build(name string) error {
 			}
 			log.Printf(build.Description)
 			for _, v := range build.Run {
-				if err := system(v); err != nil {
+				if err := shell(v); err != nil {
 					return err
 				}
 			}
@@ -270,7 +267,7 @@ func Build(name string) error {
 	return buildFunc(name)
 }
 
-func system(command string) error {
+func shell(command string) error {
 	cmd := exec.Command("bash", "-c", command)
 	// 获取命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
@@ -327,7 +324,9 @@ func execCommand(command CommandConfig) error {
 		os.Chdir(lastWd)
 	}()
 	if command.WorkDir != "" {
-		os.Chdir(command.WorkDir)
+		if err := os.Chdir(command.WorkDir); err != nil {
+			return err
+		}
 	}
 	line := fmt.Sprintf("%s %s", command.Name, strings.Join(command.Args, " "))
 	log.Printf("%s", line)
@@ -338,36 +337,36 @@ func execCommand(command CommandConfig) error {
 	return nil
 }
 
-func execCommandLine(line string) error {
-	lastWd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		os.Chdir(lastWd)
-	}()
-	arr := strings.Split(line, ";")
-	for _, v := range arr {
-		pats := strings.Fields(v)
-		name := pats[0]
-		args := pats[1:]
-		switch name {
-		case "cd":
-			if len(args) > 0 {
-				os.Chdir(args[0])
-			} else {
-				os.Chdir("")
-			}
-		default:
-			log.Printf("%s", v)
-			if err := execCommandArgv(name, args); err != nil {
-				log.Fatalln(v)
-				return err
-			}
-		}
-	}
-	return nil
-}
+// func execCommandLine(line string) error {
+// 	lastWd, err := os.Getwd()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer func() {
+// 		os.Chdir(lastWd)
+// 	}()
+// 	arr := strings.Split(line, ";")
+// 	for _, v := range arr {
+// 		pats := strings.Fields(v)
+// 		name := pats[0]
+// 		args := pats[1:]
+// 		switch name {
+// 		case "cd":
+// 			if len(args) > 0 {
+// 				os.Chdir(args[0])
+// 			} else {
+// 				os.Chdir("")
+// 			}
+// 		default:
+// 			log.Printf("%s", v)
+// 			if err := execCommandArgv(name, args); err != nil {
+// 				log.Fatalln(v)
+// 				return err
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 func execCommandLineOutput(line string) (output string, err error) {
 	pats := strings.Fields(line)
