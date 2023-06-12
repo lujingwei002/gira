@@ -7,9 +7,9 @@ framework:
 cli:
 	go build -o gira-cli bin/cli/main.go
 	go build -o protoc-gen-go-gclient bin/gen_gclient/*.go
-	cp -rf protoc-gen-go-gclient ~/go/bin/protoc-gen-go-gclient
+	cp -rf protoc-gen-go-gclient $(go env GOPATH)/bin/protoc-gen-go-gclient
 	go build -o protoc-gen-go-gserver bin/gen_gserver/*.go
-	cp -rf protoc-gen-go-gserver ~/go/bin/protoc-gen-go-gserver
+	cp -rf protoc-gen-go-gserver $(go env GOPATH)/bin/protoc-gen-go-gserver
 
 service:
 	protoc --go_out=service/admin --go-grpc_out=service/admin --go-gclient_out=service/admin --go-gserver_out=service/admin service/admin/admin.proto
