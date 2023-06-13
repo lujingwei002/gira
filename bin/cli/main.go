@@ -468,8 +468,10 @@ func runAction(c *cli.Context) error {
 
 func buildAction(c *cli.Context) error {
 	if c.Args().Len() <= 0 {
-		return nil
+		name := "default"
+		return proj.Build(name)
+	} else {
+		name := c.Args().First()
+		return proj.Build(name)
 	}
-	name := c.Args().First()
-	return proj.Build(name)
 }

@@ -268,6 +268,7 @@ func Build(name string) error {
 }
 
 func shell(command string) error {
+	log.Println(command)
 	cmd := exec.Command("bash", "-c", command)
 	// 获取命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
