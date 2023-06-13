@@ -71,6 +71,54 @@ func (r *HealthCheckResponse_MulticastResult) Errors(index int) error {
 	return r.errors[index]
 }
 
+type MemStatsResponse_MulticastResult struct {
+	errors       []error
+	peerCount    int
+	successPeers []*gira.Peer
+	errorPeers   []*gira.Peer
+	responses    []*MemStatsResponse
+}
+
+func (r *MemStatsResponse_MulticastResult) Error() error {
+	if len(r.errors) <= 0 {
+		return nil
+	}
+	return r.errors[0]
+}
+func (r *MemStatsResponse_MulticastResult) Response(index int) *MemStatsResponse {
+	if index < 0 || index >= len(r.responses) {
+		return nil
+	}
+	return r.responses[index]
+}
+func (r *MemStatsResponse_MulticastResult) SuccessPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.successPeers) {
+		return nil
+	}
+	return r.successPeers[index]
+}
+func (r *MemStatsResponse_MulticastResult) ErrorPeer(index int) *gira.Peer {
+	if index < 0 || index >= len(r.errorPeers) {
+		return nil
+	}
+	return r.errorPeers[index]
+}
+func (r *MemStatsResponse_MulticastResult) PeerCount() int {
+	return r.peerCount
+}
+func (r *MemStatsResponse_MulticastResult) SuccessCount() int {
+	return len(r.successPeers)
+}
+func (r *MemStatsResponse_MulticastResult) ErrorCount() int {
+	return len(r.errorPeers)
+}
+func (r *MemStatsResponse_MulticastResult) Errors(index int) error {
+	if index < 0 || index >= len(r.errors) {
+		return nil
+	}
+	return r.errors[index]
+}
+
 const (
 	PeerServerName = "peer_grpc.Peer"
 )
@@ -86,12 +134,14 @@ type PeerClients interface {
 	Broadcast() PeerClientsMulticast
 
 	HealthCheck(ctx context.Context, address string, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
+	MemStats(ctx context.Context, address string, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error)
 }
 
 type PeerClientsMulticast interface {
 	WhereRegex(regex string) PeerClientsMulticast
 	WherePrefix(prefix string) PeerClientsMulticast
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error)
+	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse_MulticastResult, error)
 }
 
 type PeerClientsUnicast interface {
@@ -102,6 +152,7 @@ type PeerClientsUnicast interface {
 	WhereUserCatalog(userId string) PeerClientsUnicast
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
+	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error)
 }
 
 type PeerClientsLocal interface {
@@ -109,6 +160,7 @@ type PeerClientsLocal interface {
 	WithTimeout(timeout int64) PeerClientsLocal
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
+	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error)
 }
 
 type peerClients struct {
@@ -220,6 +272,19 @@ func (c *peerClients) HealthCheck(ctx context.Context, address string, in *Healt
 	return out, nil
 }
 
+func (c *peerClients) MemStats(ctx context.Context, address string, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error) {
+	client, err := c.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.putClient(address, client)
+	out, err := client.MemStats(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type peerClientsLocal struct {
 	timeout int64
 	userId  string
@@ -250,6 +315,21 @@ func (c *peerClientsLocal) HealthCheck(ctx context.Context, in *HealthCheckReque
 		return nil, gira.ErrServerNotFound
 	} else {
 		return svr.HealthCheck(cancelCtx, in)
+	}
+}
+
+func (c *peerClientsLocal) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error) {
+	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+	defer cancelFunc()
+	if c.headers.Len() > 0 {
+		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+	}
+	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+		return nil, gira.ErrServerNotFound
+	} else if svr, ok := s.(PeerServer); !ok {
+		return nil, gira.ErrServerNotFound
+	} else {
+		return svr.MemStats(cancelCtx, in)
 	}
 }
 
@@ -327,6 +407,45 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 	return out, nil
 }
 
+func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error) {
+	var address string
+	if len(c.address) > 0 {
+		address = c.address
+	} else if c.peer != nil {
+		address = c.peer.GrpcAddr
+	} else if len(c.serviceName) > 0 {
+		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+			return nil, err
+		} else if len(peers) < 1 {
+			return nil, gira.ErrPeerNotFound.Trace()
+		} else {
+			address = peers[0].GrpcAddr
+		}
+	} else if len(c.userId) > 0 {
+		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+			return nil, err
+		} else {
+			address = peer.GrpcAddr
+		}
+	}
+	if len(address) <= 0 {
+		return nil, gira.ErrInvalidArgs.Trace()
+	}
+	client, err := c.client.getClient(address)
+	if err != nil {
+		return nil, err
+	}
+	defer c.client.putClient(address, client)
+	if c.headers.Len() > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, c.headers)
+	}
+	out, err := client.MemStats(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type peerClientsMulticast struct {
 	count       int
 	serviceName string
@@ -376,6 +495,50 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 			continue
 		}
 		out, err := client.HealthCheck(ctx, in, opts...)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			c.client.putClient(peer.GrpcAddr, client)
+			continue
+		}
+		c.client.putClient(peer.GrpcAddr, client)
+		result.responses = append(result.responses, out)
+		result.successPeers = append(result.successPeers, peer)
+	}
+	return result, nil
+}
+
+func (c *peerClientsMulticast) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse_MulticastResult, error) {
+	var peers []*gira.Peer
+	var whereOpts []service_options.WhereOption
+	// 多播
+	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+	if c.count > 0 {
+		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+	}
+	serviceName := c.serviceName
+	if len(c.regex) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+	}
+	if len(c.prefix) > 0 {
+		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+	}
+	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
+	if err != nil {
+		return nil, err
+	}
+	result := &MemStatsResponse_MulticastResult{}
+	result.peerCount = len(peers)
+	for _, peer := range peers {
+		client, err := c.client.getClient(peer.GrpcAddr)
+		if err != nil {
+			result.errors = append(result.errors, err)
+			result.errorPeers = append(result.errorPeers, peer)
+			continue
+		}
+		out, err := client.MemStats(ctx, in, opts...)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)

@@ -2,6 +2,7 @@ package peer
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
@@ -27,6 +28,24 @@ func (self *peer_server) HealthCheck(context.Context, *peer_grpc.HealthCheckRequ
 	return resp, nil
 }
 
+func (self *peer_server) MemStats(context.Context, *peer_grpc.MemStatsRequest) (*peer_grpc.MemStatsResponse, error) {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	resp := &peer_grpc.MemStatsResponse{
+		Alloc:        memStats.Alloc,
+		TotalAlloc:   memStats.TotalAlloc,
+		Sys:          memStats.Sys,
+		Mallocs:      memStats.Mallocs,
+		Frees:        memStats.Frees,
+		HeapAlloc:    memStats.HeapAlloc,
+		HeapSys:      memStats.HeapSys,
+		HeapIdle:     memStats.HeapIdle,
+		HeapInuse:    memStats.HeapInuse,
+		HeapReleased: memStats.HeapReleased,
+		HeapObjects:  memStats.HeapObjects,
+	}
+	return resp, nil
+}
 func NewService() *PeerService {
 	return &PeerService{
 		peerServer: &peer_server{},
