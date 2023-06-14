@@ -343,3 +343,13 @@ func StartService(name string, service gira.Service) error {
 		return s.StartService(name, service)
 	}
 }
+
+// ================= cron =============================
+func Cron(spec string, cmd func()) error {
+	application := gira.App()
+	if s := application.GetCron(); s == nil {
+		return gira.ErrCronNotImplement
+	} else {
+		return s.AddFunc(spec, cmd)
+	}
+}

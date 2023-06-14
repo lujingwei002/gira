@@ -209,3 +209,12 @@ func (application *Application) GetAdminDbClient() gira.DbClient {
 		return application.adminDbClient
 	}
 }
+
+// ================== gira.Cron ==================
+func (application *Application) GetCron() gira.Cron {
+	if application.cron == nil {
+		return nil
+	} else {
+		return application.cron
+	}
+}

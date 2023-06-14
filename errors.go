@@ -96,6 +96,7 @@ const (
 	E_PROTO_RESPONSE_CAST                      = -81
 	E_PROTO_PUSH_CAST                          = -82
 	E_PROTO_RESPONSE_NEW                       = -83
+	E_CRON_NOT_IMPLEMENT                       = -84
 )
 const (
 	E_MSG_OK                                       = "成功"
@@ -185,6 +186,7 @@ const (
 	E_MSG_PROTO_RESPONSE_CAST                      = "proto response cast"
 	E_MSG_PROTO_PUSH_CAST                          = "proto push cast"
 	E_MSG_PROTO_RESPONSE_NEW                       = "proto response new"
+	E_MSG_CRON_NOT_IMPLEMENT                       = "cron not implement "
 )
 
 type Error struct {
@@ -299,6 +301,7 @@ var (
 	ErrProtoResponseCast                  = NewError(E_PROTO_RESPONSE_CAST, E_MSG_PROTO_RESPONSE_CAST)
 	ErrProtoPushCast                      = NewError(E_PROTO_PUSH_CAST, E_MSG_PROTO_PUSH_CAST)
 	ErrProtoResponseNew                   = NewError(E_PROTO_RESPONSE_NEW, E_MSG_PROTO_RESPONSE_NEW)
+	ErrCronNotImplement                   = NewError(E_CRON_NOT_IMPLEMENT, E_MSG_CRON_NOT_IMPLEMENT)
 )
 
 func ErrCode(err error) int32 {

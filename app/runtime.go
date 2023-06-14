@@ -30,6 +30,7 @@ import (
 
 	_ "net/http/pprof"
 
+	"github.com/robfig/cron"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -91,6 +92,7 @@ type Application struct {
 	grpcServer         *grpc.Server
 	serviceContainer   *service.ServiceContainer
 	moduleContainer    *module.ModuleContainer
+	cron               *cron.Cron
 }
 
 func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFacade) *Application {
@@ -269,6 +271,8 @@ func (application *Application) onStart() (err error) {
 			application.errGroup.Wait()
 		}
 	}()
+	// ==== cron ================
+	application.cron.Start()
 
 	// ==== registry ================
 	if application.registry != nil {
@@ -340,7 +344,8 @@ func (application *Application) onCreate() error {
 			http.ListenAndServe(fmt.Sprintf("%s:%d", application.config.Pprof.Bind, application.config.Pprof.Port), nil)
 		}()
 	}
-
+	// ==== cron ================
+	application.cron = cron.New()
 	// ==== registry ================
 	if application.config.Module.Etcd != nil {
 		if r, err := registry.NewConfigRegistry(application, applicationFacade, application.config.Module.Etcd); err != nil {
