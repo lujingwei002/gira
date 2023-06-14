@@ -28,6 +28,7 @@ func NewService(proto gira.Proto, config config.GameConfig, hallHandler game.Hal
 		config:        config,
 		hallHandler:   hallHandler,
 		playerHandler: playerHandler,
+		status:        hall_grpc.HallStatus_UnAvailable,
 	}
 	service.hallServer = &hall_server{
 		hall: service,
@@ -52,7 +53,7 @@ type hall_service struct {
 	playerHandler        gira.ProtoHandler
 	proto                gira.Proto
 	config               config.GameConfig
-	// isDestory            bool
+	status               hall_grpc.HallStatus
 }
 
 func (hall *hall_service) OnStart(ctx context.Context) error {
@@ -92,6 +93,7 @@ func (hall *hall_service) Serve() error {
 	// 	}
 	// 	return nil
 	// })
+	hall.status = hall_grpc.HallStatus_OK
 	for {
 		select {
 		case <-hall.ctx.Done():
@@ -100,8 +102,9 @@ func (hall *hall_service) Serve() error {
 		}
 	}
 TAG_CLEAN_UP:
+	hall.status = hall_grpc.HallStatus_UnAvailable
 	hall.gateStreamCancelFunc()
-	// hall.isDestory = true
+
 	for {
 		log.Infow("hall on stop------------", "session_count", hall.sessionCount)
 		sessions := make([]*hall_sesssion, 0)

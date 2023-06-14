@@ -30,6 +30,7 @@ type upstream_peer struct {
 	cancelFunc         context.CancelFunc
 	playerCount        int64
 	buildTime          int64
+	status             hall_grpc.HallStatus
 	respositoryVersion string
 	hall               *HallServer
 }
@@ -43,6 +44,7 @@ func NewUpstreamPeer(hall *HallServer, peer *gira.Peer) *upstream_peer {
 		ctx:        ctx,
 		cancelFunc: cancelFUnc,
 		hall:       hall,
+		status:     hall_grpc.HallStatus_UnAvailable,
 	}
 }
 
@@ -66,23 +68,26 @@ func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_g
 	}
 }
 
-// func (server *upstream_peer) HealthCheck() (err error) {
-// 	if client := server.client; client == nil {
-// 		err = gira.ErrNullPonter
-// 		return
-// 	} else {
-// 		req := &hall_grpc.HealthCheckRequest{}
-// 		var resp *hall_grpc.HealthCheckResponse
-// 		if resp, err = client.HealthCheck(server.ctx, req); err != nil {
-// 			return
-// 		} else if resp.Status != hall_grpc.HallStatus_Start {
-// 			err = gira.ErrTodo
-// 			return
-// 		} else {
-// 			return
-// 		}
-// 	}
-// }
+func (server *upstream_peer) HealthCheck() (err error) {
+	if client := server.client; client == nil {
+		err = gira.ErrNullPonter
+		return
+	} else {
+		req := &hall_grpc.HealthCheckRequest{}
+		var resp *hall_grpc.HealthCheckResponse
+		if resp, err = client.HealthCheck(server.ctx, req); err != nil {
+			return
+		} else {
+			server.status = resp.Status
+			if resp.Status != hall_grpc.HallStatus_OK {
+				err = gira.ErrUpstreamUnavailable
+				return
+			} else {
+				return
+			}
+		}
+	}
+}
 
 func (server *upstream_peer) serve() error {
 	var conn *grpc.ClientConn
@@ -149,7 +154,7 @@ func (server *upstream_peer) serve() error {
 		}
 		server.buildTime = resp.BuildTime
 		server.respositoryVersion = resp.RespositoryVersion
-		log.Infow("server init", "full_name", server.FullName, "build_time", resp.BuildTime, "respository_version", resp.RespositoryVersion)
+		log.Infow("server init success", "full_name", server.FullName, "build_time", resp.BuildTime, "respository_version", resp.RespositoryVersion)
 	}
 	server.client = client
 	errGroup, errCtx := errgroup.WithContext(server.ctx)
@@ -167,6 +172,7 @@ func (server *upstream_peer) serve() error {
 				} else {
 					log.Infow("在线人数", "full_name", server.FullName, "session_count", resp.PlayerCount)
 					server.playerCount = resp.PlayerCount
+					server.status = resp.Status
 				}
 			}
 		}
@@ -177,8 +183,10 @@ func (server *upstream_peer) serve() error {
 			var resp *hall_grpc.GateStreamResponse
 			if resp, err = stream.Recv(); err != nil {
 				log.Warnw("gate recv fail", "error", err)
-				server.client = nil
-				return err
+				// server.client = nil
+				// return err
+				server.status = hall_grpc.HallStatus_UnAvailable
+				return nil
 			} else {
 				log.Infow("gate recv", "resp", resp)
 			}

@@ -62,17 +62,17 @@ func (hall *HallServer) SelectPeer() *upstream_peer {
 		}
 		return true
 	})
-	return selected
-	// if selected != nil {
-	// 	if err := selected.HealthCheck(); err != nil {
-	// 		log.Warnw("select peer fail", "error", err, "full_name", selected.FullName)
-	// 		return nil
-	// 	} else {
-	// 		return selected
-	// 	}
-	// } else {
-	// 	return nil
-	// }
+	// return selected
+	if selected != nil {
+		if err := selected.HealthCheck(); err != nil {
+			log.Warnw("select peer fail", "error", err, "full_name", selected.FullName)
+			return nil
+		} else {
+			return selected
+		}
+	} else {
+		return nil
+	}
 }
 
 func (hall *HallServer) loginErrResponse(message gira.GatewayMessage, req gira.ProtoRequest, err error) error {

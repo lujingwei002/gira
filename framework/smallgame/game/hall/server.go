@@ -139,11 +139,7 @@ func (self *hall_server) HealthCheck(ctx context.Context, req *hall_grpc.HealthC
 	resp := &hall_grpc.HealthCheckResponse{
 		PlayerCount: self.hall.sessionCount,
 	}
-	// if self.hall.isDestory {
-	// 	resp.Status = hall_grpc.HallStatus_Stop
-	// } else {
-	// 	resp.Status = hall_grpc.HallStatus_Start
-	// }
+	resp.Status = self.hall.status
 	return resp, nil
 }
 

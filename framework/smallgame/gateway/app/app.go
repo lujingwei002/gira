@@ -10,13 +10,13 @@ import (
 type Framework struct {
 	hall *hall.HallServer
 	// 使用的协议，当中必须包括名为Login的协议
-	Proto  gira.Proto
-	Config *config.Config
+	proto  gira.Proto
+	config *config.Config
 }
 
 func NewFramework(proto gira.Proto) gateway.GatewayFramework {
 	return &Framework{
-		Proto: proto,
+		proto: proto,
 	}
 }
 
@@ -31,11 +31,11 @@ func (framework *Framework) ConnectionCount() int64 {
 }
 
 func (framework *Framework) GetConfig() *config.GatewayConfig {
-	return &framework.Config.Framework.Gateway
+	return &framework.config.Framework.Gateway
 }
 
 func (framework *Framework) OnFrameworkCreate(application gira.Application) error {
-	framework.hall = hall.NewHall(framework.Proto)
+	framework.hall = hall.NewHall(framework.proto)
 	if err := framework.hall.OnCreate(); err != nil {
 		return err
 	}
@@ -51,8 +51,8 @@ func (framework *Framework) OnFrameworkStop() error {
 }
 
 func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
-	framework.Config = &config.Config{}
-	return framework.Config.OnConfigLoad(c)
+	framework.config = &config.Config{}
+	return framework.config.OnConfigLoad(c)
 }
 
 func (framework *Framework) ServeClientStream(conn gira.GatewayConn) {

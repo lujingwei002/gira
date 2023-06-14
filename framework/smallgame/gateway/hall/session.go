@@ -191,7 +191,7 @@ func (self *client_session) processClientMessage(message gira.GatewayMessage) er
 	log.Infow("client=>upstream", "session_id", sessionId, "len", len(message.Payload()), "req_id", message.ReqId())
 	if self.stream == nil {
 		log.Warnw("当前服务器不可以用，无法转发", "req_id", message.ReqId())
-		return gira.ErrTodo
+		return gira.ErrUpstreamUnavailable
 	} else {
 		data := &hall_grpc.ClientMessageRequest{
 			MemberId:  memberId,

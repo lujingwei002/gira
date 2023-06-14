@@ -56,8 +56,8 @@ message HealthCheckRequest {
 }
 
 enum HallStatus {
-    Start = 0;
-    Stop = 1;
+    OK = 0; // 可用
+    UnAvailable = 1; // 不可用
 }
 
 message HealthCheckResponse {
