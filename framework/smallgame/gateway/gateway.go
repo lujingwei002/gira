@@ -2,15 +2,19 @@ package gateway
 
 import (
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/framework/smallgame/gateway/app"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 )
+
+type LoginRequest interface {
+	GetMemberId() string
+	GetToken() string
+}
 
 // 需要实现的接口
 type GatewayHandler interface {
 }
 
-type Gateway interface {
+type GatewayFramework interface {
 	gira.Framework
 	// 配置
 	GetConfig() *config.GatewayConfig
@@ -18,10 +22,4 @@ type Gateway interface {
 	SessionCount() int64
 	// 当前连接的数量
 	ConnectionCount() int64
-}
-
-func NewFramework(proto gira.Proto) Gateway {
-	return &app.Framework{
-		Proto: proto,
-	}
 }

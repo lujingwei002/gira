@@ -9,8 +9,8 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/facade"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -139,11 +139,11 @@ func (self *hall_server) HealthCheck(ctx context.Context, req *hall_grpc.HealthC
 	resp := &hall_grpc.HealthCheckResponse{
 		PlayerCount: self.hall.sessionCount,
 	}
-	if self.hall.isDestory {
-		resp.Status = hall_grpc.HallStatus_Stop
-	} else {
-		resp.Status = hall_grpc.HallStatus_Start
-	}
+	// if self.hall.isDestory {
+	// 	resp.Status = hall_grpc.HallStatus_Stop
+	// } else {
+	// 	resp.Status = hall_grpc.HallStatus_Start
+	// }
 	return resp, nil
 }
 
@@ -153,38 +153,38 @@ func (self *hall_server) GateStream(client hall_grpc.Hall_GateStreamServer) erro
 		// ticker.Stop()
 		log.Infow("gate stream exit")
 	}()
-	if self.hall.isDestory {
-		return gira.ErrAlreadyDestory
-	}
-	errGroup, errCtx := errgroup.WithContext(self.hall.backgroundCtx)
+	// if self.hall.isDestory {
+	// 	return gira.ErrAlreadyDestory
+	// }
+	errGroup, errCtx := errgroup.WithContext(self.hall.gateStreamCtx)
 	// 定时发送在线人数
-	errGroup.Go(func() error {
-		for {
-			select {
-			case <-self.hall.backgroundCtx.Done():
-				return self.hall.backgroundCtx.Err()
-			case <-errCtx.Done():
-				return errCtx.Err()
-			}
-		}
-	})
+	// errGroup.Go(func() error {
+	// 	for {
+	// 		select {
+	// 		case <-self.hall.gateStreamCtx.Done():
+	// 			return self.hall.gateStreamCtx.Err()
+	// 		case <-errCtx.Done():
+	// 			return errCtx.Err()
+	// 		}
+	// 	}
+	// })
 	// 循环接收gate的命令
 	errGroup.Go(func() error {
 		for {
 			select {
-			case <-self.hall.backgroundCtx.Done():
-				return self.hall.backgroundCtx.Err()
+			case <-self.hall.gateStreamCtx.Done():
+				return self.hall.gateStreamCtx.Err()
 			case <-errCtx.Done():
 				return errCtx.Err()
-			default:
-				req, err := client.Recv()
-				if err != nil {
-					log.Infow("gate recv fail", "error", err)
-					// 连接关闭，返回错误，会触发errCtx的cancel
-					return err
-				} else {
-					log.Infow("gate recv", "req", req)
-				}
+				// default:
+				// 	req, err := client.Recv()
+				// 	if err != nil {
+				// 		log.Infow("gate recv fail", "error", err)
+				// 		// 连接关闭，返回错误，会触发errCtx的cancel
+				// 		return err
+				// 	} else {
+				// 		log.Infow("gate recv", "req", req)
+				// 	}
 			}
 		}
 	})
@@ -195,9 +195,9 @@ func (self *hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) 
 	var req *hall_grpc.ClientMessageRequest
 	var err error
 	var memberId string
-	if self.hall.isDestory {
-		return gira.ErrAlreadyDestory
-	}
+	// if self.hall.isDestory {
+	// 	return gira.ErrAlreadyDestory
+	// }
 	if req, err = client.Recv(); err != nil {
 		log.Errorw("recv fail", "error", err)
 		return err

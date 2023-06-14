@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/framework/smallgame/gateway"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/hall"
 )
@@ -11,6 +12,12 @@ type Framework struct {
 	// 使用的协议，当中必须包括名为Login的协议
 	Proto  gira.Proto
 	Config *config.Config
+}
+
+func NewFramework(proto gira.Proto) gateway.GatewayFramework {
+	return &Framework{
+		Proto: proto,
+	}
 }
 
 // 当前会话的数量

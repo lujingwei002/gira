@@ -8,12 +8,18 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
+// hall.ctx
+//
+//	   |
+//		  |----ctx---
+//				|
+//				|--- upstream ctx
 type upstream_peer struct {
 	Id       int32
 	FullName string
@@ -26,6 +32,18 @@ type upstream_peer struct {
 	buildTime          int64
 	respositoryVersion string
 	hall               *HallServer
+}
+
+func NewUpstreamPeer(hall *HallServer, peer *gira.Peer) *upstream_peer {
+	ctx, cancelFUnc := context.WithCancel(hall.ctx)
+	return &upstream_peer{
+		Id:         peer.Id,
+		FullName:   peer.FullName,
+		Address:    peer.GrpcAddr,
+		ctx:        ctx,
+		cancelFunc: cancelFUnc,
+		hall:       hall,
+	}
 }
 
 func (server *upstream_peer) String() string {
@@ -48,23 +66,23 @@ func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_g
 	}
 }
 
-func (server *upstream_peer) HealthCheck() (err error) {
-	if client := server.client; client == nil {
-		err = gira.ErrNullPonter
-		return
-	} else {
-		req := &hall_grpc.HealthCheckRequest{}
-		var resp *hall_grpc.HealthCheckResponse
-		if resp, err = client.HealthCheck(server.ctx, req); err != nil {
-			return
-		} else if resp.Status != hall_grpc.HallStatus_Start {
-			err = gira.ErrTodo
-			return
-		} else {
-			return
-		}
-	}
-}
+// func (server *upstream_peer) HealthCheck() (err error) {
+// 	if client := server.client; client == nil {
+// 		err = gira.ErrNullPonter
+// 		return
+// 	} else {
+// 		req := &hall_grpc.HealthCheckRequest{}
+// 		var resp *hall_grpc.HealthCheckResponse
+// 		if resp, err = client.HealthCheck(server.ctx, req); err != nil {
+// 			return
+// 		} else if resp.Status != hall_grpc.HallStatus_Start {
+// 			err = gira.ErrTodo
+// 			return
+// 		} else {
+// 			return
+// 		}
+// 	}
+// }
 
 func (server *upstream_peer) serve() error {
 	var conn *grpc.ClientConn
@@ -75,16 +93,13 @@ func (server *upstream_peer) serve() error {
 	dialTicker := time.NewTicker(1 * time.Second)
 	streamCtx, streamCancelFunc := context.WithCancel(server.ctx)
 	defer func() {
-		streamCancelFunc()
-		dialTicker.Stop()
-		// 关闭链接
-		if conn != nil {
-			conn.Close()
-			conn = nil
-		}
 		server.client = nil
+		streamCancelFunc()
+		server.cancelFunc()
+		dialTicker.Stop()
 		log.Infow("server upstream exit", "full_name", server.FullName, "address", server.Address)
 	}()
+	// 1.dial
 	for {
 		// TODO: 有什么可选参数
 		conn, err = grpc.Dial(address, grpc.WithInsecure())
@@ -102,6 +117,8 @@ func (server *upstream_peer) serve() error {
 			break
 		}
 	}
+	defer conn.Close()
+	// 2.new stream
 	client = hall_grpc.NewHallClient(conn)
 	for {
 		stream, err = client.GateStream(streamCtx)
@@ -121,10 +138,8 @@ func (server *upstream_peer) serve() error {
 	}
 	dialTicker.Stop()
 	heartbeatTicker := time.NewTicker(time.Duration(config.Gateway.Framework.Gateway.Upstream.HeartbeatInvertal) * time.Second)
-	defer func() {
-		heartbeatTicker.Stop()
-	}()
-	// init
+	defer heartbeatTicker.Stop()
+	// 3.init
 	{
 		req := &hall_grpc.InfoRequest{}
 		resp, err := client.Info(server.ctx, req)
@@ -138,6 +153,7 @@ func (server *upstream_peer) serve() error {
 	}
 	server.client = client
 	errGroup, errCtx := errgroup.WithContext(server.ctx)
+	// heartbeat
 	errGroup.Go(func() error {
 		req := &hall_grpc.HealthCheckRequest{}
 		for {
@@ -155,11 +171,13 @@ func (server *upstream_peer) serve() error {
 			}
 		}
 	})
+	// stream
 	errGroup.Go(func() error {
 		for {
 			var resp *hall_grpc.GateStreamResponse
 			if resp, err = stream.Recv(); err != nil {
 				log.Warnw("gate recv fail", "error", err)
+				server.client = nil
 				return err
 			} else {
 				log.Infow("gate recv", "resp", resp)

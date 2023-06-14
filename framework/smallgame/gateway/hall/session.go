@@ -2,16 +2,14 @@ package hall
 
 import (
 	"context"
-	"io"
 	"runtime/debug"
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/service/hall/hall_grpc"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
+	"github.com/lujingwei002/gira/log"
+	"golang.org/x/sync/errgroup"
 )
 
 type client_session struct {
@@ -82,17 +80,17 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 			// 上游关闭时，stream并不会返回，会一直阻塞
 			if resp, err = stream.Recv(); err == nil {
 				session.processStreamMessage(resp)
-			} else if err != io.EOF {
-				log.Infow("上游连接异常关闭", "session_id", sessionId, "error", err)
-				session.cancelFunc()
-				return err
+				// } else if err != io.EOF {
+				// 	log.Infow("上游连接异常关闭", "session_id", sessionId, "error", err)
+				// 	session.cancelFunc()
+				// 	return err
 			} else {
 				select {
 				case <-session.ctx.Done():
 					return session.ctx.Err()
 				default:
 				}
-				log.Infow("上游连接正常关闭", "session_id", sessionId, "error", err)
+				log.Infow("上游连接关闭", "session_id", sessionId, "error", err)
 				session.stream = nil
 				client.SendServerSuspend("")
 				// 重新选择节点
@@ -100,7 +98,7 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 					// log.Infow("重新选择节点", "session_id", sessionId)
 					server = hall.SelectPeer()
 					if server != nil {
-						// log.Infow("重新选择节点", "session_id", sessionId, "full_name", server.FullName)
+						log.Infow("重新选择节点", "session_id", sessionId, "full_name", server.FullName)
 						streamCancelFunc()
 						streamCtx, streamCancelFunc = context.WithCancel(server.ctx)
 						stream, err = server.NewClientStream(streamCtx)

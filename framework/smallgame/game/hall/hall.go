@@ -8,12 +8,21 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/facade"
+	"github.com/lujingwei002/gira/framework/smallgame/game"
+	"github.com/lujingwei002/gira/framework/smallgame/game/config"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/options/service_options"
-	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 )
 
-func NewService(proto gira.Proto, config Config, hallHandler HallHandler, playerHandler gira.ProtoHandler) (Hall, error) {
+type HallService interface {
+	gira.Service
+	SessionCount() int64
+	Push(ctx context.Context, userId string, req gira.ProtoPush) error
+	MustPush(ctx context.Context, userId string, resp gira.ProtoPush) (err error)
+}
+
+func NewService(proto gira.Proto, config config.GameConfig, hallHandler game.HallHandler, playerHandler gira.ProtoHandler) (HallService, error) {
 	service := &hall_service{
 		proto:         proto,
 		config:        config,
@@ -33,15 +42,17 @@ func GetServiceName() string {
 type hall_service struct {
 	hallServer           *hall_server
 	ctx                  context.Context
+	gateStreamCtx        context.Context
+	gateStreamCancelFunc context.CancelFunc
 	backgroundCtx        context.Context
 	backgroundCancelFunc context.CancelFunc
 	sessionDict          sync.Map
 	sessionCount         int64
-	hallHandler          HallHandler
+	hallHandler          game.HallHandler
 	playerHandler        gira.ProtoHandler
 	proto                gira.Proto
-	config               Config
-	isDestory            bool
+	config               config.GameConfig
+	// isDestory            bool
 }
 
 func (hall *hall_service) OnStart(ctx context.Context) error {
@@ -51,6 +62,7 @@ func (hall *hall_service) OnStart(ctx context.Context) error {
 	}
 	// 后台运行
 	hall.backgroundCtx, hall.backgroundCancelFunc = context.WithCancel(context.Background())
+	hall.gateStreamCtx, hall.gateStreamCancelFunc = context.WithCancel(hall.backgroundCtx)
 	hall_grpc.RegisterHallServer(facade.GrpcServer(), hall.hallServer)
 	return nil
 }
@@ -88,7 +100,8 @@ func (hall *hall_service) Serve() error {
 		}
 	}
 TAG_CLEAN_UP:
-	hall.isDestory = true
+	hall.gateStreamCancelFunc()
+	// hall.isDestory = true
 	for {
 		log.Infow("hall on stop------------", "session_count", hall.sessionCount)
 		sessions := make([]*hall_sesssion, 0)
@@ -106,16 +119,15 @@ TAG_CLEAN_UP:
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
+	// log.Printf("111111111111111111")
+	// time.Sleep(10 * time.Second)
+	// log.Printf("222222222222222222")
 	hall.backgroundCancelFunc()
 	return nil
 }
 
 func (hall *hall_service) SessionCount() int64 {
 	return hall.sessionCount
-}
-
-func (hall *hall_service) GetConfig() *Config {
-	return &hall.config
 }
 
 // 踢用户下线

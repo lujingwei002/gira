@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v3.12.4
-// source: service/hall/hall.proto
+// source: doc/service/hall.proto
 
 package hall_grpc
 
@@ -484,5 +484,5 @@ var Hall_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "service/hall/hall.proto",
+	Metadata: "doc/service/hall.proto",
 }

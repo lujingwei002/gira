@@ -1,10 +1,11 @@
-package hall
+package game
 
 import (
 	"context"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/actor"
+	"github.com/lujingwei002/gira/framework/smallgame/game/config"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -19,15 +20,14 @@ type Player interface {
 	Update()
 }
 
-// 大厅接口
-type Hall interface {
-	gira.Service
-	GetConfig() *Config
+type GameFramework interface {
+	gira.Framework
+	GetConfig() *config.GameConfig
 	SessionCount() int64
 	// 将消息推送给玩家, 不保证消息已经被处理，如果玩家当前不在线，消息将会推送失败，但不会返回错误
 	Push(ctx context.Context, userId string, req gira.ProtoPush) error
 	// 会将消息推送到玩家的消息队列中，但不等待结果，如果玩家不在线，会返回错误
-	MustPush(ctx context.Context, userId string, resp gira.ProtoPush) (err error)
+	MustPush(ctx context.Context, userId string, req gira.ProtoPush) (err error)
 }
 
 type Session interface {
@@ -40,6 +40,7 @@ type Session interface {
 	// 抢占session的控制台执行f函数，返回后释放控制台
 	Go(f func() error) error
 }
+
 type HallHandler interface {
 	// 由memberId创建账号
 	NewUser(ctx context.Context, memberId string) (avatar UserAvatar, err error)

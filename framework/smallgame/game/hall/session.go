@@ -12,8 +12,9 @@ import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/actor"
 	"github.com/lujingwei002/gira/facade"
+	"github.com/lujingwei002/gira/framework/smallgame/game"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/service/hall/hall_grpc"
 )
 
 // 锁是和session绑定的，因此由session来抢占会释放
@@ -27,8 +28,8 @@ type hall_sesssion struct {
 	sessionId        uint64
 	memberId         string
 	userId           string
-	avatar           UserAvatar
-	player           Player
+	avatar           game.UserAvatar
+	player           game.Player
 	chClientResponse chan *hall_grpc.ClientMessageResponse // 由stream负责关闭
 	chClientRequest  chan *hall_grpc.ClientMessageRequest  // 由stream负责关闭
 	chPeerPush       chan gira.ProtoPush                   // 其他节点，或者自己节点转发来的的push消息，由session负责关闭
@@ -39,7 +40,7 @@ type hall_sesssion struct {
 
 func newSession(hall *hall_service, sessionId uint64, memberId string) (session *hall_sesssion, err error) {
 	var userId string
-	var avatar UserAvatar
+	var avatar game.UserAvatar
 	ctx := hall.backgroundCtx
 	avatar, err = hall.hallHandler.NewUser(ctx, memberId)
 	if err != nil {
@@ -108,7 +109,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 		return
 	}
 	atomic.AddInt64(&hall.sessionCount, 1)
-	var player Player
+	var player game.Player
 	// 加载数据
 	if player, err = session.load(); err != nil {
 		// 数据加载失败，释放锁
@@ -240,7 +241,7 @@ func (session *hall_sesssion) bgSave() {
 }
 
 // 加载数据
-func (session *hall_sesssion) load() (player Player, err error) {
+func (session *hall_sesssion) load() (player game.Player, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error(e)

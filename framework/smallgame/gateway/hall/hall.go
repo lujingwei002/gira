@@ -9,14 +9,11 @@ import (
 	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/framework/smallgame/gateway"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 	jwt "github.com/lujingwei002/gira/jwt/account"
 )
 
-type LoginRequest interface {
-	GetMemberId() string
-	GetToken() string
-}
 type HallServer struct {
 	proto      gira.Proto
 	peers      sync.Map
@@ -55,21 +52,27 @@ func (hall *HallServer) SelectPeer() *upstream_peer {
 	hall.peers.Range(func(key any, value any) bool {
 		server := value.(*upstream_peer)
 		if server.client != nil && server.buildTime == maxBuildTime && server.playerCount < minPlayerCount {
-			minPlayerCount = server.playerCount
-			selected = server
+			select {
+			case <-server.ctx.Done():
+				return true
+			default:
+				minPlayerCount = server.playerCount
+				selected = server
+			}
 		}
 		return true
 	})
-	if selected != nil {
-		if err := selected.HealthCheck(); err != nil {
-			log.Warnw("select peer fail", "error", err, "full_name", selected.FullName)
-			return nil
-		} else {
-			return selected
-		}
-	} else {
-		return nil
-	}
+	return selected
+	// if selected != nil {
+	// 	if err := selected.HealthCheck(); err != nil {
+	// 		log.Warnw("select peer fail", "error", err, "full_name", selected.FullName)
+	// 		return nil
+	// 	} else {
+	// 		return selected
+	// 	}
+	// } else {
+	// 	return nil
+	// }
 }
 
 func (hall *HallServer) loginErrResponse(message gira.GatewayMessage, req gira.ProtoRequest, err error) error {
@@ -123,7 +126,7 @@ func (hall *HallServer) ServeClientStream(client gira.GatewayConn) {
 		log.Warnw("expeted login request", "name", name, "session_id", sessionId)
 	} else {
 		// 检验token
-		loginReq, ok := dataReq.(LoginRequest)
+		loginReq, ok := dataReq.(gateway.LoginRequest)
 		if !ok {
 			log.Errorw("login request cast fail", "session_id", sessionId)
 			return
@@ -154,15 +157,7 @@ func (hall *HallServer) OnPeerAdd(peer *gira.Peer) {
 		return
 	}
 	log.Infow("add upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
-	ctx, cancelFUnc := context.WithCancel(hall.ctx)
-	server := &upstream_peer{
-		Id:         peer.Id,
-		FullName:   peer.FullName,
-		Address:    peer.GrpcAddr,
-		ctx:        ctx,
-		cancelFunc: cancelFUnc,
-		hall:       hall,
-	}
+	server := NewUpstreamPeer(hall, peer)
 	if v, loaded := hall.peers.LoadOrStore(peer.Id, server); loaded {
 		lastServer := v.(*upstream_peer)
 		lastServer.close()

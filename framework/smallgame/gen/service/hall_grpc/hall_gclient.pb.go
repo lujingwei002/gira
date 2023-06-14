@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-gclient v1.3.0
 // - protoc             v3.12.4
-// source: service/hall/hall.proto
+// source: doc/service/hall.proto
 
 package hall_grpc
 
