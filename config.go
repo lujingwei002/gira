@@ -376,8 +376,8 @@ func (c *config_reader) read(dir string, envDir string, appType string, appId in
 	}
 	// log.Infof("配置预处理后\n%v\n", sb.String())
 	// 读环境变量
-	yamlEnvFilePath := path.Join(envDir, ".config.yaml")
-	dotEnvFilePath := path.Join(envDir, ".config.env")
+	yamlEnvFilePath := path.Join(envDir, "config.yaml")
+	dotEnvFilePath := path.Join(envDir, ".env")
 	envData, err := c.readEnv(yamlEnvFilePath, dotEnvFilePath, appType, appId)
 	if err != nil {
 		return nil, err
@@ -433,8 +433,8 @@ func printLines(str string) {
 	}
 }
 
-// dotEnvFilePath 环境变量文件路径 .config.env
-// filePath 变量文件路径  .config.yaml
+// dotEnvFilePath 环境变量文件路径 .env
+// filePath 变量文件路径  config.yaml
 // 优先级 命令行 > 文件中appName指定变量 > 文件中变量
 func (c *config_reader) readEnv(filePath string, dotEnvFilePath string, appType string, appId int32) (map[string]interface{}, error) {
 	fileEnv := make(map[string]string)

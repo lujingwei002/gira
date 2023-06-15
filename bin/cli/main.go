@@ -305,11 +305,11 @@ func envSwitchAction(args *cli.Context) error {
 		return envListAction(args)
 	}
 	os.Remove(filepath.Join(proj.Config.EnvDir, ".env"))
-	os.Remove(filepath.Join(proj.Config.EnvDir, ".config.yaml"))
+	os.Remove(filepath.Join(proj.Config.EnvDir, "config.yaml"))
 	if err := os.Symlink(filepath.Join(proj.Config.EnvDir, expectName, ".env"), filepath.Join(proj.Config.EnvDir, ".env")); err != nil {
 		return err
 	}
-	if err := os.Symlink(filepath.Join(proj.Config.EnvDir, expectName, ".config.yaml"), filepath.Join(proj.Config.EnvDir, ".config.yaml")); err != nil {
+	if err := os.Symlink(filepath.Join(proj.Config.EnvDir, expectName, "config.yaml"), filepath.Join(proj.Config.EnvDir, "config.yaml")); err != nil {
 		return err
 	}
 	log.Printf("switch %s success", expectName)
