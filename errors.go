@@ -1,6 +1,7 @@
 package gira
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime/debug"
 	"strconv"
@@ -97,6 +98,7 @@ const (
 	E_PROTO_PUSH_CAST                          = -82
 	E_PROTO_RESPONSE_NEW                       = -83
 	E_CRON_NOT_IMPLEMENT                       = -84
+	E_CONFIG_ENV_INVALID_SYNTAX                = -85
 )
 const (
 	E_MSG_OK                                       = "成功"
@@ -187,6 +189,7 @@ const (
 	E_MSG_PROTO_PUSH_CAST                          = "proto push cast"
 	E_MSG_PROTO_RESPONSE_NEW                       = "proto response new"
 	E_MSG_CRON_NOT_IMPLEMENT                       = "cron not implement "
+	E_MSG_CONFIG_ENV_INVALID_SYNTAX                = "config env file invalid syntax"
 )
 
 type Error struct {
@@ -211,6 +214,81 @@ func NewError(code int32, msg string) *Error {
 	return &Error{
 		Code: code,
 		Msg:  msg,
+	}
+}
+
+func NewErrorw(code int32, msg string, values ...interface{}) *Error {
+	var kv map[string]interface{}
+	for i := 0; i < len(values); i += 2 {
+		j := i + 1
+		if j < len(values) {
+			if kv == nil {
+				kv = make(map[string]interface{})
+			}
+			if k, ok := values[i].(string); ok {
+				kv[k] = values[j]
+			}
+		}
+	}
+	if kv != nil {
+		if s, err := json.Marshal(kv); err != nil {
+			return &Error{
+				Code: code,
+				Msg:  msg,
+			}
+		} else {
+			return &Error{
+				Code: code,
+				Msg:  msg + string(s),
+			}
+		}
+	} else {
+		return &Error{
+			Code: code,
+			Msg:  msg,
+		}
+	}
+}
+
+func FromErrorw(err error, values ...interface{}) *Error {
+	var msg string
+	var code int32
+	if e, ok := err.(*Error); ok {
+		msg = e.Msg
+		code = e.Code
+	} else {
+		msg = err.Error()
+		code = -1
+	}
+	var kv map[string]interface{}
+	for i := 0; i < len(values); i += 2 {
+		j := i + 1
+		if j < len(values) {
+			if kv == nil {
+				kv = make(map[string]interface{})
+			}
+			if k, ok := values[i].(string); ok {
+				kv[k] = values[j]
+			}
+		}
+	}
+	if kv != nil {
+		if s, err := json.Marshal(kv); err != nil {
+			return &Error{
+				Code: code,
+				Msg:  msg,
+			}
+		} else {
+			return &Error{
+				Code: code,
+				Msg:  msg + string(s),
+			}
+		}
+	} else {
+		return &Error{
+			Code: code,
+			Msg:  msg,
+		}
 	}
 }
 
@@ -302,6 +380,7 @@ var (
 	ErrProtoPushCast                      = NewError(E_PROTO_PUSH_CAST, E_MSG_PROTO_PUSH_CAST)
 	ErrProtoResponseNew                   = NewError(E_PROTO_RESPONSE_NEW, E_MSG_PROTO_RESPONSE_NEW)
 	ErrCronNotImplement                   = NewError(E_CRON_NOT_IMPLEMENT, E_MSG_CRON_NOT_IMPLEMENT)
+	ErrConfigEnvInvalidSyntax             = NewError(E_CONFIG_ENV_INVALID_SYNTAX, E_MSG_CONFIG_ENV_INVALID_SYNTAX)
 )
 
 func ErrCode(err error) int32 {

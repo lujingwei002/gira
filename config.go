@@ -386,21 +386,6 @@ func (c *config_reader) read(dir string, envDir string, appType string, appId in
 	envData["app_name"] = c.appName
 	envData["app_id"] = c.appId
 	funcMap := template.FuncMap{
-		// The name "title" is what the function will be called in the template text.
-		// "application_field": func(env map[string]interface{}, key string) interface{} {
-		// 	return application_field(c, env, key)
-		// },
-		// "other_application_field": func(otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
-		// 	return other_application_field(c, otherAppType, otherAppId, env, key)
-		// },
-		// "host_field": func(env map[string]interface{}, key string) interface{} {
-		// 	return host_field(c, env, key)
-		// },
-
-		// "other_host_field": func(otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
-		// 	return other_host_field(c, otherAppType, otherAppId, env, key)
-		// },
-
 		"app_id": func() interface{} {
 			return c.appId
 		},
@@ -422,6 +407,9 @@ func (c *config_reader) read(dir string, envDir string, appType string, appId in
 		"work_dir": func() interface{} {
 			return proj.Config.ProjectDir
 		},
+		"e": func(key string) interface{} {
+			return os.Getenv(key)
+		},
 	}
 	// 替换环境变量
 	t := template.New("config").Delims("<<", ">>")
@@ -438,7 +426,15 @@ func (c *config_reader) read(dir string, envDir string, appType string, appId in
 	return []byte(out.String()), nil
 }
 
+func printLines(str string) {
+	lines := strings.Split(str, "\n")
+	for num, line := range lines {
+		fmt.Println(num+1, ":", line)
+	}
+}
+
 // dotEnvFilePath 环境变量文件路径 .config.env
+// filePath 变量文件路径  .config.yaml
 // 优先级 命令行 > 文件中appName指定变量 > 文件中变量
 func (c *config_reader) readEnv(filePath string, dotEnvFilePath string, appType string, appId int32) (map[string]interface{}, error) {
 	fileEnv := make(map[string]string)
@@ -446,7 +442,7 @@ func (c *config_reader) readEnv(filePath string, dotEnvFilePath string, appType 
 	appNamePrefix := fmt.Sprintf("%s_%d.", appType, appId)
 	if _, err := os.Stat(dotEnvFilePath); err == nil {
 		if dict, err := godotenv.Read(dotEnvFilePath); err != nil {
-			return nil, err
+			return nil, FromErrorw(err, "file", dotEnvFilePath)
 		} else {
 			for k, v := range dict {
 				if strings.HasPrefix(k, appNamePrefix) {
@@ -455,8 +451,10 @@ func (c *config_reader) readEnv(filePath string, dotEnvFilePath string, appType 
 				fileEnv[k] = v
 			}
 		}
+	} else {
+		return nil, err
 	}
-	// 读文件到环境变量
+	// 读文件中的环境变量到os.env中
 	if _, err := os.Stat(dotEnvFilePath); err == nil {
 		if err := godotenv.Load(dotEnvFilePath); err != nil && err != os.ErrNotExist {
 			return nil, err
@@ -470,16 +468,38 @@ func (c *config_reader) readEnv(filePath string, dotEnvFilePath string, appType 
 			}
 		}
 	}
-	envData := make(map[string]interface{})
 	sb := strings.Builder{}
 	if _, err := os.Stat(filePath); err != nil {
-		return envData, err
+		return nil, err
 	}
 	if err := c.preprocess(&sb, "", filePath); err != nil {
-		return envData, err
+		return nil, err
 	}
-	if err := yaml.Unmarshal([]byte(sb.String()), envData); err != nil {
-		return envData, err
+	var err error
+	funcMap := template.FuncMap{
+		"work_dir": func() interface{} {
+			return proj.Config.ProjectDir
+		},
+		"e": func(key string) interface{} {
+			return os.Getenv(key)
+		},
+	}
+	// 替换环境变量
+	t := template.New("config").Delims("<<", ">>")
+	t.Funcs(funcMap)
+	t, err = t.Parse(sb.String())
+	if err != nil {
+		printLines(sb.String())
+		return nil, NewError(-1, fmt.Sprintf("%s: %v", filePath, err))
+	}
+	out := strings.Builder{}
+	if err := t.Execute(&out, nil); err != nil {
+		printLines(sb.String())
+		return nil, NewError(-1, fmt.Sprintf("%s: %v", filePath, err))
+	}
+	envData := make(map[string]interface{})
+	if err := yaml.Unmarshal([]byte(out.String()), envData); err != nil {
+		return nil, NewError(-1, fmt.Sprintf("%s: %v", filePath, err))
 	}
 	c.env = envData["env"].(string)
 	c.zone = envData["zone"].(string)

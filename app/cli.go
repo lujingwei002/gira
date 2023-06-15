@@ -98,7 +98,7 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		log.Errorw("app run fail", "error", err)
+		log.Error("app run fail", err)
 	}
 	return nil
 }
