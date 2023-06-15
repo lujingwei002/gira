@@ -4,6 +4,44 @@ import (
 	"context"
 )
 
+/*
+	生命周期
+
+OnFrameworkInit
+
+	|
+
+OnFrameworkConfigLoad
+
+	|
+
+OnConfigLoad
+
+	|
+
+OnFrameworkCreate
+
+	|
+
+OnCreate
+
+	|
+
+OnFrameworkStart
+
+	|
+
+OnStart
+
+	|
+
+OnStop
+
+	|
+
+OnFrameworkStop
+*/
+
 type Framework interface {
 	OnFrameworkConfigLoad(c *Config) error
 	OnFrameworkCreate(application Application) error

@@ -400,7 +400,7 @@ func (application *Application) onCreate() error {
 
 	// ==== grpc ================
 	if application.config.Module.Grpc != nil {
-		application.grpcServer = grpc.NewConfigGrpcServer(*application.config.Module.Grpc)
+		application.grpcServer = grpc.NewConfigServer(*application.config.Module.Grpc)
 	}
 
 	// ==== sdk================

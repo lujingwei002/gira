@@ -1,4 +1,4 @@
-package hall
+package server
 
 import (
 	"context"
@@ -19,13 +19,13 @@ type client_session struct {
 	memberId        string
 	client          gira.GatewayConn
 	stream          hall_grpc.Hall_ClientStreamClient
-	hall            *HallServer
+	server          *Server
 	pendingMessages []gira.GatewayMessage
 }
 
-func newSession(hall *HallServer, sessionId uint64, memberId string) *client_session {
+func newSession(hall *Server, sessionId uint64, memberId string) *client_session {
 	return &client_session{
-		hall:            hall,
+		server:          hall,
 		sessionId:       sessionId,
 		memberId:        memberId,
 		pendingMessages: make([]gira.GatewayMessage, 0),
@@ -36,7 +36,7 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 	sessionId := session.sessionId
 	var err error
 	var stream hall_grpc.Hall_ClientStreamClient
-	hall := session.hall
+	hall := session.server
 	server := hall.SelectPeer()
 	log.Infow("session open", "session_id", sessionId, "peer", server)
 	if server == nil {
@@ -50,7 +50,7 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 	}()
 	stream, err = server.NewClientStream(streamCtx)
 	if err != nil {
-		session.hall.loginErrResponse(message, dataReq, gira.ErrUpstreamUnreachable)
+		session.server.loginErrResponse(message, dataReq, gira.ErrUpstreamUnreachable)
 		return err
 	}
 	session.stream = stream
@@ -58,10 +58,10 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 	// session 绑定 hall
 	session.ctx, session.cancelFunc = context.WithCancel(hall.ctx)
 	errGroup, _ := errgroup.WithContext(session.ctx)
-	atomic.AddInt64(&session.hall.SessionCount, 1)
+	atomic.AddInt64(&session.server.SessionCount, 1)
 	defer func() {
 		log.Infow("session close", "session_id", sessionId)
-		atomic.AddInt64(&session.hall.SessionCount, -1)
+		atomic.AddInt64(&session.server.SessionCount, -1)
 		session.cancelFunc()
 	}()
 	// 将上游消息转发到客户端

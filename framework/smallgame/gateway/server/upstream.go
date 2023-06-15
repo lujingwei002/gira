@@ -1,9 +1,10 @@
-package hall
+package server
 
 import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lujingwei002/gira"
@@ -20,7 +21,7 @@ import (
 //		  |----ctx---
 //				|
 //				|--- upstream ctx
-type upstream_peer struct {
+type Upstream struct {
 	Id       int32
 	FullName string
 	Address  string
@@ -32,33 +33,101 @@ type upstream_peer struct {
 	buildTime          int64
 	status             hall_grpc.HallStatus
 	respositoryVersion string
-	hall               *HallServer
 }
 
-func NewUpstreamPeer(hall *HallServer, peer *gira.Peer) *upstream_peer {
-	ctx, cancelFUnc := context.WithCancel(hall.ctx)
-	return &upstream_peer{
+type upstream_map struct {
+	sync.Map
+}
+
+// 选择一个节点
+func (peers *upstream_map) SelectPeer() *Upstream {
+	var selected *Upstream
+	// 最大版本
+	var maxBuildTime int64 = 0
+	peers.Range(func(key any, value any) bool {
+		server := value.(*Upstream)
+		if server.client != nil && server.buildTime > maxBuildTime {
+			maxBuildTime = server.buildTime
+		}
+		return true
+	})
+	// 选择人数最小的
+	var minPlayerCount int64 = 0xffffffff
+	peers.Range(func(key any, value any) bool {
+		server := value.(*Upstream)
+		if server.client != nil && server.buildTime == maxBuildTime && server.playerCount < minPlayerCount {
+			select {
+			case <-server.ctx.Done():
+				return true
+			default:
+				minPlayerCount = server.playerCount
+				selected = server
+			}
+		}
+		return true
+	})
+	// return selected
+	if selected != nil {
+		if err := selected.HealthCheck(); err != nil {
+			log.Warnw("select peer fail", "error", err, "full_name", selected.FullName)
+			return nil
+		} else {
+			return selected
+		}
+	} else {
+		return nil
+	}
+}
+
+func newUpstream(ctx context.Context, peer *gira.Peer) *Upstream {
+	ctx, cancelFUnc := context.WithCancel(ctx)
+	return &Upstream{
 		Id:         peer.Id,
 		FullName:   peer.FullName,
 		Address:    peer.GrpcAddr,
 		ctx:        ctx,
 		cancelFunc: cancelFUnc,
-		hall:       hall,
 		status:     hall_grpc.HallStatus_UnAvailable,
 	}
 }
 
-func (server *upstream_peer) String() string {
+func (servers *upstream_map) OnPeerAdd(ctx context.Context, peer *gira.Peer) {
+	log.Infow("add upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
+	upstream := newUpstream(ctx, peer)
+	if v, loaded := servers.LoadOrStore(peer.Id, upstream); loaded {
+		lastHall := v.(*Upstream)
+		lastHall.close()
+	}
+	go upstream.serve()
+}
+
+func (servers *upstream_map) OnPeerDelete(peer *gira.Peer) {
+	log.Infow("remove upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
+	if v, loaded := servers.LoadAndDelete(peer.Id); loaded {
+		lastHall := v.(*Upstream)
+		lastHall.close()
+	}
+}
+
+func (servers *upstream_map) OnPeerUpdate(peer *gira.Peer) {
+	log.Infow("update upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
+	if v, ok := servers.Load(peer.Id); ok {
+		lastHall := v.(*Upstream)
+		lastHall.Address = peer.GrpcAddr
+	}
+}
+
+func (server *Upstream) String() string {
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("full_name:%s address:%s", server.FullName, server.Address))
 	return sb.String()
 }
 
-func (server *upstream_peer) close() {
+func (server *Upstream) close() {
 	server.cancelFunc()
 }
 
-func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_grpc.Hall_ClientStreamClient, err error) {
+func (server *Upstream) NewClientStream(ctx context.Context) (stream hall_grpc.Hall_ClientStreamClient, err error) {
 	if client := server.client; client == nil {
 		err = gira.ErrNullPonter
 		return
@@ -68,7 +137,7 @@ func (server *upstream_peer) NewClientStream(ctx context.Context) (stream hall_g
 	}
 }
 
-func (server *upstream_peer) HealthCheck() (err error) {
+func (server *Upstream) HealthCheck() (err error) {
 	if client := server.client; client == nil {
 		err = gira.ErrNullPonter
 		return
@@ -89,7 +158,7 @@ func (server *upstream_peer) HealthCheck() (err error) {
 	}
 }
 
-func (server *upstream_peer) serve() error {
+func (server *Upstream) serve() error {
 	var conn *grpc.ClientConn
 	var client hall_grpc.HallClient
 	var stream hall_grpc.Hall_GateStreamClient

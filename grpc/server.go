@@ -22,10 +22,11 @@ type Server struct {
 	mu       sync.Mutex
 }
 
-func NewConfigGrpcServer(config gira.GrpcConfig) *Server {
+func NewConfigServer(config gira.GrpcConfig) *Server {
+	opts := []grpc.ServerOption{grpc.NumStreamWorkers(config.Workers)}
 	self := &Server{
 		config:  config,
-		server:  grpc.NewServer(),
+		server:  grpc.NewServer(opts...),
 		servers: make(map[string]interface{}),
 	}
 	return self
