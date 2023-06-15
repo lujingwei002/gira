@@ -69,6 +69,10 @@ func GetLogDir() string {
 	return gira.App().GetLogDir()
 }
 
+func GetWorkDir() string {
+	return gira.App().GetWorkDir()
+}
+
 // ================= resource component =============================
 // 重载配置
 func ReloadResource() error {

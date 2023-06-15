@@ -161,7 +161,7 @@ func timeAction(args *cli.Context) error {
 func envAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	appType, _ := args.App.Metadata["name"].(string)
-	if _, err := gira.LoadConfig(proj.Config.ConfigDir, proj.Config.EnvDir, appType, appId); err != nil {
+	if _, err := gira.LoadApplicationConfig(proj.Config.ConfigDir, proj.Config.EnvDir, appType, appId); err != nil {
 		return err
 	} else {
 		for _, k := range os.Environ() {
@@ -175,7 +175,7 @@ func envAction(args *cli.Context) error {
 func configAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	appType, _ := args.App.Metadata["name"].(string)
-	if c, err := gira.LoadConfig(proj.Config.ConfigDir, proj.Config.EnvDir, appType, appId); err != nil {
+	if c, err := gira.LoadApplicationConfig(proj.Config.ConfigDir, proj.Config.EnvDir, appType, appId); err != nil {
 		return err
 	} else {
 		fmt.Println(string(c.Raw))

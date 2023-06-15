@@ -14,6 +14,7 @@ import (
 	"text/template"
 
 	"github.com/joho/godotenv"
+	"github.com/lujingwei002/gira/proj"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -24,106 +25,106 @@ const (
 )
 
 // 读取cli工具配置
-func application_field(reader *config_reader, env map[string]interface{}, key string) interface{} {
-	if v, ok := env["application"]; ok {
-		if applications, ok := v.(map[string]interface{}); ok {
-			if v, ok := applications[reader.appName]; ok {
-				if application, ok := v.(map[string]interface{}); ok {
-					if value, ok := application[key]; ok {
-						return value
-					}
-				}
-			}
-		}
-	}
-	return ""
-}
+// func application_field(reader *config_reader, env map[string]interface{}, key string) interface{} {
+// 	if v, ok := env["application"]; ok {
+// 		if applications, ok := v.(map[string]interface{}); ok {
+// 			if v, ok := applications[reader.appName]; ok {
+// 				if application, ok := v.(map[string]interface{}); ok {
+// 					if value, ok := application[key]; ok {
+// 						return value
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return ""
+// }
 
-func other_application_field(reader *config_reader, otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
-	otherAppName := fmt.Sprintf("%s_%d", otherAppType, reader.appId+otherAppId)
-	if v, ok := env["application"]; ok {
-		if applications, ok := v.(map[string]interface{}); ok {
-			if v, ok := applications[otherAppName]; ok {
-				if application, ok := v.(map[string]interface{}); ok {
-					if value, ok := application[key]; ok {
-						return value
-					}
-				}
-			}
-		}
-	}
-	return ""
-}
+// func other_application_field(reader *config_reader, otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
+// 	otherAppName := fmt.Sprintf("%s_%d", otherAppType, reader.appId+otherAppId)
+// 	if v, ok := env["application"]; ok {
+// 		if applications, ok := v.(map[string]interface{}); ok {
+// 			if v, ok := applications[otherAppName]; ok {
+// 				if application, ok := v.(map[string]interface{}); ok {
+// 					if value, ok := application[key]; ok {
+// 						return value
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return ""
+// }
 
-func host_field(reader *config_reader, env map[string]interface{}, key string) interface{} {
-	var hostName string
-	var hostFound bool = false
-	if v, ok := env["application"]; ok {
-		if applications, ok := v.(map[string]interface{}); ok {
-			if v, ok := applications[reader.appName]; ok {
-				if application, ok := v.(map[string]interface{}); ok {
-					hostName = application["host"].(string)
-					hostFound = true
-				}
-			}
-		}
-	}
-	if !hostFound {
-		return ""
-	}
-	if v, ok := env["host"]; ok {
-		if hosts, ok := v.(map[string]interface{}); ok {
-			if v, ok := hosts[hostName]; ok {
-				if host, ok := v.(map[string]interface{}); ok {
-					if value, ok := host[key]; ok {
-						return value
-					}
-				}
-			}
-		}
-	}
-	return ""
-}
+// func host_field(reader *config_reader, env map[string]interface{}, key string) interface{} {
+// 	var hostName string
+// 	var hostFound bool = false
+// 	if v, ok := env["application"]; ok {
+// 		if applications, ok := v.(map[string]interface{}); ok {
+// 			if v, ok := applications[reader.appName]; ok {
+// 				if application, ok := v.(map[string]interface{}); ok {
+// 					hostName = application["host"].(string)
+// 					hostFound = true
+// 				}
+// 			}
+// 		}
+// 	}
+// 	if !hostFound {
+// 		return ""
+// 	}
+// 	if v, ok := env["host"]; ok {
+// 		if hosts, ok := v.(map[string]interface{}); ok {
+// 			if v, ok := hosts[hostName]; ok {
+// 				if host, ok := v.(map[string]interface{}); ok {
+// 					if value, ok := host[key]; ok {
+// 						return value
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return ""
+// }
 
-func other_host_field(reader *config_reader, otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
-	appName := fmt.Sprintf("%s_%d", otherAppType, reader.appId+otherAppId)
-	var hostName string
-	var hostFound bool = false
-	if v, ok := env["application"]; ok {
-		if applications, ok := v.(map[string]interface{}); ok {
-			if v, ok := applications[appName]; ok {
-				if application, ok := v.(map[string]interface{}); ok {
-					hostName = application["host"].(string)
-					hostFound = true
-				}
-			}
-		}
-	}
-	if !hostFound {
-		return ""
-	}
-	if v, ok := env["host"]; ok {
-		if hosts, ok := v.(map[string]interface{}); ok {
-			if v, ok := hosts[hostName]; ok {
-				if host, ok := v.(map[string]interface{}); ok {
-					if value, ok := host[key]; ok {
-						return value
-					}
-				}
-			}
-		}
-	}
-	return ""
+// func other_host_field(reader *config_reader, otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
+// 	appName := fmt.Sprintf("%s_%d", otherAppType, reader.appId+otherAppId)
+// 	var hostName string
+// 	var hostFound bool = false
+// 	if v, ok := env["application"]; ok {
+// 		if applications, ok := v.(map[string]interface{}); ok {
+// 			if v, ok := applications[appName]; ok {
+// 				if application, ok := v.(map[string]interface{}); ok {
+// 					hostName = application["host"].(string)
+// 					hostFound = true
+// 				}
+// 			}
+// 		}
+// 	}
+// 	if !hostFound {
+// 		return ""
+// 	}
+// 	if v, ok := env["host"]; ok {
+// 		if hosts, ok := v.(map[string]interface{}); ok {
+// 			if v, ok := hosts[hostName]; ok {
+// 				if host, ok := v.(map[string]interface{}); ok {
+// 					if value, ok := host[key]; ok {
+// 						return value
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return ""
 
-}
+// }
 
 // 读取应该配置
 func LoadCliConfig(configDir string, envDir string) (*Config, error) {
-	return LoadConfig(configDir, envDir, "cli", 0)
+	return LoadApplicationConfig(configDir, envDir, "cli", 0)
 }
 
 // 读取应该配置
-func LoadConfig(configDir string, envDir string, appType string, appId int32) (*Config, error) {
+func LoadApplicationConfig(configDir string, envDir string, appType string, appId int32) (*Config, error) {
 	c := &Config{}
 	appName := fmt.Sprintf("%s_%d", appType, appId)
 	reader := config_reader{
@@ -155,6 +156,8 @@ type LogConfig struct {
 	Level      string `yaml:"level"`
 	DbLevel    string `yaml:"db-level"`
 	Db         bool   `yaml:"db"`
+	Dir        string `yaml:"dir"`
+	Name       string `yaml:"name"`
 }
 
 // jwt配置
@@ -384,29 +387,40 @@ func (c *config_reader) read(dir string, envDir string, appType string, appId in
 	envData["app_id"] = c.appId
 	funcMap := template.FuncMap{
 		// The name "title" is what the function will be called in the template text.
-		"application_field": func(env map[string]interface{}, key string) interface{} {
-			return application_field(c, env, key)
-		},
-		"other_application_field": func(otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
-			return other_application_field(c, otherAppType, otherAppId, env, key)
-		},
-		"host_field": func(env map[string]interface{}, key string) interface{} {
-			return host_field(c, env, key)
-		},
+		// "application_field": func(env map[string]interface{}, key string) interface{} {
+		// 	return application_field(c, env, key)
+		// },
+		// "other_application_field": func(otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
+		// 	return other_application_field(c, otherAppType, otherAppId, env, key)
+		// },
+		// "host_field": func(env map[string]interface{}, key string) interface{} {
+		// 	return host_field(c, env, key)
+		// },
 
-		"other_host_field": func(otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
-			return other_host_field(c, otherAppType, otherAppId, env, key)
-		},
+		// "other_host_field": func(otherAppType string, otherAppId int32, env map[string]interface{}, key string) interface{} {
+		// 	return other_host_field(c, otherAppType, otherAppId, env, key)
+		// },
 
-		"application_id": func() interface{} {
+		"app_id": func() interface{} {
 			return c.appId
 		},
-
-		"other_application_id": func(id int32) interface{} {
+		"other_ap_id": func(id int32) interface{} {
 			return c.appId + id
 		},
-		"application_name": func() interface{} {
+		"app_type": func() interface{} {
 			return c.appType
+		},
+		"app_name": func() interface{} {
+			return c.appName
+		},
+		"zone": func() interface{} {
+			return c.zone
+		},
+		"env": func() interface{} {
+			return c.env
+		},
+		"work_dir": func() interface{} {
+			return proj.Config.ProjectDir
 		},
 	}
 	// 替换环境变量

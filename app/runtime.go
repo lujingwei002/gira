@@ -151,7 +151,7 @@ func (application *Application) init() error {
 			return err
 		}*/
 	// 读应用配置文件
-	if c, err := gira.LoadConfig(application.configDir, application.envDir, application.appType, application.appId); err != nil {
+	if c, err := gira.LoadApplicationConfig(application.configDir, application.envDir, application.appType, application.appId); err != nil {
 		return err
 	} else {
 		application.env = c.Env
@@ -174,7 +174,7 @@ func (application *Application) init() error {
 	}
 	// 初始化日志
 	if application.config.Log != nil {
-		if err := log.ConfigLog(application, *application.config.Log); err != nil {
+		if err := log.ConfigLog(*application.config.Log); err != nil {
 			return err
 		}
 	}
