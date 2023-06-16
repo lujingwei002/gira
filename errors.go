@@ -100,6 +100,7 @@ const (
 	E_CRON_NOT_IMPLEMENT                       = -84
 	E_CONFIG_ENV_INVALID_SYNTAX                = -85
 	E_INVALID_SYNTAX                           = -86
+	E_PEER_ALREADY_REGIST                      = -87
 )
 const (
 	E_MSG_OK                                       = "成功"
@@ -192,6 +193,7 @@ const (
 	E_MSG_CRON_NOT_IMPLEMENT                       = "cron not implement "
 	E_MSG_CONFIG_ENV_INVALID_SYNTAX                = "config env file invalid syntax"
 	E_MSG_INVALID_SYNTAX                           = "invalid syntax"
+	E_MSG_PEER_ALREADY_REGIST                      = "peer already regist"
 )
 
 var (
@@ -284,6 +286,7 @@ var (
 	ErrCronNotImplement                   = NewError(E_CRON_NOT_IMPLEMENT, E_MSG_CRON_NOT_IMPLEMENT)
 	ErrConfigEnvInvalidSyntax             = NewError(E_CONFIG_ENV_INVALID_SYNTAX, E_MSG_CONFIG_ENV_INVALID_SYNTAX)
 	ErrInvalidSyntax                      = NewError(E_INVALID_SYNTAX, E_MSG_INVALID_SYNTAX)
+	ErrPeerAlreadyRegist                  = NewError(E_PEER_ALREADY_REGIST, E_MSG_PEER_ALREADY_REGIST)
 )
 
 // 根据code, msg创建error

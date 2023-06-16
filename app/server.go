@@ -1,5 +1,11 @@
 package app
 
+/*
+
+实现gira.Application接口的服务端程序
+
+*/
+
 import (
 	"context"
 	"fmt"
@@ -25,6 +31,7 @@ import (
 	"github.com/lujingwei002/gira/registry"
 	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
+	"github.com/lujingwei002/gira/service/admin/admin_grpc"
 	peer_service "github.com/lujingwei002/gira/service/peer"
 
 	_ "net/http/pprof"
@@ -48,7 +55,7 @@ const (
 )
 
 // / @Component
-type Application struct {
+type Server struct {
 	zone               string // 区名 wc|qq|hw|quick
 	env                string // dev|local|qa|prd
 	appId              int32
@@ -97,10 +104,10 @@ type Application struct {
 	dotEnvFilePath     string
 }
 
-func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFacade) *Application {
+func newServerApplication(args ApplicationArgs, applicationFacade gira.ApplicationFacade) *Server {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
-	application := &Application{
+	application := &Server{
 		respositoryVersion: args.RespositoryVersion,
 		buildTime:          args.BuildTime,
 		appId:              args.AppId,
@@ -120,7 +127,7 @@ func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFaca
 	return application
 }
 
-func (application *Application) init() error {
+func (application *Server) init() error {
 	applicationFacade := application.applicationFacade
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
@@ -185,7 +192,7 @@ func (application *Application) init() error {
 	return nil
 }
 
-func (application *Application) start() (err error) {
+func (application *Server) start() (err error) {
 	// 初始化
 	if err = application.init(); err != nil {
 		return
@@ -235,7 +242,7 @@ func (application *Application) start() (err error) {
 }
 
 // 主动关闭, 启动成功后才可以调用
-func (application *Application) Stop() error {
+func (application *Server) Stop() error {
 	if !atomic.CompareAndSwapInt64(&application.status, application_status_started, application_status_stopped) {
 		return nil
 	}
@@ -243,7 +250,7 @@ func (application *Application) Stop() error {
 	return nil
 }
 
-func (application *Application) onStop() {
+func (application *Server) onStop() {
 	log.Infow("runtime on stop")
 	// application stop
 	application.applicationFacade.OnStop()
@@ -267,7 +274,7 @@ func (application *Application) onStop() {
 	}
 }
 
-func (application *Application) onStart() (err error) {
+func (application *Server) onStart() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
@@ -288,6 +295,12 @@ func (application *Application) onStart() (err error) {
 	if application.registry != nil {
 		if err = application.registry.StartAsMember(application.applicationFacade, application.frameworks); err != nil {
 			return
+		}
+	}
+	// ==== grpc ================
+	if application.grpcServer != nil {
+		if err := application.grpcServer.Listen(); err != nil {
+			return err
 		}
 	}
 	// application.errGroup.Go(func() error {
@@ -334,7 +347,8 @@ func (application *Application) onStart() (err error) {
 	// ==== grpc ================
 	if application.grpcServer != nil {
 		application.errGroup.Go(func() error {
-			return application.grpcServer.Serve(application.ctx)
+			err := application.grpcServer.Serve(application.ctx)
+			return err
 		})
 	}
 	// ==== registry ================
@@ -349,7 +363,7 @@ func (application *Application) onStart() (err error) {
 	return nil
 }
 
-func (application *Application) onCreate() error {
+func (application *Server) onCreate() error {
 	// log.Info("applicationFacade", app.FullName, "start")
 	applicationFacade := application.applicationFacade
 
@@ -476,8 +490,227 @@ func (application *Application) onCreate() error {
 }
 
 // 等待中断
-func (application *Application) Wait() error {
+func (application *Server) Wait() error {
 	err := application.errGroup.Wait()
 	log.Infow("application down", "full_name", application.appFullName, "error", err)
 	return err
+}
+
+// 负载实现gira声明的接口和启动的模块
+
+// ================== implement gira.Application ==================
+// 返回配置
+func (application *Server) GetConfig() *gira.Config {
+	return application.config
+}
+
+// 返回构建版本
+func (application *Server) GetRespositoryVersion() string {
+	return application.respositoryVersion
+
+}
+
+// 返回构建时间
+func (application *Server) GetBuildTime() int64 {
+	return application.buildTime
+}
+func (application *Server) GetUpTime() int64 {
+	return time.Now().Unix() - application.buildTime
+}
+
+// 返回应用id
+func (application *Server) GetAppId() int32 {
+	return application.appId
+}
+
+// 返回应用类型
+func (application *Server) GetAppType() string {
+	return application.appType
+}
+
+// 返回应用名
+func (application *Server) GetAppName() string {
+	return application.appName
+}
+
+// 返回应用全名
+func (application *Server) GetAppFullName() string {
+	return application.appFullName
+}
+
+func (application *Server) GetWorkDir() string {
+	return application.workDir
+}
+
+func (application *Server) GetLogDir() string {
+	return application.logDir
+}
+
+// ================== context =========================
+
+func (application *Server) Context() context.Context {
+	return application.ctx
+}
+
+func (application *Server) Quit() {
+	application.cancelFunc()
+}
+
+func (application *Server) Done() <-chan struct{} {
+	return application.ctx.Done()
+}
+
+func (application *Server) Go(f func() error) {
+	application.errGroup.Go(f)
+}
+
+func (application *Server) Err() error {
+	return application.errCtx.Err()
+}
+
+// ================== framework =========================
+// 返回框架列表
+func (application *Server) Frameworks() []gira.Framework {
+	return application.frameworks
+}
+
+// ================== gira.SdkComponent ==================
+func (application *Server) GetSdk() gira.Sdk {
+	if application.sdk == nil {
+		return nil
+	} else {
+		return application.sdk
+	}
+}
+
+// ================== gira.RegistryComponent ==================
+func (application *Server) GetRegistry() gira.Registry {
+	if application.registry == nil {
+		return nil
+	} else {
+		return application.registry
+	}
+}
+
+func (application *Server) GetRegistryClient() gira.RegistryClient {
+	if application.registry == nil {
+		return nil
+	} else {
+		return application.registry
+	}
+}
+
+// ================== gira.ServiceContainer ==================
+func (application *Server) GetServiceContainer() gira.ServiceContainer {
+	if application.serviceContainer == nil {
+		return nil
+	} else {
+		return application.serviceContainer
+	}
+}
+
+// ================== gira.GrpcServerComponent ==================
+func (application *Server) GetGrpcServer() gira.GrpcServer {
+	if application.grpcServer == nil {
+		return nil
+	} else {
+		return application.grpcServer
+	}
+}
+
+// ================== implement gira.ResourceComponent ==================
+func (application *Server) GetResourceLoader() gira.ResourceLoader {
+	return application.resourceLoader
+}
+
+// ================== implement gira.AdminClient ==================
+// 重载配置
+func (application *Server) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
+	req := &admin_grpc.ReloadResourceRequest{
+		Name: name,
+	}
+	result, err = admin_grpc.DefaultAdminClients.Broadcast().ReloadResource(ctx, req)
+	return
+}
+
+// ================== implement gira.DbClientComponent ==================
+func (application *Server) GetAccountDbClient() gira.DbClient {
+	if application.accountDbClient == nil {
+		return nil
+	} else {
+		return application.accountDbClient
+	}
+}
+
+func (application *Server) GetGameDbClient() gira.DbClient {
+	if application.gameDbClient == nil {
+		return nil
+	} else {
+		return application.gameDbClient
+	}
+}
+
+func (application *Server) GetLogDbClient() gira.DbClient {
+	if application.logDbClient == nil {
+		return nil
+	} else {
+		return application.logDbClient
+	}
+}
+
+func (application *Server) GetBehaviorDbClient() gira.DbClient {
+	if application.behaviorDbClient == nil {
+		return nil
+	} else {
+		return application.behaviorDbClient
+	}
+}
+
+func (application *Server) GetStatDbClient() gira.DbClient {
+	if application.statDbClient == nil {
+		return nil
+	} else {
+		return application.statDbClient
+	}
+}
+
+func (application *Server) GetAccountCacheClient() gira.DbClient {
+	if application.accountCacheClient == nil {
+		return nil
+	} else {
+		return application.accountCacheClient
+	}
+}
+
+func (application *Server) GetAdminCacheClient() gira.DbClient {
+	if application.adminCacheClient == nil {
+		return nil
+	} else {
+		return application.adminCacheClient
+	}
+}
+
+func (application *Server) GetResourceDbClient() gira.DbClient {
+	if application.resourceDbClient == nil {
+		return nil
+	} else {
+		return application.resourceDbClient
+	}
+}
+
+func (application *Server) GetAdminDbClient() gira.DbClient {
+	if application.adminDbClient == nil {
+		return nil
+	} else {
+		return application.adminDbClient
+	}
+}
+
+// ================== gira.Cron ==================
+func (application *Server) GetCron() gira.Cron {
+	if application.cron == nil {
+		return nil
+	} else {
+		return application.cron
+	}
 }

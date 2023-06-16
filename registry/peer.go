@@ -54,6 +54,7 @@ type peer_registry struct {
 	ctx                    context.Context
 	cancelFunc             context.CancelFunc
 	watchStartRevision     int64
+	alreadyRegistSelf      int64
 }
 
 func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
@@ -381,6 +382,9 @@ func (self *peer_registry) watchPeers(r *Registry) error {
 }
 
 func (self *peer_registry) unregisterSelf(r *Registry) error {
+	if self.alreadyRegistSelf == 0 {
+		return nil
+	}
 	client := r.client
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
@@ -447,7 +451,8 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		var txnResp *clientv3.TxnResponse
 		txn := kv.Txn(self.ctx)
 		key := fmt.Sprintf("%s%s", self.selfPrefix, name)
-		tx := txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
+		// tx := txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
+		tx := txn.If(clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
 			Then(clientv3.OpGet(key))
 		if leaseID != 0 {
 			tx.Else(clientv3.OpGet(key), clientv3.OpPut(key, value, clientv3.WithLease(leaseID)))
@@ -460,12 +465,14 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		}
 		if txnResp.Succeeded {
 			log.Errorw("etcd register fail", "key", key, "value", value, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
-			return gira.ErrRegisterServerFail
+			return gira.ErrRegisterServerFail.Trace().WithValues("locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
+				self.alreadyRegistSelf = 1
 				log.Infow("peer registry register peer", "key", key, "value", value)
 			} else {
 				log.Infow("peer registry resume peer", "key", key, "value", value)
+				return gira.ErrPeerAlreadyRegist.Trace().WithValues("address", value)
 			}
 		}
 	}

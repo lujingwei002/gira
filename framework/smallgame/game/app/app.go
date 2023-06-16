@@ -8,7 +8,6 @@ import (
 	"github.com/lujingwei002/gira/framework/smallgame/game"
 	"github.com/lujingwei002/gira/framework/smallgame/game/config"
 	"github.com/lujingwei002/gira/framework/smallgame/game/hall"
-	"github.com/lujingwei002/gira/log"
 )
 
 type Framework struct {
@@ -51,7 +50,7 @@ func (framework *Framework) OnFrameworkStart() error {
 
 func (framework *Framework) OnFrameworkStop() error {
 	if err := facade.StopService(framework.hallService); err != nil {
-		log.Warn(err)
+		// log.Warn(err)
 	}
 	return nil
 }

@@ -122,7 +122,7 @@ func LockLocalUser(userId string) (*gira.Peer, error) {
 // 查找user所在的节点
 func WhereIsUser(userId string) (*gira.Peer, error) {
 	application := gira.App()
-	if r := application.GetRegistry(); r == nil {
+	if r := application.GetRegistryClient(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.WhereIsUser(userId)
@@ -194,7 +194,7 @@ func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 // 查找服务
 func WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
 	application := gira.App()
-	if r := application.GetRegistry(); r == nil {
+	if r := application.GetRegistryClient(); r == nil {
 		return nil, gira.ErrRegistryNOtImplement
 	} else {
 		return r.WhereIsService(serviceName, opt...)

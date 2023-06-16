@@ -157,8 +157,18 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 	return nil
 }
 
-func Start(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
-	application := newApplication(ApplicationArgs{
+func StartAsClient(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
+	application := newClientApplication(ApplicationArgs{
+		AppType:        appType,
+		AppId:          appId,
+		ConfigFilePath: configFilePath,
+		DotEnvFilePath: dotEnvFilePath,
+	}, applicationFacade)
+	return application.start()
+}
+
+func StartAsServer(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
+	application := newServerApplication(ApplicationArgs{
 		AppType:        appType,
 		AppId:          appId,
 		ConfigFilePath: configFilePath,
@@ -188,7 +198,7 @@ func startAction(args *cli.Context) error {
 	log.Println("config file path:", configFilePath)
 	log.Println("env file path:", dotEnvFilePath)
 	log.Infof("%s %d starting...", appType, appId)
-	runtime := newApplication(ApplicationArgs{
+	runtime := newServerApplication(ApplicationArgs{
 		AppType:            appType,
 		AppId:              appId,
 		RespositoryVersion: respositoryVersion,

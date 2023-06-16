@@ -21,6 +21,12 @@ type Registry interface {
 	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
 }
 
+type RegistryClient interface {
+	WhereIsUser(userId string) (*Peer, error)
+	// 查找服务
+	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
+}
+
 type RegistryComponent interface {
 	GetRegistry() Registry
 }

@@ -19,6 +19,7 @@ type Server struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	servers    map[string]interface{}
+	listener   net.Listener
 	mu         sync.Mutex
 }
 
@@ -48,23 +49,31 @@ func (self *Server) GetServer(name string) (svr interface{}, ok bool) {
 	return
 }
 
-func (self *Server) Serve(ctx context.Context) error {
-	log.Debugw("grpc server started", "addr", self.config.Address)
+func (self *Server) Listen() error {
 	if listener, err := net.Listen("tcp", self.config.Address); err != nil {
 		return err
 	} else {
-		self.ctx, self.cancelFunc = context.WithCancel(ctx)
-		go func() {
-			<-self.ctx.Done()
-			self.server.GracefulStop()
-		}()
-		err := self.server.Serve(listener)
-		log.Debugw("gpc server on stop2", "error", err)
-		return err
+		self.listener = listener
+		return nil
 	}
 }
 
+func (self *Server) Serve(ctx context.Context) error {
+	log.Debugw("grpc server started", "addr", self.config.Address)
+	self.ctx, self.cancelFunc = context.WithCancel(ctx)
+	go func() {
+		<-self.ctx.Done()
+		self.server.GracefulStop()
+	}()
+	err := self.server.Serve(self.listener)
+	log.Debugw("gpc server on stop2", "error", err)
+	return err
+}
+
 func (self *Server) Stop() error {
+	if self.ctx == nil {
+		return nil
+	}
 	log.Debugw("gpc server on stop1")
 	self.cancelFunc()
 	return nil

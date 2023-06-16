@@ -90,6 +90,7 @@ type Application interface {
 	GetCron() Cron
 	GetGrpcServer() GrpcServer
 	GetRegistry() Registry
+	GetRegistryClient() RegistryClient
 }
 
 // 当前正在运行的应用
