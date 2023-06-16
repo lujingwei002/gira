@@ -1,7 +1,7 @@
 package gira
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"runtime/debug"
 	"strconv"
@@ -99,6 +99,7 @@ const (
 	E_PROTO_RESPONSE_NEW                       = -83
 	E_CRON_NOT_IMPLEMENT                       = -84
 	E_CONFIG_ENV_INVALID_SYNTAX                = -85
+	E_INVALID_SYNTAX                           = -86
 )
 const (
 	E_MSG_OK                                       = "成功"
@@ -190,107 +191,8 @@ const (
 	E_MSG_PROTO_RESPONSE_NEW                       = "proto response new"
 	E_MSG_CRON_NOT_IMPLEMENT                       = "cron not implement "
 	E_MSG_CONFIG_ENV_INVALID_SYNTAX                = "config env file invalid syntax"
+	E_MSG_INVALID_SYNTAX                           = "invalid syntax"
 )
-
-type Error struct {
-	Code  int32
-	Msg   string
-	Stack []byte
-}
-
-func (e *Error) Trace() error {
-	return &Error{Code: e.Code, Msg: e.Msg, Stack: debug.Stack()}
-}
-
-func (e *Error) Error() string {
-	if e.Stack == nil {
-		return fmt.Sprintf("%d:%s", e.Code, e.Msg)
-	} else {
-		return fmt.Sprintf("%d:%s\n%s", e.Code, e.Msg, string(e.Stack))
-	}
-}
-
-func NewError(code int32, msg string) *Error {
-	return &Error{
-		Code: code,
-		Msg:  msg,
-	}
-}
-
-func NewErrorw(code int32, msg string, values ...interface{}) *Error {
-	var kv map[string]interface{}
-	for i := 0; i < len(values); i += 2 {
-		j := i + 1
-		if j < len(values) {
-			if kv == nil {
-				kv = make(map[string]interface{})
-			}
-			if k, ok := values[i].(string); ok {
-				kv[k] = values[j]
-			}
-		}
-	}
-	if kv != nil {
-		if s, err := json.Marshal(kv); err != nil {
-			return &Error{
-				Code: code,
-				Msg:  msg,
-			}
-		} else {
-			return &Error{
-				Code: code,
-				Msg:  msg + string(s),
-			}
-		}
-	} else {
-		return &Error{
-			Code: code,
-			Msg:  msg,
-		}
-	}
-}
-
-func FromErrorw(err error, values ...interface{}) *Error {
-	var msg string
-	var code int32
-	if e, ok := err.(*Error); ok {
-		msg = e.Msg
-		code = e.Code
-	} else {
-		msg = err.Error()
-		code = -1
-	}
-	var kv map[string]interface{}
-	for i := 0; i < len(values); i += 2 {
-		j := i + 1
-		if j < len(values) {
-			if kv == nil {
-				kv = make(map[string]interface{})
-			}
-			if k, ok := values[i].(string); ok {
-				kv[k] = values[j]
-			}
-		}
-	}
-	if kv != nil {
-		if s, err := json.Marshal(kv); err != nil {
-			return &Error{
-				Code: code,
-				Msg:  msg,
-			}
-		} else {
-			return &Error{
-				Code: code,
-				Msg:  msg + string(s),
-			}
-		}
-	} else {
-		return &Error{
-			Code: code,
-			Msg:  msg,
-		}
-	}
-}
 
 var (
 	ErrNullPonter                         = NewError(E_RESOURCE_MANAGER_NOT_IMPLEMENT, E_MSG_NULL_POINTER)
@@ -381,8 +283,68 @@ var (
 	ErrProtoResponseNew                   = NewError(E_PROTO_RESPONSE_NEW, E_MSG_PROTO_RESPONSE_NEW)
 	ErrCronNotImplement                   = NewError(E_CRON_NOT_IMPLEMENT, E_MSG_CRON_NOT_IMPLEMENT)
 	ErrConfigEnvInvalidSyntax             = NewError(E_CONFIG_ENV_INVALID_SYNTAX, E_MSG_CONFIG_ENV_INVALID_SYNTAX)
+	ErrInvalidSyntax                      = NewError(E_INVALID_SYNTAX, E_MSG_INVALID_SYNTAX)
 )
 
+// 根据code, msg创建error
+func NewError(code int32, msg string) *Error {
+	return &Error{
+		Code: code,
+		Msg:  msg,
+	}
+}
+
+// 根据code, msg, values创建error
+func NewErrorw(code int32, msg string, values ...interface{}) *Error {
+	var kvs map[string]interface{}
+	for i := 0; i < len(values); i += 2 {
+		j := i + 1
+		if j < len(values) {
+			if kvs == nil {
+				kvs = make(map[string]interface{})
+			}
+			if k, ok := values[i].(string); ok {
+				kvs[k] = values[j]
+			}
+		}
+	}
+	return &Error{
+		Code:   code,
+		Msg:    msg,
+		Values: kvs,
+	}
+}
+
+// 转换或者创建error
+func NewOrCastError(err error) *Error {
+	if err == nil {
+		return nil
+	}
+	if e, ok := err.(*Error); ok {
+		return e
+	} else {
+		msg := err.Error()
+		arr := strings.Split(msg, ":")
+		if len(arr) < 2 {
+			return &Error{
+				Code: E_MALFORMED,
+				Msg:  msg,
+			}
+		} else if v, err := strconv.Atoi(arr[0]); err != nil {
+			return &Error{
+				Code: E_MALFORMED,
+				Msg:  msg,
+			}
+		} else {
+			return &Error{
+				Code: int32(v),
+				Msg:  arr[1],
+			}
+		}
+	}
+}
+
+// 提取错误码
 func ErrCode(err error) int32 {
 	if err == nil {
 		return 0
@@ -401,6 +363,7 @@ func ErrCode(err error) int32 {
 	return int32(i)
 }
 
+// 提取错误描述
 func ErrMsg(err error) string {
 	if err == nil {
 		return E_MSG_OK
@@ -415,6 +378,7 @@ func ErrMsg(err error) string {
 	return s[1]
 }
 
+// 提取错误栈
 func ErrStack(err error) string {
 	if e, ok := err.(*Error); ok {
 		return string(e.Stack)
@@ -422,9 +386,79 @@ func ErrStack(err error) string {
 	return ""
 }
 
-func TraceError(err error) error {
-	if e, ok := err.(*Error); ok {
-		return &Error{Code: e.Code, Msg: e.Msg, Stack: debug.Stack()}
+type Error struct {
+	Code   int32
+	Msg    string
+	Stack  []byte
+	Values map[string]interface{}
+}
+
+// 拷贝error并且附加stack
+func (e *Error) Trace() *Error {
+	return &Error{Code: e.Code, Msg: e.Msg, Stack: debug.Stack(), Values: e.Values}
+}
+
+// 格式化错误字符串
+func (e *Error) Error() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("%d: %s", e.Code, e.Msg))
+	if e.Values != nil {
+		for k, v := range e.Values {
+			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+		}
 	}
+	if e.Stack != nil {
+		sb.WriteString("\ntraceback:\n")
+		sb.Write(e.Stack)
+	}
+	return sb.String()
+}
+
+// 附加value到error中
+func (err *Error) WithValues(values ...interface{}) *Error {
+	for i := 0; i < len(values); i += 2 {
+		j := i + 1
+		if j < len(values) {
+			if err.Values == nil {
+				err.Values = make(map[string]interface{})
+			}
+			if k, ok := values[i].(string); ok {
+				err.Values[k] = values[j]
+			}
+		}
+	}
+	return err
+}
+
+// 附加stack到error中
+func (err *Error) WithTrace(values ...interface{}) *Error {
+	err.Stack = debug.Stack()
+	return err
+}
+
+// 附加错误描述到error中
+func (err *Error) WithMsg(msg string) *Error {
+	err.Msg = msg
+	return err
+}
+
+func (err *Error) WithFile(file string) *Error {
+	if err.Values == nil {
+		err.Values = make(map[string]interface{})
+	}
+	err.Values["file"] = file
+	return err
+}
+
+func (err *Error) WithLines(content []byte) *Error {
+	sb := strings.Builder{}
+	arr := bytes.Split(content, []byte("\n"))
+	for index, line := range arr {
+		sb.WriteString(fmt.Sprintf("%d: %s\n", index+1, line))
+	}
+	if err.Values == nil {
+		err.Values = make(map[string]interface{})
+	}
+	err.Values["lines"] = sb.String()
 	return err
 }

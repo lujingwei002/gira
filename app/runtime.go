@@ -39,6 +39,8 @@ type ApplicationArgs struct {
 	AppId              int32  /// 服务id
 	BuildTime          int64
 	RespositoryVersion string
+	ConfigFilePath     string
+	DotEnvFilePath     string
 }
 
 const (
@@ -93,6 +95,8 @@ type Application struct {
 	serviceContainer   *service.ServiceContainer
 	moduleContainer    *module.ModuleContainer
 	cron               *cron.Cron
+	configFilePath     string
+	dotEnvFilePath     string
 }
 
 func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFacade) *Application {
@@ -102,6 +106,8 @@ func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFaca
 		respositoryVersion: args.RespositoryVersion,
 		buildTime:          args.BuildTime,
 		appId:              args.AppId,
+		configFilePath:     args.ConfigFilePath,
+		dotEnvFilePath:     args.DotEnvFilePath,
 		applicationFacade:  applicationFacade,
 		frameworks:         make([]gira.Framework, 0),
 		appType:            args.AppType,
@@ -151,7 +157,7 @@ func (application *Application) init() error {
 			return err
 		}*/
 	// 读应用配置文件
-	if c, err := gira.LoadApplicationConfig(application.configDir, application.envDir, application.appType, application.appId); err != nil {
+	if c, err := gira.LoadApplicationConfig(application.configFilePath, application.dotEnvFilePath, application.appType, application.appId); err != nil {
 		return err
 	} else {
 		application.env = c.Env

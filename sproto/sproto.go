@@ -282,12 +282,11 @@ func isSprotoHandlerMethod(method reflect.Method) *sproto_handler_method {
 
 func (self *sproto_handler) suitableHandlerMethods(typ reflect.Type) map[string]*sproto_handler_method {
 	methods := make(map[string]*sproto_handler_method)
-	log.Info(typ)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
 		mn := method.Name
 		if handler := isSprotoHandlerMethod(method); handler != nil {
-			log.Infow("registr sproto handler", "type", handler.protoType, "name", mn)
+			// log.Infow("registr sproto handler", "type", handler.protoType, "name", mn)
 			methods[mn] = handler
 		}
 	}

@@ -93,6 +93,20 @@ func main() {
 						Name:   "push",
 						Usage:  "push table to database",
 						Action: resourcePushAction,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Aliases:  []string{"f"},
+								Name:     "file",
+								Usage:    "config file",
+								Required: false,
+							},
+							&cli.StringFlag{
+								Aliases:  []string{"c"},
+								Name:     "env",
+								Usage:    "env config file",
+								Required: false,
+							},
+						},
 					},
 					{
 						Name:   "reload",
@@ -106,6 +120,20 @@ func main() {
 				Usage:  "migrate dbname",
 				Before: beforeAction1,
 				Action: migrateAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Aliases:  []string{"f"},
+						Name:     "file",
+						Usage:    "config file",
+						Required: false,
+					},
+					&cli.StringFlag{
+						Aliases:  []string{"c"},
+						Name:     "env",
+						Usage:    "env config file",
+						Required: false,
+					},
+				},
 			},
 			{
 				Name:   "env",
@@ -116,6 +144,20 @@ func main() {
 						Name:   "list",
 						Usage:  "list env name",
 						Action: envListAction,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Aliases:  []string{"f"},
+								Name:     "file",
+								Usage:    "config file",
+								Required: false,
+							},
+							&cli.StringFlag{
+								Aliases:  []string{"c"},
+								Name:     "env",
+								Usage:    "env config file",
+								Required: false,
+							},
+						},
 					},
 					{
 						Name:   "switch",
@@ -233,11 +275,13 @@ func migrateAction(c *cli.Context) error {
 	}
 	name := c.Args().Get(0)
 	db := c.Args().Get(1)
+	configFilePath := c.String("file")
+	envFilePath := c.String("env")
 	bin := fmt.Sprintf("bin/migrate-%s", name)
 	if _, err := os.Stat(bin); err != nil {
 		return err
 	}
-	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
+	if config, err := gira.LoadCliConfig(configFilePath, envFilePath); err != nil {
 		return err
 	} else {
 		if dbConfig, ok := config.Db[db]; !ok {
@@ -258,8 +302,10 @@ func resourceCompressAction(args *cli.Context) error {
 	return command(bin, argv)
 }
 
-func resourcePushAction(args *cli.Context) error {
-	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
+func resourcePushAction(c *cli.Context) error {
+	configFilePath := c.String("file")
+	envFilePath := c.String("env")
+	if config, err := gira.LoadCliConfig(configFilePath, envFilePath); err != nil {
 		return err
 	} else {
 		dbConfig := config.Db["resourcedb"]
@@ -317,8 +363,10 @@ func envSwitchAction(args *cli.Context) error {
 }
 
 // 环境列表
-func envListAction(args *cli.Context) error {
-	if config, err := gira.LoadCliConfig(proj.Config.ConfigDir, proj.Config.EnvDir); err != nil {
+func envListAction(c *cli.Context) error {
+	configFilePath := c.String("file")
+	envFilePath := c.String("env")
+	if config, err := gira.LoadCliConfig(configFilePath, envFilePath); err != nil {
 		return err
 	} else {
 		envDir := proj.Config.EnvDir

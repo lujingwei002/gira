@@ -122,7 +122,7 @@ func NewConfigDbClient(ctx context.Context, name string, config gira.DbConfig) (
 	case gira.MYSQL_NAME:
 		return NewConfigMysqlClient(ctx, name, config)
 	default:
-		return nil, gira.TraceError(gira.ErrDbNotSupport)
+		return nil, gira.ErrDbNotSupport.Trace()
 	}
 }
 

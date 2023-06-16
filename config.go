@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,6 +21,7 @@ import (
 const (
 	config_instruction_type_none = iota
 	config_instruction_type_include
+	config_instruction_type_template
 )
 
 // 读取cli工具配置
@@ -118,30 +118,61 @@ const (
 
 // }
 
-// 读取应该配置
-func LoadCliConfig(configDir string, envDir string) (*Config, error) {
-	return LoadApplicationConfig(configDir, envDir, "cli", 0)
-}
+// func printLines(str string) {
+// 	lines := strings.Split(str, "\n")
+// 	for num, line := range lines {
+// 		fmt.Println(num+1, ":", line)
+// 	}
+// }
 
 // 读取应该配置
-func LoadApplicationConfig(configDir string, envDir string, appType string, appId int32) (*Config, error) {
+func LoadCliConfig(configFilePath string, dotEnvFilePath string) (*Config, error) {
+	if len(configFilePath) <= 0 {
+		configFilePath = path.Join(proj.Config.ConfigDir, "cli.yaml")
+	}
+	if len(dotEnvFilePath) <= 0 {
+		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
+	}
+	return LoadConfig(configFilePath, dotEnvFilePath, "cli", 0)
+}
+
+// 读取测试配置
+func LoadTestConfig(configFilePath string, dotEnvFilePath string) (*Config, error) {
+	if len(configFilePath) <= 0 {
+		configFilePath = path.Join(proj.Config.ConfigDir, "test.yaml")
+	}
+	if len(dotEnvFilePath) <= 0 {
+		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
+	}
+	return LoadConfig(configFilePath, dotEnvFilePath, "test", 0)
+}
+
+// 读取应用配置
+func LoadApplicationConfig(configFilePath string, dotEnvFilePath string, appType string, appId int32) (*Config, error) {
+	if len(configFilePath) <= 0 {
+		configFilePath = path.Join(proj.Config.ConfigDir, fmt.Sprintf("%s.yaml", appType))
+	}
+	if len(dotEnvFilePath) <= 0 {
+		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
+	}
+	return LoadConfig(configFilePath, dotEnvFilePath, appType, appId)
+}
+
+// 读取配置
+func LoadConfig(configFilePath string, dotEnvFilePath string, appType string, appId int32) (*Config, error) {
 	c := &Config{}
-	appName := fmt.Sprintf("%s_%d", appType, appId)
 	reader := config_reader{
 		appType: appType,
 		appId:   appId,
-		appName: appName,
+		appName: fmt.Sprintf("%s_%d", appType, appId),
 	}
-	if data, err := reader.read(configDir, envDir, appType, appId); err != nil {
+	if data, err := reader.read(configFilePath, dotEnvFilePath); err != nil {
 		return nil, err
 	} else {
 		if err := c.unmarshal(data); err != nil {
-			log.Println(string(data))
-			return nil, err
+			return nil, ErrInvalidSyntax.Trace().WithFile(configFilePath).WithLines(data)
 		}
 	}
-	c.Env = reader.env
-	c.Zone = reader.zone
 	return c, nil
 }
 
@@ -214,7 +245,7 @@ func (self *DbConfig) Parse(uri string) error {
 	case MYSQL_NAME:
 		self.Driver = u.Scheme
 	default:
-		return TraceError(ErrDbNotSupport)
+		return ErrDbNotSupport.Trace()
 	}
 	host2 := strings.Split(u.Host, ":")
 	if len(host2) == 2 {
@@ -352,10 +383,20 @@ type config_reader struct {
 	appId   int32
 	appType string
 	appName string
-	zone    string
-	env     string
 }
 
+type config_file struct {
+	builder   *strings.Builder
+	templates []string // 模板
+}
+
+func (f *config_file) WriteString(s string) (int, error) {
+	return f.builder.WriteString(s)
+}
+
+func (f *config_file) String() string {
+	return f.builder.String()
+}
 func (c *Config) unmarshal(data []byte) error {
 	// 解析yaml
 	if err := yaml.Unmarshal(data, c); err != nil {
@@ -365,26 +406,66 @@ func (c *Config) unmarshal(data []byte) error {
 	return nil
 }
 
+// dotEnvFilePath 环境变量文件路径 .env
+// 优先级 命令行 > 文件中appName指定变量 > 文件中变量
+func (c *config_reader) readDotEnv(dotEnvFilePath string) error {
+	fileEnv := make(map[string]string)
+	appPrefixEnv := make(map[string]string)
+	appNamePrefix := c.appName + "."
+	if _, err := os.Stat(dotEnvFilePath); err == nil {
+		if dict, err := godotenv.Read(dotEnvFilePath); err != nil {
+			return NewOrCastError(err).Trace().WithFile(dotEnvFilePath)
+		} else {
+			for k, v := range dict {
+				if strings.HasPrefix(k, appNamePrefix) {
+					appPrefixEnv[strings.Replace(k, appNamePrefix, "", 1)] = v
+				} else {
+					fileEnv[k] = v
+				}
+			}
+		}
+	} else {
+		return NewOrCastError(err).Trace().WithFile(dotEnvFilePath)
+	}
+	// 读文件中的环境变量到os.env中
+	// if _, err := os.Stat(dotEnvFilePath); err == nil {
+	// 	if err := godotenv.Load(dotEnvFilePath); err != nil && err != os.ErrNotExist {
+	// 		return err
+	// 	}
+	// }
+	for k, v := range appPrefixEnv {
+		if _, ok := os.LookupEnv(k); !ok {
+			os.Setenv(k, v)
+		}
+	}
+	for k, v := range fileEnv {
+		if _, ok := os.LookupEnv(k); !ok {
+			os.Setenv(k, v)
+		}
+	}
+	// envData := make(map[string]interface{})
+	// for k, _ := range fileEnv {
+	// 	envData[k] = os.Getenv(k)
+	// }
+	return nil
+}
+
 // 加载配置
 // 根据环境，区名，服务名， 服务组合配置文件路径，规则是config/app/<<name>>.yaml
-func (c *config_reader) read(dir string, envDir string, appType string, appId int32) ([]byte, error) {
-	var configFilePath = filepath.Join(dir, fmt.Sprintf("%s.yaml", c.appType))
-	sb := strings.Builder{}
+func (c *config_reader) read(configFilePath string, dotEnvFilePath string) ([]byte, error) {
+	log.Print("aaaaaaaaaaa", c.appType)
+	var err error
+	// 加载.env环境变量
+	if err := c.readDotEnv(dotEnvFilePath); err != nil {
+		return nil, err
+	}
+	file := &config_file{
+		builder: &strings.Builder{},
+	}
 	// 预处理
-	if err := c.preprocess(&sb, "", configFilePath); err != nil {
+	if err := c.preprocess(file, "", configFilePath); err != nil {
 		return nil, err
 	}
-	// log.Infof("配置预处理后\n%v\n", sb.String())
-	// 读环境变量
-	yamlEnvFilePath := path.Join(envDir, "config.yaml")
-	dotEnvFilePath := path.Join(envDir, ".env")
-	envData, err := c.readEnv(yamlEnvFilePath, dotEnvFilePath, appType, appId)
-	if err != nil {
-		return nil, err
-	}
-	envData["app_type"] = c.appType
-	envData["app_name"] = c.appName
-	envData["app_id"] = c.appId
 	funcMap := template.FuncMap{
 		"app_id": func() interface{} {
 			return c.appId
@@ -398,12 +479,6 @@ func (c *config_reader) read(dir string, envDir string, appType string, appId in
 		"app_name": func() interface{} {
 			return c.appName
 		},
-		"zone": func() interface{} {
-			return c.zone
-		},
-		"env": func() interface{} {
-			return c.env
-		},
 		"work_dir": func() interface{} {
 			return proj.Config.ProjectDir
 		},
@@ -411,68 +486,52 @@ func (c *config_reader) read(dir string, envDir string, appType string, appId in
 			return os.Getenv(key)
 		},
 	}
-	// 替换环境变量
-	t := template.New("config").Delims("<<", ">>")
-	t.Funcs(funcMap)
-	t, err = t.Parse(sb.String())
-	if err != nil {
-		return nil, err
-	}
-	out := strings.Builder{}
-	if err := t.Execute(&out, envData); err != nil {
-		return nil, err
-	}
-	// log.Infof("替换环境变量后\n%v\n", out.String())
-	return []byte(out.String()), nil
-}
-
-func printLines(str string) {
-	lines := strings.Split(str, "\n")
-	for num, line := range lines {
-		fmt.Println(num+1, ":", line)
-	}
-}
-
-// dotEnvFilePath 环境变量文件路径 .env
-// filePath 变量文件路径  config.yaml
-// 优先级 命令行 > 文件中appName指定变量 > 文件中变量
-func (c *config_reader) readEnv(filePath string, dotEnvFilePath string, appType string, appId int32) (map[string]interface{}, error) {
-	fileEnv := make(map[string]string)
-	priorityEnv := make(map[string]string)
-	appNamePrefix := fmt.Sprintf("%s_%d.", appType, appId)
-	if _, err := os.Stat(dotEnvFilePath); err == nil {
-		if dict, err := godotenv.Read(dotEnvFilePath); err != nil {
-			return nil, FromErrorw(err, "file", dotEnvFilePath)
-		} else {
-			for k, v := range dict {
-				if strings.HasPrefix(k, appNamePrefix) {
-					priorityEnv[strings.Replace(k, appNamePrefix, "", 1)] = v
-				}
-				fileEnv[k] = v
+	// 处理模板变量
+	if len(file.templates) > 0 {
+		envData := make(map[string]interface{})
+		for _, filePath := range file.templates {
+			if envData, err = c.readEnv(filePath); err != nil {
+				return nil, err
 			}
 		}
-	} else {
-		return nil, err
-	}
-	// 读文件中的环境变量到os.env中
-	if _, err := os.Stat(dotEnvFilePath); err == nil {
-		if err := godotenv.Load(dotEnvFilePath); err != nil && err != os.ErrNotExist {
+		// 替换环境变量
+		t := template.New("config").Delims("<<", ">>")
+		t.Funcs(funcMap)
+		t, err = t.Parse(file.String())
+		if err != nil {
 			return nil, err
 		}
-	}
-	for k, v3 := range fileEnv {
-		if v2, ok := priorityEnv[k]; ok {
-			v1 := os.Getenv(k)
-			if v1 == v3 {
-				os.Setenv(k, v2)
-			}
+		out := strings.Builder{}
+		if err := t.Execute(&out, envData); err != nil {
+			return nil, err
 		}
+		// log.Infof("替换环境变量后\n%v\n", out.String())
+		return []byte(out.String()), nil
+	} else {
+		// 替换环境变量
+		t := template.New("config").Delims("<<", ">>")
+		t.Funcs(funcMap)
+		t, err = t.Parse(file.String())
+		if err != nil {
+			return nil, err
+		}
+		out := strings.Builder{}
+		if err := t.Execute(&out, nil); err != nil {
+			return nil, err
+		}
+		// log.Infof("替换环境变量后\n%v\n", out.String())
+		return []byte(out.String()), nil
 	}
-	sb := strings.Builder{}
+}
+
+func (c *config_reader) readEnv(filePath string) (map[string]interface{}, error) {
 	if _, err := os.Stat(filePath); err != nil {
-		return nil, err
+		return nil, NewOrCastError(err).Trace().WithFile(filePath)
 	}
-	if err := c.preprocess(&sb, "", filePath); err != nil {
+	file := &config_file{
+		builder: &strings.Builder{},
+	}
+	if err := c.preprocess(file, "", filePath); err != nil {
 		return nil, err
 	}
 	var err error
@@ -480,40 +539,42 @@ func (c *config_reader) readEnv(filePath string, dotEnvFilePath string, appType 
 		"work_dir": func() interface{} {
 			return proj.Config.ProjectDir
 		},
-		"e": func(key string) interface{} {
-			return os.Getenv(key)
+		"e": func(key string, defaultVal interface{}) interface{} {
+			if v, ok := os.LookupEnv(key); ok {
+				return v
+			} else {
+				return defaultVal
+			}
 		},
 	}
 	// 替换环境变量
 	t := template.New("config").Delims("<<", ">>")
 	t.Funcs(funcMap)
-	t, err = t.Parse(sb.String())
+	t, err = t.Parse(file.String())
 	if err != nil {
-		printLines(sb.String())
-		return nil, NewError(-1, fmt.Sprintf("%s: %v", filePath, err))
+		return nil, NewOrCastError(err).Trace().WithFile(filePath).WithLines([]byte(file.String()))
 	}
 	out := strings.Builder{}
 	if err := t.Execute(&out, nil); err != nil {
-		printLines(sb.String())
-		return nil, NewError(-1, fmt.Sprintf("%s: %v", filePath, err))
+		return nil, NewOrCastError(err).Trace().WithFile(filePath).WithLines([]byte(file.String()))
 	}
 	envData := make(map[string]interface{})
 	if err := yaml.Unmarshal([]byte(out.String()), envData); err != nil {
-		return nil, NewError(-1, fmt.Sprintf("%s: %v", filePath, err))
+		return nil, NewOrCastError(err).Trace().WithFile(filePath).WithLines([]byte(file.String()))
 	}
-	c.env = envData["env"].(string)
-	c.zone = envData["zone"].(string)
+	// c.env = envData["env"].(string)
+	// c.zone = envData["zone"].(string)
 	return envData, nil
 }
 
-// 执行include指令
+// include指令
+// template指令
 // 替换${var}成环境变量
-func (c *config_reader) preprocess(sb *strings.Builder, indent string, filePath string) error {
+func (c *config_reader) preprocess(file *config_file, indent string, filePath string) error {
 	dir := path.Dir(filePath)
 	lines, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return NewOrCastError(err).Trace().WithFile(filePath)
 	}
 	// 正则表达式，用于匹配形如${VAR_NAME}的环境变量
 	re := regexp.MustCompile(`\${\w+}`)
@@ -526,6 +587,8 @@ func (c *config_reader) preprocess(sb *strings.Builder, indent string, filePath 
 		if instruction == config_instruction_type_none {
 			if strings.HasPrefix(sline, `$include:`) {
 				instruction = config_instruction_type_include
+			} else if strings.HasPrefix(sline, `$template:`) {
+				instruction = config_instruction_type_template
 			} else {
 				// 循环匹配所有环境变量
 				for _, match := range re.FindAllString(line, -1) {
@@ -536,9 +599,9 @@ func (c *config_reader) preprocess(sb *strings.Builder, indent string, filePath 
 					line = strings.Replace(line, match, envValue, 1)
 				}
 				// 循环匹配所有环境变量
-				sb.WriteString(indent)
-				sb.WriteString(line)
-				sb.WriteString("\n")
+				file.WriteString(indent)
+				file.WriteString(line)
+				file.WriteString("\n")
 			}
 		}
 		if instruction == config_instruction_type_include {
@@ -560,15 +623,42 @@ func (c *config_reader) preprocess(sb *strings.Builder, indent string, filePath 
 			}
 			if len(includeFilePath) > 0 {
 				indent2 := strings.Replace(line, sline, "", 1) + indent
-				if err := c.preprocess(sb, indent2, path.Join(dir, includeFilePath)); err != nil {
+				if err := c.preprocess(file, indent2, path.Join(dir, includeFilePath)); err != nil {
 					return err
 				}
 			}
 			if !found {
 				instruction = config_instruction_type_none
-				sb.WriteString(indent)
-				sb.WriteString(line)
-				sb.WriteString("\n")
+				file.WriteString(indent)
+				file.WriteString(line)
+				file.WriteString("\n")
+			}
+		}
+		if instruction == config_instruction_type_template {
+			var templateFilePath string
+			var found bool = false
+			if strings.HasPrefix(sline, `$template:`) {
+				pats := strings.SplitN(line, ":", 2)
+				if len(pats) == 2 {
+					templateFilePath = strings.TrimSpace(pats[1])
+				}
+				found = true
+			} else {
+				str := strings.TrimSpace(line)
+				if strings.HasPrefix(str, "-") {
+					str = strings.Replace(line, `-`, "", 1)
+					templateFilePath = strings.TrimSpace(str)
+					found = true
+				}
+			}
+			if len(templateFilePath) > 0 {
+				file.templates = append(file.templates, path.Join(dir, templateFilePath))
+			}
+			if !found {
+				instruction = config_instruction_type_none
+				file.WriteString(indent)
+				file.WriteString(line)
+				file.WriteString("\n")
 			}
 		}
 	}
