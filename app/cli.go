@@ -56,6 +56,25 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 				Name:   "status",
 				Usage:  "Display status",
 				Action: statusAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "id",
+						Usage:    "service id",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Aliases:  []string{"f"},
+						Name:     "file",
+						Usage:    "config file",
+						Required: false,
+					},
+					&cli.StringFlag{
+						Aliases:  []string{"c"},
+						Name:     "env",
+						Usage:    "env config file",
+						Required: false,
+					},
+				},
 			},
 			{
 				Name:   "stop",
@@ -240,13 +259,24 @@ func restartAction(args *cli.Context) error {
 }
 
 func statusAction(args *cli.Context) error {
-	/*projectDir, err := getProjectDir()
-	if err != nil {
+	appId := int32(args.Int("id"))
+	configFilePath := args.String("file")
+	dotEnvFilePath := args.String("env")
+	appType, _ := args.App.Metadata["name"].(string)
+	if _, err := gira.LoadApplicationConfig(configFilePath, dotEnvFilePath, appType, appId); err != nil {
 		return err
+	} else {
+		// ctx := context.Background()
+		// r, err := registry.NewConfigRegistry(ctx, c.Module.Etcd)
+		// if err != nil {
+		// 	return err
+		// }
+		// err = r.InitAsClient()
+		// if err != nil {
+		// 	return err
+		// }
+		return nil
 	}
-	configPath := fmt.Sprintf("%s/supervisord/supervisord.conf", projectDir)
-	execCommand("supervisorctl", []string{"-c", configPath, "status"})*/
-	return nil
 }
 
 func reloadAction(args *cli.Context) error {

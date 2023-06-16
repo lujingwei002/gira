@@ -12,10 +12,11 @@ import (
 )
 
 type HttpServer struct {
-	config  gira.HttpConfig
-	Handler http.Handler
-	server  *http.Server
-	ctx     context.Context
+	config     gira.HttpConfig
+	Handler    http.Handler
+	server     *http.Server
+	ctx        context.Context
+	cancelFunc context.CancelFunc
 }
 
 func NewConfigHttpServer(config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
@@ -34,17 +35,15 @@ func NewConfigHttpServer(config gira.HttpConfig, router http.Handler) (*HttpServ
 	return self, nil
 }
 
-func (self *HttpServer) OnStart(ctx context.Context) error {
-	self.ctx = ctx
+func (self *HttpServer) Stop() error {
+	log.Debugw("http server on stop1")
+	self.cancelFunc()
 	return nil
 }
 
-func (self *HttpServer) OnStop() error {
-	log.Debugw("http server on stop")
-	return nil
-}
-func (self *HttpServer) Serve() error {
+func (self *HttpServer) Serve(ctx context.Context) error {
 	log.Debugw("http server started", "addr", self.config.Addr)
+	self.ctx, self.cancelFunc = context.WithCancel(ctx)
 	go func() {
 		<-self.ctx.Done()
 		self.server.Close()
@@ -59,5 +58,6 @@ func (self *HttpServer) Serve() error {
 			err = nil
 		}
 	}
+	log.Debugw("http server on stop2", "error", err)
 	return err
 }

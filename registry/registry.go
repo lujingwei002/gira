@@ -34,14 +34,15 @@ import (
 const GRPC_KEY string = "grpc"
 
 type Registry struct {
-	config            gira.EtcdConfig
-	appId             int32
-	fullName          string // 节点全名
-	name              string // 节点名
-	client            *clientv3.Client
-	ctx               context.Context
-	application       gira.Application
-	applicationFacade gira.ApplicationFacade
+	config      gira.EtcdConfig
+	appId       int32
+	fullName    string // 节点全名
+	name        string // 节点名
+	client      *clientv3.Client
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	frameworks  []gira.Framework
+	application gira.ApplicationFacade
 
 	peerRegistry    *peer_registry
 	playerRegistry  *player_registry
@@ -52,29 +53,11 @@ type Registry struct {
 }
 
 // 关闭，释放资源
-func (r *Registry) OnStop() error {
+func (r *Registry) Stop() error {
 	log.Debug("registry stop")
 	r.playerRegistry.onStop(r)
 	r.serviceRegistry.onStop(r)
 	r.peerRegistry.onStop(r)
-	return nil
-}
-
-// 启动
-func (r *Registry) OnStart(ctx context.Context) error {
-	errGroup, errCtx := errgroup.WithContext(ctx)
-	r.ctx = ctx
-	r.errGroup = errGroup
-	r.errCtx = errCtx
-	if err := r.peerRegistry.OnStart(r); err != nil {
-		return err
-	}
-	if err := r.playerRegistry.OnStart(r); err != nil {
-		return err
-	}
-	if err := r.serviceRegistry.OnStart(r); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -85,15 +68,53 @@ func (r *Registry) Notify() {
 	r.serviceRegistry.notify(r)
 }
 
-func (r *Registry) Serve() error {
+// 作为其中一个节点来启动
+// 会将自己注册进去
+func (r *Registry) StartAsMember(application gira.ApplicationFacade, frameworks []gira.Framework) error {
+	r.application = application
+	r.frameworks = frameworks
+	// if err := r.peerRegistry.Start(r); err != nil {
+	// 	return err
+	// }
+	// 注册自己
+	if err := r.peerRegistry.registerSelf(r); err != nil {
+		return err
+	}
+	if err := r.peerRegistry.initPeers(r); err != nil {
+		return err
+	}
+	// if err := r.playerRegistry.Start(r); err != nil {
+	// 	return err
+	// }
+	if err := r.playerRegistry.recoverSelfPeerPlayers(r); err != nil {
+		return err
+	}
+	// if err := r.serviceRegistry.Start(r); err != nil {
+	// 	return err
+	// }
+	if err := r.serviceRegistry.initServices(r); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Registry) Watch() error {
+	r.errGroup, r.errCtx = errgroup.WithContext(r.ctx)
 	r.errGroup.Go(func() error {
-		return r.peerRegistry.Serve(r)
+		// return r.peerRegistry.Serve(r)
+		// 侦听伙伴信息
+		if err := r.peerRegistry.watchPeers(r); err != nil {
+			return err
+		}
+		return nil
 	})
 	r.errGroup.Go(func() error {
-		return r.playerRegistry.Serve(r)
+		// return r.playerRegistry.Serve(r)
+		return r.playerRegistry.watchSelfPeerPlayers(r)
 	})
 	r.errGroup.Go(func() error {
-		return r.serviceRegistry.Serve(r)
+		// return r.serviceRegistry.Serve(r)
+		return r.serviceRegistry.watchServices(r)
 	})
 	return r.errGroup.Wait()
 }
@@ -122,14 +143,14 @@ func (r *Registry) SelfPeer() *gira.Peer {
 	return r.peerRegistry.SelfPeer
 }
 
-func NewConfigRegistry(application gira.Application, applicationFacade gira.ApplicationFacade, config *gira.EtcdConfig) (*Registry, error) {
+func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig) (*Registry, error) {
 	r := &Registry{
-		config:      *config,
-		fullName:    facade.GetAppFullName(),
-		appId:       facade.GetAppId(),
-		name:        facade.GetAppType(),
-		application: application,
+		config:   *config,
+		fullName: facade.GetAppFullName(),
+		appId:    facade.GetAppId(),
+		name:     facade.GetAppType(),
 	}
+	r.ctx, r.cancelFunc = context.WithCancel(ctx)
 
 	// 配置endpoints
 	endpoints := make([]string, 0)

@@ -34,10 +34,13 @@ type player_registry struct {
 }
 
 func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
+	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &player_registry{
 		peerTypePrefix: fmt.Sprintf("/peer_type_user/%s/", r.name),
 		peerPrefix:     fmt.Sprintf("/peer_user/%s/", r.fullName),
 		userPrefix:     "/user/",
+		ctx:            ctx,
+		cancelFunc:     cancelFunc,
 	}
 	return self, nil
 }
@@ -50,19 +53,16 @@ func (self *player_registry) onStop(r *Registry) error {
 	return nil
 }
 
-func (self *player_registry) OnStart(r *Registry) error {
-	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
-	self.ctx = cancelCtx
-	self.cancelFunc = cancelFunc
-	if err := self.initSelfPeerPlayers(r); err != nil {
-		return err
-	}
-	return nil
-}
+// func (self *player_registry) Start(r *Registry) error {
+// 	if err := self.initSelfPeerPlayers(r); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (self *player_registry) Serve(r *Registry) error {
-	return self.watchSelfPeerPlayers(r)
-}
+// func (self *player_registry) Serve(r *Registry) error {
+// 	return self.watchSelfPeerPlayers(r)
+// }
 
 func (self *player_registry) notify(r *Registry) error {
 	self.localPlayers.Range(func(k any, v any) bool {
@@ -78,31 +78,31 @@ func (self *player_registry) onLocalPlayerAdd(r *Registry, player *gira.LocalPla
 		return
 	}
 	log.Infow("player registry on local user add", "user_id", player.UserId)
-	for _, fw := range r.application.Frameworks() {
+	for _, fw := range r.frameworks {
 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
 			handler.OnLocalPlayerAdd(player)
 		}
 	}
-	if handler, ok := r.applicationFacade.(gira.LocalPlayerWatchHandler); ok {
+	if handler, ok := r.application.(gira.LocalPlayerWatchHandler); ok {
 		handler.OnLocalPlayerAdd(player)
 	}
 }
 
 func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.LocalPlayer) {
 	log.Infow("player registry on local user add", "delete", player.UserId)
-	for _, fw := range r.application.Frameworks() {
+	for _, fw := range r.frameworks {
 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
 			handler.OnLocalPlayerDelete(player)
 		}
 	}
-	if handler, ok := r.applicationFacade.(gira.LocalPlayerWatchHandler); ok {
+	if handler, ok := r.application.(gira.LocalPlayerWatchHandler); ok {
 		handler.OnLocalPlayerDelete(player)
 	}
 }
 
 // func (self *player_registry) onLocalPlayerUpdate(r *Registry, player *gira.LocalPlayer) {
 // 	log.Infow("player registry on local user add", "update", player.UserId)
-// 	for _, fw := range r.application.Frameworks() {
+// 	for _, fw := range r.frameworks {
 // 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
 // 			handler.OnLocalPlayerUpdate(player)
 // 		}
@@ -158,7 +158,7 @@ func (self *player_registry) onLocalKvDelete(r *Registry, kv *mvccpb.KeyValue) e
 	return nil
 }
 
-func (self *player_registry) initSelfPeerPlayers(r *Registry) error {
+func (self *player_registry) recoverSelfPeerPlayers(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse

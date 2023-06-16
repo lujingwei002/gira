@@ -3,7 +3,6 @@ package gira
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"path"
@@ -374,11 +373,6 @@ type AdminConfig struct {
 	None string `yaml:"none"`
 }
 
-type dot_env_config struct {
-	Env  string `yaml:"env"`
-	Zone string `yaml:"zone"`
-}
-
 type config_reader struct {
 	appId   int32
 	appType string
@@ -397,6 +391,7 @@ func (f *config_file) WriteString(s string) (int, error) {
 func (f *config_file) String() string {
 	return f.builder.String()
 }
+
 func (c *Config) unmarshal(data []byte) error {
 	// 解析yaml
 	if err := yaml.Unmarshal(data, c); err != nil {
@@ -443,30 +438,11 @@ func (c *config_reader) readDotEnv(dotEnvFilePath string) error {
 			os.Setenv(k, v)
 		}
 	}
-	// envData := make(map[string]interface{})
-	// for k, _ := range fileEnv {
-	// 	envData[k] = os.Getenv(k)
-	// }
 	return nil
 }
 
-// 加载配置
-// 根据环境，区名，服务名， 服务组合配置文件路径，规则是config/app/<<name>>.yaml
-func (c *config_reader) read(configFilePath string, dotEnvFilePath string) ([]byte, error) {
-	log.Print("aaaaaaaaaaa", c.appType)
-	var err error
-	// 加载.env环境变量
-	if err := c.readDotEnv(dotEnvFilePath); err != nil {
-		return nil, err
-	}
-	file := &config_file{
-		builder: &strings.Builder{},
-	}
-	// 预处理
-	if err := c.preprocess(file, "", configFilePath); err != nil {
-		return nil, err
-	}
-	funcMap := template.FuncMap{
+func (c *config_reader) templateFuncs() template.FuncMap {
+	return template.FuncMap{
 		"app_id": func() interface{} {
 			return c.appId
 		},
@@ -486,17 +462,37 @@ func (c *config_reader) read(configFilePath string, dotEnvFilePath string) ([]by
 			return os.Getenv(key)
 		},
 	}
+}
+
+// 加载配置
+// 1.加载环境变量
+// 2.加载模板变量
+// 3.处理模板
+// 4.yaml decode
+func (c *config_reader) read(configFilePath string, dotEnvFilePath string) ([]byte, error) {
+	var err error
+	// 加载.env环境变量
+	if err := c.readDotEnv(dotEnvFilePath); err != nil {
+		return nil, err
+	}
+	file := &config_file{
+		builder: &strings.Builder{},
+	}
+	// 预处理
+	if err := c.preprocess(file, "", configFilePath); err != nil {
+		return nil, err
+	}
 	// 处理模板变量
 	if len(file.templates) > 0 {
 		envData := make(map[string]interface{})
 		for _, filePath := range file.templates {
-			if envData, err = c.readEnv(filePath); err != nil {
+			if envData, err = c.readTemplateData(filePath); err != nil {
 				return nil, err
 			}
 		}
 		// 替换环境变量
 		t := template.New("config").Delims("<<", ">>")
-		t.Funcs(funcMap)
+		t.Funcs(c.templateFuncs())
 		t, err = t.Parse(file.String())
 		if err != nil {
 			return nil, err
@@ -510,7 +506,7 @@ func (c *config_reader) read(configFilePath string, dotEnvFilePath string) ([]by
 	} else {
 		// 替换环境变量
 		t := template.New("config").Delims("<<", ">>")
-		t.Funcs(funcMap)
+		t.Funcs(c.templateFuncs())
 		t, err = t.Parse(file.String())
 		if err != nil {
 			return nil, err
@@ -524,7 +520,8 @@ func (c *config_reader) read(configFilePath string, dotEnvFilePath string) ([]by
 	}
 }
 
-func (c *config_reader) readEnv(filePath string) (map[string]interface{}, error) {
+// 加载模板变量并返回
+func (c *config_reader) readTemplateData(filePath string) (map[string]interface{}, error) {
 	if _, err := os.Stat(filePath); err != nil {
 		return nil, NewOrCastError(err).Trace().WithFile(filePath)
 	}
@@ -535,21 +532,9 @@ func (c *config_reader) readEnv(filePath string) (map[string]interface{}, error)
 		return nil, err
 	}
 	var err error
-	funcMap := template.FuncMap{
-		"work_dir": func() interface{} {
-			return proj.Config.ProjectDir
-		},
-		"e": func(key string, defaultVal interface{}) interface{} {
-			if v, ok := os.LookupEnv(key); ok {
-				return v
-			} else {
-				return defaultVal
-			}
-		},
-	}
 	// 替换环境变量
 	t := template.New("config").Delims("<<", ">>")
-	t.Funcs(funcMap)
+	t.Funcs(c.templateFuncs())
 	t, err = t.Parse(file.String())
 	if err != nil {
 		return nil, NewOrCastError(err).Trace().WithFile(filePath).WithLines([]byte(file.String()))
@@ -562,11 +547,10 @@ func (c *config_reader) readEnv(filePath string) (map[string]interface{}, error)
 	if err := yaml.Unmarshal([]byte(out.String()), envData); err != nil {
 		return nil, NewOrCastError(err).Trace().WithFile(filePath).WithLines([]byte(file.String()))
 	}
-	// c.env = envData["env"].(string)
-	// c.zone = envData["zone"].(string)
 	return envData, nil
 }
 
+// 预处理文件filePath,输出到file中
 // include指令
 // template指令
 // 替换${var}成环境变量

@@ -14,12 +14,12 @@ import (
 // http://wzmmmmj.com/2020/09/06/grpc-stream/
 
 type Server struct {
-	config   gira.GrpcConfig
-	server   *grpc.Server
-	ctx      context.Context
-	listener net.Listener
-	servers  map[string]interface{}
-	mu       sync.Mutex
+	config     gira.GrpcConfig
+	server     *grpc.Server
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	servers    map[string]interface{}
+	mu         sync.Mutex
 }
 
 func NewConfigServer(config gira.GrpcConfig) *Server {
@@ -48,27 +48,24 @@ func (self *Server) GetServer(name string) (svr interface{}, ok bool) {
 	return
 }
 
-func (self *Server) OnStart(ctx context.Context) error {
-	self.ctx = ctx
+func (self *Server) Serve(ctx context.Context) error {
 	log.Debugw("grpc server started", "addr", self.config.Address)
 	if listener, err := net.Listen("tcp", self.config.Address); err != nil {
 		return err
 	} else {
-		self.listener = listener
-		return nil
+		self.ctx, self.cancelFunc = context.WithCancel(ctx)
+		go func() {
+			<-self.ctx.Done()
+			self.server.GracefulStop()
+		}()
+		err := self.server.Serve(listener)
+		log.Debugw("gpc server on stop2", "error", err)
+		return err
 	}
 }
 
-func (self *Server) Serve() error {
-	go func() {
-		<-self.ctx.Done()
-		self.server.GracefulStop()
-	}()
-	err := self.server.Serve(self.listener)
-	return err
-}
-
-func (self *Server) OnStop() error {
-	log.Debugw("gpc server on stop")
+func (self *Server) Stop() error {
+	log.Debugw("gpc server on stop1")
+	self.cancelFunc()
 	return nil
 }

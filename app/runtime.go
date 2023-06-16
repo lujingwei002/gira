@@ -15,7 +15,6 @@ import (
 
 	"github.com/lujingwei002/gira/gins"
 	"github.com/lujingwei002/gira/log"
-	"github.com/lujingwei002/gira/module"
 	"github.com/lujingwei002/gira/service"
 
 	"github.com/lujingwei002/gira"
@@ -93,7 +92,6 @@ type Application struct {
 	gate               *gate.Server
 	grpcServer         *grpc.Server
 	serviceContainer   *service.ServiceContainer
-	moduleContainer    *module.ModuleContainer
 	cron               *cron.Cron
 	configFilePath     string
 	dotEnvFilePath     string
@@ -118,7 +116,6 @@ func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFaca
 		errGroup:           errGroup,
 		stopChan:           make(chan struct{}, 1),
 		serviceContainer:   service.New(ctx),
-		moduleContainer:    module.New(ctx),
 	}
 	return application
 }
@@ -259,8 +256,15 @@ func (application *Application) onStop() {
 	}
 	// service stop
 	application.serviceContainer.Stop()
-	// module stop
-	application.moduleContainer.Stop()
+	if application.registry != nil {
+		application.registry.Stop()
+	}
+	if application.grpcServer != nil {
+		application.grpcServer.Stop()
+	}
+	if application.httpServer != nil {
+		application.httpServer.Stop()
+	}
 }
 
 func (application *Application) onStart() (err error) {
@@ -282,15 +286,19 @@ func (application *Application) onStart() (err error) {
 
 	// ==== registry ================
 	if application.registry != nil {
-		if err = application.moduleContainer.InstallModule("registry", application.registry); err != nil {
+		if err = application.registry.StartAsMember(application.applicationFacade, application.frameworks); err != nil {
 			return
 		}
 	}
+	// application.errGroup.Go(func() error {
+	// 	return application.registry.Serve(application.ctx)
+	// })
+	// }
 	// ==== http ================
 	if application.httpServer != nil {
-		if err = application.moduleContainer.InstallModule("http server", application.httpServer); err != nil {
-			return
-		}
+		application.errGroup.Go(func() error {
+			return application.httpServer.Serve(application.ctx)
+		})
 	}
 	// ==== service ================
 	if application.grpcServer != nil {
@@ -325,14 +333,16 @@ func (application *Application) onStart() (err error) {
 	}
 	// ==== grpc ================
 	if application.grpcServer != nil {
-		if err = application.moduleContainer.InstallModule("grpc server", application.grpcServer); err != nil {
-			return
-		}
+		application.errGroup.Go(func() error {
+			return application.grpcServer.Serve(application.ctx)
+		})
 	}
-	application.errGroup.Go(func() error {
-		err := application.moduleContainer.Serve()
-		return err
-	})
+	// ==== registry ================
+	if application.registry != nil {
+		application.errGroup.Go(func() error {
+			return application.registry.Watch()
+		})
+	}
 	application.errGroup.Go(func() error {
 		return application.serviceContainer.Serve()
 	})
@@ -354,7 +364,7 @@ func (application *Application) onCreate() error {
 	application.cron = cron.New()
 	// ==== registry ================
 	if application.config.Module.Etcd != nil {
-		if r, err := registry.NewConfigRegistry(application, applicationFacade, application.config.Module.Etcd); err != nil {
+		if r, err := registry.NewConfigRegistry(application.ctx, application.config.Module.Etcd); err != nil {
 			return err
 		} else {
 			application.registry = r

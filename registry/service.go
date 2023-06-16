@@ -287,10 +287,14 @@ type service_map struct {
 }
 
 func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
+
+	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &service_registry{
 		prefixIndex:       newWordTrie(),
 		servicePrefix:     "/service/",
 		peerServicePrefix: fmt.Sprintf("/peer_service/%s/", r.fullName),
+		ctx:               ctx,
+		cancelFunc:        cancelFunc,
 	}
 	return self, nil
 }
@@ -303,19 +307,16 @@ func (self *service_registry) onStop(r *Registry) error {
 	return nil
 }
 
-func (self *service_registry) OnStart(r *Registry) error {
-	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
-	self.ctx = cancelCtx
-	self.cancelFunc = cancelFunc
-	if err := self.initServices(r); err != nil {
-		return err
-	}
-	return nil
-}
+// func (self *service_registry) Start(r *Registry) error {
+// 	if err := self.initServices(r); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (self *service_registry) Serve(r *Registry) error {
-	return self.watchServices(r)
-}
+// func (self *service_registry) Serve(r *Registry) error {
+// 	return self.watchServices(r)
+// }
 
 func (self *service_registry) notify(r *Registry) error {
 	self.services.Range(func(k any, v any) bool {
@@ -332,12 +333,12 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 		return
 	}
 	log.Infow("service registry on service add", "service_name", service.FullName, "peer", service.Peer.FullName)
-	for _, fw := range r.application.Frameworks() {
+	for _, fw := range r.frameworks {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
 			handler.OnServiceAdd(service)
 		}
 	}
-	if handler, ok := r.applicationFacade.(gira.ServiceWatchHandler); ok {
+	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
 		handler.OnServiceAdd(service)
 	}
 	// self.prefixIndex.debugTrace()
@@ -346,19 +347,19 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 // on service delete callback
 func (self *service_registry) onServiceDelete(r *Registry, service *gira.ServiceName) {
 	log.Infow("service registry on service delete", "service_name", service.FullName, "peer", service.Peer.FullName)
-	for _, fw := range r.application.Frameworks() {
+	for _, fw := range r.frameworks {
 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
 			handler.OnServiceDelete(service)
 		}
 	}
-	if handler, ok := r.applicationFacade.(gira.ServiceWatchHandler); ok {
+	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
 		handler.OnServiceDelete(service)
 	}
 }
 
 // func (self *service_registry) onServiceUpdate(r *Registry, service *gira.Service) {
 // 	log.Infow("service update", "service_name", service.UniqueName)
-// 	for _, fw := range r.application.Frameworks() {
+// 	for _, fw := range r.frameworks {
 // 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
 // 			handler.OnServiceUpdate(service)
 // 		}

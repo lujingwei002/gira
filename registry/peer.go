@@ -57,9 +57,12 @@ type peer_registry struct {
 }
 
 func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
+	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &peer_registry{
 		prefix:     "/peer/",
 		selfPrefix: fmt.Sprintf("/peer/%s/", r.fullName),
+		ctx:        ctx,
+		cancelFunc: cancelFunc,
 	}
 	return self, nil
 }
@@ -86,19 +89,16 @@ func (self *peer_registry) onStop(r *Registry) error {
 	return nil
 }
 
-func (self *peer_registry) OnStart(r *Registry) error {
-	cancelCtx, cancelFunc := context.WithCancel(r.ctx)
-	self.ctx = cancelCtx
-	self.cancelFunc = cancelFunc
-	// 注册自己
-	if err := self.registerSelf(r); err != nil {
-		return err
-	}
-	if err := self.initPeers(r); err != nil {
-		return err
-	}
-	return nil
-}
+// func (self *peer_registry) Start(r *Registry) error {
+// 	// 注册自己
+// 	if err := self.registerSelf(r); err != nil {
+// 		return err
+// 	}
+// 	if err := self.initPeers(r); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func (self *peer_registry) Serve(r *Registry) error {
 	// 侦听伙伴信息
@@ -119,12 +119,12 @@ func (self *peer_registry) notify(r *Registry) error {
 
 func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 	log.Debugw("peer registry on peer add", "full_name", peer.FullName)
-	for _, fw := range r.application.Frameworks() {
+	for _, fw := range r.frameworks {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerAdd(peer)
 		}
 	}
-	if handler, ok := r.applicationFacade.(gira.PeerWatchHandler); ok {
+	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
 		handler.OnPeerAdd(peer)
 	}
 	return nil
@@ -132,12 +132,12 @@ func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 
 func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 	log.Debugw("peer registry on peer delete", "full_name", peer.FullName)
-	for _, fw := range r.application.Frameworks() {
+	for _, fw := range r.frameworks {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerDelete(peer)
 		}
 	}
-	if handler, ok := r.applicationFacade.(gira.PeerWatchHandler); ok {
+	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
 		handler.OnPeerDelete(peer)
 	}
 	if peer.FullName == r.fullName {
@@ -156,12 +156,12 @@ func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 
 func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
 	log.Debugw("peer registry on peer update", "full_name", peer.FullName)
-	for _, fw := range r.application.Frameworks() {
+	for _, fw := range r.frameworks {
 		if handler, ok := fw.(gira.PeerWatchHandler); ok {
 			handler.OnPeerUpdate(peer)
 		}
 	}
-	if handler, ok := r.applicationFacade.(gira.PeerWatchHandler); ok {
+	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
 		handler.OnPeerUpdate(peer)
 	}
 	return nil
@@ -349,7 +349,6 @@ func (self *peer_registry) initPeers(r *Registry) error {
 	}
 	self.watchStartRevision = getResp.Header.Revision + 1
 	return nil
-	// })
 }
 
 func (self *peer_registry) watchPeers(r *Registry) error {
@@ -492,7 +491,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 						// KeepAlive每秒会续租一次,所以就会收到一次应答
 						log.Info("收到应答,租约ID是:", keepResp.ID)
 					}
-				case <-r.application.Done():
+				case <-r.ctx.Done():
 					break
 				}
 			}
