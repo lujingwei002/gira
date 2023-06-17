@@ -34,6 +34,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+type DefaultClientApplicationFacade struct {
+}
+
+func (s *DefaultClientApplicationFacade) OnConfigLoad(c *gira.Config) error {
+	return nil
+}
+func (s *DefaultClientApplicationFacade) OnCreate() error {
+	return nil
+}
+func (s *DefaultClientApplicationFacade) OnStart() error {
+	return nil
+}
+func (s *DefaultClientApplicationFacade) OnStop() error {
+	return nil
+}
+
 type Client struct {
 	zone               string // 区名 wc|qq|hw|quick
 	env                string // dev|local|qa|prd
@@ -234,9 +250,9 @@ func (application *Client) onStart() (err error) {
 
 	// ==== registry ================
 	if application.registry != nil {
-		// if err = application.registry.StartAsMember(application.applicationFacade); err != nil {
-		// 	return
-		// }
+		if err = application.registry.StartAsClient(); err != nil {
+			return
+		}
 	}
 	// ==== registry ================
 	if application.registry != nil {
@@ -269,7 +285,9 @@ func (application *Client) onCreate() error {
 	// ==== cron ================
 	application.cron = cron.New()
 	// ==== registry ================
+	log.Println("ffffffffff")
 	if application.config.Module.Etcd != nil {
+		log.Println("ffffffffff222")
 		if r, err := registry.NewConfigRegistry(application.ctx, application.config.Module.Etcd); err != nil {
 			return err
 		} else {
@@ -314,10 +332,10 @@ func (application *Client) onCreate() error {
 				return err
 			}
 		} else {
-			return gira.ErrResourceLoaderNotImplement
+			// return gira.ErrResourceLoaderNotImplement
 		}
 	} else {
-		return gira.ErrResourceManagerNotImplement
+		// return gira.ErrResourceManagerNotImplement
 	}
 
 	// ==== sdk================

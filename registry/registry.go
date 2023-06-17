@@ -98,6 +98,16 @@ func (r *Registry) StartAsMember(application gira.ApplicationFacade, frameworks 
 	return nil
 }
 
+func (r *Registry) StartAsClient() error {
+	if err := r.peerRegistry.initPeers(r); err != nil {
+		return err
+	}
+	if err := r.serviceRegistry.initServices(r); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *Registry) Watch() error {
 	r.errGroup, r.errCtx = errgroup.WithContext(r.ctx)
 	r.errGroup.Go(func() error {

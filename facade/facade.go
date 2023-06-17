@@ -164,7 +164,7 @@ func ListServiceKvs() (peers map[string][]string, err error) {
 // 构造服务名
 func NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
 	application := gira.App()
-	if r := application.GetRegistry(); r == nil {
+	if r := application.GetRegistryClient(); r == nil {
 		return ""
 	} else {
 		return r.NewServiceName(serviceName, opt...)

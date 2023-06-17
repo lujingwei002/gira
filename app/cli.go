@@ -5,7 +5,10 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
+	peer_service "github.com/lujingwei002/gira/service/peer"
+	"github.com/lujingwei002/gira/service/peer/peer_grpc"
 
 	"github.com/lujingwei002/gira"
 	"github.com/urfave/cli/v2"
@@ -272,21 +275,34 @@ func statusAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	configFilePath := args.String("file")
 	dotEnvFilePath := args.String("env")
-	appType, _ := args.App.Metadata["name"].(string)
-	if _, err := gira.LoadApplicationConfig(configFilePath, dotEnvFilePath, appType, appId); err != nil {
+	// appType, _ := args.App.Metadata["name"].(string)
+	if err := StartAsClient(&DefaultClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
 		return err
-	} else {
-		// ctx := context.Background()
-		// r, err := registry.NewConfigRegistry(ctx, c.Module.Etcd)
-		// if err != nil {
-		// 	return err
-		// }
-		// err = r.InitAsClient()
-		// if err != nil {
-		// 	return err
-		// }
-		return nil
 	}
+	ctx := facade.Context()
+	serviceName := peer_service.GetServiceName()
+	log.Println("eeeeeeeeeeeee", serviceName)
+	if result, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
+		return err
+
+	} else {
+		log.Println("cccc", result)
+
+	}
+	// if result, err := peer_grpc.DefaultPeerClients.Broadcast().HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
+	// 	return err
+	// } else {
+	// 	log.Println("cccc", result)
+	// 	for i := 0; i < result.SuccessCount(); i++ {
+	// 		peer := result.SuccessPeer(i)
+	// 		log.Println("success", peer.FullName)
+	// 	}
+	// 	for i := 0; i < result.ErrorCount(); i++ {
+	// 		peer := result.ErrorPeer(i)
+	// 		log.Println("error", peer.FullName)
+	// 	}
+	// }
+	return nil
 }
 
 func reloadAction(args *cli.Context) error {
