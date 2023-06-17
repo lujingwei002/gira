@@ -34,15 +34,19 @@ import (
 const GRPC_KEY string = "grpc"
 
 type Registry struct {
-	config      gira.EtcdConfig
-	appId       int32
-	fullName    string // 节点全名
-	name        string // 节点名
-	client      *clientv3.Client
-	ctx         context.Context
-	cancelFunc  context.CancelFunc
-	frameworks  []gira.Framework
-	application gira.ApplicationFacade
+	config     gira.EtcdConfig
+	appId      int32
+	fullName   string // 节点全名
+	name       string // 节点名
+	client     *clientv3.Client
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	// frameworks              []gira.Framework
+	// application             gira.ApplicationFacade
+
+	localPlayerWatchHandlers []gira.LocalPlayerWatchHandler
+	peerWatchHandlers        []gira.PeerWatchHandler
+	serviceWatchHandlers     []gira.ServiceWatchHandler
 
 	peerRegistry    *peer_registry
 	playerRegistry  *player_registry
@@ -55,9 +59,9 @@ type Registry struct {
 // 关闭，释放资源
 func (r *Registry) Stop() error {
 	log.Debug("registry stop")
-	r.playerRegistry.onStop(r)
-	r.serviceRegistry.onStop(r)
-	r.peerRegistry.onStop(r)
+	r.playerRegistry.stop(r)
+	r.serviceRegistry.stop(r)
+	r.peerRegistry.stop(r)
 	return nil
 }
 
@@ -70,12 +74,7 @@ func (r *Registry) Notify() {
 
 // 作为其中一个节点来启动
 // 会将自己注册进去
-func (r *Registry) StartAsMember(application gira.ApplicationFacade, frameworks []gira.Framework) error {
-	r.application = application
-	r.frameworks = frameworks
-	// if err := r.peerRegistry.Start(r); err != nil {
-	// 	return err
-	// }
+func (r *Registry) StartAsMember() error {
 	// 注册自己
 	if err := r.peerRegistry.registerSelf(r); err != nil {
 		return err
@@ -83,15 +82,9 @@ func (r *Registry) StartAsMember(application gira.ApplicationFacade, frameworks 
 	if err := r.peerRegistry.initPeers(r); err != nil {
 		return err
 	}
-	// if err := r.playerRegistry.Start(r); err != nil {
-	// 	return err
-	// }
 	if err := r.playerRegistry.recoverSelfPeerPlayers(r); err != nil {
 		return err
 	}
-	// if err := r.serviceRegistry.Start(r); err != nil {
-	// 	return err
-	// }
 	if err := r.serviceRegistry.initServices(r); err != nil {
 		return err
 	}
@@ -108,7 +101,10 @@ func (r *Registry) StartAsClient() error {
 	return nil
 }
 
-func (r *Registry) Watch() error {
+func (r *Registry) Watch(peerWatchHandlers []gira.PeerWatchHandler, localPlayerWatchHandlers []gira.LocalPlayerWatchHandler, serviceWatchHandlers []gira.ServiceWatchHandler) error {
+	r.peerWatchHandlers = peerWatchHandlers
+	r.localPlayerWatchHandlers = localPlayerWatchHandlers
+	r.serviceWatchHandlers = serviceWatchHandlers
 	r.errGroup, r.errCtx = errgroup.WithContext(r.ctx)
 	r.errGroup.Go(func() error {
 		// return r.peerRegistry.Serve(r)
@@ -161,12 +157,13 @@ func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig) (*Registry,
 		name:     facade.GetAppType(),
 	}
 	r.ctx, r.cancelFunc = context.WithCancel(ctx)
-
 	// 配置endpoints
 	endpoints := make([]string, 0)
 	for _, v := range r.config.Endpoints {
 		endpoints = append(endpoints, fmt.Sprintf("http://%s:%d", v.Host, v.Port))
 	}
+	var client *clientv3.Client
+	var err error
 	c := clientv3.Config{
 		Endpoints:   endpoints,                                         // 节点信息
 		DialTimeout: time.Duration(r.config.DialTimeout) * time.Second, // 超时时间
@@ -175,16 +172,13 @@ func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig) (*Registry,
 		Password:    r.config.Password,
 		Context:     r.ctx,
 	}
-	var client *clientv3.Client
-	var err error
-
 	// 建立连接
 	if client, err = clientv3.New(c); err != nil {
 		log.Errorw("connect to etcd fail", "error", err)
 		return nil, err
 	}
 	r.client = client
-	log.Info("connect to etcd success")
+	log.Infow("connect registry success", "endpoints", endpoints)
 	if v, err := newConfigPeerRegistry(r); err != nil {
 		return nil, err
 	} else {

@@ -45,7 +45,7 @@ func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
 	return self, nil
 }
 
-func (self *player_registry) onStop(r *Registry) error {
+func (self *player_registry) stop(r *Registry) error {
 	log.Debug("player registry on stop")
 	if err := self.unregisterLocalPlayers(r); err != nil {
 		log.Info(err)
@@ -78,37 +78,22 @@ func (self *player_registry) onLocalPlayerAdd(r *Registry, player *gira.LocalPla
 		return
 	}
 	log.Infow("player registry on local user add", "user_id", player.UserId)
-	for _, fw := range r.frameworks {
-		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
-			handler.OnLocalPlayerAdd(player)
-		}
-	}
-	if handler, ok := r.application.(gira.LocalPlayerWatchHandler); ok {
+	for _, handler := range r.localPlayerWatchHandlers {
 		handler.OnLocalPlayerAdd(player)
 	}
 }
 
 func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.LocalPlayer) {
 	log.Infow("player registry on local user add", "delete", player.UserId)
-	for _, fw := range r.frameworks {
-		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
-			handler.OnLocalPlayerDelete(player)
-		}
-	}
-	if handler, ok := r.application.(gira.LocalPlayerWatchHandler); ok {
+	for _, handler := range r.localPlayerWatchHandlers {
 		handler.OnLocalPlayerDelete(player)
 	}
 }
 
 // func (self *player_registry) onLocalPlayerUpdate(r *Registry, player *gira.LocalPlayer) {
 // 	log.Infow("player registry on local user add", "update", player.UserId)
-// 	for _, fw := range r.frameworks {
-// 		if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
-// 			handler.OnLocalPlayerUpdate(player)
-// 		}
-// 	}
-// 	if handler, ok := r.application.(gira.LocalPlayerWatchHandler); ok {
-// 		handler.OnLocalPlayerUpdate(player)
+// 	for _, handler := range r.localPlayerWatchHandlers {
+//		handler.OnLocalPlayerUpdate(player)
 // 	}
 // }
 

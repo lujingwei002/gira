@@ -263,11 +263,11 @@ func (application *Client) onStart() (err error) {
 		return
 	}
 	// ==== registry ================
-	if application.registry != nil {
-		application.errGroup.Go(func() error {
-			return application.registry.Watch()
-		})
-	}
+	// if application.registry != nil {
+	// application.errGroup.Go(func() error {
+	// return application.registry.Watch()
+	// })
+	// }
 	return nil
 }
 

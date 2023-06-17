@@ -19,7 +19,6 @@ import (
 func NewConfigMongoDbClient(ctx context.Context, name string, config gira.DbConfig) (gira.DbClient, error) {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	uri := config.Uri()
-	log.Info(uri)
 	client := &MongoDbClient{
 		config:     config,
 		cancelFunc: cancelFunc,
@@ -31,17 +30,17 @@ func NewConfigMongoDbClient(ctx context.Context, name string, config gira.DbConf
 	defer cancelFunc1()
 	conn, err := mongo.Connect(ctx1, clientOpts)
 	if err != nil {
-		log.Errorw("connect database fail", "name", name, "error", err)
+		log.Errorw("connect database fail", "name", name, "uri", uri, "error", err)
 		return nil, err
 	}
 	ctx2, cancelFunc2 := context.WithTimeout(client.ctx, 3*time.Second)
 	defer cancelFunc2()
 	if err = conn.Ping(ctx2, readpref.Primary()); err != nil {
-		log.Errorw("connect database fail", "name", name, "error", err)
+		log.Errorw("connect database fail", "name", name, "uri", uri, "error", err)
 		return nil, err
 	}
 	client.client = conn
-	log.Infow("connect database success", "name", name)
+	log.Infow("connect database success", "name", name, "uri", uri)
 	return client, nil
 }
 
@@ -69,11 +68,11 @@ func NewConfigRedisClient(ctx context.Context, name string, config gira.DbConfig
 	ctx1, cancelFunc1 := context.WithTimeout(client.ctx, 3*time.Second)
 	defer cancelFunc1()
 	if _, err := rdb.Ping(ctx1).Result(); err != nil {
-		log.Errorw("connect database fail", "name", name, "error", err)
+		log.Errorw("connect database fail", "name", name, "uri", uri, "error", err)
 		return nil, err
 	}
 	client.client = rdb
-	log.Infow("connect database success", "name", name)
+	log.Infow("connect database success", "name", name, "uri", uri)
 	return client, nil
 }
 
@@ -90,16 +89,16 @@ func NewConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig
 	}
 	db, err := sql.Open("mysql", uri)
 	if err != nil {
-		log.Errorw("connect database fail", "name", name, "error", err)
+		log.Errorw("connect database fail", "name", name, "uri", uri, "error", err)
 		return nil, err
 	}
 	err = db.Ping()
 	if err != nil {
-		log.Errorw("connect database fail", "name", name, "error", err)
+		log.Errorw("connect database fail", "name", name, "uri", uri, "error", err)
 		return nil, err
 	}
 	client.client = db
-	log.Infow("connect database success", "name", name)
+	log.Infow("connect database success", "name", name, "uri", uri)
 	return client, nil
 }
 

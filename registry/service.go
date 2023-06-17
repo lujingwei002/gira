@@ -287,7 +287,6 @@ type service_map struct {
 }
 
 func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
-
 	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &service_registry{
 		prefixIndex:       newWordTrie(),
@@ -299,7 +298,7 @@ func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
 	return self, nil
 }
 
-func (self *service_registry) onStop(r *Registry) error {
+func (self *service_registry) stop(r *Registry) error {
 	log.Debug("service registry on stop")
 	if err := self.unregisterServices(r); err != nil {
 		log.Info(err)
@@ -333,12 +332,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 		return
 	}
 	log.Infow("service registry on service add", "service_name", service.FullName, "peer", service.Peer.FullName)
-	for _, fw := range r.frameworks {
-		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
-			handler.OnServiceAdd(service)
-		}
-	}
-	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
+	for _, handler := range r.serviceWatchHandlers {
 		handler.OnServiceAdd(service)
 	}
 	// self.prefixIndex.debugTrace()
@@ -347,25 +341,15 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 // on service delete callback
 func (self *service_registry) onServiceDelete(r *Registry, service *gira.ServiceName) {
 	log.Infow("service registry on service delete", "service_name", service.FullName, "peer", service.Peer.FullName)
-	for _, fw := range r.frameworks {
-		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
-			handler.OnServiceDelete(service)
-		}
-	}
-	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
+	for _, handler := range r.serviceWatchHandlers {
 		handler.OnServiceDelete(service)
 	}
 }
 
 // func (self *service_registry) onServiceUpdate(r *Registry, service *gira.Service) {
 // 	log.Infow("service update", "service_name", service.UniqueName)
-// 	for _, fw := range r.frameworks {
-// 		if handler, ok := fw.(gira.ServiceWatchHandler); ok {
-// 			handler.OnServiceUpdate(service)
-// 		}
-// 	}
-// 	if handler, ok := r.application.(gira.ServiceWatchHandler); ok {
-// 		handler.OnServiceUpdate(service)
+// 	for _, handlers := range r.serviceWatchHandlers {
+//		handler.OnServiceUpdate(service)
 // 	}
 // }
 

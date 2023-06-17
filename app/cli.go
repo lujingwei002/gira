@@ -198,8 +198,6 @@ func startAction(args *cli.Context) error {
 	}
 	log.Println("build version:", respositoryVersion)
 	log.Println("build time:", buildTime)
-	log.Println("config file path:", configFilePath)
-	log.Println("env file path:", dotEnvFilePath)
 	log.Infof("%s %d starting...", appType, appId)
 	runtime := newServerApplication(ApplicationArgs{
 		AppType:            appType,

@@ -82,7 +82,6 @@ type Server struct {
 	runDir             string /// 运行目录
 	applicationFacade  gira.ApplicationFacade
 	frameworks         []gira.Framework
-	// mainScene          *gira.Scene
 	httpServer         *gins.HttpServer
 	registry           *registry.Registry
 	dbClients          map[string]gira.DbClient
@@ -293,7 +292,7 @@ func (application *Server) onStart() (err error) {
 
 	// ==== registry ================
 	if application.registry != nil {
-		if err = application.registry.StartAsMember(application.applicationFacade, application.frameworks); err != nil {
+		if err = application.registry.StartAsMember(); err != nil {
 			return
 		}
 	}
@@ -354,7 +353,30 @@ func (application *Server) onStart() (err error) {
 	// ==== registry ================
 	if application.registry != nil {
 		application.errGroup.Go(func() error {
-			return application.registry.Watch()
+			var peerWatchHandlers []gira.PeerWatchHandler
+			var localPlayerWatchHandlers []gira.LocalPlayerWatchHandler
+			var serviceWatchHandlers []gira.ServiceWatchHandler
+			for _, fw := range application.frameworks {
+				if handler, ok := fw.(gira.PeerWatchHandler); ok {
+					peerWatchHandlers = append(peerWatchHandlers, handler)
+				}
+				if handler, ok := fw.(gira.LocalPlayerWatchHandler); ok {
+					localPlayerWatchHandlers = append(localPlayerWatchHandlers, handler)
+				}
+				if handler, ok := fw.(gira.ServiceWatchHandler); ok {
+					serviceWatchHandlers = append(serviceWatchHandlers, handler)
+				}
+			}
+			if handler, ok := application.applicationFacade.(gira.PeerWatchHandler); ok {
+				peerWatchHandlers = append(peerWatchHandlers, handler)
+			}
+			if handler, ok := application.applicationFacade.(gira.LocalPlayerWatchHandler); ok {
+				localPlayerWatchHandlers = append(localPlayerWatchHandlers, handler)
+			}
+			if handler, ok := application.applicationFacade.(gira.ServiceWatchHandler); ok {
+				serviceWatchHandlers = append(serviceWatchHandlers, handler)
+			}
+			return application.registry.Watch(peerWatchHandlers, localPlayerWatchHandlers, serviceWatchHandlers)
 		})
 	}
 	application.errGroup.Go(func() error {

@@ -55,6 +55,7 @@ type peer_registry struct {
 	cancelFunc             context.CancelFunc
 	watchStartRevision     int64
 	alreadyRegistSelf      int64
+	selfRevision           int64
 }
 
 func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
@@ -82,7 +83,7 @@ func (self *peer_registry) getPeer(r *Registry, fullName string) *gira.Peer {
 	return nil
 }
 
-func (self *peer_registry) onStop(r *Registry) error {
+func (self *peer_registry) stop(r *Registry) error {
 	log.Debug("peer registry on stop")
 	if err := self.unregisterSelf(r); err != nil {
 		return err
@@ -120,12 +121,7 @@ func (self *peer_registry) notify(r *Registry) error {
 
 func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 	log.Debugw("peer registry on peer add", "full_name", peer.FullName)
-	for _, fw := range r.frameworks {
-		if handler, ok := fw.(gira.PeerWatchHandler); ok {
-			handler.OnPeerAdd(peer)
-		}
-	}
-	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
+	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerAdd(peer)
 	}
 	return nil
@@ -133,12 +129,7 @@ func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
 
 func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 	log.Debugw("peer registry on peer delete", "full_name", peer.FullName)
-	for _, fw := range r.frameworks {
-		if handler, ok := fw.(gira.PeerWatchHandler); ok {
-			handler.OnPeerDelete(peer)
-		}
-	}
-	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
+	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerDelete(peer)
 	}
 	if peer.FullName == r.fullName {
@@ -157,12 +148,7 @@ func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 
 func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
 	log.Debugw("peer registry on peer update", "full_name", peer.FullName)
-	for _, fw := range r.frameworks {
-		if handler, ok := fw.(gira.PeerWatchHandler); ok {
-			handler.OnPeerUpdate(peer)
-		}
-	}
-	if handler, ok := r.application.(gira.PeerWatchHandler); ok {
+	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerUpdate(peer)
 	}
 	return nil
@@ -382,14 +368,11 @@ func (self *peer_registry) watchPeers(r *Registry) error {
 }
 
 func (self *peer_registry) unregisterSelf(r *Registry) error {
-	if self.alreadyRegistSelf == 0 {
-		return nil
-	}
 	client := r.client
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("peer registry unregister", "self_prefix", self.selfPrefix)
+	log.Debugw("peer registry unregister", "self_prefix", self.selfPrefix)
 	self.isNormalUnregisterSelf = true
 	// txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0))
 	var txnResp *clientv3.TxnResponse
@@ -398,28 +381,30 @@ func (self *peer_registry) unregisterSelf(r *Registry) error {
 	key := fmt.Sprintf("%s%s", self.selfPrefix, GRPC_KEY)
 	value := r.config.Address
 
-	txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
-		Then(clientv3.OpGet(key)).
-		Else(clientv3.OpGet(key), clientv3.OpDelete(self.selfPrefix, clientv3.WithPrefix()))
+	txn.If(clientv3.Compare(clientv3.Value(key), "=", value), clientv3.Compare(clientv3.CreateRevision(key), "=", self.selfRevision)).
+		Then(clientv3.OpDelete(self.selfPrefix, clientv3.WithPrefix())).
+		Else(clientv3.OpGet(key))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Errorw("peer registry commit fail", "error", err)
 		return err
 	}
 	if txnResp.Succeeded {
+		// if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
+		// key 没被任何程序占用，不用管，直接退出
+		// log.Info("key 没被任何程序占用，不用管，直接退出")
+		// log.Warnw("peer registry unregister fail")
+		// self.cancelFunc()
+		// } else {
+		// 等监听到清理完成后再退出
+		// log.Info("peer registry wait cleanup")
+		// }
+	} else {
 		// key 被其他程序占用着，不用管，直接退出
 		// log.Info(" key 被其他程序占用着，不用管，直接退出")
+		// log.Warn("peer registry unregister fail", "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 		log.Warn("peer registry unregister fail", "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 		// self.cancelFunc()
-	} else {
-		if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
-			// key 没被任何程序占用，不用管，直接退出
-			// log.Info("key 没被任何程序占用，不用管，直接退出")
-			log.Warnw("peer registry unregister fail")
-			// self.cancelFunc()
-		} else {
-			// 等监听到清理完成后再退出
-			// log.Info("peer registry wait cleanup")
-		}
+
 	}
 	return nil
 }
@@ -469,11 +454,17 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
 				self.alreadyRegistSelf = 1
+				if name == GRPC_KEY {
+					self.selfRevision = txnResp.Responses[1].GetResponsePut().Header.Revision
+					log.Info("fff", self.selfRevision)
+				}
 				log.Infow("peer registry register peer", "key", key, "value", value)
 			} else {
 				log.Infow("peer registry resume peer", "key", key, "value", value)
 				return gira.ErrPeerAlreadyRegist.Trace().WithValues("address", value)
 			}
+			r, e := kv.Get(self.ctx, key)
+			log.Println("ccc", r, e)
 		}
 	}
 	if leaseID != 0 {
