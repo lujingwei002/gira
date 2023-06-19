@@ -456,7 +456,6 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 				self.alreadyRegistSelf = 1
 				if name == GRPC_KEY {
 					self.selfRevision = txnResp.Responses[1].GetResponsePut().Header.Revision
-					log.Info("fff", self.selfRevision)
 				}
 				log.Infow("peer registry register peer", "key", key, "value", value)
 			} else {

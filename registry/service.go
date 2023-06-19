@@ -269,14 +269,13 @@ func (node *word_trie_node) collect(result []string) []string {
 }
 
 type service_registry struct {
-	peerServicePrefix  string   // /peer_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
-	servicePrefix      string   // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
-	services           sync.Map // 全部service
-	selfServices       sync.Map // 本节点上的service
-	ctx                context.Context
-	cancelFunc         context.CancelFunc
-	watchStartRevision int64
-	// services index
+	peerServicePrefix    string   // /peer_service/<<AppFullName>><<ServiceName>>/			根据服务全名查找全部服务
+	servicePrefix        string   // /service/<<ServiceName>>/      							可以根据服务名查找当前所在的服
+	services             sync.Map // 全部service
+	selfServices         sync.Map // 本节点上的service
+	ctx                  context.Context
+	cancelFunc           context.CancelFunc
+	watchStartRevision   int64
 	servicesCatalogIndex sync.Map // service分组
 	prefixIndex          *word_trie
 }
@@ -335,7 +334,6 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 	for _, handler := range r.serviceWatchHandlers {
 		handler.OnServiceAdd(service)
 	}
-	// self.prefixIndex.debugTrace()
 }
 
 // on service delete callback
@@ -357,7 +355,6 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	words := strings.Split(string(kv.Key), "/")
 	var catalogName string
 	var serviceName string
-	var name string
 	if len(words) <= 2 {
 		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
 		return gira.ErrInvalidService
@@ -366,7 +363,6 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	if len(words) == 2 {
 		serviceName = fmt.Sprintf("%s/%s", words[0], words[1])
 		catalogName = words[0]
-		name = words[1]
 	} else if len(words) == 1 {
 		serviceName = words[0]
 	} else {
@@ -389,13 +385,12 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 			FullName:    serviceName,
 			CatalogName: catalogName,
 			Peer:        peer,
-			Name:        name,
 		}
 		if peer == r.SelfPeer() {
 			service.IsSelf = true
 		}
 		self.services.LoadOrStore(serviceName, service)
-		self.prefixIndex.add(strings.Join(words, "/"))
+		self.prefixIndex.add(serviceName)
 		if service.IsSelf {
 			self.selfServices.Store(serviceName, service)
 		}
@@ -443,12 +438,12 @@ func (self *service_registry) initServices(r *Registry) error {
 		return err
 	}
 	for _, v := range getResp.Kvs {
-		pats := strings.Split(string(v.Key), "/")
+		words := strings.Split(string(v.Key), "/")
 		var serviceName string
-		if len(pats) == 5 {
-			serviceName = fmt.Sprintf("%s/%s", pats[3], pats[4])
-		} else if len(pats) == 4 {
-			serviceName = pats[3]
+		if len(words) == 5 {
+			serviceName = fmt.Sprintf("%s/%s", words[3], words[4])
+		} else if len(words) == 4 {
+			serviceName = words[3]
 		}
 		txn := kv.Txn(self.ctx)
 		serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
@@ -521,16 +516,17 @@ func (self *service_registry) unregisterServices(r *Registry) error {
 		txn := kv.Txn(ctx)
 		serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
 		peerKey := fmt.Sprintf("%s%s", self.peerServicePrefix, serviceName)
-		txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
-			Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey))
+		service := v.(*gira.ServiceName)
+		txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "=", service.CreateRevision)).
+			Then(clientv3.OpDelete(serviceKey), clientv3.OpDelete(peerKey))
 		if txnResp, err = txn.Commit(); err != nil {
 			log.Errorw("service registry commit fail", "error", err)
 			return true
 		}
 		if txnResp.Succeeded {
-			log.Infow("service registry unregister", "peer_key", peerKey)
+			log.Infow("service registry unregister", "peer_key", peerKey, "create_revision", service.CreateRevision)
 		} else {
-			log.Warnw("service registry unregister", "peer_key", peerKey)
+			log.Warnw("service registry unregister", "peer_key", peerKey, "create_revision", service.CreateRevision)
 		}
 		return true
 	})
@@ -559,14 +555,38 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
 	log.Infow("service registry register", "service_name", serviceName, "peer_key", peerKey, "service_key", serviceKey)
+	value := r.fullName
+
+	var catalogName string
+	words := strings.Split(serviceName, "/")
+	if len(words) == 2 {
+		serviceName = fmt.Sprintf("%s/%s", words[0], words[1])
+		catalogName = words[0]
+	} else if len(words) == 1 {
+	} else {
+		return nil, gira.ErrInvalidService
+	}
 	txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "=", 0)).
-		Then(clientv3.OpPut(peerKey, r.fullName), clientv3.OpPut(serviceKey, r.fullName)).
+		Then(clientv3.OpPut(serviceKey, value), clientv3.OpPut(peerKey, value)).
 		Else(clientv3.OpGet(serviceKey))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Errorw("service registry commit fail", "error", err)
 		return nil, err
 	}
 	if txnResp.Succeeded {
+		createRevision := txnResp.Responses[1].GetResponsePut().Header.Revision
+		peer := r.GetPeer(value)
+		service := &gira.ServiceName{
+			IsSelf:         true,
+			FullName:       serviceName,
+			CatalogName:    catalogName,
+			Peer:           peer,
+			CreateRevision: createRevision,
+		}
+		self.services.LoadOrStore(serviceName, service)
+		self.prefixIndex.add(serviceName)
+		self.selfServices.Store(serviceName, service)
+		self.onServiceAdd(r, service)
 		return nil, nil
 	} else {
 		log.Warnw("service registry register fail", "service_name", serviceName, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
@@ -647,6 +667,7 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 	}
 }
 
+// 列出全部的服务
 func (self *service_registry) listServiceKvs(r *Registry) (kvs map[string][]string, err error) {
 	client := r.client
 	kv := clientv3.NewKV(client)
@@ -656,12 +677,12 @@ func (self *service_registry) listServiceKvs(r *Registry) (kvs map[string][]stri
 	}
 	kvs = make(map[string][]string)
 	for _, kv := range getResp.Kvs {
-		pats := strings.Split(string(kv.Key), "/")
+		words := strings.Split(string(kv.Key), "/")
 		var serviceName string
-		if len(pats) == 4 {
-			serviceName = fmt.Sprintf("%s/%s", pats[2], pats[3])
-		} else if len(pats) == 3 {
-			serviceName = pats[2]
+		if len(words) == 4 {
+			serviceName = fmt.Sprintf("%s/%s", words[2], words[3])
+		} else if len(words) == 3 {
+			serviceName = words[2]
 		}
 		peerFullName := string(kv.Value)
 		kvs[peerFullName] = append(kvs[peerFullName], serviceName)

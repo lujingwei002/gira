@@ -42,17 +42,18 @@ type Peer struct {
 }
 
 type LocalPlayer struct {
-	UserId    string
-	LoginTime int
+	UserId         string
+	LoginTime      int64
+	CreateRevision int64
 }
 
 type ServiceName struct {
 	// <<GroupName>>/<<ShortName>>
-	Peer        *Peer
-	FullName    string
-	CatalogName string
-	Name        string
-	IsSelf      bool
+	Peer           *Peer
+	FullName       string
+	CatalogName    string
+	IsSelf         bool
+	CreateRevision int64
 }
 
 // 侦听伙伴节点

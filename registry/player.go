@@ -116,7 +116,7 @@ func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) erro
 		// 新增player
 		log.Infow("player registry add local player", "user_id", userId)
 		player := &gira.LocalPlayer{
-			LoginTime: loginTime,
+			LoginTime: int64(loginTime),
 			UserId:    userId,
 		}
 		self.localPlayers.Store(userId, player)
@@ -230,21 +230,30 @@ func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Pe
 	localKey := fmt.Sprintf("%s%s", self.peerPrefix, userId)
 	peerKey := fmt.Sprintf("%s%s", self.peerTypePrefix, userId)
 	userKey := fmt.Sprintf("%s%s", self.userPrefix, userId)
-	value := fmt.Sprintf("%d", time.Now().Unix())
+	loginTime := time.Now().Unix()
+	value := fmt.Sprintf("%d", loginTime)
 	kv := clientv3.NewKV(client)
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
 	log.Infow("player registry", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
 	txn.If(clientv3.Compare(clientv3.CreateRevision(peerKey), "=", 0)).
-		Then(clientv3.OpPut(localKey, value), clientv3.OpPut(peerKey, r.fullName), clientv3.OpPut(userKey, r.fullName)).
+		Then(clientv3.OpPut(userKey, r.fullName), clientv3.OpPut(localKey, value), clientv3.OpPut(peerKey, r.fullName)).
 		Else(clientv3.OpGet(peerKey))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Errorw("player registry commit fail", "error", err)
 		return nil, err
 	}
 	if txnResp.Succeeded {
-		log.Infow("player registry register success", "local_key", localKey)
+		createRevision := txnResp.Responses[1].GetResponsePut().Header.Revision
+		log.Infow("player registry register success", "local_key", localKey, "create_revision", createRevision)
+		player := &gira.LocalPlayer{
+			LoginTime:      loginTime,
+			UserId:         userId,
+			CreateRevision: createRevision,
+		}
+		self.localPlayers.Store(userId, player)
+		self.onLocalPlayerAdd(r, player)
 		return nil, nil
 	} else {
 		var fullName string
@@ -270,28 +279,33 @@ func (self *player_registry) UnlockLocalUser(r *Registry, userId string) (*gira.
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
-	log.Infow("player registry unregister", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
-	txn.If(clientv3.Compare(clientv3.Value(peerKey), "=", r.fullName), clientv3.Compare(clientv3.CreateRevision(peerKey), "!=", 0)).
-		Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(userKey)).
-		Else(clientv3.OpGet(peerKey))
-	if txnResp, err = txn.Commit(); err != nil {
-		log.Errorw("player registry commit fail", "error", err)
-		return nil, err
-	}
-	if txnResp.Succeeded {
-		log.Infow("player registry unregister success", "local_key", localKey)
-		return nil, nil
+	if v, ok := self.localPlayers.Load(userId); !ok {
+		return nil, gira.ErrUserNotFound
 	} else {
-		var fullName string
-		if len(txnResp.Responses) > 0 && len(txnResp.Responses[0].GetResponseRange().Kvs) > 0 {
-			fullName = string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
+		player := v.(*gira.LocalPlayer)
+		log.Infow("player registry unregister", "local_key", localKey, "peer_key", peerKey, "user_key", userKey, "create_revision", player.CreateRevision)
+		txn.If(clientv3.Compare(clientv3.CreateRevision(userKey), "=", player.CreateRevision)).
+			Then(clientv3.OpDelete(localKey), clientv3.OpDelete(peerKey), clientv3.OpDelete(userKey)).
+			Else(clientv3.OpGet(peerKey))
+		if txnResp, err = txn.Commit(); err != nil {
+			log.Errorw("player registry commit fail", "error", err)
+			return nil, err
 		}
-		log.Warnw("player registry unregister fail", "local_key", localKey, "locked_by", fullName)
-		peer := r.GetPeer(fullName)
-		if peer == nil {
-			return nil, gira.ErrUserLocked
+		if txnResp.Succeeded {
+			log.Infow("player registry unregister success", "local_key", localKey)
+			return nil, nil
+		} else {
+			var fullName string
+			if len(txnResp.Responses) > 0 && len(txnResp.Responses[0].GetResponseRange().Kvs) > 0 {
+				fullName = string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
+			}
+			log.Warnw("player registry unregister fail", "local_key", localKey, "locked_by", fullName)
+			peer := r.GetPeer(fullName)
+			if peer == nil {
+				return nil, gira.ErrUserLocked
+			}
+			return peer, gira.ErrUserLocked
 		}
-		return peer, gira.ErrUserLocked
 	}
 }
 
