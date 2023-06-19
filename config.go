@@ -159,7 +159,7 @@ func LoadApplicationConfig(configFilePath string, dotEnvFilePath string, appType
 
 // 读取配置
 func LoadConfig(configFilePath string, dotEnvFilePath string, appType string, appId int32) (*Config, error) {
-	c := &Config{}
+	c := newDefaultConfig()
 	reader := config_reader{
 		appType: appType,
 		appId:   appId,
@@ -173,6 +173,13 @@ func LoadConfig(configFilePath string, dotEnvFilePath string, appType string, ap
 		}
 	}
 	return c, nil
+}
+
+func newDefaultConfig() *Config {
+	return &Config{
+		Thread:  1,
+		Sandbox: 0,
+	}
 }
 
 // 日志配置

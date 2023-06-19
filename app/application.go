@@ -69,7 +69,7 @@ type Application struct {
 	errGroup           *errgroup.Group
 	resourceLoader     gira.ResourceLoader
 	config             *gira.Config
-	stopChan           chan struct{}
+	chQuit             chan struct{}
 	status             int64
 	respositoryVersion string
 	buildTime          int64
@@ -122,7 +122,7 @@ func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFaca
 		cancelFunc:         cancelFunc,
 		errCtx:             errCtx,
 		errGroup:           errGroup,
-		stopChan:           make(chan struct{}, 1),
+		chQuit:             make(chan struct{}, 1),
 		serviceContainer:   service.New(ctx),
 	}
 	return application
@@ -155,7 +155,10 @@ func (application *Application) init() error {
 	}
 	application.runConfigFilePath = filepath.Join(application.runDir, fmt.Sprintf("%s", application.appFullName))
 	application.logDir = proj.Config.LogDir
-
+	// 初始化框架
+	if f, ok := applicationFacade.(gira.ApplicationFramework); ok {
+		application.frameworks = f.OnFrameworkInit()
+	}
 	// 读应用配置文件
 	if c, err := gira.LoadApplicationConfig(application.configFilePath, application.dotEnvFilePath, application.appType, application.appId); err != nil {
 		return err
@@ -164,10 +167,6 @@ func (application *Application) init() error {
 		application.zone = c.Zone
 		application.appFullName = fmt.Sprintf("%s_%s_%s_%d", application.appType, application.zone, application.env, application.appId)
 		application.config = c
-	}
-	// 初始化框架
-	if f, ok := applicationFacade.(gira.ApplicationFramework); ok {
-		application.frameworks = f.OnFrameworkInit()
 	}
 	// 加载配置回调
 	for _, fw := range application.frameworks {
@@ -207,7 +206,7 @@ func (application *Application) start() (err error) {
 		signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
 		for {
 			select {
-			// 中断
+			// 被动中断
 			case s := <-quit:
 				log.Infow("application recv signal", "signal", s)
 				switch s {
@@ -215,8 +214,7 @@ func (application *Application) start() (err error) {
 					log.Infow("+++++++++++++++++++++++++++++")
 					log.Infow("++    signal interrupt    +++", "signal", s)
 					log.Infow("+++++++++++++++++++++++++++++")
-					application.onStop()
-					application.cancelFunc()
+					application.stop()
 					log.Info("application interrupt end")
 					return gira.ErrInterrupt
 				case syscall.SIGUSR1:
@@ -224,10 +222,9 @@ func (application *Application) start() (err error) {
 				default:
 				}
 			// 主动停止
-			case <-application.stopChan:
+			case <-application.chQuit:
 				log.Info("application stop begin")
-				application.onStop()
-				application.cancelFunc()
+				application.stop()
 				log.Info("application stop end")
 				return nil
 			}
@@ -242,12 +239,11 @@ func (application *Application) Stop() error {
 	if !atomic.CompareAndSwapInt64(&application.status, application_status_started, application_status_stopped) {
 		return nil
 	}
-	application.stopChan <- struct{}{}
+	application.chQuit <- struct{}{}
 	return nil
 }
 
-func (application *Application) onStop() {
-	log.Infow("runtime on stop")
+func (application *Application) stop() {
 	// application stop
 	application.applicationFacade.OnStop()
 	// framework stop
@@ -268,6 +264,7 @@ func (application *Application) onStop() {
 	if application.httpServer != nil {
 		application.httpServer.Stop()
 	}
+	application.cancelFunc()
 }
 
 func (application *Application) onStart() (err error) {
@@ -279,8 +276,7 @@ func (application *Application) onStart() (err error) {
 			log.Errorw("+++++++++++++++++++++++++++++")
 			log.Errorw("++         启动异常       +++", "error", err)
 			log.Errorw("+++++++++++++++++++++++++++++")
-			application.onStop()
-			application.cancelFunc()
+			application.stop()
 			application.errGroup.Wait()
 		}
 	}()
@@ -312,7 +308,7 @@ func (application *Application) onStart() (err error) {
 	// ==== http ================
 	if application.httpServer != nil {
 		application.errGroup.Go(func() error {
-			return application.httpServer.Serve(application.ctx)
+			return application.httpServer.Serve()
 		})
 	}
 	// ==== service ================
@@ -455,11 +451,7 @@ func (application *Application) onCreate() error {
 			if err := application.resourceLoader.LoadResource("resource"); err != nil {
 				return err
 			}
-		} else {
-			// return gira.ErrResourceLoaderNotImplement
 		}
-	} else {
-		// return gira.ErrResourceManagerNotImplement
 	}
 
 	// ==== grpc ================
@@ -478,7 +470,7 @@ func (application *Application) onCreate() error {
 			return gira.ErrHttpHandlerNotImplement
 		} else {
 			router := handler.HttpHandler()
-			if httpServer, err := gins.NewConfigHttpServer(*application.config.Module.Http, router); err != nil {
+			if httpServer, err := gins.NewConfigHttpServer(application.ctx, *application.config.Module.Http, router); err != nil {
 				return err
 			} else {
 				application.httpServer = httpServer

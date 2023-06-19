@@ -19,11 +19,12 @@ type HttpServer struct {
 	cancelFunc context.CancelFunc
 }
 
-func NewConfigHttpServer(config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
+func NewConfigHttpServer(ctx context.Context, config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
 	self := &HttpServer{
 		config:  config,
 		Handler: router,
 	}
+	self.ctx, self.cancelFunc = context.WithCancel(ctx)
 	server := &http.Server{
 		Addr:           self.config.Addr,
 		Handler:        self.Handler,
@@ -41,9 +42,8 @@ func (self *HttpServer) Stop() error {
 	return nil
 }
 
-func (self *HttpServer) Serve(ctx context.Context) error {
+func (self *HttpServer) Serve() error {
 	log.Debugw("http server started", "addr", self.config.Addr)
-	self.ctx, self.cancelFunc = context.WithCancel(ctx)
 	go func() {
 		<-self.ctx.Done()
 		self.server.Close()
@@ -58,6 +58,5 @@ func (self *HttpServer) Serve(ctx context.Context) error {
 			err = nil
 		}
 	}
-	log.Debugw("http server on stop2", "error", err)
 	return err
 }

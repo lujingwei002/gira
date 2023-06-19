@@ -10,8 +10,7 @@ import (
 type Framework struct {
 	server *server.Server
 	config *config.Config
-	// 使用的协议，当中必须包括名为Login的协议
-	proto gira.Proto
+	proto  gira.Proto // 使用的协议，当中必须包括名为Login的协议
 }
 
 func NewFramework(proto gira.Proto) gateway.GatewayFramework {

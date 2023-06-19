@@ -103,7 +103,7 @@ func (server *Server) ServeClientStream(client gira.GatewayConn) {
 		} else {
 			memberId = claims.MemberId
 			session := newSession(server, sessionId, memberId)
-			session.serve(client, req, dataReq)
+			session.serve(server.ctx, client, req, dataReq)
 		}
 	}
 }

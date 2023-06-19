@@ -23,16 +23,16 @@ type client_session struct {
 	pendingMessages []gira.GatewayMessage
 }
 
-func newSession(hall *Server, sessionId uint64, memberId string) *client_session {
+func newSession(server *Server, sessionId uint64, memberId string) *client_session {
 	return &client_session{
-		server:          hall,
+		server:          server,
 		sessionId:       sessionId,
 		memberId:        memberId,
 		pendingMessages: make([]gira.GatewayMessage, 0),
 	}
 }
 
-func (session *client_session) serve(client gira.GatewayConn, message gira.GatewayMessage, dataReq gira.ProtoRequest) error {
+func (session *client_session) serve(ctx context.Context, client gira.GatewayConn, message gira.GatewayMessage, dataReq gira.ProtoRequest) error {
 	sessionId := session.sessionId
 	var err error
 	var stream hall_grpc.Hall_ClientStreamClient
@@ -44,7 +44,7 @@ func (session *client_session) serve(client gira.GatewayConn, message gira.Gatew
 		return gira.ErrUpstreamUnavailable
 	}
 	// stream绑定server
-	streamCtx, streamCancelFunc := context.WithCancel(server.ctx)
+	streamCtx, streamCancelFunc := context.WithCancel(ctx)
 	defer func() {
 		streamCancelFunc()
 	}()
