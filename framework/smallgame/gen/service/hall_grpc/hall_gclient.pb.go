@@ -919,7 +919,7 @@ type hallClientsUnicast struct {
 }
 
 func (c *hallClientsUnicast) Where(serviceName string) HallClientsUnicast {
-	c.serviceName = fmt.Sprintf("%s/%s", c.client.serviceName, serviceName)
+	c.serviceName = serviceName
 	return c
 }
 

@@ -91,16 +91,6 @@ func (r *Registry) StartAsMember() error {
 	return nil
 }
 
-func (r *Registry) StartAsClient() error {
-	if err := r.peerRegistry.initPeers(r); err != nil {
-		return err
-	}
-	if err := r.serviceRegistry.initServices(r); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (r *Registry) Watch(peerWatchHandlers []gira.PeerWatchHandler, localPlayerWatchHandlers []gira.LocalPlayerWatchHandler, serviceWatchHandlers []gira.ServiceWatchHandler) error {
 	r.peerWatchHandlers = peerWatchHandlers
 	r.localPlayerWatchHandlers = localPlayerWatchHandlers

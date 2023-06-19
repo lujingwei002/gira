@@ -29,6 +29,7 @@ import (
 	"github.com/lujingwei002/gira/grpc"
 	"github.com/lujingwei002/gira/proj"
 	"github.com/lujingwei002/gira/registry"
+	"github.com/lujingwei002/gira/registryclient"
 	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
@@ -55,7 +56,7 @@ const (
 )
 
 // / @Component
-type Server struct {
+type Application struct {
 	zone               string // 区名 wc|qq|hw|quick
 	env                string // dev|local|qa|prd
 	appId              int32
@@ -84,6 +85,7 @@ type Server struct {
 	frameworks         []gira.Framework
 	httpServer         *gins.HttpServer
 	registry           *registry.Registry
+	registryClient     *registryclient.RegistryClient
 	dbClients          map[string]gira.DbClient
 	gameDbClient       gira.DbClient
 	logDbClient        gira.DbClient
@@ -103,10 +105,10 @@ type Server struct {
 	dotEnvFilePath     string
 }
 
-func newServerApplication(args ApplicationArgs, applicationFacade gira.ApplicationFacade) *Server {
+func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFacade) *Application {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
-	application := &Server{
+	application := &Application{
 		respositoryVersion: args.RespositoryVersion,
 		buildTime:          args.BuildTime,
 		appId:              args.AppId,
@@ -126,12 +128,12 @@ func newServerApplication(args ApplicationArgs, applicationFacade gira.Applicati
 	return application
 }
 
-func (application *Server) init() error {
+func (application *Application) init() error {
 	applicationFacade := application.applicationFacade
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
 	application.upTime = time.Now().Unix()
-	// 项目配置初始化
+	// 项目环境,目录初始化
 	application.workDir = proj.Config.ProjectDir
 	if err := os.Chdir(application.workDir); err != nil {
 		return err
@@ -154,11 +156,6 @@ func (application *Server) init() error {
 	application.runConfigFilePath = filepath.Join(application.runDir, fmt.Sprintf("%s", application.appFullName))
 	application.logDir = proj.Config.LogDir
 
-	/*
-		app.ConfigFilePath = filepath.Join(app.ConfigDir, fmt.Sprintf("%sconf.yaml", app.Name))
-		if _, err := os.Stat(app.ConfigFilePath); err != nil {
-			return err
-		}*/
 	// 读应用配置文件
 	if c, err := gira.LoadApplicationConfig(application.configFilePath, application.dotEnvFilePath, application.appType, application.appId); err != nil {
 		return err
@@ -191,7 +188,7 @@ func (application *Server) init() error {
 	return nil
 }
 
-func (application *Server) start() (err error) {
+func (application *Application) start() (err error) {
 	// 初始化
 	if err = application.init(); err != nil {
 		return
@@ -241,7 +238,7 @@ func (application *Server) start() (err error) {
 }
 
 // 主动关闭, 启动成功后才可以调用
-func (application *Server) Stop() error {
+func (application *Application) Stop() error {
 	if !atomic.CompareAndSwapInt64(&application.status, application_status_started, application_status_stopped) {
 		return nil
 	}
@@ -249,7 +246,7 @@ func (application *Server) Stop() error {
 	return nil
 }
 
-func (application *Server) onStop() {
+func (application *Application) onStop() {
 	log.Infow("runtime on stop")
 	// application stop
 	application.applicationFacade.OnStop()
@@ -273,7 +270,7 @@ func (application *Server) onStop() {
 	}
 }
 
-func (application *Server) onStart() (err error) {
+func (application *Application) onStart() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
@@ -290,6 +287,12 @@ func (application *Server) onStart() (err error) {
 	// ==== cron ================
 	application.cron.Start()
 
+	// ==== registryClient ================
+	if application.registryClient != nil {
+		if err = application.registryClient.StartAsClient(); err != nil {
+			return
+		}
+	}
 	// ==== registry ================
 	if application.registry != nil {
 		if err = application.registry.StartAsMember(); err != nil {
@@ -385,7 +388,7 @@ func (application *Server) onStart() (err error) {
 	return nil
 }
 
-func (application *Server) onCreate() error {
+func (application *Application) onCreate() error {
 	// log.Info("applicationFacade", app.FullName, "start")
 	applicationFacade := application.applicationFacade
 
@@ -406,6 +409,15 @@ func (application *Server) onCreate() error {
 			application.registry = r
 		}
 	}
+	// ==== registry client ================
+	if application.config.Module.EtcdClient != nil {
+		if r, err := registryclient.NewConfigRegistryClient(application.ctx, application.config.Module.EtcdClient); err != nil {
+			return err
+		} else {
+			application.registryClient = r
+		}
+	}
+
 	// ==== db ================
 	application.dbClients = make(map[string]gira.DbClient)
 	for name, c := range application.config.Db {
@@ -444,10 +456,10 @@ func (application *Server) onCreate() error {
 				return err
 			}
 		} else {
-			return gira.ErrResourceLoaderNotImplement
+			// return gira.ErrResourceLoaderNotImplement
 		}
 	} else {
-		return gira.ErrResourceManagerNotImplement
+		// return gira.ErrResourceManagerNotImplement
 	}
 
 	// ==== grpc ================
@@ -512,7 +524,7 @@ func (application *Server) onCreate() error {
 }
 
 // 等待中断
-func (application *Server) Wait() error {
+func (application *Application) Wait() error {
 	err := application.errGroup.Wait()
 	log.Infow("application down", "full_name", application.appFullName, "error", err)
 	return err
@@ -522,82 +534,82 @@ func (application *Server) Wait() error {
 
 // ================== implement gira.Application ==================
 // 返回配置
-func (application *Server) GetConfig() *gira.Config {
+func (application *Application) GetConfig() *gira.Config {
 	return application.config
 }
 
 // 返回构建版本
-func (application *Server) GetRespositoryVersion() string {
+func (application *Application) GetRespositoryVersion() string {
 	return application.respositoryVersion
 
 }
 
 // 返回构建时间
-func (application *Server) GetBuildTime() int64 {
+func (application *Application) GetBuildTime() int64 {
 	return application.buildTime
 }
-func (application *Server) GetUpTime() int64 {
+func (application *Application) GetUpTime() int64 {
 	return time.Now().Unix() - application.buildTime
 }
 
 // 返回应用id
-func (application *Server) GetAppId() int32 {
+func (application *Application) GetAppId() int32 {
 	return application.appId
 }
 
 // 返回应用类型
-func (application *Server) GetAppType() string {
+func (application *Application) GetAppType() string {
 	return application.appType
 }
 
 // 返回应用名
-func (application *Server) GetAppName() string {
+func (application *Application) GetAppName() string {
 	return application.appName
 }
 
 // 返回应用全名
-func (application *Server) GetAppFullName() string {
+func (application *Application) GetAppFullName() string {
 	return application.appFullName
 }
 
-func (application *Server) GetWorkDir() string {
+func (application *Application) GetWorkDir() string {
 	return application.workDir
 }
 
-func (application *Server) GetLogDir() string {
+func (application *Application) GetLogDir() string {
 	return application.logDir
 }
 
 // ================== context =========================
 
-func (application *Server) Context() context.Context {
+func (application *Application) Context() context.Context {
 	return application.ctx
 }
 
-func (application *Server) Quit() {
+func (application *Application) Quit() {
 	application.cancelFunc()
 }
 
-func (application *Server) Done() <-chan struct{} {
+func (application *Application) Done() <-chan struct{} {
 	return application.ctx.Done()
 }
 
-func (application *Server) Go(f func() error) {
+func (application *Application) Go(f func() error) {
 	application.errGroup.Go(f)
 }
 
-func (application *Server) Err() error {
+func (application *Application) Err() error {
 	return application.errCtx.Err()
 }
 
 // ================== framework =========================
 // 返回框架列表
-func (application *Server) Frameworks() []gira.Framework {
+func (application *Application) Frameworks() []gira.Framework {
 	return application.frameworks
 }
 
 // ================== gira.SdkComponent ==================
-func (application *Server) GetSdk() gira.Sdk {
+func (application *Application) GetSdk() gira.Sdk {
 	if application.sdk == nil {
 		return nil
 	} else {
@@ -606,7 +618,7 @@ func (application *Server) GetSdk() gira.Sdk {
 }
 
 // ================== gira.RegistryComponent ==================
-func (application *Server) GetRegistry() gira.Registry {
+func (application *Application) GetRegistry() gira.Registry {
 	if application.registry == nil {
 		return nil
 	} else {
@@ -614,16 +626,16 @@ func (application *Server) GetRegistry() gira.Registry {
 	}
 }
 
-func (application *Server) GetRegistryClient() gira.RegistryClient {
-	if application.registry == nil {
+func (application *Application) GetRegistryClient() gira.RegistryClient {
+	if application.registryClient == nil {
 		return nil
 	} else {
-		return application.registry
+		return application.registryClient
 	}
 }
 
 // ================== gira.ServiceContainer ==================
-func (application *Server) GetServiceContainer() gira.ServiceContainer {
+func (application *Application) GetServiceContainer() gira.ServiceContainer {
 	if application.serviceContainer == nil {
 		return nil
 	} else {
@@ -632,7 +644,7 @@ func (application *Server) GetServiceContainer() gira.ServiceContainer {
 }
 
 // ================== gira.GrpcServerComponent ==================
-func (application *Server) GetGrpcServer() gira.GrpcServer {
+func (application *Application) GetGrpcServer() gira.GrpcServer {
 	if application.grpcServer == nil {
 		return nil
 	} else {
@@ -641,13 +653,13 @@ func (application *Server) GetGrpcServer() gira.GrpcServer {
 }
 
 // ================== implement gira.ResourceComponent ==================
-func (application *Server) GetResourceLoader() gira.ResourceLoader {
+func (application *Application) GetResourceLoader() gira.ResourceLoader {
 	return application.resourceLoader
 }
 
 // ================== implement gira.AdminClient ==================
 // 重载配置
-func (application *Server) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
+func (application *Application) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
 	req := &admin_grpc.ReloadResourceRequest{
 		Name: name,
 	}
@@ -656,7 +668,7 @@ func (application *Server) BroadcastReloadResource(ctx context.Context, name str
 }
 
 // ================== implement gira.DbClientComponent ==================
-func (application *Server) GetAccountDbClient() gira.DbClient {
+func (application *Application) GetAccountDbClient() gira.DbClient {
 	if application.accountDbClient == nil {
 		return nil
 	} else {
@@ -664,7 +676,7 @@ func (application *Server) GetAccountDbClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetGameDbClient() gira.DbClient {
+func (application *Application) GetGameDbClient() gira.DbClient {
 	if application.gameDbClient == nil {
 		return nil
 	} else {
@@ -672,7 +684,7 @@ func (application *Server) GetGameDbClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetLogDbClient() gira.DbClient {
+func (application *Application) GetLogDbClient() gira.DbClient {
 	if application.logDbClient == nil {
 		return nil
 	} else {
@@ -680,7 +692,7 @@ func (application *Server) GetLogDbClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetBehaviorDbClient() gira.DbClient {
+func (application *Application) GetBehaviorDbClient() gira.DbClient {
 	if application.behaviorDbClient == nil {
 		return nil
 	} else {
@@ -688,7 +700,7 @@ func (application *Server) GetBehaviorDbClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetStatDbClient() gira.DbClient {
+func (application *Application) GetStatDbClient() gira.DbClient {
 	if application.statDbClient == nil {
 		return nil
 	} else {
@@ -696,7 +708,7 @@ func (application *Server) GetStatDbClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetAccountCacheClient() gira.DbClient {
+func (application *Application) GetAccountCacheClient() gira.DbClient {
 	if application.accountCacheClient == nil {
 		return nil
 	} else {
@@ -704,7 +716,7 @@ func (application *Server) GetAccountCacheClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetAdminCacheClient() gira.DbClient {
+func (application *Application) GetAdminCacheClient() gira.DbClient {
 	if application.adminCacheClient == nil {
 		return nil
 	} else {
@@ -712,7 +724,7 @@ func (application *Server) GetAdminCacheClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetResourceDbClient() gira.DbClient {
+func (application *Application) GetResourceDbClient() gira.DbClient {
 	if application.resourceDbClient == nil {
 		return nil
 	} else {
@@ -720,7 +732,7 @@ func (application *Server) GetResourceDbClient() gira.DbClient {
 	}
 }
 
-func (application *Server) GetAdminDbClient() gira.DbClient {
+func (application *Application) GetAdminDbClient() gira.DbClient {
 	if application.adminDbClient == nil {
 		return nil
 	} else {
@@ -729,7 +741,7 @@ func (application *Server) GetAdminDbClient() gira.DbClient {
 }
 
 // ================== gira.Cron ==================
-func (application *Server) GetCron() gira.Cron {
+func (application *Application) GetCron() gira.Cron {
 	if application.cron == nil {
 		return nil
 	} else {

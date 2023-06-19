@@ -537,7 +537,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	helper.generateClientsUnicastStruct(g, clientsUnicastName, clientsName)
 	// func Where
 	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) Where(serviceName string) ", clientsUnicastName, " {")
-	g.P("   c.serviceName = ", fmtPackage.Ident("Sprintf"), "(\"%s/%s\", c.client.serviceName, serviceName)")
+	g.P("   c.serviceName = serviceName") // ", fmtPackage.Ident("Sprintf"), "(\"%s/%s\", c.client.serviceName, serviceName)")
 	g.P("	return c")
 	g.P("}")
 	g.P()

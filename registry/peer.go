@@ -462,8 +462,6 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 				log.Infow("peer registry resume peer", "key", key, "value", value)
 				return gira.ErrPeerAlreadyRegist.Trace().WithValues("address", value)
 			}
-			r, e := kv.Get(self.ctx, key)
-			log.Println("ccc", r, e)
 		}
 	}
 	if leaseID != 0 {

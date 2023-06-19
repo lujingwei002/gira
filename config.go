@@ -284,7 +284,7 @@ func (self *DbConfig) Parse(uri string) error {
 	return nil
 }
 
-// etcd配置
+// registry配置
 type EtcdConfig struct {
 	Endpoints []struct {
 		Host string `yaml:"host"`
@@ -299,6 +299,19 @@ type EtcdConfig struct {
 		Name  string `yaml:"name"`
 		Value string `yaml:"value"`
 	} `yaml:"advertise"`
+}
+
+// registry配置
+type EtcdClientConfig struct {
+	Endpoints []struct {
+		Host string `yaml:"host"`
+		Port int    `yaml:"port"`
+	} `yaml:"endpoints"`
+	Username     string `yaml:"username"`
+	Password     string `yaml:"password"`
+	DialTimeout  int    `yaml:"dial-timeout"`
+	LeaseTimeout int64  `yaml:"lease-timeout"`
+	Address      string `yaml:"address"`
 }
 
 // http模块配置
@@ -358,14 +371,15 @@ type Config struct {
 	Sandbox int         `yaml:"sandbox"`
 	Db      map[string]*DbConfig
 	Module  struct {
-		Behavior *BehaviorConfig `yaml:"behavior"`
-		Http     *HttpConfig     `yaml:"http,omitempty"`
-		Etcd     *EtcdConfig     `yaml:"etcd"`
-		Grpc     *GrpcConfig     `yaml:"grpc"`
-		Sdk      *SdkConfig      `yaml:"sdk"`
-		Jwt      *JwtConfig      `yaml:"jwt"`
-		Gateway  *GatewayConfig  `yaml:"gateway"`
-		Admin    *AdminConfig    `yaml:"admin"`
+		Behavior   *BehaviorConfig   `yaml:"behavior"`
+		Http       *HttpConfig       `yaml:"http,omitempty"`
+		Etcd       *EtcdConfig       `yaml:"etcd"`
+		EtcdClient *EtcdClientConfig `yaml:"etcd_client"`
+		Grpc       *GrpcConfig       `yaml:"grpc"`
+		Sdk        *SdkConfig        `yaml:"sdk"`
+		Jwt        *JwtConfig        `yaml:"jwt"`
+		Gateway    *GatewayConfig    `yaml:"gateway"`
+		Admin      *AdminConfig      `yaml:"admin"`
 	} `yaml:"module"`
 }
 

@@ -370,12 +370,12 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 		return gira.ErrInvalidService
 	}
 	value := string(kv.Value)
-	if lastValue, ok := self.services.Load(serviceName); ok {
-		lastService := lastValue.(*gira.ServiceName)
-		log.Warnw("service registry on kv add, but already exist", "service_name", serviceName, "peer", value, "last_peer", lastService.Peer.FullName)
+	if _, ok := self.services.Load(serviceName); ok {
+		// lastService := lastValue.(*gira.ServiceName)
+		// log.Warnw("service registry on kv add, but already exist", "service_name", serviceName, "peer", value, "last_peer", lastService.Peer.FullName)
 	} else {
 		// 新增service
-		log.Infow("service registry on kv add", "service_name", serviceName, "peer", value)
+		// log.Infow("service registry on kv add", "service_name", serviceName, "peer", value)
 		peer := r.GetPeer(value)
 		if peer == nil {
 			log.Warnw("service registry on kv add, but peer not found", "service_name", serviceName, "peer", value)
@@ -595,7 +595,7 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 		if peer == nil {
 			return nil, gira.ErrServiceLocked.Trace()
 		}
-		return peer, gira.ErrServiceLocked.Trace()
+		return peer, gira.ErrServiceLocked.Trace().WithValues("service_name", serviceName)
 	}
 }
 

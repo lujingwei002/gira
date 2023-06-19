@@ -343,7 +343,7 @@ type peerClientsUnicast struct {
 }
 
 func (c *peerClientsUnicast) Where(serviceName string) PeerClientsUnicast {
-	c.serviceName = fmt.Sprintf("%s/%s", c.client.serviceName, serviceName)
+	c.serviceName = serviceName
 	return c
 }
 

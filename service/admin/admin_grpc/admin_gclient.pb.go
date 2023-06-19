@@ -424,7 +424,7 @@ type adminClientsUnicast struct {
 }
 
 func (c *adminClientsUnicast) Where(serviceName string) AdminClientsUnicast {
-	c.serviceName = fmt.Sprintf("%s/%s", c.client.serviceName, serviceName)
+	c.serviceName = serviceName
 	return c
 }
 

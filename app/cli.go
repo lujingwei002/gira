@@ -3,16 +3,34 @@ package app
 import (
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/proj"
 	peer_service "github.com/lujingwei002/gira/service/peer"
 	"github.com/lujingwei002/gira/service/peer/peer_grpc"
 
 	"github.com/lujingwei002/gira"
 	"github.com/urfave/cli/v2"
 )
+
+type ClientApplicationFacade struct {
+}
+
+func (s *ClientApplicationFacade) OnConfigLoad(c *gira.Config) error {
+	return nil
+}
+func (s *ClientApplicationFacade) OnCreate() error {
+	return nil
+}
+func (s *ClientApplicationFacade) OnStart() error {
+	return nil
+}
+func (s *ClientApplicationFacade) OnStop() error {
+	return nil
+}
 
 // 需要两个系参数 xx -id 1 start|stop|restart
 func Cli(name string, respositoryVersion string, buildTime string, applicationFacade gira.ApplicationFacade) error {
@@ -161,7 +179,7 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 }
 
 func StartAsClient(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
-	application := newClientApplication(ApplicationArgs{
+	application := newApplication(ApplicationArgs{
 		AppType:        appType,
 		AppId:          appId,
 		ConfigFilePath: configFilePath,
@@ -171,7 +189,7 @@ func StartAsClient(applicationFacade gira.ApplicationFacade, appId int32, appTyp
 }
 
 func StartAsServer(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
-	application := newServerApplication(ApplicationArgs{
+	application := newApplication(ApplicationArgs{
 		AppType:        appType,
 		AppId:          appId,
 		ConfigFilePath: configFilePath,
@@ -199,7 +217,7 @@ func startAction(args *cli.Context) error {
 	log.Println("build version:", respositoryVersion)
 	log.Println("build time:", buildTime)
 	log.Infof("%s %d starting...", appType, appId)
-	runtime := newServerApplication(ApplicationArgs{
+	runtime := newApplication(ApplicationArgs{
 		AppType:            appType,
 		AppId:              appId,
 		RespositoryVersion: respositoryVersion,
@@ -273,18 +291,26 @@ func statusAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	configFilePath := args.String("file")
 	dotEnvFilePath := args.String("env")
+	if len(configFilePath) <= 0 {
+		configFilePath = path.Join(proj.Config.ConfigDir, "cli.yaml")
+	}
+	if len(dotEnvFilePath) <= 0 {
+		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
+	}
 	// appType, _ := args.App.Metadata["name"].(string)
-	if err := StartAsClient(&DefaultClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
+	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
 		return err
 	}
 	ctx := facade.Context()
 	serviceName := peer_service.GetServiceName()
-	log.Println("eeeeeeeeeeeee", serviceName)
-	if result, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
+	if _, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err == gira.ErrPeerNotFound {
+		log.Println("dead")
+		return nil
+	} else if err != nil {
 		return err
-
 	} else {
-		log.Println("cccc", result)
+		log.Println("alive")
+		return nil
 
 	}
 	// if result, err := peer_grpc.DefaultPeerClients.Broadcast().HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
@@ -300,7 +326,6 @@ func statusAction(args *cli.Context) error {
 	// 		log.Println("error", peer.FullName)
 	// 	}
 	// }
-	return nil
 }
 
 func reloadAction(args *cli.Context) error {

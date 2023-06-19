@@ -122,10 +122,12 @@ func LockLocalUser(userId string) (*gira.Peer, error) {
 // 查找user所在的节点
 func WhereIsUser(userId string) (*gira.Peer, error) {
 	application := gira.App()
-	if r := application.GetRegistryClient(); r == nil {
-		return nil, gira.ErrRegistryNOtImplement
-	} else {
+	if r := application.GetRegistry(); r != nil {
 		return r.WhereIsUser(userId)
+	} else if r := application.GetRegistryClient(); r != nil {
+		return r.WhereIsUser(userId)
+	} else {
+		return nil, gira.ErrRegistryNOtImplement
 	}
 }
 
@@ -164,10 +166,12 @@ func ListServiceKvs() (peers map[string][]string, err error) {
 // 构造服务名
 func NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
 	application := gira.App()
-	if r := application.GetRegistryClient(); r == nil {
-		return ""
-	} else {
+	if r := application.GetRegistry(); r != nil {
 		return r.NewServiceName(serviceName, opt...)
+	} else if r := application.GetRegistryClient(); r != nil {
+		return r.NewServiceName(serviceName, opt...)
+	} else {
+		return ""
 	}
 }
 
@@ -194,10 +198,12 @@ func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 // 查找服务
 func WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
 	application := gira.App()
-	if r := application.GetRegistryClient(); r == nil {
-		return nil, gira.ErrRegistryNOtImplement
-	} else {
+	if r := application.GetRegistry(); r != nil {
 		return r.WhereIsService(serviceName, opt...)
+	} else if r := application.GetRegistryClient(); r != nil {
+		return r.WhereIsService(serviceName, opt...)
+	} else {
+		return nil, gira.ErrRegistryNOtImplement
 	}
 }
 
