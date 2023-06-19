@@ -84,7 +84,7 @@ func (self *player_registry) onLocalPlayerAdd(r *Registry, player *gira.LocalPla
 }
 
 func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.LocalPlayer) {
-	log.Infow("player registry on local user add", "delete", player.UserId)
+	log.Infow("player registry on local user delete", "user_id", player.UserId)
 	for _, handler := range r.localPlayerWatchHandlers {
 		handler.OnLocalPlayerDelete(player)
 	}
@@ -293,6 +293,8 @@ func (self *player_registry) UnlockLocalUser(r *Registry, userId string) (*gira.
 		}
 		if txnResp.Succeeded {
 			log.Infow("player registry unregister success", "local_key", localKey)
+			self.localPlayers.Delete(userId)
+			self.onLocalPlayerDelete(r, player)
 			return nil, nil
 		} else {
 			var fullName string

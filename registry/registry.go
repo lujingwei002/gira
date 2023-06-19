@@ -114,10 +114,10 @@ func (r *Registry) Watch(peerWatchHandlers []gira.PeerWatchHandler, localPlayerW
 		}
 		return nil
 	})
-	r.errGroup.Go(func() error {
-		// return r.playerRegistry.Serve(r)
-		return r.playerRegistry.watchSelfPeerPlayers(r)
-	})
+	// r.errGroup.Go(func() error {
+	// return r.playerRegistry.Serve(r)
+	// return r.playerRegistry.watchSelfPeerPlayers(r)
+	// })
 	r.errGroup.Go(func() error {
 		// return r.serviceRegistry.Serve(r)
 		return r.serviceRegistry.watchServices(r)
