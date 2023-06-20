@@ -45,7 +45,8 @@ func (p *golang_parser) extraApplicationsAnnotate(fset *token.FileSet, filePath 
 }
 
 type application_annotate struct {
-	Module string
+	Module  string
+	Version string
 }
 
 func (p *golang_parser) extraApplicationAnnotate(fset *token.FileSet, filePath string, s *ast.StructType, name string, comments []*ast.Comment) (*application_annotate, error) {
@@ -71,6 +72,12 @@ func (p *golang_parser) extraApplicationAnnotate(fset *token.FileSet, filePath s
 	} else {
 		annotates.Module = str
 	}
+	if v, ok := values["version"]; !ok {
+	} else if str, ok := v.(string); !ok {
+		return nil, p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s version annotate must string", name))
+	} else {
+		annotates.Version = str
+	}
 	return annotates, nil
 }
 
@@ -88,9 +95,21 @@ func (p *golang_parser) parseApplicationStruct(state *gen_state, filePath string
 	if annotations, err := p.extraApplicationAnnotate(fset, filePath, s, name, doc.List); err != nil {
 		return err
 	} else {
+		// var version string
+		// for _, v := range s.Fields.List {
+		// 	switch v.Names[0].Name {
+		// 	case "Version":
+		// 		if v.Tag == nil {
+		// 			return p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s.%s is empty", name, v.Names[0].Name))
+		// 		} else {
+		// 			version = strings.Replace(v.Tag.Value, "`", "", -1)
+		// 		}
+		// 	}
+		// }
 		state.applications = append(state.applications, application{
 			ApplicationName: name,
 			ModuleName:      annotations.Module,
+			Version:         annotations.Version,
 		})
 	}
 	return nil

@@ -10,7 +10,8 @@ type ResourceLoader interface {
 	LoadResource(dir string) error
 	// 重载资源
 	ReloadResource(dir string) error
-	GetFileRespositoryVersion() string
+	GetResVersion() string
+	GetLoaderVersion() string
 }
 
 type ResourceHandler interface {

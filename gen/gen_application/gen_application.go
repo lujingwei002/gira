@@ -19,22 +19,23 @@ var code = `
 package main 
 
 import (
-	log "github.com/lujingwei002/gira/corelog"
+	"fmt"
+	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira"
-	gira_app "github.com/lujingwei002/gira/app"
-	{{.ApplicationName}}_app "{{.ModuleName}}/{{.ApplicationName}}/app"
+	"github.com/lujingwei002/gira/app"
+	{{.ApplicationName}} "{{.ModuleName}}/{{.ApplicationName}}/app"
 )
 
 var respositoryVersion string
 var buildTime string
 
 // 检查是否满足接口
-var _ = (gira.ApplicationFacade)(&{{.ApplicationName}}_app.Application{})
-var _ = (gira.ResourceSource)(&{{.ApplicationName}}_app.Application{})
+var _ = (gira.ApplicationFacade)(&{{.ApplicationName}}.Application{})
+var _ = (gira.ResourceSource)(&{{.ApplicationName}}.Application{})
 
 func main() {
-	app := {{.ApplicationName}}_app.NewApplication()
-	err := gira_app.Cli("{{.ApplicationName}}", respositoryVersion, buildTime, app)
+	application := {{.ApplicationName}}.NewApplication()
+	err := app.Cli("{{.ApplicationName}}", fmt.Sprintf("{{.Version}}.%s", respositoryVersion), buildTime, application)
 	if err != nil {
 		log.Info(err)
 	}
@@ -45,6 +46,7 @@ func main() {
 type application struct {
 	ApplicationName string
 	ModuleName      string
+	Version         string
 }
 type gen_state struct {
 	applications []application
@@ -93,9 +95,6 @@ func Gen() error {
 	log.Info("===============gen app start===============")
 	// 初始化
 	state := &gen_state{}
-	if true {
-
-	}
 	var p Parser
 	if true {
 		p = &golang_parser{}

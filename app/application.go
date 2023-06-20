@@ -43,12 +43,13 @@ import (
 )
 
 type ApplicationArgs struct {
-	AppType            string /// 服务名
-	AppId              int32  /// 服务id
-	BuildTime          int64
-	RespositoryVersion string
-	ConfigFilePath     string
-	DotEnvFilePath     string
+	AppType             string /// 服务名
+	AppId               int32  /// 服务id
+	BuildTime           int64
+	AppVersion          string
+	RespositoryVersion1 string
+	ConfigFilePath      string
+	DotEnvFilePath      string
 }
 
 const (
@@ -72,7 +73,7 @@ type Application struct {
 	config             *gira.Config
 	chQuit             chan struct{}
 	status             int64
-	respositoryVersion string
+	appVersion         string
 	buildTime          int64
 	upTime             int64
 	projectFilePath    string /// 配置文件绝对路径, gira.yaml
@@ -110,21 +111,21 @@ func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFaca
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
 	application := &Application{
-		respositoryVersion: args.RespositoryVersion,
-		buildTime:          args.BuildTime,
-		appId:              args.AppId,
-		configFilePath:     args.ConfigFilePath,
-		dotEnvFilePath:     args.DotEnvFilePath,
-		applicationFacade:  applicationFacade,
-		frameworks:         make([]gira.Framework, 0),
-		appType:            args.AppType,
-		appName:            fmt.Sprintf("%s_%d", args.AppType, args.AppId),
-		ctx:                ctx,
-		cancelFunc:         cancelFunc,
-		errCtx:             errCtx,
-		errGroup:           errGroup,
-		chQuit:             make(chan struct{}, 1),
-		serviceContainer:   service.New(ctx),
+		appVersion:        args.AppVersion,
+		buildTime:         args.BuildTime,
+		appId:             args.AppId,
+		configFilePath:    args.ConfigFilePath,
+		dotEnvFilePath:    args.DotEnvFilePath,
+		applicationFacade: applicationFacade,
+		frameworks:        make([]gira.Framework, 0),
+		appType:           args.AppType,
+		appName:           fmt.Sprintf("%s_%d", args.AppType, args.AppId),
+		ctx:               ctx,
+		cancelFunc:        cancelFunc,
+		errCtx:            errCtx,
+		errGroup:          errGroup,
+		chQuit:            make(chan struct{}, 1),
+		serviceContainer:  service.New(ctx),
 	}
 	return application
 }
@@ -537,8 +538,8 @@ func (application *Application) GetConfig() *gira.Config {
 }
 
 // 返回构建版本
-func (application *Application) GetRespositoryVersion() string {
-	return application.respositoryVersion
+func (application *Application) GetAppVersion() string {
+	return application.appVersion
 
 }
 
@@ -547,7 +548,7 @@ func (application *Application) GetBuildTime() int64 {
 	return application.buildTime
 }
 func (application *Application) GetUpTime() int64 {
-	return time.Now().Unix() - application.buildTime
+	return time.Now().Unix() - application.upTime
 }
 
 // 返回应用id

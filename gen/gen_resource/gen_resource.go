@@ -38,7 +38,7 @@ import (
 	"<<.Module>>/gen/resource"
 )
 
-var respositoryVersion string
+var resVersion string
 var buildTime string
 var uri string
 
@@ -72,7 +72,7 @@ func main() {
 			},
 			{
 				Name:      "version",
-				Usage:     "Build version",
+				Usage:     "res version",
 				Action:    versionAction,
 			},
 			{
@@ -89,7 +89,7 @@ func main() {
 
 // 打印应用构建版本
 func versionAction(args *cli.Context) error {
-	fmt.Println(respositoryVersion)
+	fmt.Println(fmt.Sprintf("<<.ResVersion>>.%s", resVersion))
 	return nil
 }
 
@@ -190,10 +190,11 @@ type <<.HandlerStructName>> interface {
 <<end>>
 
 type version_file struct {
-	RespositoryVersion string <<quote>>yaml:"respository_version"<<quote>>
+	ResVersion string <<quote>>yaml:"res_version"<<quote>>
 }
 
 <<- $config := .Config>>
+<<- $state := .>>
 
 <<range .LoaderArr>>
 // <<.LoaderName>>加载器，负载加载拥有的bundle
@@ -204,14 +205,14 @@ type <<.LoaderStructName>> struct {
 	<<- end>>
 }
 
-func (self *<<.LoaderStructName>>) GetFileRespositoryVersion() string {
-	return self.version.RespositoryVersion
+func (self *<<.LoaderStructName>>) GetResVersion() string {
+	return self.version.ResVersion
 }
 
-
-func (self *<<.LoaderStructName>>) GetRespositoryVersion() string {
-	return "<<$config.RespositoryVersion>>"
+func (self *<<.LoaderStructName>>) GetLoaderVersion() string {
+	return "<<$state.ResVersion>>.<<$config.RespositoryVersion>>"
 }
+
 // 加载版本文件
 func (self *<<.LoaderStructName>>) LoadVersion(dir string) error {
 	filePath := filepath.Join(dir, ".version.yaml")
@@ -689,6 +690,7 @@ type gen_state struct {
 	BundleArr    []*Bundle
 	LoaderArr    []*Loader
 	ImportArr    []string
+	ResVersion   string
 }
 
 type Parser interface {
@@ -858,14 +860,14 @@ func getSrcFileHash(arr []string) string {
 }
 
 type version_file struct {
-	RespositoryVersion string `yaml:"respository_version"`
+	ResVersion string `yaml:"res_version"`
 }
 
 func genResourcesVersion(state *gen_state) error {
 	log.Info("生成version文件")
 	filePath := filepath.Join(proj.Config.ResourceDir, ".version.yaml")
 	v := version_file{}
-	v.RespositoryVersion = state.Config.RespositoryVersion
+	v.ResVersion = fmt.Sprintf("%s.%s", state.ResVersion, state.Config.RespositoryVersion)
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err

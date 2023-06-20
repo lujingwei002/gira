@@ -128,9 +128,9 @@ func (self *hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushRe
 
 func (self *hall_server) Info(ctx context.Context, req *hall_grpc.InfoRequest) (*hall_grpc.InfoResponse, error) {
 	resp := &hall_grpc.InfoResponse{
-		BuildTime:          facade.GetBuildTime(),
-		RespositoryVersion: facade.GetRespositoryVersion(),
-		SessionCount:       self.hall.sessionCount,
+		BuildTime:    facade.GetBuildTime(),
+		AppVersion:   facade.GetAppVersion(),
+		SessionCount: self.hall.sessionCount,
 	}
 	return resp, nil
 }

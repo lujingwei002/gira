@@ -13,9 +13,10 @@ message HealthCheckRequest{
 
 message HealthCheckResponse {
     int64 BuildTime = 1;
-    string RespositoryVersion = 2;
+    string AppVersion = 2;
     int64 UpTime = 3;
-    string ResourceRespositoryVersion = 5;
+    string ResVersion = 5;
+    string LoaderVersion = 4;
 }
 
 

@@ -6,9 +6,10 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/facade"
+	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/proj"
+	"github.com/lujingwei002/gira/service/admin/admin_grpc"
 	peer_service "github.com/lujingwei002/gira/service/peer"
 	"github.com/lujingwei002/gira/service/peer/peer_grpc"
 
@@ -33,7 +34,7 @@ func (s *ClientApplicationFacade) OnStop() error {
 }
 
 // 需要两个系参数 xx -id 1 start|stop|restart
-func Cli(name string, respositoryVersion string, buildTime string, applicationFacade gira.ApplicationFacade) error {
+func Cli(name string, appVersion string, buildTime string, applicationFacade gira.ApplicationFacade) error {
 
 	app := &cli.App{
 		Name: "gira service",
@@ -42,10 +43,10 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 		Flags:       []cli.Flag{},
 		Action:      runAction,
 		Metadata: map[string]interface{}{
-			"application":        applicationFacade,
-			"name":               name,
-			"buildTime":          buildTime,
-			"respositoryVersion": respositoryVersion,
+			"application": applicationFacade,
+			"name":        name,
+			"buildTime":   buildTime,
+			"appVersion":  appVersion,
 		},
 		Commands: []*cli.Command{
 			{
@@ -135,6 +136,25 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 				Name:   "reload",
 				Usage:  "Reload config",
 				Action: reloadAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "id",
+						Usage:    "service id",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Aliases:  []string{"f"},
+						Name:     "file",
+						Usage:    "config file",
+						Required: false,
+					},
+					&cli.StringFlag{
+						Aliases:  []string{"c"},
+						Name:     "env",
+						Usage:    "env config file",
+						Required: false,
+					},
+				},
 			},
 			{
 				Name:   "version",
@@ -229,7 +249,7 @@ func startAction(args *cli.Context) error {
 	dotEnvFilePath := args.String("env")
 	applicationFacade, _ := args.App.Metadata["application"].(gira.ApplicationFacade)
 	appType, _ := args.App.Metadata["name"].(string)
-	respositoryVersion, _ := args.App.Metadata["respositoryVersion"].(string)
+	appVersion, _ := args.App.Metadata["appVersion"].(string)
 	var buildTime int64
 	if v, ok := args.App.Metadata["buildTime"].(string); ok {
 		if t, err := strconv.Atoi(v); err != nil {
@@ -238,16 +258,16 @@ func startAction(args *cli.Context) error {
 			buildTime = int64(t)
 		}
 	}
-	corelog.Println("build version:", respositoryVersion)
-	corelog.Println("build time:", buildTime)
-	corelog.Infof("%s %d starting...", appType, appId)
+	log.Println("build version:", appVersion)
+	log.Println("build time:", buildTime)
+	log.Infof("%s %d starting...", appType, appId)
 	runtime := newApplication(ApplicationArgs{
-		AppType:            appType,
-		AppId:              appId,
-		RespositoryVersion: respositoryVersion,
-		BuildTime:          buildTime,
-		DotEnvFilePath:     dotEnvFilePath,
-		ConfigFilePath:     configFilePath,
+		AppType:        appType,
+		AppId:          appId,
+		AppVersion:     appVersion,
+		BuildTime:      buildTime,
+		DotEnvFilePath: dotEnvFilePath,
+		ConfigFilePath: configFilePath,
 	}, applicationFacade)
 
 	if err := runtime.start(); err != nil {
@@ -261,8 +281,8 @@ func startAction(args *cli.Context) error {
 
 // 打印应用构建版本
 func versionAction(args *cli.Context) error {
-	respositoryVersion, _ := args.App.Metadata["respositoryVersion"].(string)
-	fmt.Println(respositoryVersion)
+	appVersion, _ := args.App.Metadata["appVersion"].(string)
+	fmt.Println(appVersion)
 	return nil
 }
 
@@ -327,11 +347,11 @@ func statusAction(args *cli.Context) error {
 	ctx := facade.Context()
 	serviceName := peer_service.GetServiceName()
 	if _, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
-		corelog.Println(err)
-		corelog.Println("dead")
+		log.Println(err)
+		log.Println("dead")
 		return nil
 	} else {
-		corelog.Println("alive")
+		log.Println("alive")
 		return nil
 	}
 }
@@ -353,16 +373,36 @@ func unregisterAction(args *cli.Context) error {
 	}
 	appFullName := gira.FormatAppFullName(appType, appId, facade.GetZone(), facade.GetEnv())
 	if err := facade.UnregisterPeer(appFullName); err != nil {
-		corelog.Println(err)
+		log.Println(err)
 		return nil
 	} else {
-		corelog.Println("OK")
+		log.Println("OK")
 		return nil
 	}
 }
 
 func reloadAction(args *cli.Context) error {
-	return nil
+	appId := int32(args.Int("id"))
+	configFilePath := args.String("file")
+	dotEnvFilePath := args.String("env")
+	if len(configFilePath) <= 0 {
+		configFilePath = path.Join(proj.Config.ConfigDir, "cli.yaml")
+	}
+	if len(dotEnvFilePath) <= 0 {
+		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
+	}
+	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
+		return err
+	}
+	ctx := facade.Context()
+	serviceName := peer_service.GetServiceName()
+	if _, err := admin_grpc.DefaultAdminClients.Unicast().Where(serviceName).ReloadResource(ctx, &admin_grpc.ReloadResourceRequest{}); err != nil {
+		log.Println(err)
+		return nil
+	} else {
+		log.Println("OK")
+		return nil
+	}
 }
 
 func runAction(args *cli.Context) error {

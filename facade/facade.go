@@ -18,8 +18,8 @@ func Context() context.Context {
 }
 
 // 返回app构建版本
-func GetRespositoryVersion() string {
-	return gira.App().GetRespositoryVersion()
+func GetAppVersion() string {
+	return gira.App().GetAppVersion()
 }
 
 // 返回app构建时间
@@ -27,14 +27,25 @@ func GetBuildTime() int64 {
 	return gira.App().GetBuildTime()
 }
 
-func GetResourceRespositoryVersion() string {
+func GetResVersion() string {
 	application := gira.App()
 	if c, ok := application.(gira.ResourceSource); !ok {
 		return ""
 	} else if r := c.GetResourceLoader(); r == nil {
 		return ""
 	} else {
-		return r.GetFileRespositoryVersion()
+		return r.GetResVersion()
+	}
+}
+
+func GetLoaderVersion() string {
+	application := gira.App()
+	if c, ok := application.(gira.ResourceSource); !ok {
+		return ""
+	} else if r := c.GetResourceLoader(); r == nil {
+		return ""
+	} else {
+		return r.GetLoaderVersion()
 	}
 }
 

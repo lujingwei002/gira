@@ -26,13 +26,13 @@ type Upstream struct {
 	FullName string
 	Address  string
 
-	client             hall_grpc.HallClient
-	ctx                context.Context
-	cancelFunc         context.CancelFunc
-	playerCount        int64
-	buildTime          int64
-	status             hall_grpc.HallStatus
-	respositoryVersion string
+	client      hall_grpc.HallClient
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	playerCount int64
+	buildTime   int64
+	status      hall_grpc.HallStatus
+	appVersion  string
 }
 
 type upstream_map struct {
@@ -222,8 +222,8 @@ func (server *Upstream) serve() error {
 			return err
 		}
 		server.buildTime = resp.BuildTime
-		server.respositoryVersion = resp.RespositoryVersion
-		log.Infow("server init success", "full_name", server.FullName, "build_time", resp.BuildTime, "respository_version", resp.RespositoryVersion)
+		server.appVersion = resp.AppVersion
+		log.Infow("server init success", "full_name", server.FullName, "build_time", resp.BuildTime, "respository_version", resp.AppVersion)
 	}
 	server.client = client
 	errGroup, errCtx := errgroup.WithContext(server.ctx)

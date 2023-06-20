@@ -124,6 +124,7 @@ func (p *golang_parser) extraLoadersAnnotate(fset *token.FileSet, filePath strin
 
 type resources_annotate struct {
 	Resources string
+	Version   string
 }
 
 func (p *golang_parser) extraResourcesAnnotate(fset *token.FileSet, filePath string, s *ast.StructType, name string, comments []*ast.Comment) (*resources_annotate, error) {
@@ -148,6 +149,13 @@ func (p *golang_parser) extraResourcesAnnotate(fset *token.FileSet, filePath str
 		return nil, p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s resources annotate must string", name))
 	} else {
 		annotates.Resources = str
+	}
+
+	if v, ok := values["version"]; !ok {
+	} else if str, ok := v.(string); !ok {
+		return nil, p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s version annotate must string", name))
+	} else {
+		annotates.Version = str
 	}
 	return annotates, nil
 }
@@ -457,6 +465,8 @@ func (p *golang_parser) parseResourcesStruct(state *gen_state, filePath string, 
 		return err
 	} else if annotations == nil {
 		return nil
+	} else {
+		state.ResVersion = annotations.Version
 	}
 	for _, field := range s.Fields.List {
 		if err := p.parseResourceStruct(state, filePath, fileContent, fset, field.Names[0].Name, field.Doc, field.Type.(*ast.StructType)); err != nil {

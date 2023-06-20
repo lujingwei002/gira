@@ -75,7 +75,7 @@ type Application interface {
 	GetAppId() int32
 	GetLogDir() string
 	GetWorkDir() string
-	GetRespositoryVersion() string
+	GetAppVersion() string
 	GetBuildTime() int64
 	GetUpTime() int64
 
