@@ -162,7 +162,7 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	}
 	fullName := pats[2]
 	attrName := pats[3]
-	name, serverId, err := explodeServerFullName(fullName)
+	name, serverId, err := gira.ParseAppFullName(fullName)
 	if err != nil {
 		log.Errorw("peer registry got a invalid key", "full_name", fullName)
 		return err
@@ -261,7 +261,7 @@ func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	}
 	fullName := pats[2]
 	attrName := pats[3]
-	name, serverId, err := explodeServerFullName(fullName)
+	name, serverId, err := gira.ParseAppFullName(fullName)
 	if err != nil {
 		log.Warnw("peer registry got a invalid key", "full_name", fullName)
 		return err

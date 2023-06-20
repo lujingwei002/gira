@@ -98,6 +98,30 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 				},
 			},
 			{
+				Name:   "unregister",
+				Usage:  "unregister service",
+				Action: unregisterAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "id",
+						Usage:    "service id",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Aliases:  []string{"f"},
+						Name:     "file",
+						Usage:    "config file",
+						Required: false,
+					},
+					&cli.StringFlag{
+						Aliases:  []string{"c"},
+						Name:     "env",
+						Usage:    "env config file",
+						Required: false,
+					},
+				},
+			},
+			{
 				Name:   "stop",
 				Usage:  "Stop service",
 				Action: stopAction,
@@ -124,7 +148,7 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 			},
 			{
 				Name:   "env",
-				Usage:  "打印环境变量",
+				Usage:  "Print env",
 				Action: envAction,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
@@ -148,7 +172,7 @@ func Cli(name string, respositoryVersion string, buildTime string, applicationFa
 			},
 			{
 				Name:   "config",
-				Usage:  "打印配置",
+				Usage:  "Print config",
 				Action: configAction,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
@@ -297,35 +321,44 @@ func statusAction(args *cli.Context) error {
 	if len(dotEnvFilePath) <= 0 {
 		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
 	}
-	// appType, _ := args.App.Metadata["name"].(string)
 	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
 		return err
 	}
 	ctx := facade.Context()
 	serviceName := peer_service.GetServiceName()
-	if _, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err == gira.ErrPeerNotFound {
+	if _, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
+		log.Println(err)
 		log.Println("dead")
 		return nil
-	} else if err != nil {
-		return err
 	} else {
 		log.Println("alive")
 		return nil
-
 	}
-	// if result, err := peer_grpc.DefaultPeerClients.Broadcast().HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
-	// 	return err
-	// } else {
-	// 	log.Println("cccc", result)
-	// 	for i := 0; i < result.SuccessCount(); i++ {
-	// 		peer := result.SuccessPeer(i)
-	// 		log.Println("success", peer.FullName)
-	// 	}
-	// 	for i := 0; i < result.ErrorCount(); i++ {
-	// 		peer := result.ErrorPeer(i)
-	// 		log.Println("error", peer.FullName)
-	// 	}
-	// }
+}
+
+func unregisterAction(args *cli.Context) error {
+	appId := int32(args.Int("id"))
+	appType, _ := args.App.Metadata["name"].(string)
+	configFilePath := args.String("file")
+	dotEnvFilePath := args.String("env")
+	if len(configFilePath) <= 0 {
+		configFilePath = path.Join(proj.Config.ConfigDir, "cli.yaml")
+	}
+
+	if len(dotEnvFilePath) <= 0 {
+		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
+	}
+	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
+		return err
+	}
+	appFullName := gira.FormatAppFullName(appType, appId, facade.GetZone(), facade.GetEnv())
+	if err := facade.UnregisterPeer(appFullName); err != nil {
+		log.Println(err)
+		return nil
+	} else {
+		log.Println("OK")
+		return nil
+	}
 }
 
 func reloadAction(args *cli.Context) error {

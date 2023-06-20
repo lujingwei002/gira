@@ -26,6 +26,7 @@ type RegistryClient interface {
 	WhereIsUser(userId string) (*Peer, error)
 	// 查找服务
 	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
+	UnregisterPeer(appFullName string) error
 }
 
 type RegistryComponent interface {

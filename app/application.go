@@ -165,7 +165,7 @@ func (application *Application) init() error {
 	} else {
 		application.env = c.Env
 		application.zone = c.Zone
-		application.appFullName = fmt.Sprintf("%s_%s_%s_%d", application.appType, application.zone, application.env, application.appId)
+		application.appFullName = gira.FormatAppFullName(application.appType, application.appId, application.zone, application.env)
 		application.config = c
 	}
 	// 加载配置回调

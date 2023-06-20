@@ -92,6 +92,18 @@ func NewConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig
 		log.Errorw("connect database fail", "name", name, "uri", uri, "error", err)
 		return nil, err
 	}
+	if config.MaxOpenConns > 0 {
+		db.SetMaxOpenConns(config.MaxOpenConns)
+	}
+	if config.ConnMaxIdleTime > 0 {
+		db.SetConnMaxIdleTime(config.ConnMaxIdleTime)
+	}
+	if config.MaxIdleConns > 0 {
+		db.SetMaxIdleConns(config.MaxIdleConns)
+	}
+	if config.ConnMaxLifetime > 0 {
+		db.SetConnMaxLifetime(config.ConnMaxLifetime)
+	}
 	err = db.Ping()
 	if err != nil {
 		log.Errorw("connect database fail", "name", name, "uri", uri, "error", err)

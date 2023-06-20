@@ -3,8 +3,6 @@ package registryclient
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/lujingwei002/gira"
@@ -18,13 +16,15 @@ import (
 const GRPC_KEY string = "grpc"
 
 type RegistryClient struct {
-	config     gira.EtcdClientConfig
-	appId      int32
-	fullName   string // 节点全名
-	name       string // 节点名
-	client     *clientv3.Client
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	config      gira.EtcdClientConfig
+	appId       int32
+	appFullName string // 节点全名
+	env         string
+	zone        string
+	appType     string // 节点名
+	client      *clientv3.Client
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
 
 	peerRegistry    *peer_registry
 	playerRegistry  *player_registry
@@ -37,10 +37,12 @@ func (r *RegistryClient) StartAsClient() error {
 
 func NewConfigRegistryClient(ctx context.Context, config *gira.EtcdClientConfig) (*RegistryClient, error) {
 	r := &RegistryClient{
-		config:   *config,
-		fullName: facade.GetAppFullName(),
-		appId:    facade.GetAppId(),
-		name:     facade.GetAppType(),
+		config:      *config,
+		appFullName: facade.GetAppFullName(),
+		appId:       facade.GetAppId(),
+		appType:     facade.GetAppType(),
+		zone:        facade.GetZone(),
+		env:         facade.GetEnv(),
 	}
 	r.ctx, r.cancelFunc = context.WithCancel(ctx)
 	// 配置endpoints
@@ -101,16 +103,6 @@ func (r *RegistryClient) GetPeer(fullName string) *gira.Peer {
 	return r.peerRegistry.getPeer(r, fullName)
 }
 
-func explodeServerFullName(fullName string) (name string, id int32, err error) {
-	pats := strings.Split(string(fullName), "_")
-	if len(pats) != 4 {
-		err = gira.ErrInvalidPeer
-		return
-	}
-	name = pats[0]
-	var v int
-	if v, err = strconv.Atoi(pats[3]); err == nil {
-		id = int32(v)
-	}
-	return
+func (r *RegistryClient) UnregisterPeer(appFullName string) error {
+	return r.peerRegistry.UnregisterPeer(r, appFullName)
 }

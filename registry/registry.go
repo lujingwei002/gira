@@ -18,8 +18,6 @@ package registry
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/lujingwei002/gira"
@@ -219,18 +217,4 @@ func (r *Registry) RegisterService(serviceName string, opt ...service_options.Re
 // 反注册服务
 func (r *Registry) UnregisterService(serviceName string) (*gira.Peer, error) {
 	return r.serviceRegistry.UnregisterService(r, serviceName)
-}
-
-func explodeServerFullName(fullName string) (name string, id int32, err error) {
-	pats := strings.Split(string(fullName), "_")
-	if len(pats) != 4 {
-		err = gira.ErrInvalidPeer
-		return
-	}
-	name = pats[0]
-	var v int
-	if v, err = strconv.Atoi(pats[3]); err == nil {
-		id = int32(v)
-	}
-	return
 }

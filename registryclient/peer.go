@@ -25,9 +25,8 @@ func newConfigPeerRegistry(r *RegistryClient) (*peer_registry, error) {
 	return self, nil
 }
 
-// 协程安全
 func (self *peer_registry) getPeer(r *RegistryClient, fullName string) *gira.Peer {
-	name, serverId, err := explodeServerFullName(fullName)
+	name, serverId, err := gira.ParseAppFullName(fullName)
 	if err != nil {
 		return nil
 	}
@@ -41,7 +40,7 @@ func (self *peer_registry) getPeer(r *RegistryClient, fullName string) *gira.Pee
 	peer := &gira.Peer{
 		Id:       serverId,
 		Name:     name,
-		FullName: r.fullName,
+		FullName: r.appFullName,
 		Kvs:      make(map[string]string),
 	}
 	for _, kv := range getResp.Kvs {
@@ -53,4 +52,15 @@ func (self *peer_registry) getPeer(r *RegistryClient, fullName string) *gira.Pee
 		}
 	}
 	return peer
+}
+
+func (self *peer_registry) UnregisterPeer(r *RegistryClient, fullName string) error {
+	client := r.client
+	key := fmt.Sprintf("%s%s", self.prefix, fullName)
+	kv := clientv3.NewKV(client)
+	_, err := kv.Delete(self.ctx, key, clientv3.WithPrefix())
+	if err != nil {
+		return err
+	}
+	return nil
 }

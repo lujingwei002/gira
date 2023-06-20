@@ -2,6 +2,9 @@ package gira
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
 /*
@@ -103,4 +106,22 @@ func App() Application {
 // 创建完成时回调
 func OnApplicationCreate(app Application) {
 	application = app
+}
+
+func FormatAppFullName(appType string, appId int32, zone string, env string) string {
+	return fmt.Sprintf("%s_%s_%s_%d", appType, zone, env, appId)
+}
+
+func ParseAppFullName(fullName string) (name string, id int32, err error) {
+	pats := strings.Split(string(fullName), "_")
+	if len(pats) != 4 {
+		err = ErrInvalidPeer
+		return
+	}
+	name = pats[0]
+	var v int
+	if v, err = strconv.Atoi(pats[3]); err == nil {
+		id = int32(v)
+	}
+	return
 }

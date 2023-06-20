@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/lujingwei002/gira/proj"
@@ -154,7 +155,12 @@ func LoadApplicationConfig(configFilePath string, dotEnvFilePath string, appType
 	if len(dotEnvFilePath) <= 0 {
 		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
 	}
-	return LoadConfig(configFilePath, dotEnvFilePath, appType, appId)
+	if c, err := LoadConfig(configFilePath, dotEnvFilePath, appType, appId); err != nil {
+		return nil, err
+	} else {
+
+		return c, nil
+	}
 }
 
 // 读取配置
@@ -167,11 +173,13 @@ func LoadConfig(configFilePath string, dotEnvFilePath string, appType string, ap
 	}
 	if data, err := reader.read(configFilePath, dotEnvFilePath); err != nil {
 		return nil, err
-	} else {
-		if err := c.unmarshal(data); err != nil {
-			return nil, ErrInvalidSyntax.Trace().WithFile(configFilePath).WithLines(data)
-		}
+	} else if err := c.unmarshal(data); err != nil {
+		return nil, ErrInvalidSyntax.Trace().WithFile(configFilePath).WithLines(data)
 	}
+	// for _, v := range c.Db {
+	// v.MaxOpenConns = 32
+	// v.ConnMaxIdleTime =
+	// }
 	return c, nil
 }
 
@@ -205,13 +213,17 @@ type JwtConfig struct {
 }
 
 type DbConfig struct {
-	Driver   string `yaml:"driver"`
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Db       string `yaml:"db"`
-	Query    string `yaml:"query"`
+	Driver          string        `yaml:"driver"`
+	Host            string        `yaml:"host"`
+	Port            int           `yaml:"port"`
+	User            string        `yaml:"user"`
+	Password        string        `yaml:"password"`
+	Db              string        `yaml:"db"`
+	Query           string        `yaml:"query"`
+	MaxOpenConns    int           `yaml:"max-open-conns"`
+	MaxIdleConns    int           `yaml:"max-idle-conns"`
+	ConnMaxIdleTime time.Duration `yaml:"conn-max-idle-time"`
+	ConnMaxLifetime time.Duration `yaml:"conn-max-lifetime"`
 }
 
 type BehaviorConfig struct {

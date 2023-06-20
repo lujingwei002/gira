@@ -52,6 +52,14 @@ func GetAppFullName() string {
 	return gira.App().GetAppFullName()
 }
 
+func GetZone() string {
+	return gira.App().GetConfig().Zone
+}
+
+func GetEnv() string {
+	return gira.App().GetConfig().Env
+}
+
 // 返回app类型
 func GetAppType() string {
 	return gira.App().GetAppType()
@@ -204,6 +212,15 @@ func WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) 
 		return r.WhereIsService(serviceName, opt...)
 	} else {
 		return nil, gira.ErrRegistryNOtImplement
+	}
+}
+
+func UnregisterPeer(appFullName string) error {
+	application := gira.App()
+	if r := application.GetRegistryClient(); r != nil {
+		return r.UnregisterPeer(appFullName)
+	} else {
+		return gira.ErrRegistryNOtImplement
 	}
 }
 
