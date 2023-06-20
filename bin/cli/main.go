@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/lujingwei002/gira"
-	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/log"
 	"github.com/urfave/cli/v2"
 
 	"github.com/lujingwei002/gira/gen/gen_application"
