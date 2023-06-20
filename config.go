@@ -393,7 +393,7 @@ type Config struct {
 		Behavior   *BehaviorConfig   `yaml:"behavior"`
 		Http       *HttpConfig       `yaml:"http,omitempty"`
 		Etcd       *EtcdConfig       `yaml:"etcd"`
-		EtcdClient *EtcdClientConfig `yaml:"etcd_client"`
+		EtcdClient *EtcdClientConfig `yaml:"etcd-client"`
 		Grpc       *GrpcConfig       `yaml:"grpc"`
 		Sdk        *SdkConfig        `yaml:"sdk"`
 		Jwt        *JwtConfig        `yaml:"jwt"`

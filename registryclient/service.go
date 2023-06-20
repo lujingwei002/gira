@@ -11,6 +11,7 @@ package registryclient
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/options/service_options"
@@ -50,22 +51,83 @@ func (self *service_registry) WhereIsService(r *RegistryClient, serviceName stri
 	for _, v := range opt {
 		v.ConfigWhereOption(&opts)
 	}
-	var getOpts []clientv3.OpOption
+	if opts.Catalog || opts.Prefix {
+		var getOpts []clientv3.OpOption
+		getOpts = append(getOpts, clientv3.WithPrefix())
+		client := r.client
+		kv := clientv3.NewKV(client)
+		var getResp *clientv3.GetResponse
+		key := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
+		if getResp, err = kv.Get(self.ctx, key, getOpts...); err != nil {
+			return
+		}
+		multicastCount := opts.MaxCount
+		for _, kv := range getResp.Kvs {
+			peer := r.GetPeer(string(kv.Value))
+			if peer != nil {
+				peers = append(peers, peer)
+				// 多播指定数量
+				if multicastCount > 0 {
+					multicastCount--
+					if multicastCount <= 0 {
+						break
+					}
+				}
+			}
+		}
+		return
+	} else {
+		var getOpts []clientv3.OpOption
+		client := r.client
+		kv := clientv3.NewKV(client)
+		var getResp *clientv3.GetResponse
+		key := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
+		if getResp, err = kv.Get(self.ctx, key, getOpts...); err != nil {
+			return
+		}
+		for _, kv := range getResp.Kvs {
+			peer := r.GetPeer(string(kv.Value))
+			if peer != nil {
+				peers = append(peers, peer)
+			}
+		}
+		return
+	}
+}
 
+func (self *peer_registry) listPeerKvs(r *RegistryClient) (kvs map[string]string, err error) {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
-
-	key := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
-	if getResp, err = kv.Get(self.ctx, key, getOpts...); err != nil {
+	if getResp, err = kv.Get(self.ctx, self.prefix, clientv3.WithPrefix()); err != nil {
 		return
 	}
+	kvs = make(map[string]string)
 	for _, kv := range getResp.Kvs {
-		peer := r.GetPeer(string(kv.Value))
-		if peer != nil {
-			peers = append(peers, peer)
-		}
+		kvs[string(kv.Key)] = string(kv.Value)
 	}
 	return
+}
 
+// 列出全部的服务
+func (self *service_registry) listServiceKvs(r *RegistryClient) (kvs map[string][]string, err error) {
+	client := r.client
+	kv := clientv3.NewKV(client)
+	var getResp *clientv3.GetResponse
+	if getResp, err = kv.Get(self.ctx, self.servicePrefix, clientv3.WithPrefix()); err != nil {
+		return
+	}
+	kvs = make(map[string][]string)
+	for _, kv := range getResp.Kvs {
+		words := strings.Split(string(kv.Key), "/")
+		var serviceName string
+		if len(words) == 4 {
+			serviceName = fmt.Sprintf("%s/%s", words[2], words[3])
+		} else if len(words) == 3 {
+			serviceName = words[2]
+		}
+		peerFullName := string(kv.Value)
+		kvs[peerFullName] = append(kvs[peerFullName], serviceName)
+	}
+	return
 }

@@ -141,7 +141,7 @@ func WhereIsUser(userId string) (*gira.Peer, error) {
 
 func ListPeerKvs() (peers map[string]string, err error) {
 	application := gira.App()
-	if r := application.GetRegistry(); r == nil {
+	if r := application.GetRegistryClient(); r == nil {
 		err = gira.ErrRegistryNOtImplement
 		return
 	} else {
@@ -162,7 +162,7 @@ func RangePeers(f func(k any, v any) bool) {
 
 func ListServiceKvs() (peers map[string][]string, err error) {
 	application := gira.App()
-	if r := application.GetRegistry(); r == nil {
+	if r := application.GetRegistryClient(); r == nil {
 		err = gira.ErrRegistryNOtImplement
 		return
 	} else {

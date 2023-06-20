@@ -25,13 +25,13 @@ func newConfigPeerRegistry(r *RegistryClient) (*peer_registry, error) {
 	return self, nil
 }
 
-func (self *peer_registry) getPeer(r *RegistryClient, fullName string) *gira.Peer {
-	name, serverId, err := gira.ParseAppFullName(fullName)
+func (self *peer_registry) getPeer(r *RegistryClient, appFullName string) *gira.Peer {
+	name, serverId, err := gira.ParseAppFullName(appFullName)
 	if err != nil {
 		return nil
 	}
 	client := r.client
-	key := fmt.Sprintf("%s%s", self.prefix, fullName)
+	key := fmt.Sprintf("%s%s", self.prefix, appFullName)
 	kv := clientv3.NewKV(client)
 	getResp, err := kv.Get(self.ctx, key, clientv3.WithPrefix())
 	if err != nil {

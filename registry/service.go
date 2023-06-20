@@ -290,7 +290,7 @@ func newConfigServiceRegistry(r *Registry) (*service_registry, error) {
 	self := &service_registry{
 		prefixIndex:       newWordTrie(),
 		servicePrefix:     "/service/",
-		peerServicePrefix: fmt.Sprintf("/peer_service/%s/", r.fullName),
+		peerServicePrefix: fmt.Sprintf("/peer_service/%s/", r.appFullName),
 		ctx:               ctx,
 		cancelFunc:        cancelFunc,
 	}
@@ -555,7 +555,7 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
 	log.Infow("service registry register", "service_name", serviceName, "peer_key", peerKey, "service_key", serviceKey)
-	value := r.fullName
+	value := r.appFullName
 
 	var catalogName string
 	words := strings.Split(serviceName, "/")
@@ -590,8 +590,8 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 		return nil, nil
 	} else {
 		log.Warnw("service registry register fail", "service_name", serviceName, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
-		fullName := string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
-		peer := r.GetPeer(fullName)
+		appFullName := string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
+		peer := r.GetPeer(appFullName)
 		if peer == nil {
 			return nil, gira.ErrServiceLocked.Trace()
 		}
@@ -599,7 +599,7 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 	}
 }
 
-// 解锁
+// 解锁服务
 func (self *service_registry) UnregisterService(r *Registry, serviceName string) (*gira.Peer, error) {
 	client := r.client
 	serviceKey := fmt.Sprintf("%s%s", self.servicePrefix, serviceName)
@@ -609,7 +609,7 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
 	log.Infow("service registry", "peer_key", peerKey, "service_key", serviceKey)
-	txn.If(clientv3.Compare(clientv3.Value(serviceKey), "=", r.fullName), clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
+	txn.If(clientv3.Compare(clientv3.Value(serviceKey), "=", r.appFullName), clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
 		Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey)).
 		Else(clientv3.OpGet(serviceKey))
 	if txnResp, err = txn.Commit(); err != nil {
@@ -620,12 +620,12 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 		log.Infow("service registry unregister", "service_name", serviceName)
 		return nil, nil
 	} else {
-		var fullName string
+		var appFullName string
 		if len(txnResp.Responses) > 0 && len(txnResp.Responses[0].GetResponseRange().Kvs) > 0 {
-			fullName = string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
+			appFullName = string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
 		}
 		log.Warnw("service registry unregister fail", "service_name", serviceName, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
-		peer := r.GetPeer(fullName)
+		peer := r.GetPeer(appFullName)
 		if peer == nil {
 			return nil, gira.ErrServiceLocked.Trace()
 		}
@@ -665,27 +665,4 @@ func (self *service_registry) WhereIsService(r *Registry, serviceName string, op
 		}
 		return
 	}
-}
-
-// 列出全部的服务
-func (self *service_registry) listServiceKvs(r *Registry) (kvs map[string][]string, err error) {
-	client := r.client
-	kv := clientv3.NewKV(client)
-	var getResp *clientv3.GetResponse
-	if getResp, err = kv.Get(self.ctx, self.servicePrefix, clientv3.WithPrefix()); err != nil {
-		return
-	}
-	kvs = make(map[string][]string)
-	for _, kv := range getResp.Kvs {
-		words := strings.Split(string(kv.Key), "/")
-		var serviceName string
-		if len(words) == 4 {
-			serviceName = fmt.Sprintf("%s/%s", words[2], words[3])
-		} else if len(words) == 3 {
-			serviceName = words[2]
-		}
-		peerFullName := string(kv.Value)
-		kvs[peerFullName] = append(kvs[peerFullName], serviceName)
-	}
-	return
 }

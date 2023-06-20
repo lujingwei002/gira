@@ -32,13 +32,13 @@ import (
 const GRPC_KEY string = "grpc"
 
 type Registry struct {
-	config     gira.EtcdConfig
-	appId      int32
-	fullName   string // 节点全名
-	name       string // 节点名
-	client     *clientv3.Client
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	config      gira.EtcdConfig
+	appId       int32
+	appFullName string // 节点全名
+	name        string // 节点名
+	client      *clientv3.Client
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
 	// frameworks              []gira.Framework
 	// application             gira.ApplicationFacade
 
@@ -113,16 +113,6 @@ func (r *Registry) Watch(peerWatchHandlers []gira.PeerWatchHandler, localPlayerW
 	return r.errGroup.Wait()
 }
 
-func (r *Registry) ListServiceKvs() (kvs map[string][]string, err error) {
-	kvs, err = r.serviceRegistry.listServiceKvs(r)
-	return
-}
-
-func (r *Registry) ListPeerKvs() (kvs map[string]string, err error) {
-	kvs, err = r.peerRegistry.listPeerKvs(r)
-	return
-}
-
 func (r *Registry) RangePeers(f func(k any, v any) bool) {
 	r.peerRegistry.RangePeers(f)
 }
@@ -139,10 +129,10 @@ func (r *Registry) SelfPeer() *gira.Peer {
 
 func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig) (*Registry, error) {
 	r := &Registry{
-		config:   *config,
-		fullName: facade.GetAppFullName(),
-		appId:    facade.GetAppId(),
-		name:     facade.GetAppType(),
+		config:      *config,
+		appFullName: facade.GetAppFullName(),
+		appId:       facade.GetAppId(),
+		name:        facade.GetAppType(),
 	}
 	r.ctx, r.cancelFunc = context.WithCancel(ctx)
 	// 配置endpoints

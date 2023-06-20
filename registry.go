@@ -10,8 +10,6 @@ type Registry interface {
 	UnlockLocalUser(userId string) (*Peer, error)
 	WhereIsUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
-	ListPeerKvs() (peers map[string]string, err error)
-	ListServiceKvs() (services map[string][]string, err error)
 	NewServiceName(serviceName string, opt ...service_options.RegisterOption) string
 	// 注册服务
 	RegisterService(serviceName string, opt ...service_options.RegisterOption) (*Peer, error)
@@ -27,6 +25,8 @@ type RegistryClient interface {
 	// 查找服务
 	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
 	UnregisterPeer(appFullName string) error
+	ListPeerKvs() (peers map[string]string, err error)
+	ListServiceKvs() (services map[string][]string, err error)
 }
 
 type RegistryComponent interface {

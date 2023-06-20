@@ -37,7 +37,7 @@ func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
 	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &player_registry{
 		peerTypePrefix: fmt.Sprintf("/peer_type_user/%s/", r.name),
-		peerPrefix:     fmt.Sprintf("/peer_user/%s/", r.fullName),
+		peerPrefix:     fmt.Sprintf("/peer_user/%s/", r.appFullName),
 		userPrefix:     "/user/",
 		ctx:            ctx,
 		cancelFunc:     cancelFunc,
@@ -52,17 +52,6 @@ func (self *player_registry) stop(r *Registry) error {
 	}
 	return nil
 }
-
-// func (self *player_registry) Start(r *Registry) error {
-// 	if err := self.initSelfPeerPlayers(r); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (self *player_registry) Serve(r *Registry) error {
-// 	return self.watchSelfPeerPlayers(r)
-// }
 
 func (self *player_registry) notify(r *Registry) error {
 	self.localPlayers.Range(func(k any, v any) bool {
@@ -111,13 +100,14 @@ func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) erro
 		return err
 	}
 	if _, ok := self.localPlayers.Load(userId); ok {
-		log.Warnw("player registry add local player, but already exist", "user_id", userId)
+		log.Warnw("player registry add local player, but already exist", "user_id", userId, "create_revision", kv.CreateRevision)
 	} else {
 		// 新增player
-		log.Infow("player registry add local player", "user_id", userId)
+		log.Infow("player registry add local player", "user_id", userId, "create_revision", kv.CreateRevision)
 		player := &gira.LocalPlayer{
-			LoginTime: int64(loginTime),
-			UserId:    userId,
+			LoginTime:      int64(loginTime),
+			UserId:         userId,
+			CreateRevision: kv.CreateRevision,
 		}
 		self.localPlayers.Store(userId, player)
 		self.onLocalPlayerAdd(r, player)
@@ -188,6 +178,7 @@ func (self *player_registry) watchSelfPeerPlayers(r *Registry) error {
 	return nil
 }
 
+// 解锁全部玩家
 func (self *player_registry) unregisterLocalPlayers(r *Registry) error {
 	client := r.client
 	kv := clientv3.NewKV(client)
@@ -238,7 +229,7 @@ func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Pe
 	txn := kv.Txn(self.ctx)
 	log.Infow("player registry", "local_key", localKey, "peer_key", peerKey, "user_key", userKey)
 	txn.If(clientv3.Compare(clientv3.CreateRevision(peerKey), "=", 0)).
-		Then(clientv3.OpPut(userKey, r.fullName), clientv3.OpPut(localKey, value), clientv3.OpPut(peerKey, r.fullName)).
+		Then(clientv3.OpPut(userKey, r.appFullName), clientv3.OpPut(localKey, value), clientv3.OpPut(peerKey, r.appFullName)).
 		Else(clientv3.OpGet(peerKey))
 	if txnResp, err = txn.Commit(); err != nil {
 		log.Errorw("player registry commit fail", "error", err)
@@ -246,13 +237,13 @@ func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Pe
 	}
 	if txnResp.Succeeded {
 		createRevision := txnResp.Responses[1].GetResponsePut().Header.Revision
-		log.Infow("player registry register success", "local_key", localKey, "create_revision", createRevision)
 		player := &gira.LocalPlayer{
 			LoginTime:      loginTime,
 			UserId:         userId,
 			CreateRevision: createRevision,
 		}
 		self.localPlayers.Store(userId, player)
+		log.Infow("player registry register success", "local_key", localKey, "create_revision", createRevision)
 		self.onLocalPlayerAdd(r, player)
 		return nil, nil
 	} else {
@@ -297,12 +288,12 @@ func (self *player_registry) UnlockLocalUser(r *Registry, userId string) (*gira.
 			self.onLocalPlayerDelete(r, player)
 			return nil, nil
 		} else {
-			var fullName string
+			var appFullName string
 			if len(txnResp.Responses) > 0 && len(txnResp.Responses[0].GetResponseRange().Kvs) > 0 {
-				fullName = string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
+				appFullName = string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
 			}
-			log.Warnw("player registry unregister fail", "local_key", localKey, "locked_by", fullName)
-			peer := r.GetPeer(fullName)
+			log.Warnw("player registry unregister fail", "local_key", localKey, "locked_by", appFullName)
+			peer := r.GetPeer(appFullName)
 			if peer == nil {
 				return nil, gira.ErrUserLocked
 			}

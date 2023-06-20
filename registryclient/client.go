@@ -106,3 +106,13 @@ func (r *RegistryClient) GetPeer(fullName string) *gira.Peer {
 func (r *RegistryClient) UnregisterPeer(appFullName string) error {
 	return r.peerRegistry.UnregisterPeer(r, appFullName)
 }
+
+func (r *RegistryClient) ListPeerKvs() (kvs map[string]string, err error) {
+	kvs, err = r.peerRegistry.listPeerKvs(r)
+	return
+}
+
+func (r *RegistryClient) ListServiceKvs() (kvs map[string][]string, err error) {
+	kvs, err = r.serviceRegistry.listServiceKvs(r)
+	return
+}

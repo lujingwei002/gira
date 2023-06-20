@@ -62,7 +62,7 @@ func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
 	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &peer_registry{
 		prefix:     "/peer/",
-		selfPrefix: fmt.Sprintf("/peer/%s/", r.fullName),
+		selfPrefix: fmt.Sprintf("/peer/%s/", r.appFullName),
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 	}
@@ -132,7 +132,7 @@ func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerDelete(peer)
 	}
-	if peer.FullName == r.fullName {
+	if peer.FullName == r.appFullName {
 		if self.isNormalUnregisterSelf {
 			self.cancelFunc()
 		} else {
@@ -175,7 +175,7 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
 				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
-				if lastPeer.FullName == r.fullName {
+				if lastPeer.FullName == r.appFullName {
 					self.SelfPeer = lastPeer
 				}
 				self.onPeerAdd(r, lastPeer)
@@ -211,7 +211,7 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			// 新增节点
 			log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 			peer.GrpcAddr = attrValue
-			if peer.FullName == r.fullName {
+			if peer.FullName == r.appFullName {
 				self.SelfPeer = peer
 			}
 			self.onPeerAdd(r, peer)
@@ -273,7 +273,7 @@ func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 			if lastPeer.GrpcAddr == "" {
 				// 新增节点
 				lastPeer.GrpcAddr = attrValue
-				if lastPeer.FullName == r.fullName {
+				if lastPeer.FullName == r.appFullName {
 					self.SelfPeer = lastPeer
 				}
 				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
@@ -308,7 +308,7 @@ func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 		self.peers.Store(fullName, peer)
 		if attrName == GRPC_KEY {
 			peer.GrpcAddr = attrValue
-			if peer.FullName == r.fullName {
+			if peer.FullName == r.appFullName {
 				self.SelfPeer = peer
 			}
 			// 新增节点
@@ -495,18 +495,4 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		}()
 	}
 	return nil
-}
-
-func (self *peer_registry) listPeerKvs(r *Registry) (kvs map[string]string, err error) {
-	client := r.client
-	kv := clientv3.NewKV(client)
-	var getResp *clientv3.GetResponse
-	if getResp, err = kv.Get(self.ctx, self.prefix, clientv3.WithPrefix()); err != nil {
-		return
-	}
-	kvs = make(map[string]string)
-	for _, kv := range getResp.Kvs {
-		kvs[string(kv.Key)] = string(kv.Value)
-	}
-	return
 }
