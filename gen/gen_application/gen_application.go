@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/proj"
 )
 
@@ -19,7 +19,7 @@ var code = `
 package main 
 
 import (
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira"
 	gira_app "github.com/lujingwei002/gira/app"
 	{{.ApplicationName}}_app "{{.ModuleName}}/{{.ApplicationName}}/app"

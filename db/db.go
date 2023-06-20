@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"

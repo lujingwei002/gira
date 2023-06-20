@@ -9,7 +9,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira"
 	gosproto "github.com/xjdrew/gosproto"

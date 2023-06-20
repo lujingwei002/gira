@@ -37,7 +37,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"

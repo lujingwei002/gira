@@ -106,7 +106,7 @@ TAG_CLEAN_UP:
 	hall.gateStreamCancelFunc()
 
 	for {
-		log.Infow("hall on stop------------", "session_count", hall.sessionCount)
+		log.Infow("hall on stop", "session_count", hall.sessionCount)
 		sessions := make([]*hall_sesssion, 0)
 		hall.sessionDict.Range(func(key, value any) bool {
 			session, _ := value.(*hall_sesssion)
@@ -116,15 +116,12 @@ TAG_CLEAN_UP:
 		for _, session := range sessions {
 			session.Close(hall.backgroundCtx)
 		}
-		log.Infow("hall on stop++++++++", "session_count", hall.sessionCount)
+		log.Infow("hall on stop", "session_count", hall.sessionCount)
 		if hall.sessionCount <= 0 {
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	// log.Printf("111111111111111111")
-	// time.Sleep(10 * time.Second)
-	// log.Printf("222222222222222222")
 	hall.backgroundCancelFunc()
 	return nil
 }

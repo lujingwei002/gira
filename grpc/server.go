@@ -5,7 +5,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira"
 	"google.golang.org/grpc"

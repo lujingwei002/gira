@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira/proj"
 )
@@ -87,7 +87,7 @@ import (
 	"context"
 	gosproto "github.com/xjdrew/gosproto"
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	//"github.com/lujingwei002/gira/sproto"
 	"sync/atomic"
 	"sync"
@@ -446,7 +446,7 @@ import (
 	"context"
 	gosproto "github.com/xjdrew/gosproto"
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	//"github.com/lujingwei002/gira/sproto"
 	"sync/atomic"
 	"sync"

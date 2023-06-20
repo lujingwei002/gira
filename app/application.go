@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	corelog "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/gins"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/service"
@@ -178,6 +179,11 @@ func (application *Application) init() error {
 		return err
 	}
 	// 初始化日志
+	if application.config.CoreLog != nil {
+		if err := corelog.ConfigLog(*application.config.CoreLog); err != nil {
+			return err
+		}
+	}
 	if application.config.Log != nil {
 		if err := log.ConfigLog(*application.config.Log); err != nil {
 			return err
@@ -208,14 +214,14 @@ func (application *Application) start() (err error) {
 			select {
 			// 被动中断
 			case s := <-quit:
-				log.Infow("application recv signal", "signal", s)
+				corelog.Infow("application recv signal", "signal", s)
 				switch s {
 				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-					log.Infow("+++++++++++++++++++++++++++++")
-					log.Infow("++    signal interrupt    +++", "signal", s)
-					log.Infow("+++++++++++++++++++++++++++++")
+					corelog.Infow("+++++++++++++++++++++++++++++")
+					corelog.Infow("++    signal interrupt    +++", "signal", s)
+					corelog.Infow("+++++++++++++++++++++++++++++")
 					application.stop()
-					log.Info("application interrupt end")
+					corelog.Info("application interrupt end")
 					return gira.ErrInterrupt
 				case syscall.SIGUSR1:
 				case syscall.SIGUSR2:
@@ -223,9 +229,9 @@ func (application *Application) start() (err error) {
 				}
 			// 主动停止
 			case <-application.chQuit:
-				log.Info("application stop begin")
+				corelog.Info("application stop begin")
 				application.stop()
-				log.Info("application stop end")
+				corelog.Info("application stop end")
 				return nil
 			}
 		}
@@ -248,9 +254,9 @@ func (application *Application) stop() {
 	application.applicationFacade.OnStop()
 	// framework stop
 	for _, fw := range application.frameworks {
-		log.Info("framework on stop", "name")
+		corelog.Info("framework on stop", "name")
 		if err := fw.OnFrameworkStop(); err != nil {
-			log.Warnw("framework on stop fail", "error", err)
+			corelog.Warnw("framework on stop fail", "error", err)
 		}
 	}
 	// service stop
@@ -273,9 +279,9 @@ func (application *Application) onStart() (err error) {
 			err = e.(error)
 		}
 		if err != nil {
-			log.Errorw("+++++++++++++++++++++++++++++")
-			log.Errorw("++         启动异常       +++", "error", err)
-			log.Errorw("+++++++++++++++++++++++++++++")
+			corelog.Errorw("+++++++++++++++++++++++++++++")
+			corelog.Errorw("++         启动异常       +++", "error", err)
+			corelog.Errorw("+++++++++++++++++++++++++++++")
 			application.stop()
 			application.errGroup.Wait()
 		}
@@ -391,7 +397,7 @@ func (application *Application) onCreate() error {
 	// ==== pprof ================
 	if application.config.Pprof.Port != 0 {
 		go func() {
-			log.Infof("pprof start at http://%s:%d/debug", application.config.Pprof.Bind, application.config.Pprof.Port)
+			corelog.Infof("pprof start at http://%s:%d/debug", application.config.Pprof.Bind, application.config.Pprof.Port)
 			http.ListenAndServe(fmt.Sprintf("%s:%d", application.config.Pprof.Bind, application.config.Pprof.Port), nil)
 		}()
 	}
@@ -518,7 +524,7 @@ func (application *Application) onCreate() error {
 // 等待中断
 func (application *Application) Wait() error {
 	err := application.errGroup.Wait()
-	log.Infow("application down", "full_name", application.appFullName, "error", err)
+	corelog.Infow("application down", "full_name", application.appFullName, "error", err)
 	return err
 }
 

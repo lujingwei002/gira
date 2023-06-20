@@ -386,6 +386,7 @@ type Config struct {
 	Env     string
 	Zone    string
 	Log     *LogConfig  `yaml:"log"`
+	CoreLog *LogConfig  `yaml:"core-log"`
 	Pprof   PprofConfig `yaml:"pprof"`
 	Sandbox int         `yaml:"sandbox"`
 	Db      map[string]*DbConfig

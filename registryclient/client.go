@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/options/service_options"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"

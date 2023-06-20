@@ -12,7 +12,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 )
 
 // CBC加密

@@ -6,8 +6,8 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/proj"
 	peer_service "github.com/lujingwei002/gira/service/peer"
 	"github.com/lujingwei002/gira/service/peer/peer_grpc"
@@ -238,9 +238,9 @@ func startAction(args *cli.Context) error {
 			buildTime = int64(t)
 		}
 	}
-	log.Println("build version:", respositoryVersion)
-	log.Println("build time:", buildTime)
-	log.Infof("%s %d starting...", appType, appId)
+	corelog.Println("build version:", respositoryVersion)
+	corelog.Println("build time:", buildTime)
+	corelog.Infof("%s %d starting...", appType, appId)
 	runtime := newApplication(ApplicationArgs{
 		AppType:            appType,
 		AppId:              appId,
@@ -327,11 +327,11 @@ func statusAction(args *cli.Context) error {
 	ctx := facade.Context()
 	serviceName := peer_service.GetServiceName()
 	if _, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
-		log.Println(err)
-		log.Println("dead")
+		corelog.Println(err)
+		corelog.Println("dead")
 		return nil
 	} else {
-		log.Println("alive")
+		corelog.Println("alive")
 		return nil
 	}
 }
@@ -353,10 +353,10 @@ func unregisterAction(args *cli.Context) error {
 	}
 	appFullName := gira.FormatAppFullName(appType, appId, facade.GetZone(), facade.GetEnv())
 	if err := facade.UnregisterPeer(appFullName); err != nil {
-		log.Println(err)
+		corelog.Println(err)
 		return nil
 	} else {
-		log.Println("OK")
+		corelog.Println("OK")
 		return nil
 	}
 }

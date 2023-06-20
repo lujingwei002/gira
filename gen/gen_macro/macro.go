@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira/proj"
 )

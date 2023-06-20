@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira/proj"
 )
@@ -119,7 +119,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/db"
-	"github.com/lujingwei002/gira/log"
+	"github.com/lujingwei002/gira/corelog"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -527,7 +527,7 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 	createOpts.SetMaxDocuments(<<.Capped>>)
 	createOpts.SetSizeInBytes(<<.Capped>>)
 	if err := database.CreateCollection(ctx, "<<.CollName>>", createOpts); err != nil {
-		log.Warn(err)
+		corelog.Warn(err)
 	}
 	<<- end>>
 	coll := database.Collection("<<.CollName>>")
@@ -542,12 +542,12 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 		return err
 	}
 	collName := "<<.CollName>>"
-	log.Printf("%s migrate index", collName)
+	corelog.Printf("%s migrate index", collName)
 	// 已经有的
 	own := make(map[string]bson.M)
 	for _, v := range results {
 		own[v["name"].(string)] = v
-		log.Printf("[ ]%s.%s", collName, v["name"].(string))
+		corelog.Printf("[ ]%s.%s", collName, v["name"].(string))
 	}
 	// 配置的
 	indexes := map[string]bool {
@@ -564,7 +564,7 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 			{Key: "<<.Key>>", Value: <<.Value>>},
 			<<- end>>
 		}
-		log.Printf("[+]%s.<<.FullName>>", collName)
+		corelog.Printf("[+]%s.<<.FullName>>", collName)
 		if _, err := indexView.CreateOne(ctx, mongo.IndexModel{
             Keys: keys,
         }); err != nil {
@@ -579,17 +579,17 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 		}
 		if _, ok := indexes[name]; !ok {
 			if migrateOptions.EnabledDropIndex {
-				log.Printf("[-]%s.%s", collName, name)
+				corelog.Printf("[-]%s.%s", collName, name)
 				if _, err := indexView.DropOne(ctx, name); err != nil {
 					return err
 				}
 			} else {
-				log.Printf("[*]%s.%s", collName, name)
+				corelog.Printf("[*]%s.%s", collName, name)
 			}
 		}
 	}
-	log.Println()
-	// log.Println(own)
+	corelog.Println()
+	// corelog.Println(own)
 	return nil
 }
 
@@ -669,7 +669,7 @@ func (self *<<.MongoDaoStructName>>) InsertOne(ctx context.Context, doc *<<.Data
 <<- if .IsDeriveUser>>
 
 func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructName>>) error {
-	log.Debugw("<<.CollName>> save", "dirty", doc.dirty, "id", doc.Id)
+	corelog.Debugw("<<.CollName>> save", "dirty", doc.dirty, "id", doc.Id)
 	if !doc.dirty {
 		return nil
 	}
@@ -680,12 +680,12 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructNam
 		return err
 	} else {
 		if doc.none && result.MatchedCount != 0 {
-			log.Infof("<<.CollName >> matched count is not zero, %+v", doc)
+			corelog.Infof("<<.CollName >> matched count is not zero, %+v", doc)
 		} else if !doc.none && result.MatchedCount != 1 {
-			log.Infof("<<.CollName >> matched count is zero, %+v", doc)
+			corelog.Infof("<<.CollName >> matched count is zero, %+v", doc)
 		}
 		if result.ModifiedCount + result.UpsertedCount != 1 {
-			log.Infof("<<.CollName >> unchanged, %+v", doc)
+			corelog.Infof("<<.CollName >> unchanged, %+v", doc)
 		}
 	}
 	doc.dirty = false
@@ -695,7 +695,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructNam
 func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, id primitive.ObjectID) (*<<.StructName>>, error) {
     doc := new<<.StructName>>()
 	database := self.db.database
-	log.Debugw("<<.CollName>> load", "id", id)
+	corelog.Debugw("<<.CollName>> load", "id", id)
 	coll := database.Collection("<<.CollName>>")
 	err := coll.FindOne(ctx, bson.D{{"_id", id}}).Decode(&doc.<<.DataStructName>>)
 	if err != nil {
@@ -746,23 +746,23 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
 	// opts := options.Replace().SetUpsert(true)
-	log.Debugw("<<.CollName>> save", "<<.CapCamelPrimaryKey>>", doc.<<.CamelPrimaryKey>>)
+	corelog.Debugw("<<.CollName>> save", "<<.CapCamelPrimaryKey>>", doc.<<.CamelPrimaryKey>>)
 	models := make([]mongo.WriteModel, 0)
 	if len(doc.del) > 0 {
 		for _, v := range(doc.del) {
-			log.Debugw("<<.CollName>> del", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
+			corelog.Debugw("<<.CollName>> del", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
 			models = append(models, mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", v.Id}}))
 		}
 	}
 	if len(doc.add) > 0 {
 		for _, v := range(doc.add) {
-			log.Debugw("<<.CollName>> add", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
+			corelog.Debugw("<<.CollName>> add", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
 			models = append(models, mongo.NewInsertOneModel().SetDocument(&v.<<.DataStructName>>))
 		}
 	}
 	if len(doc.dirty) > 0 {
 		for _, v := range(doc.dirty) {
-			log.Debugw("<<.CollName>> update", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
+			corelog.Debugw("<<.CollName>> update", "id", v.Id, "<<.CapCamelSecondaryKey>>", v.<<.CamelSecondaryKey>>)
 			models = append(models, mongo.NewReplaceOneModel().
 				SetFilter(bson.D{{"_id", v.Id}}).
 				SetReplacement(&v.<<.DataStructName>>))
@@ -786,7 +786,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 	opts := options.BulkWrite().SetOrdered(false)
 	_, err := coll.BulkWrite(ctx, models, opts)
 	if err != nil {
-		log.Error(err)
+		corelog.Error(err)
 	    return err
 	}
 	return nil
@@ -795,7 +795,7 @@ func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.ArrStruct
 func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimaryKey>> <<.PrimaryKeyField.GoTypeName>>) (*<<.ArrStructName>>, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
-	log.Debugw("<<.CollName>> load", "<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>)
+	corelog.Debugw("<<.CollName>> load", "<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>)
 	cursor, err := coll.Find(ctx, bson.D{{"<<.PrimaryKey>>", <<.CapCamelPrimaryKey>>}})
 	if err != nil {
 		return nil, err

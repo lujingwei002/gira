@@ -14,7 +14,7 @@ import (
 	"text/template"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"gopkg.in/yaml.v3"
 
 	"github.com/lujingwei002/gira/proj"
@@ -131,7 +131,7 @@ import (
 	"encoding/gob"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"os"
 	"fmt"
 	"context"

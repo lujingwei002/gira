@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/gorilla/websocket"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 )
 
 type Type byte

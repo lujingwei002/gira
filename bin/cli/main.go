@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/urfave/cli/v2"
 
 	"github.com/lujingwei002/gira/gen/gen_application"
@@ -307,8 +307,10 @@ func resourcePushAction(c *cli.Context) error {
 	envFilePath := c.String("env")
 	if config, err := gira.LoadCliConfig(configFilePath, envFilePath); err != nil {
 		return err
+	} else if dbConfig, ok := config.Db[gira.RESOURCEDB_NAME]; !ok {
+		fmt.Printf("%s config not found\n", gira.RESOURCEDB_NAME)
+		return nil
 	} else {
-		dbConfig := config.Db["resourcedb"]
 		uri := dbConfig.Uri()
 		bin := "bin/resource"
 		argv := []string{"push", "--uri", uri}
@@ -392,6 +394,7 @@ func envListAction(c *cli.Context) error {
 	}
 	return nil
 }
+
 func beforeAction(args *cli.Context) error {
 	if err := log.ConfigCliLog(); err != nil {
 		return err

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/gate/client"

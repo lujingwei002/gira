@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/log"
 
 	"github.com/gorilla/websocket"
 	"github.com/lujingwei002/gira"

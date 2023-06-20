@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )

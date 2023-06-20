@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/lujingwei002/gira"
-	"github.com/lujingwei002/gira/log"
+	log "github.com/lujingwei002/gira/corelog"
 	"golang.org/x/sync/errgroup"
 )
 
