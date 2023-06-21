@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	corelog "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/gins"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/service"
@@ -41,16 +41,6 @@ import (
 	"github.com/robfig/cron"
 	"golang.org/x/sync/errgroup"
 )
-
-type ApplicationArgs struct {
-	AppType             string /// 服务名
-	AppId               int32  /// 服务id
-	BuildTime           int64
-	AppVersion          string
-	RespositoryVersion1 string
-	ConfigFilePath      string
-	DotEnvFilePath      string
-}
 
 const (
 	application_status_started = 1
@@ -107,7 +97,7 @@ type Application struct {
 	dotEnvFilePath     string
 }
 
-func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFacade) *Application {
+func newApplication(args gira.ApplicationArgs) *Application {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
 	application := &Application{
@@ -116,7 +106,7 @@ func newApplication(args ApplicationArgs, applicationFacade gira.ApplicationFaca
 		appId:             args.AppId,
 		configFilePath:    args.ConfigFilePath,
 		dotEnvFilePath:    args.DotEnvFilePath,
-		applicationFacade: applicationFacade,
+		applicationFacade: args.Facade,
 		frameworks:        make([]gira.Framework, 0),
 		appType:           args.AppType,
 		appName:           fmt.Sprintf("%s_%d", args.AppType, args.AppId),
@@ -271,10 +261,14 @@ func (application *Application) stop() {
 	if application.httpServer != nil {
 		application.httpServer.Stop()
 	}
+	if application.gate != nil {
+		application.gate.Shutdown()
+	}
 	application.cancelFunc()
 }
 
 func (application *Application) onStart() (err error) {
+	applicationFacade := application.applicationFacade
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
@@ -335,10 +329,6 @@ func (application *Application) onStart() (err error) {
 			}
 		}
 	}
-	// ==== registry ================
-	if application.registry != nil {
-		application.registry.Notify()
-	}
 	// ==== framework start ================
 	for _, fw := range application.frameworks {
 		if err = fw.OnFrameworkStart(); err != nil {
@@ -385,6 +375,23 @@ func (application *Application) onStart() (err error) {
 			return application.registry.Watch(peerWatchHandlers, localPlayerWatchHandlers, serviceWatchHandlers)
 		})
 	}
+	application.errGroup.Go(func() error {
+		var handler gira.GatewayHandler
+		if h, ok := applicationFacade.(gira.GatewayHandler); ok {
+			handler = h
+		} else {
+			for _, fw := range application.frameworks {
+				if h, ok = fw.(gira.GatewayHandler); ok {
+					handler = h
+					break
+				}
+			}
+		}
+		if handler == nil {
+			return gira.ErrGateHandlerNotImplement
+		}
+		return application.gate.Serve(handler)
+	})
 	application.errGroup.Go(func() error {
 		return application.serviceContainer.Serve()
 	})
@@ -501,7 +508,7 @@ func (application *Application) onCreate() error {
 		if handler == nil {
 			return gira.ErrGateHandlerNotImplement
 		}
-		if gate, err := gate.NewConfigServer(handler, *application.config.Module.Gateway); err != nil {
+		if gate, err := gate.NewConfigServer(application.ctx, *application.config.Module.Gateway); err != nil {
 			return err
 		} else {
 			application.gate = gate
@@ -577,6 +584,14 @@ func (application *Application) GetWorkDir() string {
 
 func (application *Application) GetLogDir() string {
 	return application.logDir
+}
+
+func (application *Application) GetZone() string {
+	return application.zone
+}
+
+func (application *Application) GetEnv() string {
+	return application.env
 }
 
 // ================== context =========================

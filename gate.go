@@ -2,6 +2,7 @@ package gira
 
 import "context"
 
+// 服务端conn接口
 type GatewayConn interface {
 	Id() uint64
 	Close() error
@@ -21,6 +22,7 @@ type GatewayConn interface {
 	UserData() interface{}
 }
 
+// client端接口
 type GatewayClient interface {
 	Recv(ctx context.Context) (typ int, route string, reqId uint64, data []byte, err error)
 	Notify(route string, data []byte) error

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/corelog"
 )
 
 type Type byte
@@ -185,10 +185,10 @@ func SetDictionary(dict map[string]uint16) {
 		r := strings.TrimSpace(route)
 		// duplication check
 		if _, ok := routes[r]; ok {
-			log.Infof("duplicated route(route: %s, code: %d)\n", r, code)
+			corelog.Infof("duplicated route(route: %s, code: %d)\n", r, code)
 		}
 		if _, ok := codes[code]; ok {
-			log.Infof("duplicated route(route: %s, code: %d)\n", r, code)
+			corelog.Infof("duplicated route(route: %s, code: %d)\n", r, code)
 		}
 		// update map, using last value when key duplicated
 		routes[r] = code

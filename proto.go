@@ -28,26 +28,29 @@ type ProtoHandler interface {
 
 // 协议
 type Proto interface {
-	// 生成handler
-	RegisterHandler(handler interface{}) ProtoHandler
+
 	// request解码
 	RequestEncode(name string, session int32, req interface{}) (data []byte, err error)
-	// request解码
-	RequestDecode(packed []byte) (route string, session int32, resp ProtoRequest, err error)
-	// response解码
-	ResponseDecode(packed []byte) (route string, session int32, resp ProtoResponse, err error)
 	// response编码
 	ResponseEncode(name string, session int32, response interface{}) (data []byte, err error)
-	// push解码
-	PushDecode(packed []byte) (route string, session int32, resp ProtoPush, err error)
 	// push解码
 	PushEncode(req ProtoPush) (data []byte, err error)
 	// struct编码
 	StructEncode(req interface{}) (data []byte, err error)
+
+	// request解码
+	RequestDecode(packed []byte) (route string, session int32, resp ProtoRequest, err error)
+	// response解码
+	ResponseDecode(packed []byte) (route string, session int32, resp ProtoResponse, err error)
+	// push解码
+	PushDecode(packed []byte) (route string, session int32, resp ProtoPush, err error)
 	// struct编码
 	StructDecode(data []byte, req interface{}) error
+
 	// 创建response
 	NewResponse(req ProtoRequest) (resp ProtoResponse, err error)
+	// 生成handler
+	RegisterHandler(handler interface{}) ProtoHandler
 	// 将request路由到handler的相应方法
 	RequestDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, pushArr []ProtoPush, err error)
 	// 将push路由到handler的相应方法

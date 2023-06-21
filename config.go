@@ -177,8 +177,7 @@ func LoadConfig(configFilePath string, dotEnvFilePath string, appType string, ap
 		return nil, ErrInvalidSyntax.Trace().WithFile(configFilePath).WithLines(data)
 	}
 	// for _, v := range c.Db {
-	// v.MaxOpenConns = 32
-	// v.ConnMaxIdleTime =
+	// 	v.MaxOpenConns = 32
 	// }
 	return c, nil
 }
@@ -224,6 +223,7 @@ type DbConfig struct {
 	MaxIdleConns    int           `yaml:"max-idle-conns"`
 	ConnMaxIdleTime time.Duration `yaml:"conn-max-idle-time"`
 	ConnMaxLifetime time.Duration `yaml:"conn-max-lifetime"`
+	ConnnectTimeout time.Duration `yaml:"connect-timeout"`
 }
 
 type BehaviorConfig struct {
@@ -345,13 +345,19 @@ type HttpConfig struct {
 
 // 网关模块配置
 type GatewayConfig struct {
-	Bind     string `yaml:"bind"`
-	Address  string `yaml:"address"`
-	Debug    bool   `yaml:"debug"`
-	Ssl      bool   `yaml:"ssl"`
-	CertFile string `yaml:"cert-file"`
-	KeyFile  string `yaml:"key-file"`
-	WsPath   string `yaml:"ws-path"`
+	IsWebsocket      bool          `yaml:"is-websocket"`
+	Bind             string        `yaml:"bind"`
+	Address          string        `yaml:"address"`
+	Debug            bool          `yaml:"debug"`
+	Ssl              bool          `yaml:"ssl"`
+	CertFile         string        `yaml:"cert-file"`
+	KeyFile          string        `yaml:"key-file"`
+	WsPath           string        `yaml:"ws-path"`
+	RecvBuffSize     int           `yaml:"recv-buff-size"`
+	RecvBacklog      int           `yaml:"recv-backlog"`
+	SendBacklog      int           `yaml:"send-backlog"`
+	HandshakeTimeout time.Duration `yaml:"handshake-timeout"`
+	Heartbeat        time.Duration `yaml:"heartbeat"`
 }
 
 type TestSdkConfig struct {
@@ -382,9 +388,9 @@ type PprofConfig struct {
 
 type Config struct {
 	Raw     []byte
-	Thread  int `yaml:"thread"`
-	Env     string
-	Zone    string
+	Thread  int         `yaml:"thread"`
+	Env     string      `yaml:"env"`
+	Zone    string      `yaml:"zone"`
 	Log     *LogConfig  `yaml:"log"`
 	CoreLog *LogConfig  `yaml:"core-log"`
 	Pprof   PprofConfig `yaml:"pprof"`

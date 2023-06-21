@@ -63,7 +63,7 @@ func (r *Registry) Stop() error {
 	return nil
 }
 
-func (r *Registry) Notify() {
+func (r *Registry) notify() {
 	r.isNotify = 1
 	r.peerRegistry.notify(r)
 	r.playerRegistry.notify(r)
@@ -110,6 +110,7 @@ func (r *Registry) Watch(peerWatchHandlers []gira.PeerWatchHandler, localPlayerW
 		// return r.serviceRegistry.Serve(r)
 		return r.serviceRegistry.watchServices(r)
 	})
+	r.notify()
 	return r.errGroup.Wait()
 }
 

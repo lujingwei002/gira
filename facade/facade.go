@@ -27,6 +27,7 @@ func GetBuildTime() int64 {
 	return gira.App().GetBuildTime()
 }
 
+// 返回resource版本
 func GetResVersion() string {
 	application := gira.App()
 	if c, ok := application.(gira.ResourceSource); !ok {
@@ -38,6 +39,7 @@ func GetResVersion() string {
 	}
 }
 
+// 返回resource loader版本
 func GetLoaderVersion() string {
 	application := gira.App()
 	if c, ok := application.(gira.ResourceSource); !ok {
@@ -49,6 +51,7 @@ func GetLoaderVersion() string {
 	}
 }
 
+// 返回启动时间
 func GetUpTime() int64 {
 	return gira.App().GetUpTime()
 }
@@ -63,12 +66,29 @@ func GetAppFullName() string {
 	return gira.App().GetAppFullName()
 }
 
+// 返回当前所在的区
 func GetZone() string {
-	return gira.App().GetConfig().Zone
+	return gira.App().GetZone()
 }
 
+// 返回当前环境
 func GetEnv() string {
-	return gira.App().GetConfig().Env
+	return gira.App().GetEnv()
+}
+
+// 是否开发环境
+func IsDevEnv() bool {
+	return gira.App().GetEnv() == gira.Env_DEV
+}
+
+// 是否测试环境
+func IsQaEnv() bool {
+	return gira.App().GetEnv() == gira.Env_QA
+}
+
+// 是否生产环境
+func IsPrdEnv() bool {
+	return gira.App().GetEnv() == gira.Env_prd
 }
 
 // 返回app类型
@@ -332,6 +352,7 @@ func GrpcServer() gira.GrpcServer {
 	return application.GetGrpcServer()
 }
 
+// 查看grpc server
 func WhereIsServer(name string) (svr interface{}, ok bool) {
 	application := gira.App()
 	if s := application.GetGrpcServer(); s == nil {
@@ -352,6 +373,7 @@ func SdkLogin(accountPlat string, openId string, token string, authUrl string, a
 	}
 }
 
+// 验证sdk订单
 func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	application := gira.App()
 	if s := application.GetSdk(); s == nil {
@@ -383,6 +405,8 @@ func StartService(name string, service gira.Service) error {
 }
 
 // ================= cron =============================
+// 设置定时调度函数
+// 并发不安全, github.com/robfig/cron 中的AddFunc函数会对同一个切片进行修改
 func Cron(spec string, cmd func()) error {
 	application := gira.App()
 	if s := application.GetCron(); s == nil {

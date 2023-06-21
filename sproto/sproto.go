@@ -9,7 +9,7 @@ import (
 	"context"
 	"reflect"
 
-	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/corelog"
 
 	"github.com/lujingwei002/gira"
 	gosproto "github.com/xjdrew/gosproto"
@@ -61,7 +61,7 @@ type sproto_handler_method struct {
 }
 
 type sproto_handler struct {
-	typ     reflect.Type
+	// typ     reflect.Type
 	methods map[string]*sproto_handler_method
 }
 
@@ -308,7 +308,7 @@ func (self *sproto_handler) HasRoute(route string) bool {
 func (self *sproto_handler) RequestDispatch(ctx context.Context, receiver interface{}, route string, req interface{}) (resp interface{}, pushArr []gira.ProtoPush, err error) {
 	handler, found := self.methods[route]
 	if !found {
-		log.Warnw("sproto handler not found", "name", route)
+		corelog.Warnw("sproto request handler not found", "name", route)
 		err = gira.ErrSprotoHandlerNotImplement
 		return
 	}
@@ -341,14 +341,14 @@ func (self *sproto_handler) RequestDispatch(ctx context.Context, receiver interf
 }
 
 // 处理push
-func (self *sproto_handler) PushDispatch(ctx context.Context, receiver interface{}, route string, req interface{}) (err error) {
+func (self *sproto_handler) PushDispatch(ctx context.Context, receiver interface{}, route string, push interface{}) (err error) {
 	handler, found := self.methods[route]
 	if !found {
-		log.Warnw("sproto handler not found", "name", route)
+		corelog.Warnw("sproto push handler not found", "name", route)
 		err = gira.ErrSprotoHandlerNotImplement
 		return
 	}
-	args := []reflect.Value{reflect.ValueOf(receiver), reflect.ValueOf(ctx), reflect.ValueOf(req)}
+	args := []reflect.Value{reflect.ValueOf(receiver), reflect.ValueOf(ctx), reflect.ValueOf(push)}
 	result := handler.method.Func.Call(args)
 	if handler.method.Type.NumOut() == 1 {
 		result0 := result[0]

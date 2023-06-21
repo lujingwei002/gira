@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+// 环境枚举
+const (
+	Env_DEV = "dev"
+	Env_QA  = "qa"
+	Env_prd = "prd"
+)
+
 /*
 	生命周期
 
@@ -64,6 +71,16 @@ type ApplicationFacade interface {
 type ApplicationFramework interface {
 	OnFrameworkInit() []Framework
 }
+type ApplicationArgs struct {
+	AppType             string /// 服务名
+	AppId               int32  /// 服务id
+	BuildTime           int64
+	AppVersion          string
+	RespositoryVersion1 string
+	ConfigFilePath      string
+	DotEnvFilePath      string
+	Facade              ApplicationFacade
+}
 
 type Application interface {
 
@@ -72,6 +89,8 @@ type Application interface {
 	GetAppType() string
 	GetAppName() string
 	GetAppFullName() string
+	GetEnv() string
+	GetZone() string
 	GetAppId() int32
 	GetLogDir() string
 	GetWorkDir() string

@@ -12,6 +12,7 @@ import (
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
 	peer_service "github.com/lujingwei002/gira/service/peer"
 	"github.com/lujingwei002/gira/service/peer/peer_grpc"
+	"gopkg.in/yaml.v3"
 
 	"github.com/lujingwei002/gira"
 	"github.com/urfave/cli/v2"
@@ -48,6 +49,7 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 			"buildTime":   buildTime,
 			"appVersion":  appVersion,
 		},
+
 		Commands: []*cli.Command{
 			{
 				Name: "start",
@@ -223,22 +225,24 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 }
 
 func StartAsClient(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
-	application := newApplication(ApplicationArgs{
+	application := newApplication(gira.ApplicationArgs{
 		AppType:        appType,
 		AppId:          appId,
 		ConfigFilePath: configFilePath,
 		DotEnvFilePath: dotEnvFilePath,
-	}, applicationFacade)
+		Facade:         applicationFacade,
+	})
 	return application.start()
 }
 
 func StartAsServer(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
-	application := newApplication(ApplicationArgs{
+	application := newApplication(gira.ApplicationArgs{
 		AppType:        appType,
 		AppId:          appId,
 		ConfigFilePath: configFilePath,
 		DotEnvFilePath: dotEnvFilePath,
-	}, applicationFacade)
+		Facade:         applicationFacade,
+	})
 	return application.start()
 }
 
@@ -261,14 +265,15 @@ func startAction(args *cli.Context) error {
 	log.Println("build version:", appVersion)
 	log.Println("build time:", buildTime)
 	log.Infof("%s %d starting...", appType, appId)
-	runtime := newApplication(ApplicationArgs{
+	runtime := newApplication(gira.ApplicationArgs{
 		AppType:        appType,
 		AppId:          appId,
 		AppVersion:     appVersion,
 		BuildTime:      buildTime,
 		DotEnvFilePath: dotEnvFilePath,
 		ConfigFilePath: configFilePath,
-	}, applicationFacade)
+		Facade:         applicationFacade,
+	})
 
 	if err := runtime.start(); err != nil {
 		return err
@@ -318,7 +323,12 @@ func configAction(args *cli.Context) error {
 	if c, err := gira.LoadApplicationConfig(configFilePath, dotEnvFilePath, appType, appId); err != nil {
 		return err
 	} else {
-		fmt.Println(string(c.Raw))
+		c.Raw = nil
+		if s, err := yaml.Marshal(c); err != nil {
+			return err
+		} else {
+			fmt.Println(string(s))
+		}
 	}
 	return nil
 }

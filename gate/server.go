@@ -12,15 +12,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/lujingwei002/gira/corelog"
-	"github.com/lujingwei002/gira/facade"
-
 	"github.com/gorilla/websocket"
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/gate/packet"
-	"github.com/lujingwei002/gira/gate/serialize"
-	"github.com/lujingwei002/gira/gate/serialize/protobuf"
 	"github.com/lujingwei002/gira/gate/ws"
+	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -47,7 +45,6 @@ type Server struct {
 	Host     string
 	Port     int32
 
-	// options
 	ctx                context.Context
 	cancelFunc         context.CancelFunc
 	errCtx             context.Context
@@ -56,7 +53,6 @@ type Server struct {
 	tslCertificate     string
 	tslKey             string
 	handshakeValidator func([]byte) error
-	serializer         serialize.Serializer
 	heartbeat          time.Duration
 	checkOrigin        func(*http.Request) bool
 	debug              bool
@@ -85,14 +81,13 @@ type Stat struct {
 	HandshakeErrorCount       int64
 }
 
-func newServer() *Server {
+func newDefaultServer() *Server {
 	gate := &Server{
 		state:              server_status_start,
 		heartbeat:          30 * time.Second,
 		debug:              false,
 		checkOrigin:        func(_ *http.Request) bool { return true },
 		handshakeValidator: func(_ []byte) error { return nil },
-		serializer:         protobuf.NewSerializer(),
 		middlewareArr:      make([]MiddleWareInterface, 0),
 		sessions:           map[uint64]*Session{},
 		handshakeTimeout:   2 * time.Second,
@@ -103,23 +98,27 @@ func newServer() *Server {
 	return gate
 }
 
-func NewConfigServer(handler gira.GatewayHandler, config gira.GatewayConfig) (*Server, error) {
+func NewConfigServer(ctx context.Context, config gira.GatewayConfig) (*Server, error) {
 	opts := []Option{
 		WithDebugMode(config.Debug),
 		WithWSPath(config.WsPath),
-		WithIsWebsocket(true),
+		WithIsWebsocket(config.IsWebsocket),
 		WithSessionModifer(uint64(facade.GetAppId()) << 48),
+		WithRecvBuffSize(config.RecvBuffSize),
+		WithSendBacklog(config.SendBacklog),
+		WithRecvBacklog(config.RecvBacklog),
+		WithHeartbeatInterval(config.Heartbeat),
+		WithHandshakeTimeout(config.HandshakeTimeout),
 	}
 	if config.Ssl && len(config.CertFile) > 0 && len(config.KeyFile) > 0 {
 		opts = append(opts, WithTSLConfig(config.CertFile, config.KeyFile))
 	}
 	var server *Server
 	var err error
-	if server, err = Listen(facade.Context(), config.Bind, opts...); err != nil {
+	if server, err = Listen(ctx, config.Bind, opts...); err != nil {
 		return nil, err
 	}
-	log.Infow("gateway start", "bind", config.Bind, "path", config.WsPath)
-	go server.Serve(handler)
+	corelog.Infow("gateway start", "bind", config.Bind, "path", config.WsPath)
 	return server, nil
 }
 
@@ -134,12 +133,6 @@ func WithSessionModifer(v uint64) Option {
 func WithHandshakeValidator(fn func([]byte) error) Option {
 	return func(server *Server) {
 		server.handshakeValidator = fn
-	}
-}
-
-func WithSerializer(serializer serialize.Serializer) Option {
-	return func(server *Server) {
-		server.serializer = serializer
 	}
 }
 
@@ -158,6 +151,12 @@ func WithCheckOriginFunc(fn func(*http.Request) bool) Option {
 func WithHeartbeatInterval(d time.Duration) Option {
 	return func(server *Server) {
 		server.heartbeat = d
+	}
+}
+
+func WithHandshakeTimeout(d time.Duration) Option {
+	return func(server *Server) {
+		server.handshakeTimeout = d
 	}
 }
 
@@ -215,14 +214,11 @@ func WithRSAPrivateKey(keyFile string) Option {
 }
 
 func Listen(ctx context.Context, addr string, opts ...Option) (*Server, error) {
-	server := newServer()
+	server := newDefaultServer()
 	for _, opt := range opts {
 		if opt != nil {
 			opt(server)
 		}
-	}
-	if server.ctx == nil {
-		server.ctx = context.Background()
 	}
 	server.ctx, server.cancelFunc = context.WithCancel(ctx)
 	server.errGroup, server.errCtx = errgroup.WithContext(server.ctx)
@@ -294,10 +290,9 @@ func (server *Server) Shutdown() {
 	}
 	server.Kick("shutdown")
 	server.cancelFunc()
-	var err error
-	err = server.errGroup.Wait()
+	err := server.errGroup.Wait()
 	if server.debug {
-		log.Debugw("gate shutdown", "error", err)
+		corelog.Debugw("gate shutdown", "error", err)
 	}
 }
 
@@ -322,7 +317,7 @@ func (server *Server) Kick(reason string) {
 			break
 		}
 		if time.Now().Unix()-now >= 120 {
-			log.Infow("Waiting session to closed", "count", len(server.sessions))
+			corelog.Infow("Waiting session to closed", "count", len(server.sessions))
 			break
 		}
 		time.Sleep(1 * time.Second)
@@ -353,17 +348,20 @@ func (server *Server) listenAndServeWS() error {
 	http.HandleFunc("/"+strings.TrimPrefix(server.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Errorw("Upgrade failure", "request_uri", r.RequestURI, "error", err)
+			corelog.Errorw("Upgrade failure", "request_uri", r.RequestURI, "error", err)
 			return
 		}
 		server.serveWsConn(conn)
 	})
 	httpServer := &http.Server{Addr: server.BindAddr}
 	server.httpServer = httpServer
-	if err := httpServer.ListenAndServe(); err != nil {
+	if err := httpServer.ListenAndServe(); err == http.ErrServerClosed {
+		return nil
+	} else if err != nil {
 		return err
+	} else {
+		return nil
 	}
-	return nil
 }
 
 func (server *Server) listenAndServeWSTLS() error {
@@ -375,21 +373,23 @@ func (server *Server) listenAndServeWSTLS() error {
 	http.HandleFunc("/"+strings.TrimPrefix(server.wsPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Errorw("Upgrade failure", "request_uri", r.RequestURI, "error", err)
+			corelog.Errorw("Upgrade failure", "request_uri", r.RequestURI, "error", err)
 			return
 		}
 		server.serveWsConn(conn)
 	})
-	if err := http.ListenAndServeTLS(server.BindAddr, server.tslCertificate, server.tslKey, nil); err != nil {
-		log.Info(err)
+	if err := http.ListenAndServeTLS(server.BindAddr, server.tslCertificate, server.tslKey, nil); err == http.ErrServerClosed {
+		return nil
+	} else if err != nil {
 		return err
+	} else {
+		return nil
 	}
-	return nil
 }
 
 func (server *Server) handleConn(conn net.Conn) {
 	if server.status() != server_status_working {
-		log.Warn("gate is not working")
+		corelog.Warn("gate is not working")
 		conn.Close()
 		return
 	}
@@ -400,23 +400,23 @@ func (server *Server) handleConn(conn net.Conn) {
 	}()
 	c := newConn(server)
 	if server.debug {
-		log.Debugw("accept a conn", "session_id", c.session.Id(), "remote_addr", conn.RemoteAddr())
+		corelog.Debugw("accept a conn", "session_id", c.session.Id(), "remote_addr", conn.RemoteAddr())
 	}
 	err := c.serve(server.ctx, conn)
 	if server.debug {
-		log.Debugw("conn serve exit", "session_id", c.session.Id(), "error", err)
+		corelog.Debugw("conn serve exit", "session_id", c.session.Id(), "error", err)
 	}
 }
 
 func (server *Server) serveWsConn(conn *websocket.Conn) {
 	if server.status() != server_status_working {
-		log.Warn("gate is not working")
+		corelog.Warn("gate is not working")
 		conn.Close()
 		return
 	}
 	c, err := ws.NewConn(conn)
 	if err != nil {
-		log.Info(err)
+		corelog.Info(err)
 		return
 	}
 	server.errGroup.Go(func() error {

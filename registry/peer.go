@@ -120,7 +120,7 @@ func (self *peer_registry) notify(r *Registry) error {
 }
 
 func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
-	log.Debugw("peer registry on peer add", "full_name", peer.FullName)
+	log.Debugw("peer registry on peer add", "full_name", peer.FullName, r.peerWatchHandlers)
 	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerAdd(peer)
 	}

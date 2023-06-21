@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/lujingwei002/gira"
-	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/corelog"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -49,7 +49,7 @@ func (self *ServiceContainer) Serve() error {
 
 // 启动服务
 func (self *ServiceContainer) StartService(name string, service gira.Service) error {
-	log.Debugw("start service", "name", name)
+	corelog.Debugw("start service", "name", name)
 	s := &Service{
 		name:    name,
 		handler: service,
@@ -79,7 +79,7 @@ func (self *ServiceContainer) StopService(service gira.Service) error {
 		if !atomic.CompareAndSwapInt32(&s.status, service_status_started, service_status_stopped) {
 			return gira.ErrServiceAlreadyStopped.Trace()
 		} else {
-			log.Debugw("stop service", "name", s.name)
+			corelog.Debugw("stop service", "name", s.name)
 			s.cancelFunc()
 			return nil
 		}

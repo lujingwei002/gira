@@ -194,16 +194,10 @@ func (self *Conn) setStatus(state int32) {
 	atomic.StoreInt32(&self.state, state)
 }
 
-func (self *Conn) serialize(v interface{}) ([]byte, error) {
-	if data, ok := v.([]byte); ok {
-		return data, nil
-	}
-	data, err := self.server.serializer.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
+func (self *Conn) serialize(data []byte) ([]byte, error) {
 	var session = self.session
 	if session.getSecret() != "" {
+		var err error
 		data, err = crypto.DesEncrypt(data, session.getSecret())
 		if err != nil {
 			return nil, err

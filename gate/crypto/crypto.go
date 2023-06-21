@@ -12,7 +12,7 @@ import (
 	"errors"
 	"fmt"
 
-	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/corelog"
 )
 
 // CBC加密
@@ -121,7 +121,7 @@ func RsaDecryptWithSha1Base64(encryptedData, privateKey string) (string, error) 
 	key, _ := base64.StdEncoding.DecodeString(privateKey)
 	prvKey, err := x509.ParsePKCS1PrivateKey(key)
 	if err != nil {
-		log.Info(err)
+		corelog.Info(err)
 		return "", err
 	}
 	originalData, err := rsa.DecryptPKCS1v15(rand.Reader, prvKey, encryptedDecodeBytes)
@@ -132,7 +132,7 @@ func RsaEncryptWithSha1Base64(plainData, publicKey string) (string, error) {
 	derBytes, _ := base64.StdEncoding.DecodeString(publicKey)
 	pub, err := x509.ParsePKCS1PublicKey(derBytes)
 	if err != nil {
-		log.Info(err)
+		corelog.Info(err)
 		return "", err
 	}
 	encryptedData, err := rsa.EncryptPKCS1v15(rand.Reader, pub, []byte(plainData))
