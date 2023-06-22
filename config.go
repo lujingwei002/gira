@@ -174,7 +174,7 @@ func LoadConfig(configFilePath string, dotEnvFilePath string, appType string, ap
 	if data, err := reader.read(configFilePath, dotEnvFilePath); err != nil {
 		return nil, err
 	} else if err := c.unmarshal(data); err != nil {
-		return nil, ErrInvalidSyntax.Trace().WithFile(configFilePath).WithLines(data)
+		return nil, NewOrCastError(err).Trace().WithFile(configFilePath).WithLines(data)
 	}
 	// for _, v := range c.Db {
 	// 	v.MaxOpenConns = 32
@@ -386,17 +386,22 @@ type PprofConfig struct {
 	Bind string `yaml:"bind"`
 }
 
+type ResourceConfig struct {
+	Compress bool `yaml:"compress"`
+}
+
 type Config struct {
-	Raw     []byte
-	Thread  int         `yaml:"thread"`
-	Env     string      `yaml:"env"`
-	Zone    string      `yaml:"zone"`
-	Log     *LogConfig  `yaml:"log"`
-	CoreLog *LogConfig  `yaml:"core-log"`
-	Pprof   PprofConfig `yaml:"pprof"`
-	Sandbox int         `yaml:"sandbox"`
-	Db      map[string]*DbConfig
-	Module  struct {
+	Raw      []byte
+	Thread   int         `yaml:"thread"`
+	Env      string      `yaml:"env"`
+	Zone     string      `yaml:"zone"`
+	Log      *LogConfig  `yaml:"log"`
+	CoreLog  *LogConfig  `yaml:"core-log"`
+	Pprof    PprofConfig `yaml:"pprof"`
+	Sandbox  int         `yaml:"sandbox"`
+	Db       map[string]*DbConfig
+	Resource ResourceConfig `yaml:"resource"`
+	Module   struct {
 		Behavior   *BehaviorConfig   `yaml:"behavior"`
 		Http       *HttpConfig       `yaml:"http,omitempty"`
 		Etcd       *EtcdConfig       `yaml:"etcd"`

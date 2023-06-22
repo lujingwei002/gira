@@ -258,7 +258,7 @@ func (self *<<.LoaderStructName>>) LoadFromDb(ctx context.Context, client gira.D
 }
 
 // 根据bundle的类型，从相应的源中加载资源
-func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClient, dir string) error {
+func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClient, dir string, compress bool) error {
 	if err := self.LoadVersion(dir); err != nil {
 		return err
 	}
@@ -269,9 +269,15 @@ func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClien
 	}
 	<<- end>>
 	<<- if eq .BundleType "raw">>
-	if err := self.<<.BundleStructName>>.LoadFromYaml(dir); err != nil {
-		return err
-	}
+		if compress {
+			if err := self.<<.BundleStructName>>.LoadFromBin(dir); err != nil {
+				return err
+			}
+		} else {
+			if err := self.<<.BundleStructName>>.LoadFromYaml(dir); err != nil {
+				return err
+			}
+		}
 	<<- end>>
 	<<- if eq .BundleType "bin">>
 	if err := self.<<.BundleStructName>>.LoadFromBin(dir); err != nil {
@@ -340,7 +346,7 @@ func (self* <<.BundleStructName>>) LoadFromDb(ctx context.Context, client gira.D
 
 // 从bin文件中加载资源
 func (self* <<.BundleStructName>>) LoadFromBin(dir string) error {
-	var filePath = filepath.Join(dir, "<<.BundleName>>.bin")
+	var filePath = filepath.Join(dir, "<<.BundleName>>.dat")
 	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
 		return err
@@ -355,7 +361,7 @@ func (self* <<.BundleStructName>>) LoadFromBin(dir string) error {
 
 // 将资源保存到bin文件中
 func (self *<<.BundleStructName>>) SaveToBin(dir string) error {
-	var filePath = filepath.Join(dir, "<<.BundleName>>.bin")
+	var filePath = filepath.Join(dir, "<<.BundleName>>.dat")
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
