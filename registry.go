@@ -35,10 +35,11 @@ type RegistryComponent interface {
 
 // 伙伴节点
 type Peer struct {
-	Name     string            // 服务类型
-	Id       int32             // 服务id
-	FullName string            // 服务全名
-	GrpcAddr string            // grpc地址
+	Name     string // 服务类型
+	Id       int32  // 服务id
+	FullName string // 服务全名
+	Address  string // grpc地址
+	Url      string
 	Kvs      map[string]string // /server/account_1/ 下的键
 }
 

@@ -84,7 +84,7 @@ func newUpstream(ctx context.Context, peer *gira.Peer) *Upstream {
 	return &Upstream{
 		Id:         peer.Id,
 		FullName:   peer.FullName,
-		Address:    peer.GrpcAddr,
+		Address:    peer.Address,
 		ctx:        ctx,
 		cancelFunc: cancelFUnc,
 		status:     hall_grpc.HallStatus_UnAvailable,
@@ -92,7 +92,7 @@ func newUpstream(ctx context.Context, peer *gira.Peer) *Upstream {
 }
 
 func (servers *upstream_map) OnPeerAdd(ctx context.Context, peer *gira.Peer) {
-	log.Infow("add upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
+	log.Infow("add upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.Address)
 	upstream := newUpstream(ctx, peer)
 	if v, loaded := servers.LoadOrStore(peer.Id, upstream); loaded {
 		lastHall := v.(*Upstream)
@@ -102,7 +102,7 @@ func (servers *upstream_map) OnPeerAdd(ctx context.Context, peer *gira.Peer) {
 }
 
 func (servers *upstream_map) OnPeerDelete(peer *gira.Peer) {
-	log.Infow("remove upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
+	log.Infow("remove upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.Address)
 	if v, loaded := servers.LoadAndDelete(peer.Id); loaded {
 		lastHall := v.(*Upstream)
 		lastHall.close()
@@ -110,10 +110,10 @@ func (servers *upstream_map) OnPeerDelete(peer *gira.Peer) {
 }
 
 func (servers *upstream_map) OnPeerUpdate(peer *gira.Peer) {
-	log.Infow("update upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.GrpcAddr)
+	log.Infow("update upstream", "id", peer.Id, "fullname", peer.FullName, "grpc_addr", peer.Address)
 	if v, ok := servers.Load(peer.Id); ok {
 		lastHall := v.(*Upstream)
-		lastHall.Address = peer.GrpcAddr
+		lastHall.Address = peer.Address
 	}
 }
 

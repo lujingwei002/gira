@@ -352,6 +352,15 @@ func GrpcServer() gira.GrpcServer {
 	return application.GetGrpcServer()
 }
 
+func IsEnableResolver() bool {
+	application := gira.App()
+	if cfg := application.GetConfig().Module.Grpc; cfg != nil {
+		return cfg.Resolver
+	} else {
+		return false
+	}
+}
+
 // 查看grpc server
 func WhereIsServer(name string) (svr interface{}, ok bool) {
 	application := gira.App()

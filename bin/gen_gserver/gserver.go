@@ -200,7 +200,7 @@ func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, fil
 			g.P("       	return nil, ", giraPackage.Ident("ErrCatalogServerMetaNotFound"))
 			g.P("		}")
 			g.P("	}")
-			g.P("	if keys, ok := kv[\"catalog-key\"]; !ok {")
+			g.P("	if keys, ok := kv[", giraPackage.Ident("GRPC_CATALOG_KEY"), "]; !ok {")
 			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerKeyNotFound"))
 			g.P("	} else if len(keys) <= 0 {")
 			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerKeyNotFound"))

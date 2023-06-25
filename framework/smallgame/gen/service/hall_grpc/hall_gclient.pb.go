@@ -493,7 +493,7 @@ type HallClients interface {
 
 type HallClientsMulticast interface {
 	WhereRegex(regex string) HallClientsMulticast
-	WherePrefix(prefix string) HallClientsMulticast
+	WherePrefix(prefix bool) HallClientsMulticast
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error)
 	// 网关消息流
@@ -948,21 +948,27 @@ func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.Call
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -987,21 +993,27 @@ func (c *hallClientsUnicast) GateStream(ctx context.Context, opts ...grpc.CallOp
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1026,21 +1038,27 @@ func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1065,21 +1083,27 @@ func (c *hallClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1104,21 +1128,27 @@ func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, 
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1143,21 +1173,27 @@ func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1182,21 +1218,27 @@ func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1221,21 +1263,27 @@ func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1260,21 +1308,27 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -1299,7 +1353,7 @@ type hallClientsMulticast struct {
 	count       int
 	serviceName string
 	regex       string
-	prefix      string
+	prefix      bool
 	client      *hallClients
 }
 
@@ -1403,7 +1457,7 @@ func (c *hallClientsMulticast) WhereRegex(regex string) HallClientsMulticast {
 	return c
 }
 
-func (c *hallClientsMulticast) WherePrefix(prefix string) HallClientsMulticast {
+func (c *hallClientsMulticast) WherePrefix(prefix bool) HallClientsMulticast {
 	c.prefix = prefix
 	return c
 }
@@ -1418,11 +1472,10 @@ func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.Ca
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1432,7 +1485,13 @@ func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.Ca
 	result := &Hall_ClientStreamClient_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1442,7 +1501,7 @@ func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.Ca
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
 		result.responses = append(result.responses, out)
@@ -1461,11 +1520,10 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1475,7 +1533,13 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 	result := &Hall_GateStreamClient_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1485,7 +1549,7 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
 		result.responses = append(result.responses, out)
@@ -1504,11 +1568,10 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1518,7 +1581,13 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 	result := &InfoResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1528,10 +1597,10 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -1548,11 +1617,10 @@ func (c *hallClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1562,7 +1630,13 @@ func (c *hallClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 	result := &HealthCheckResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1572,10 +1646,10 @@ func (c *hallClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -1592,11 +1666,10 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1606,7 +1679,13 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 	result := &MustPushResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1616,10 +1695,10 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -1636,11 +1715,10 @@ func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageR
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1650,7 +1728,13 @@ func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageR
 	result := &SendMessageResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1660,10 +1744,10 @@ func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageR
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -1680,11 +1764,10 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1694,7 +1777,13 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 	result := &CallMessageResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1704,10 +1793,10 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -1724,11 +1813,10 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1738,7 +1826,13 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 	result := &UserInsteadResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1748,10 +1842,10 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -1768,11 +1862,10 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -1782,7 +1875,13 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 	result := &KickResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -1792,10 +1891,10 @@ func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts .
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}

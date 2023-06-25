@@ -108,7 +108,7 @@ func (svr *adminCatalogServer) ReloadResource(ctx context.Context, in *ReloadRes
 			return nil, gira.ErrCatalogServerMetaNotFound
 		}
 	}
-	if keys, ok := kv["catalog-key"]; !ok {
+	if keys, ok := kv[gira.GRPC_CATALOG_KEY]; !ok {
 		return nil, gira.ErrCatalogServerKeyNotFound
 	} else if len(keys) <= 0 {
 		return nil, gira.ErrCatalogServerKeyNotFound

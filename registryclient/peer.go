@@ -46,7 +46,7 @@ func (self *peer_registry) getPeer(r *RegistryClient, appFullName string) *gira.
 	for _, kv := range getResp.Kvs {
 		words := strings.Split(string(kv.Key), "/")
 		if len(words) > 0 && words[len(words)-1] == GRPC_KEY {
-			peer.GrpcAddr = string(kv.Value)
+			peer.Address = string(kv.Value)
 		} else {
 			peer.Kvs[string(kv.Key)] = string(kv.Value)
 		}

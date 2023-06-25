@@ -301,6 +301,11 @@ func (application *Application) onStart() (err error) {
 		if err := application.grpcServer.Listen(); err != nil {
 			return err
 		}
+		if application.registry != nil && application.config.Module.Grpc.Resolver {
+			if err := application.registry.StartReslover(); err != nil {
+				return err
+			}
+		}
 	}
 	// application.errGroup.Go(func() error {
 	// 	return application.registry.Serve(application.ctx)

@@ -377,8 +377,9 @@ type SdkConfig struct {
 }
 
 type GrpcConfig struct {
-	Address string `yaml:"address"`
-	Workers uint32 `yaml:"workers"`
+	Address  string `yaml:"address"`
+	Workers  uint32 `yaml:"workers"`
+	Resolver bool   `yaml:"resolver"` // 是否开启resolver
 }
 
 type PprofConfig struct {

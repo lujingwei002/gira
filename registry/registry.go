@@ -27,9 +27,12 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/resolver"
 )
 
-const GRPC_KEY string = "grpc"
+const (
+	GRPC_KEY string = "grpc"
+)
 
 type Registry struct {
 	config      gira.EtcdConfig
@@ -52,6 +55,7 @@ type Registry struct {
 	errCtx          context.Context
 	errGroup        *errgroup.Group
 	isNotify        int32
+	peerResolver    *peer_resolver_builder
 }
 
 // 关闭，释放资源
@@ -208,4 +212,13 @@ func (r *Registry) RegisterService(serviceName string, opt ...service_options.Re
 // 反注册服务
 func (r *Registry) UnregisterService(serviceName string) (*gira.Peer, error) {
 	return r.serviceRegistry.UnregisterService(r, serviceName)
+}
+
+// 开启resolver
+func (r *Registry) StartReslover() error {
+	r.peerResolver = &peer_resolver_builder{
+		r: r,
+	}
+	resolver.Register(r.peerResolver)
+	return nil
 }

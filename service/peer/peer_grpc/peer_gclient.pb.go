@@ -139,7 +139,7 @@ type PeerClients interface {
 
 type PeerClientsMulticast interface {
 	WhereRegex(regex string) PeerClientsMulticast
-	WherePrefix(prefix string) PeerClientsMulticast
+	WherePrefix(prefix bool) PeerClientsMulticast
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error)
 	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse_MulticastResult, error)
 }
@@ -372,21 +372,27 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -411,21 +417,27 @@ func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, 
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -450,7 +462,7 @@ type peerClientsMulticast struct {
 	count       int
 	serviceName string
 	regex       string
-	prefix      string
+	prefix      bool
 	client      *peerClients
 }
 
@@ -459,7 +471,7 @@ func (c *peerClientsMulticast) WhereRegex(regex string) PeerClientsMulticast {
 	return c
 }
 
-func (c *peerClientsMulticast) WherePrefix(prefix string) PeerClientsMulticast {
+func (c *peerClientsMulticast) WherePrefix(prefix bool) PeerClientsMulticast {
 	c.prefix = prefix
 	return c
 }
@@ -474,11 +486,10 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -488,7 +499,13 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 	result := &HealthCheckResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -498,10 +515,10 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -518,11 +535,10 @@ func (c *peerClientsMulticast) MemStats(ctx context.Context, in *MemStatsRequest
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -532,7 +548,13 @@ func (c *peerClientsMulticast) MemStats(ctx context.Context, in *MemStatsRequest
 	result := &MemStatsResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -542,10 +564,10 @@ func (c *peerClientsMulticast) MemStats(ctx context.Context, in *MemStatsRequest
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}

@@ -119,12 +119,15 @@ func (self *peer_registry) notify(r *Registry) error {
 	return nil
 }
 
-func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) error {
+func (self *peer_registry) onPeerAdd(r *Registry, peer *gira.Peer) {
+	if r.isNotify == 0 {
+		return
+	}
 	log.Debugw("peer registry on peer add", "full_name", peer.FullName, r.peerWatchHandlers)
 	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerAdd(peer)
 	}
-	return nil
+	return
 }
 
 func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
@@ -146,12 +149,12 @@ func (self *peer_registry) onPeerDelete(r *Registry, peer *gira.Peer) error {
 	return nil
 }
 
-func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) error {
+func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) {
 	log.Debugw("peer registry on peer update", "full_name", peer.FullName)
 	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerUpdate(peer)
 	}
-	return nil
+	return
 }
 
 func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
@@ -171,21 +174,22 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	if lastValue, ok := self.peers.Load(fullName); ok {
 		lastPeer := lastValue.(*gira.Peer)
 		if attrName == GRPC_KEY {
-			if lastPeer.GrpcAddr == "" {
+			if lastPeer.Address == "" {
 				// 新增节点
-				lastPeer.GrpcAddr = attrValue
+				lastPeer.Address = attrValue
+				lastPeer.Url = formatPeerUrl(lastPeer.FullName)
 				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
 				if lastPeer.FullName == r.appFullName {
 					self.SelfPeer = lastPeer
 				}
 				self.onPeerAdd(r, lastPeer)
-			} else if attrValue != lastPeer.GrpcAddr {
+			} else if attrValue != lastPeer.Address {
 				// 节点地址改变
-				lastPeer.GrpcAddr = attrValue
+				lastPeer.Address = attrValue
 				self.onPeerUpdate(r, lastPeer)
-				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.Address)
 			} else {
-				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.Address)
 			}
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
@@ -210,7 +214,8 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 		if attrName == GRPC_KEY {
 			// 新增节点
 			log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
-			peer.GrpcAddr = attrValue
+			peer.Address = attrValue
+			peer.Url = formatPeerUrl(peer.FullName)
 			if peer.FullName == r.appFullName {
 				self.SelfPeer = peer
 			}
@@ -235,8 +240,9 @@ func (self *peer_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 		lastPeer := lastValue.(*gira.Peer)
 		if attrName == GRPC_KEY {
 			//删除节点
-			log.Infow("peer registry remove peer", "full_name", fullName, GRPC_KEY, lastPeer.GrpcAddr)
-			lastPeer.GrpcAddr = ""
+			log.Infow("peer registry remove peer", "full_name", fullName, GRPC_KEY, lastPeer.Address)
+			lastPeer.Address = ""
+			lastPeer.Url = ""
 			self.onPeerDelete(r, lastPeer)
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
@@ -253,6 +259,7 @@ func (self *peer_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 }
 
 // 只增加节点，但不通知handler, 等notify再通知
+/*
 func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
@@ -270,19 +277,20 @@ func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	if lastValue, ok := self.peers.Load(fullName); ok {
 		lastPeer := lastValue.(*gira.Peer)
 		if attrName == GRPC_KEY {
-			if lastPeer.GrpcAddr == "" {
+			if lastPeer.Address == "" {
 				// 新增节点
-				lastPeer.GrpcAddr = attrValue
+				lastPeer.Address = attrValue
+				lastPeer.Url = formatPeerUrl(lastPeer.FullName)
 				if lastPeer.FullName == r.appFullName {
 					self.SelfPeer = lastPeer
 				}
 				log.Infow("peer registry add peer", "full_name", fullName, GRPC_KEY, attrValue)
-			} else if attrValue != lastPeer.GrpcAddr {
+			} else if attrValue != lastPeer.Address {
 				// 节点地址改变
-				lastPeer.GrpcAddr = attrValue
-				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
+				lastPeer.Address = attrValue
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.Address)
 			} else {
-				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.GrpcAddr)
+				log.Infow("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.Address)
 			}
 		} else {
 			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
@@ -307,7 +315,8 @@ func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 		}
 		self.peers.Store(fullName, peer)
 		if attrName == GRPC_KEY {
-			peer.GrpcAddr = attrValue
+			peer.Address = attrValue
+			peer.Url = formatPeerUrl(peer.FullName)
 			if peer.FullName == r.appFullName {
 				self.SelfPeer = peer
 			}
@@ -320,6 +329,7 @@ func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	}
 	return nil
 }
+*/
 
 func (self *peer_registry) initPeers(r *Registry) error {
 	client := r.client
@@ -330,7 +340,7 @@ func (self *peer_registry) initPeers(r *Registry) error {
 		return err
 	}
 	for _, kv := range getResp.Kvs {
-		if err := self.onKvAdd(r, kv); err != nil {
+		if err := self.onKvPut(r, kv); err != nil {
 			return err
 		}
 	}

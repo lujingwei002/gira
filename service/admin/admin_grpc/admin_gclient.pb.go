@@ -191,7 +191,7 @@ type AdminClients interface {
 
 type AdminClientsMulticast interface {
 	WhereRegex(regex string) AdminClientsMulticast
-	WherePrefix(prefix string) AdminClientsMulticast
+	WherePrefix(prefix bool) AdminClientsMulticast
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource1Client_MulticastResult, error)
 	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (*Admin_ReloadResource2Client_MulticastResult, error)
@@ -453,21 +453,27 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -492,21 +498,27 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -531,21 +543,27 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -570,21 +588,27 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if c.peer != nil && facade.IsEnableResolver() {
+		address = c.peer.Url
 	} else if c.peer != nil {
-		address = c.peer.GrpcAddr
+		address = c.peer.Address
 	} else if len(c.serviceName) > 0 {
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
 			return nil, gira.ErrPeerNotFound.Trace()
+		} else if facade.IsEnableResolver() {
+			address = peers[0].Url
 		} else {
-			address = peers[0].GrpcAddr
+			address = peers[0].Address
 		}
 	} else if len(c.userId) > 0 {
 		if peer, err := facade.WhereIsUser(c.userId); err != nil {
 			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
 		} else {
-			address = peer.GrpcAddr
+			address = peer.Address
 		}
 	}
 	if len(address) <= 0 {
@@ -609,7 +633,7 @@ type adminClientsMulticast struct {
 	count       int
 	serviceName string
 	regex       string
-	prefix      string
+	prefix      bool
 	client      *adminClients
 }
 
@@ -761,7 +785,7 @@ func (c *adminClientsMulticast) WhereRegex(regex string) AdminClientsMulticast {
 	return c
 }
 
-func (c *adminClientsMulticast) WherePrefix(prefix string) AdminClientsMulticast {
+func (c *adminClientsMulticast) WherePrefix(prefix bool) AdminClientsMulticast {
 	c.prefix = prefix
 	return c
 }
@@ -776,11 +800,10 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -790,7 +813,13 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 	result := &ReloadResourceResponse_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -800,10 +829,10 @@ func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadRe
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
-		c.client.putClient(peer.GrpcAddr, client)
+		c.client.putClient(address, client)
 		result.responses = append(result.responses, out)
 		result.successPeers = append(result.successPeers, peer)
 	}
@@ -820,11 +849,10 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -834,7 +862,13 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 	result := &Admin_ReloadResource1Client_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -844,7 +878,7 @@ func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grp
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
 		result.responses = append(result.responses, out)
@@ -863,11 +897,10 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -877,7 +910,13 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 	result := &Admin_ReloadResource2Client_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -887,7 +926,7 @@ func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadR
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
 		result.responses = append(result.responses, out)
@@ -906,11 +945,10 @@ func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grp
 	}
 	serviceName := c.serviceName
 	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.regex)
+		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
 		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
 	}
-	if len(c.prefix) > 0 {
-		serviceName = fmt.Sprintf("%s/%s", c.serviceName, c.prefix)
+	if c.prefix {
 		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
 	}
 	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
@@ -920,7 +958,13 @@ func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grp
 	result := &Admin_ReloadResource3Client_MulticastResult{}
 	result.peerCount = len(peers)
 	for _, peer := range peers {
-		client, err := c.client.getClient(peer.GrpcAddr)
+		var address string
+		if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
+		client, err := c.client.getClient(address)
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
@@ -930,7 +974,7 @@ func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grp
 		if err != nil {
 			result.errors = append(result.errors, err)
 			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(peer.GrpcAddr, client)
+			c.client.putClient(address, client)
 			continue
 		}
 		result.responses = append(result.responses, out)
