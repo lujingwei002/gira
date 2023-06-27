@@ -129,7 +129,7 @@ func (server *Upstream) close() {
 
 func (server *Upstream) NewClientStream(ctx context.Context) (stream hall_grpc.Hall_ClientStreamClient, err error) {
 	if client := server.client; client == nil {
-		err = gira.ErrNullPonter
+		err = gira.ErrNullPointer
 		return
 	} else {
 		stream, err = client.ClientStream(ctx)
@@ -139,7 +139,7 @@ func (server *Upstream) NewClientStream(ctx context.Context) (stream hall_grpc.H
 
 func (server *Upstream) HealthCheck() (err error) {
 	if client := server.client; client == nil {
-		err = gira.ErrNullPonter
+		err = gira.ErrNullPointer
 		return
 	} else {
 		req := &hall_grpc.HealthCheckRequest{}

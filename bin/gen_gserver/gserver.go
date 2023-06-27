@@ -47,11 +47,11 @@ type serviceGenerateHelperInterface interface {
 	formatFullMethodSymbol(service *protogen.Service, method *protogen.Method) string
 	genServiceName(g *protogen.GeneratedFile, service *protogen.Service)
 	genFullMethods(g *protogen.GeneratedFile, service *protogen.Service)
-	generateCatalogServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
-	generateCatalogServerInterface(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
-	generateCatalogServerHandler(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
-	generateCatalogServerMiddleware(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
-	generateCatalogServerMiddlewareContext(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
+	generateServerRouterType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
+	generateServerRouterInterface(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
+	generateServerRouterHandler(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
+	generateServerRouterMiddleware(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
+	generateServerRouterMiddlewareContext(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service)
 	generateServerFunctions(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, serverType string, serviceDescVar string)
 	formatHandlerFuncName(service *protogen.Service, hname string) string
 }
@@ -80,37 +80,37 @@ func (serviceGenerateHelper) genFullMethods(g *protogen.GeneratedFile, service *
 	g.P()
 }
 
-func (serviceGenerateHelper) generateCatalogServerHandler(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
-	catalogServerType := service.GoName + "CatalogServer"
+func (serviceGenerateHelper) generateServerRouterHandler(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	serverRouterType := service.GoName + "ServerRouter"
 	serverType := service.GoName + "Server"
 	// Server Unimplemented struct for forward compatibility.
-	g.P("// ", catalogServerType, " is the default catalog server handler for ", service.GoName, " service.")
-	g.P("type ", catalogServerType, "Handler interface {")
+	g.P("// ", serverRouterType, " is the default server router handler for ", service.GoName, " service.")
+	g.P("type ", serverRouterType, "Handler interface {")
 	g.P("    ", serverType)
 	g.P("}")
 	g.P()
 }
 
-func (serviceGenerateHelper) generateCatalogServerMiddleware(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
-	catalogServerType := service.GoName + "CatalogServer"
+func (serviceGenerateHelper) generateServerRouterMiddleware(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	serverRouterType := service.GoName + "ServerRouter"
 	// Server Unimplemented struct for forward compatibility.
-	g.P("// ", catalogServerType, " is the default catalog server middleware for ", service.GoName, " service.")
-	g.P("type ", catalogServerType, "Middleware interface {")
-	g.P("    ", catalogServerType, "MiddlewareInvoke(ctx ", catalogServerType, "MiddlewareContext) error")
+	g.P("// ", serverRouterType, " is the default server router middleware for ", service.GoName, " service.")
+	g.P("type ", serverRouterType, "Middleware interface {")
+	g.P("    ", serverRouterType, "MiddlewareInvoke(ctx ", serverRouterType, "MiddlewareContext) error")
 	g.P("}")
 	g.P()
 }
 
-func (serviceGenerateHelper) generateCatalogServerMiddlewareContext(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
-	catalogServerType := service.GoName + "CatalogServer"
-	g.P("// ", catalogServerType, " is the default catalog server middleware context for ", service.GoName, " service.")
-	g.P("type ", catalogServerType, "MiddlewareContext interface {")
+func (serviceGenerateHelper) generateServerRouterMiddlewareContext(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	serverRouterType := service.GoName + "ServerRouter"
+	g.P("// ", serverRouterType, " is the default server router middleware context for ", service.GoName, " service.")
+	g.P("type ", serverRouterType, "MiddlewareContext interface {")
 	g.P("    Next()")
 	g.P("    Wait() error")
 	g.P("}")
 	g.P()
 
-	g.P("type ", unexport(catalogServerType), "MiddlewareContext struct {")
+	g.P("type ", unexport(serverRouterType), "MiddlewareContext struct {")
 	g.P("    handler func() (resp interface{}, err error)")
 	g.P("    ctx ", contextPackage.Ident("Context"))
 	g.P("	 fullMethod string")
@@ -120,7 +120,7 @@ func (serviceGenerateHelper) generateCatalogServerMiddlewareContext(gen *protoge
 	g.P("	 method string")
 	g.P("	 c chan struct{}")
 	g.P("}")
-	g.P("func (m *", unexport(catalogServerType), "MiddlewareContext) Next() {")
+	g.P("func (m *", unexport(serverRouterType), "MiddlewareContext) Next() {")
 	g.P("    defer func(){")
 	g.P("        if e := recover(); e != nil {")
 	g.P("            m.err = e.(error)")
@@ -131,7 +131,7 @@ func (serviceGenerateHelper) generateCatalogServerMiddlewareContext(gen *protoge
 	g.P("        m.c <- struct{}{}")
 	g.P("    }")
 	g.P("}")
-	g.P("func (m *", unexport(catalogServerType), "MiddlewareContext) Wait() error {")
+	g.P("func (m *", unexport(serverRouterType), "MiddlewareContext) Wait() error {")
 	g.P("    if m.c == nil {")
 	g.P("        m.c = make(chan struct{}, 1)")
 	g.P("    }")
@@ -147,10 +147,10 @@ func (serviceGenerateHelper) generateCatalogServerMiddlewareContext(gen *protoge
 
 }
 
-func (serviceGenerateHelper) generateCatalogServerInterface(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
-	serverType := service.GoName + "CatalogServer"
+func (serviceGenerateHelper) generateServerRouterInterface(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	serverType := service.GoName + "ServerRouter"
 	// Server Unimplemented struct for forward compatibility.
-	g.P("// ", serverType, " is the default catalog server for ", service.GoName, " service.")
+	g.P("// ", serverType, " is the default server router for ", service.GoName, " service.")
 	g.P("type ", serverType, " interface {")
 	g.P("RegisterHandler(key string, handler ", serverType, "Handler)")
 	g.P("RegisterMiddleware(key string, middle ", serverType, "Middleware)")
@@ -159,27 +159,27 @@ func (serviceGenerateHelper) generateCatalogServerInterface(gen *protogen.Plugin
 	g.P()
 }
 
-func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
-	catalogServerType := service.GoName + "CatalogServer"
+func (serviceGenerateHelper) generateServerRouterType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	serverRouterType := service.GoName + "ServerRouter"
 	serverType := service.GoName + "Server"
 	// Server Unimplemented struct for forward compatibility.
-	g.P("// ", unexport(catalogServerType), " is the default catalog server for ", service.GoName, " service.")
-	g.P("type ", unexport(catalogServerType), " struct {")
+	g.P("// ", unexport(serverRouterType), " is the default server router for ", service.GoName, " service.")
+	g.P("type ", unexport(serverRouterType), " struct {")
 	g.P("    Unimplemented", serverType)
 	g.P("    mu ", syncPackage.Ident("Mutex"))
 	g.P("    handlers ", syncPackage.Ident("Map"))
 	g.P("    middlewares ", syncPackage.Ident("Map"))
 	g.P("}")
 	g.P()
-	g.P("func (svr *", unexport(catalogServerType), ")RegisterMiddleware(key string, middleware ", catalogServerType, "Middleware){")
+	g.P("func (svr *", unexport(serverRouterType), ")RegisterMiddleware(key string, middleware ", serverRouterType, "Middleware){")
 	g.P("	svr.middlewares.Store(key, middleware)")
 	g.P("}")
 	g.P()
-	g.P("func (svr *", unexport(catalogServerType), ")RegisterHandler(key string, handler ", catalogServerType, "Handler){")
+	g.P("func (svr *", unexport(serverRouterType), ")RegisterHandler(key string, handler ", serverRouterType, "Handler){")
 	g.P("	svr.handlers.Store(key, handler)")
 	g.P("}")
 	g.P()
-	g.P("func (svr *", unexport(catalogServerType), ")UnregisterHandler(key string, handler ", catalogServerType, "Handler){")
+	g.P("func (svr *", unexport(serverRouterType), ")UnregisterHandler(key string, handler ", serverRouterType, "Handler){")
 	g.P("	svr.handlers.Delete(key)")
 	g.P("	svr.middlewares.Delete(key)")
 	g.P("}")
@@ -189,7 +189,7 @@ func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, fil
 		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			nilArg = "nil,"
 		}
-		g.P("func (svr* ", unexport(catalogServerType), ") ", serverSignature(g, method), "{")
+		g.P("func (svr* ", unexport(serverRouterType), ") ", serverSignature(g, method), "{")
 
 		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			fmSymbol := helper.formatFullMethodSymbol(service, method)
@@ -197,22 +197,22 @@ func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, fil
 			g.P("   var ok bool")
 			g.P("	if kv, ok = ", metaPackage.Ident("FromIncomingContext"), "(ctx); !ok {")
 			g.P("		if kv, ok = ", metaPackage.Ident("FromOutgoingContext"), "(ctx); !ok {")
-			g.P("       	return nil, ", giraPackage.Ident("ErrCatalogServerMetaNotFound"))
+			g.P("       	return nil, ", giraPackage.Ident("ErrServerRouterMetaNotFound"))
 			g.P("		}")
 			g.P("	}")
-			g.P("	if keys, ok := kv[", giraPackage.Ident("GRPC_CATALOG_KEY"), "]; !ok {")
-			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerKeyNotFound"))
+			g.P("	if keys, ok := kv[", giraPackage.Ident("GRPC_PATH_KEY"), "]; !ok {")
+			g.P("       return nil, ", giraPackage.Ident("ErrServerRouterKeyNotFound"))
 			g.P("	} else if len(keys) <= 0 {")
-			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerKeyNotFound"))
+			g.P("       return nil, ", giraPackage.Ident("ErrServerRouterKeyNotFound"))
 			g.P("	} else if v, ok := svr.handlers.Load(keys[0]); !ok {")
-			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerHandlerNotRegist"))
+			g.P("       return nil, ", giraPackage.Ident("ErrServerRouterHandlerNotRegist"))
 			g.P("	} else if handler, ok := v.(", serverType, "); !ok {")
-			g.P("       return nil, ", giraPackage.Ident("ErrCatalogServerHandlerNotImplement"))
+			g.P("       return nil, ", giraPackage.Ident("ErrServerRouterHandlerNotImplement"))
 			g.P("	} else {")
 			g.P("		if v, ok := svr.middlewares.Load(keys[0]); !ok {")
 			g.P("	        return handler.", method.GoName, "(ctx, in)")
-			g.P("		} else if middleware, ok := v.(", catalogServerType, "Middleware); ok {")
-			g.P("			r := &", unexport(catalogServerType), "MiddlewareContext{")
+			g.P("		} else if middleware, ok := v.(", serverRouterType, "Middleware); ok {")
+			g.P("			r := &", unexport(serverRouterType), "MiddlewareContext{")
 			g.P("               fullMethod: ", fmSymbol, ",")
 			g.P("               method:	    \"", method.GoName, "\",")
 			g.P("				ctx:        ctx,")
@@ -221,11 +221,11 @@ func (serviceGenerateHelper) generateCatalogServerType(gen *protogen.Plugin, fil
 			g.P("					return handler.", method.GoName, "(ctx, in)")
 			g.P("				},")
 			g.P("			}")
-			g.P("			if err := middleware.", catalogServerType, "MiddlewareInvoke(r); err != nil {")
+			g.P("			if err := middleware.", serverRouterType, "MiddlewareInvoke(r); err != nil {")
 			g.P("			    return nil, err")
 			g.P("			} ")
 			g.P("			if r.out == nil && r.err == nil {")
-			g.P("			    return nil, ", giraPackage.Ident("ErrCatalogServerHandlerNotImplement"))
+			g.P("			    return nil, ", giraPackage.Ident("ErrServerRouterHandlerNotImplement"))
 			g.P("			} else if r.out == nil && r.err != nil {")
 			g.P("			    return nil, r.err")
 			g.P("			} else {")
@@ -326,20 +326,20 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
 
 	// Server interface.
-	serverType := service.GoName + "CatalogServer"
+	serverType := service.GoName + "ServerRouter"
 	// Server Unimplemented struct for forward compatibility.
-	helper.generateCatalogServerHandler(gen, file, g, service)
-	helper.generateCatalogServerMiddleware(gen, file, g, service)
-	helper.generateCatalogServerMiddlewareContext(gen, file, g, service)
-	helper.generateCatalogServerInterface(gen, file, g, service)
-	helper.generateCatalogServerType(gen, file, g, service)
+	helper.generateServerRouterHandler(gen, file, g, service)
+	helper.generateServerRouterMiddleware(gen, file, g, service)
+	helper.generateServerRouterMiddlewareContext(gen, file, g, service)
+	helper.generateServerRouterInterface(gen, file, g, service)
+	helper.generateServerRouterType(gen, file, g, service)
 
 	// Server registration.
 	if service.Desc.Options().(*descriptorpb.ServiceOptions).GetDeprecated() {
 		g.P(deprecationComment)
 	}
-	serviceDescVar := service.GoName + "_ServiceCatalogDesc"
-	g.P("func Register", service.GoName, "ServerAsCatalog(s ", grpcPackage.Ident("ServiceRegistrar"), " ,handler ", serverType, "Handler) ", serverType, " {")
+	serviceDescVar := service.GoName + "_ServiceRouterDesc"
+	g.P("func Register", service.GoName, "ServerAsRouter(s ", grpcPackage.Ident("ServiceRegistrar"), " ,handler ", serverType, "Handler) ", serverType, " {")
 	g.P("svr := &", unexport(serverType), "{}")
 	g.P("s.RegisterService(&", serviceDescVar, `, svr)`)
 	g.P("return svr}")
@@ -407,7 +407,7 @@ func genServiceDesc(file *protogen.File, g *protogen.GeneratedFile, serviceDescV
 
 func genServerMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, hnameFuncNameFormatter func(string) string) string {
 	service := method.Parent
-	hname := fmt.Sprintf("_%s_%s_CatalogHandler", service.GoName, method.GoName)
+	hname := fmt.Sprintf("_%s_%s_RouterHandler", service.GoName, method.GoName)
 
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		g.P("func ", hnameFuncNameFormatter(hname), "(srv interface{}, ctx ", contextPackage.Ident("Context"), ", dec func(interface{}) error, interceptor ", grpcPackage.Ident("UnaryServerInterceptor"), ") (interface{}, error) {")
@@ -427,7 +427,7 @@ func genServerMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 		g.P()
 		return hname
 	}
-	streamType := unexport(service.GoName) + method.GoName + "CatalogServer"
+	streamType := unexport(service.GoName) + method.GoName + "ServerRouter"
 	g.P("func ", hnameFuncNameFormatter(hname), "(srv interface{}, stream ", grpcPackage.Ident("ServerStream"), ") error {")
 	if !method.Desc.IsStreamingClient() {
 		g.P("m := new(", method.Input.GoIdent, ")")
@@ -444,7 +444,7 @@ func genServerMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 	genRecv := method.Desc.IsStreamingClient()
 
 	// Stream auxiliary types and methods.
-	g.P("type ", service.GoName, "_", method.GoName, "CatalogServer interface {")
+	g.P("type ", service.GoName, "_", method.GoName, "ServerRouter interface {")
 	if genSend {
 		g.P("Send(*", method.Output.GoIdent, ") error")
 	}

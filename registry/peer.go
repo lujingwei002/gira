@@ -460,7 +460,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		}
 		if txnResp.Succeeded {
 			log.Errorw("etcd register fail", "key", key, "value", value, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
-			return gira.ErrRegisterServerFail.Trace().WithValues("locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
+			return gira.ErrRegisterServerFail
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
 				self.alreadyRegistSelf = 1
@@ -470,7 +470,7 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 				log.Infow("peer registry register peer", "key", key, "value", value)
 			} else {
 				log.Infow("peer registry resume peer", "key", key, "value", value)
-				return gira.ErrPeerAlreadyRegist.Trace().WithValues("address", value)
+				return gira.NewPeerAlreadyRegistError(key)
 			}
 		}
 	}

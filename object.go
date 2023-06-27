@@ -63,7 +63,7 @@ func (o *Object) GetComponent(t reflect.Type) Component {
 
 func (o *Object) AddComponent(component Component) error {
 	if component == nil {
-		return ErrNullPonter
+		return ErrNullPointer
 	}
 	t := reflect.TypeOf(component)
 	if arr, ok := o.componentDict[t]; ok {

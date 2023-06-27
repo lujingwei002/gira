@@ -353,8 +353,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("    Where(serviceName string) " + clientsUnicastName)
 	g.P("    WherePeer(peer *gira.Peer) " + clientsUnicastName)
 	g.P("    WhereAddress(address string) " + clientsUnicastName)
-	g.P("    WhereUserId(userId string) " + clientsUnicastName)
-	g.P("    WhereUserCatalog(userId string) " + clientsUnicastName)
+	g.P("    WhereUser(userId string) " + clientsUnicastName)
 	g.P()
 	for _, method := range service.Methods {
 		g.Annotate(clientsUnicastName+"."+method.GoName, method.Location)
@@ -369,7 +368,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 
 	// clients local interface
 	g.P("type ", clientsLocalName, " interface {")
-	g.P("    WhereUserCatalog(userId string) " + clientsLocalName)
+	g.P("    WhereUser(userId string) " + clientsLocalName)
 	g.P("    WithTimeout(timeout int64) " + clientsLocalName)
 	g.P()
 	for _, method := range service.Methods {
@@ -506,10 +505,10 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 
 	// ClientsLocal structure.
 	helper.generateClientsLocalStruct(g, clientsLocalName, clientsName)
-	// func WhereUserCatalog
-	g.P("func (c *", unexport(service.GoName), "ClientsLocal) WhereUserCatalog(userId string) ", clientsLocalName, " {")
+	// func WhereUserRouter
+	g.P("func (c *", unexport(service.GoName), "ClientsLocal) WhereUser(userId string) ", clientsLocalName, " {")
 	g.P("	c.userId = userId")
-	g.P("	c.headers.Append(", giraPackage.Ident("GRPC_CATALOG_KEY"), ", userId)")
+	g.P("	c.headers.Append(", giraPackage.Ident("GRPC_PATH_KEY"), ", userId)")
 	g.P("	return c")
 	g.P("}")
 	g.P()
@@ -553,16 +552,10 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("	return c")
 	g.P("}")
 	g.P()
-	// func WhereUserId
-	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereUserId(userId string) ", clientsUnicastName, " {")
+	// func WhereUser
+	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereUser(userId string) ", clientsUnicastName, " {")
 	g.P("	c.userId = userId")
-	g.P("	return c")
-	g.P("}")
-	g.P()
-	// func WhereUserCatalog
-	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereUserCatalog(userId string) ", clientsUnicastName, " {")
-	g.P("	c.userId = userId")
-	g.P("	c.headers.Append(", giraPackage.Ident("GRPC_CATALOG_KEY"), ", userId)")
+	g.P("	c.headers.Append(", giraPackage.Ident("GRPC_PATH_KEY"), ", userId)")
 	g.P("	return c")
 	g.P("}")
 	g.P()
@@ -860,7 +853,7 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 	g.P("	if peers, err := ", facadePackage.Ident("WhereIsServiceName"), "(c.serviceName); err != nil {")
 	g.P("		return nil, err")
 	g.P("	} else if len(peers) < 1 {")
-	g.P("		return nil, gira.ErrPeerNotFound.Trace()")
+	g.P("		return nil, gira.ErrPeerNotFound")
 	g.P("	} else if ", facadePackage.Ident("IsEnableResolver()"), " {")
 	g.P("		address = peers[0].Url")
 	g.P("	} else  {")
@@ -876,7 +869,7 @@ func genClientsUnicastMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 	g.P("	}")
 	g.P("}")
 	g.P("if len(address) <= 0 {")
-	g.P("	return nil, gira.ErrInvalidArgs.Trace()")
+	g.P("	return nil, gira.ErrInvalidArgs")
 	g.P("}")
 	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 		g.P("client, err := c.client.getClient(address)")

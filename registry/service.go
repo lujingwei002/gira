@@ -593,9 +593,9 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 		appFullName := string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
 		peer := r.GetPeer(appFullName)
 		if peer == nil {
-			return nil, gira.ErrServiceLocked.Trace()
+			return nil, gira.ErrServiceLocked
 		}
-		return peer, gira.ErrServiceLocked.Trace().WithValues("service_name", serviceName)
+		return peer, gira.ErrServiceLocked
 	}
 }
 
@@ -627,9 +627,9 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 		log.Warnw("service registry unregister fail", "service_name", serviceName, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 		peer := r.GetPeer(appFullName)
 		if peer == nil {
-			return nil, gira.ErrServiceLocked.Trace()
+			return nil, gira.ErrServiceLocked
 		}
-		return peer, gira.ErrServiceLocked.Trace()
+		return peer, gira.ErrServiceLocked
 	}
 }
 

@@ -317,12 +317,12 @@ func (self *player_registry) WhereIsUser(r *Registry, userId string) (*gira.Peer
 		return nil, err
 	}
 	if len(getResp.Kvs) <= 0 {
-		return nil, gira.ErrUserNotFound.Trace()
+		return nil, gira.ErrUserNotFound
 	}
 	fullName := string(getResp.Kvs[0].Value)
 	peer := r.GetPeer(fullName)
 	if peer == nil {
-		return nil, gira.ErrPeerNotFound.Trace()
+		return nil, gira.ErrPeerNotFound
 	} else {
 		return peer, nil
 	}

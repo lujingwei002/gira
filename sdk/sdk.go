@@ -64,7 +64,7 @@ type SdkComponent struct {
 
 func (self *SdkComponent) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
-		return nil, gira.ErrSdkComponentNotImplement.Trace()
+		return nil, gira.ErrSdkComponentNotImplement
 	} else {
 		return sdk.Login(accountPlat, openId, token, authUrl, appId, appSecret)
 	}
@@ -72,7 +72,7 @@ func (self *SdkComponent) Login(accountPlat string, openId string, token string,
 
 func (self *SdkComponent) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
-		return nil, gira.ErrSdkComponentNotImplement.Trace()
+		return nil, gira.ErrSdkComponentNotImplement
 	} else {
 		return sdk.PayOrderCheck(accountPlat, args, paySecret)
 	}
@@ -148,7 +148,7 @@ func (self *UltraSdk) Login(accountPlat string, openId string, token string, aut
 	if _, resp, err := self.loginSdk.Login(openId, "", token); err != nil {
 		return nil, err
 	} else if resp.Code != 0 {
-		return nil, gira.NewError(int32(resp.Code), resp.Msg)
+		return nil, gira.NewErrorCode(int32(resp.Code), resp.Msg)
 	} else {
 		result := &gira.SdkAccount{
 			OpenId:   fmt.Sprintf("%v_%v", resp.ChannelId, resp.CUid),

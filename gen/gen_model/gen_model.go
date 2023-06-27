@@ -713,7 +713,7 @@ func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, id primitive.Obje
 
 func (self *<<.MongoDaoStructName>>) Delete(ctx context.Context, doc *<<.StructName>>) error {
 	if doc == nil {
-		return gira.ErrNullPonter
+		return gira.ErrNullPointer
 	}
 	if doc.none {
 		return gira.ErrDataNotExist

@@ -148,15 +148,14 @@ type PeerClientsUnicast interface {
 	Where(serviceName string) PeerClientsUnicast
 	WherePeer(peer *gira.Peer) PeerClientsUnicast
 	WhereAddress(address string) PeerClientsUnicast
-	WhereUserId(userId string) PeerClientsUnicast
-	WhereUserCatalog(userId string) PeerClientsUnicast
+	WhereUser(userId string) PeerClientsUnicast
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error)
 }
 
 type PeerClientsLocal interface {
-	WhereUserCatalog(userId string) PeerClientsLocal
+	WhereUser(userId string) PeerClientsLocal
 	WithTimeout(timeout int64) PeerClientsLocal
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
@@ -292,9 +291,9 @@ type peerClientsLocal struct {
 	headers metadata.MD
 }
 
-func (c *peerClientsLocal) WhereUserCatalog(userId string) PeerClientsLocal {
+func (c *peerClientsLocal) WhereUser(userId string) PeerClientsLocal {
 	c.userId = userId
-	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
+	c.headers.Append(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -357,14 +356,9 @@ func (c *peerClientsUnicast) WhereAddress(address string) PeerClientsUnicast {
 	return c
 }
 
-func (c *peerClientsUnicast) WhereUserId(userId string) PeerClientsUnicast {
+func (c *peerClientsUnicast) WhereUser(userId string) PeerClientsUnicast {
 	c.userId = userId
-	return c
-}
-
-func (c *peerClientsUnicast) WhereUserCatalog(userId string) PeerClientsUnicast {
-	c.userId = userId
-	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
+	c.headers.Append(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -380,7 +374,7 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
+			return nil, gira.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -396,7 +390,7 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
+		return nil, gira.ErrInvalidArgs
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -425,7 +419,7 @@ func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, 
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
+			return nil, gira.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -441,7 +435,7 @@ func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, 
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
+		return nil, gira.ErrInvalidArgs
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {

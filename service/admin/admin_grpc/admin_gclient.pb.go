@@ -202,8 +202,7 @@ type AdminClientsUnicast interface {
 	Where(serviceName string) AdminClientsUnicast
 	WherePeer(peer *gira.Peer) AdminClientsUnicast
 	WhereAddress(address string) AdminClientsUnicast
-	WhereUserId(userId string) AdminClientsUnicast
-	WhereUserCatalog(userId string) AdminClientsUnicast
+	WhereUser(userId string) AdminClientsUnicast
 
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
@@ -212,7 +211,7 @@ type AdminClientsUnicast interface {
 }
 
 type AdminClientsLocal interface {
-	WhereUserCatalog(userId string) AdminClientsLocal
+	WhereUser(userId string) AdminClientsLocal
 	WithTimeout(timeout int64) AdminClientsLocal
 
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
@@ -376,9 +375,9 @@ type adminClientsLocal struct {
 	headers metadata.MD
 }
 
-func (c *adminClientsLocal) WhereUserCatalog(userId string) AdminClientsLocal {
+func (c *adminClientsLocal) WhereUser(userId string) AdminClientsLocal {
 	c.userId = userId
-	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
+	c.headers.Append(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -438,14 +437,9 @@ func (c *adminClientsUnicast) WhereAddress(address string) AdminClientsUnicast {
 	return c
 }
 
-func (c *adminClientsUnicast) WhereUserId(userId string) AdminClientsUnicast {
+func (c *adminClientsUnicast) WhereUser(userId string) AdminClientsUnicast {
 	c.userId = userId
-	return c
-}
-
-func (c *adminClientsUnicast) WhereUserCatalog(userId string) AdminClientsUnicast {
-	c.userId = userId
-	c.headers.Append(gira.GRPC_CATALOG_KEY, userId)
+	c.headers.Append(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -461,7 +455,7 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
+			return nil, gira.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -477,7 +471,7 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
+		return nil, gira.ErrInvalidArgs
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -506,7 +500,7 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
+			return nil, gira.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -522,7 +516,7 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
+		return nil, gira.ErrInvalidArgs
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -551,7 +545,7 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
+			return nil, gira.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -567,7 +561,7 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
+		return nil, gira.ErrInvalidArgs
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -596,7 +590,7 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound.Trace()
+			return nil, gira.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -612,7 +606,7 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs.Trace()
+		return nil, gira.ErrInvalidArgs
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {

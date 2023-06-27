@@ -65,7 +65,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 				log.Infow("user instead fail", "session_id", sessionId, "error", err)
 				return
 			} else if resp.ErrorCode != 0 {
-				err = gira.NewError(resp.ErrorCode, resp.ErrorMsg)
+				err = gira.NewErrorCode(resp.ErrorCode, resp.ErrorMsg)
 				log.Infow("user instead fail", "session_id", sessionId, "error", err)
 				return
 			} else {

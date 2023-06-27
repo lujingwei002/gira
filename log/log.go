@@ -114,7 +114,7 @@ func (s *MongoSink) Write(data []byte) (n int, err error) {
 		_, err = database.Collection(s.collection).InsertOne(context.Background(), doc, s.writeOption)
 		return
 	default:
-		err = gira.ErrDbNotSupport.Trace()
+		err = gira.ErrDbNotSupport
 		return
 	}
 }

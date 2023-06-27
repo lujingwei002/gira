@@ -52,7 +52,7 @@ var (
 	<<- $key := index $row $keyField.Tag >>
 	<<- $value := index $row $valueField.Tag >>
 	// << index $row $commentField.Tag >>
-	Err<<camelString $key>> = gira.NewError(<<$value>>, "<<index $row $commentField.Tag>>")
+	Err<<camelString $key>> = gira.NewErrorCode(<<$value>>, "<<index $row $commentField.Tag>>")
 <<- end>>
 )
 
@@ -61,8 +61,8 @@ var (
 <<- $key := index $row $keyField.Tag >>
 <<- $value := index $row $valueField.Tag >>
 // << index $row $commentField.Tag >>
-func NewErr<<camelString $key>>(values ...interface{}) *gira.Error {
-	return gira.NewErrorw(<<$value>>, "<<index $row $commentField.Tag>>", values...)
+func NewErr<<camelString $key>>(values ...interface{}) *gira.ErrorCode {
+	return gira.NewErrorCodew(<<$value>>, "<<index $row $commentField.Tag>>", values...)
 }
 <<- end>>
 <<- else >>

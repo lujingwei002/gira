@@ -98,7 +98,7 @@ func (self *sproto) RequestDecode(packed []byte) (route string, session int32, r
 	var ok bool
 	resp, ok = sp.(gira.ProtoRequest)
 	if !ok {
-		err = gira.ErrProtoRequestCast
+		err = gira.Errorw("invalid request proto", "name", route)
 		return
 	}
 	return
@@ -115,7 +115,7 @@ func (self *sproto) ResponseDecode(packed []byte) (route string, session int32, 
 	var ok bool
 	resp, ok = sp.(gira.ProtoResponse)
 	if !ok {
-		err = gira.ErrProtoResponseCast
+		err = gira.Errorw("invalid response proto", "name", route)
 		return
 	}
 	return
@@ -132,7 +132,7 @@ func (self *sproto) PushDecode(packed []byte) (route string, session int32, resp
 	var ok bool
 	resp, ok = sp.(gira.ProtoPush)
 	if !ok {
-		err = gira.ErrProtoPushCast
+		err = gira.Errorw("invalid push proto", "name", route)
 		return
 	}
 	return
@@ -143,18 +143,18 @@ func (self *sproto) PushDecode(packed []byte) (route string, session int32, resp
 func (self *sproto) NewResponse(req gira.ProtoRequest) (resp gira.ProtoResponse, err error) {
 	proto := self.rpc.GetProtocolByName(req.GetRequestName())
 	if proto == nil {
-		err = gira.ErrProtoResponseNew
+		err = gira.Errorw("request proto not found", "name", req.GetRequestName())
 		return
 	}
 	sp := reflect.New(proto.Response.Elem()).Interface()
 	if sp == nil {
-		err = gira.ErrProtoResponseNew
+		err = gira.Errorw("response proto not found", "name", req.GetRequestName())
 		return
 	}
 	var ok bool
 	resp, ok = sp.(gira.ProtoResponse)
 	if !ok {
-		err = gira.ErrProtoResponseCast
+		err = gira.Errorw("invalid response proto", "name", req.GetRequestName())
 		return
 	}
 	return

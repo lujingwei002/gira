@@ -21,23 +21,23 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// AdminCatalogServer is the default catalog server handler for Admin service.
-type AdminCatalogServerHandler interface {
+// AdminServerRouter is the default server router handler for Admin service.
+type AdminServerRouterHandler interface {
 	AdminServer
 }
 
-// AdminCatalogServer is the default catalog server middleware for Admin service.
-type AdminCatalogServerMiddleware interface {
-	AdminCatalogServerMiddlewareInvoke(ctx AdminCatalogServerMiddlewareContext) error
+// AdminServerRouter is the default server router middleware for Admin service.
+type AdminServerRouterMiddleware interface {
+	AdminServerRouterMiddlewareInvoke(ctx AdminServerRouterMiddlewareContext) error
 }
 
-// AdminCatalogServer is the default catalog server middleware context for Admin service.
-type AdminCatalogServerMiddlewareContext interface {
+// AdminServerRouter is the default server router middleware context for Admin service.
+type AdminServerRouterMiddlewareContext interface {
 	Next()
 	Wait() error
 }
 
-type adminCatalogServerMiddlewareContext struct {
+type adminServerRouterMiddlewareContext struct {
 	handler    func() (resp interface{}, err error)
 	ctx        context.Context
 	fullMethod string
@@ -48,7 +48,7 @@ type adminCatalogServerMiddlewareContext struct {
 	c          chan struct{}
 }
 
-func (m *adminCatalogServerMiddlewareContext) Next() {
+func (m *adminServerRouterMiddlewareContext) Next() {
 	defer func() {
 		if e := recover(); e != nil {
 			m.err = e.(error)
@@ -59,7 +59,7 @@ func (m *adminCatalogServerMiddlewareContext) Next() {
 		m.c <- struct{}{}
 	}
 }
-func (m *adminCatalogServerMiddlewareContext) Wait() error {
+func (m *adminServerRouterMiddlewareContext) Wait() error {
 	if m.c == nil {
 		m.c = make(chan struct{}, 1)
 	}
@@ -72,55 +72,55 @@ func (m *adminCatalogServerMiddlewareContext) Wait() error {
 	}
 }
 
-// AdminCatalogServer is the default catalog server for Admin service.
-type AdminCatalogServer interface {
-	RegisterHandler(key string, handler AdminCatalogServerHandler)
-	RegisterMiddleware(key string, middle AdminCatalogServerMiddleware)
-	UnregisterHandler(key string, handler AdminCatalogServerHandler)
+// AdminServerRouter is the default server router for Admin service.
+type AdminServerRouter interface {
+	RegisterHandler(key string, handler AdminServerRouterHandler)
+	RegisterMiddleware(key string, middle AdminServerRouterMiddleware)
+	UnregisterHandler(key string, handler AdminServerRouterHandler)
 }
 
-// adminCatalogServer is the default catalog server for Admin service.
-type adminCatalogServer struct {
+// adminServerRouter is the default server router for Admin service.
+type adminServerRouter struct {
 	UnimplementedAdminServer
 	mu          sync.Mutex
 	handlers    sync.Map
 	middlewares sync.Map
 }
 
-func (svr *adminCatalogServer) RegisterMiddleware(key string, middleware AdminCatalogServerMiddleware) {
+func (svr *adminServerRouter) RegisterMiddleware(key string, middleware AdminServerRouterMiddleware) {
 	svr.middlewares.Store(key, middleware)
 }
 
-func (svr *adminCatalogServer) RegisterHandler(key string, handler AdminCatalogServerHandler) {
+func (svr *adminServerRouter) RegisterHandler(key string, handler AdminServerRouterHandler) {
 	svr.handlers.Store(key, handler)
 }
 
-func (svr *adminCatalogServer) UnregisterHandler(key string, handler AdminCatalogServerHandler) {
+func (svr *adminServerRouter) UnregisterHandler(key string, handler AdminServerRouterHandler) {
 	svr.handlers.Delete(key)
 	svr.middlewares.Delete(key)
 }
 
-func (svr *adminCatalogServer) ReloadResource(ctx context.Context, in *ReloadResourceRequest) (*ReloadResourceResponse, error) {
+func (svr *adminServerRouter) ReloadResource(ctx context.Context, in *ReloadResourceRequest) (*ReloadResourceResponse, error) {
 	var kv metadata.MD
 	var ok bool
 	if kv, ok = metadata.FromIncomingContext(ctx); !ok {
 		if kv, ok = metadata.FromOutgoingContext(ctx); !ok {
-			return nil, gira.ErrCatalogServerMetaNotFound
+			return nil, gira.ErrServerRouterMetaNotFound
 		}
 	}
-	if keys, ok := kv[gira.GRPC_CATALOG_KEY]; !ok {
-		return nil, gira.ErrCatalogServerKeyNotFound
+	if keys, ok := kv[gira.GRPC_PATH_KEY]; !ok {
+		return nil, gira.ErrServerRouterKeyNotFound
 	} else if len(keys) <= 0 {
-		return nil, gira.ErrCatalogServerKeyNotFound
+		return nil, gira.ErrServerRouterKeyNotFound
 	} else if v, ok := svr.handlers.Load(keys[0]); !ok {
-		return nil, gira.ErrCatalogServerHandlerNotRegist
+		return nil, gira.ErrServerRouterHandlerNotRegist
 	} else if handler, ok := v.(AdminServer); !ok {
-		return nil, gira.ErrCatalogServerHandlerNotImplement
+		return nil, gira.ErrServerRouterHandlerNotImplement
 	} else {
 		if v, ok := svr.middlewares.Load(keys[0]); !ok {
 			return handler.ReloadResource(ctx, in)
-		} else if middleware, ok := v.(AdminCatalogServerMiddleware); ok {
-			r := &adminCatalogServerMiddlewareContext{
+		} else if middleware, ok := v.(AdminServerRouterMiddleware); ok {
+			r := &adminServerRouterMiddlewareContext{
 				fullMethod: Admin_ReloadResource_FullMethodName,
 				method:     "ReloadResource",
 				ctx:        ctx,
@@ -129,11 +129,11 @@ func (svr *adminCatalogServer) ReloadResource(ctx context.Context, in *ReloadRes
 					return handler.ReloadResource(ctx, in)
 				},
 			}
-			if err := middleware.AdminCatalogServerMiddlewareInvoke(r); err != nil {
+			if err := middleware.AdminServerRouterMiddlewareInvoke(r); err != nil {
 				return nil, err
 			}
 			if r.out == nil && r.err == nil {
-				return nil, gira.ErrCatalogServerHandlerNotImplement
+				return nil, gira.ErrServerRouterHandlerNotImplement
 			} else if r.out == nil && r.err != nil {
 				return nil, r.err
 			} else {
@@ -144,23 +144,23 @@ func (svr *adminCatalogServer) ReloadResource(ctx context.Context, in *ReloadRes
 		}
 	}
 }
-func (svr *adminCatalogServer) ReloadResource1(s Admin_ReloadResource1Server) error {
+func (svr *adminServerRouter) ReloadResource1(s Admin_ReloadResource1Server) error {
 	return status.Errorf(codes.Unimplemented, "method ReloadResource1 not implemented")
 }
-func (svr *adminCatalogServer) ReloadResource2(in *ReloadResourceRequest2, s Admin_ReloadResource2Server) error {
+func (svr *adminServerRouter) ReloadResource2(in *ReloadResourceRequest2, s Admin_ReloadResource2Server) error {
 	return status.Errorf(codes.Unimplemented, "method ReloadResource2 not implemented")
 }
-func (svr *adminCatalogServer) ReloadResource3(s Admin_ReloadResource3Server) error {
+func (svr *adminServerRouter) ReloadResource3(s Admin_ReloadResource3Server) error {
 	return status.Errorf(codes.Unimplemented, "method ReloadResource3 not implemented")
 }
 
-func RegisterAdminServerAsCatalog(s grpc.ServiceRegistrar, handler AdminCatalogServerHandler) AdminCatalogServer {
-	svr := &adminCatalogServer{}
-	s.RegisterService(&Admin_ServiceCatalogDesc, svr)
+func RegisterAdminServerAsRouter(s grpc.ServiceRegistrar, handler AdminServerRouterHandler) AdminServerRouter {
+	svr := &adminServerRouter{}
+	s.RegisterService(&Admin_ServiceRouterDesc, svr)
 	return svr
 }
 
-func _Admin_ReloadResource_CatalogHandler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Admin_ReloadResource_RouterHandler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReloadResourceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -178,25 +178,25 @@ func _Admin_ReloadResource_CatalogHandler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Admin_ReloadResource1_CatalogHandler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(AdminServer).ReloadResource1(&adminReloadResource1CatalogServer{stream})
+func _Admin_ReloadResource1_RouterHandler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AdminServer).ReloadResource1(&adminReloadResource1ServerRouter{stream})
 }
 
-type Admin_ReloadResource1CatalogServer interface {
+type Admin_ReloadResource1ServerRouter interface {
 	SendAndClose(*ReloadResourceResponse1) error
 	Recv() (*ReloadResourceRequest1, error)
 	grpc.ServerStream
 }
 
-type adminReloadResource1CatalogServer struct {
+type adminReloadResource1ServerRouter struct {
 	grpc.ServerStream
 }
 
-func (x *adminReloadResource1CatalogServer) SendAndClose(m *ReloadResourceResponse1) error {
+func (x *adminReloadResource1ServerRouter) SendAndClose(m *ReloadResourceResponse1) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *adminReloadResource1CatalogServer) Recv() (*ReloadResourceRequest1, error) {
+func (x *adminReloadResource1ServerRouter) Recv() (*ReloadResourceRequest1, error) {
 	m := new(ReloadResourceRequest1)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -204,46 +204,46 @@ func (x *adminReloadResource1CatalogServer) Recv() (*ReloadResourceRequest1, err
 	return m, nil
 }
 
-func _Admin_ReloadResource2_CatalogHandler(srv interface{}, stream grpc.ServerStream) error {
+func _Admin_ReloadResource2_RouterHandler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ReloadResourceRequest2)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(AdminServer).ReloadResource2(m, &adminReloadResource2CatalogServer{stream})
+	return srv.(AdminServer).ReloadResource2(m, &adminReloadResource2ServerRouter{stream})
 }
 
-type Admin_ReloadResource2CatalogServer interface {
+type Admin_ReloadResource2ServerRouter interface {
 	Send(*ReloadResourceResponse2) error
 	grpc.ServerStream
 }
 
-type adminReloadResource2CatalogServer struct {
+type adminReloadResource2ServerRouter struct {
 	grpc.ServerStream
 }
 
-func (x *adminReloadResource2CatalogServer) Send(m *ReloadResourceResponse2) error {
+func (x *adminReloadResource2ServerRouter) Send(m *ReloadResourceResponse2) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Admin_ReloadResource3_CatalogHandler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(AdminServer).ReloadResource3(&adminReloadResource3CatalogServer{stream})
+func _Admin_ReloadResource3_RouterHandler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AdminServer).ReloadResource3(&adminReloadResource3ServerRouter{stream})
 }
 
-type Admin_ReloadResource3CatalogServer interface {
+type Admin_ReloadResource3ServerRouter interface {
 	Send(*ReloadResourceResponse2) error
 	Recv() (*ReloadResourceRequest2, error)
 	grpc.ServerStream
 }
 
-type adminReloadResource3CatalogServer struct {
+type adminReloadResource3ServerRouter struct {
 	grpc.ServerStream
 }
 
-func (x *adminReloadResource3CatalogServer) Send(m *ReloadResourceResponse2) error {
+func (x *adminReloadResource3ServerRouter) Send(m *ReloadResourceResponse2) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *adminReloadResource3CatalogServer) Recv() (*ReloadResourceRequest2, error) {
+func (x *adminReloadResource3ServerRouter) Recv() (*ReloadResourceRequest2, error) {
 	m := new(ReloadResourceRequest2)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -251,32 +251,32 @@ func (x *adminReloadResource3CatalogServer) Recv() (*ReloadResourceRequest2, err
 	return m, nil
 }
 
-// Admin_ServiceCatalogDesc is the grpc.ServiceDesc for Admin service.
+// Admin_ServiceRouterDesc is the grpc.ServiceDesc for Admin service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Admin_ServiceCatalogDesc = grpc.ServiceDesc{
+var Admin_ServiceRouterDesc = grpc.ServiceDesc{
 	ServiceName: "admin_grpc.Admin",
-	HandlerType: (*AdminCatalogServer)(nil),
+	HandlerType: (*AdminServerRouter)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "ReloadResource",
-			Handler:    _Admin_ReloadResource_CatalogHandler,
+			Handler:    _Admin_ReloadResource_RouterHandler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "ReloadResource1",
-			Handler:       _Admin_ReloadResource1_CatalogHandler,
+			Handler:       _Admin_ReloadResource1_RouterHandler,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "ReloadResource2",
-			Handler:       _Admin_ReloadResource2_CatalogHandler,
+			Handler:       _Admin_ReloadResource2_RouterHandler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "ReloadResource3",
-			Handler:       _Admin_ReloadResource3_CatalogHandler,
+			Handler:       _Admin_ReloadResource3_RouterHandler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
