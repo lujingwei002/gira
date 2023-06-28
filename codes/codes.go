@@ -222,6 +222,17 @@ func Msg(err error) string {
 	return s[1]
 }
 
+// 提取调用栈
+func Stacktrace(err error) string {
+	if err == nil {
+		return ""
+	}
+	if e, ok := err.(*TraceError); ok {
+		return string(e.stack)
+	}
+	return ""
+}
+
 type CodeError struct {
 	Code   int32
 	Msg    string
@@ -247,7 +258,12 @@ func (e *CodeError) Trace(values ...interface{}) *TraceError {
 			}
 		}
 	}
-	return &TraceError{err: e, stack: debug.Stack(), values: kvs}
+	stack := debug.Stack()
+	if defaultLogger != nil {
+		vs := append(values, "stacktrace", string(stack))
+		defaultLogger.Errorw(e.Msg, vs...)
+	}
+	return &TraceError{err: e, stack: stack, values: kvs}
 }
 
 // 格式化错误字符串

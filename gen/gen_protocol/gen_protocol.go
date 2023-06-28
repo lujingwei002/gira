@@ -147,6 +147,9 @@ func (self *<<.Response.StructName>>) SetErrorCode(v int32) {
 func (self *<<.Response.StructName>>) SetErrorMsg(v string) {
 	self.ErrorMsg = v
 }
+func (self *<<.Response.StructName>>) SetDebugMsg(v string) {
+	self.DebugMsg = v
+}
 <<end>>
 	<<- /* notify 类型 */>>
 	<<- if .Type.IsNotifyType>>

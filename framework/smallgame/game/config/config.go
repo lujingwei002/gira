@@ -15,6 +15,7 @@ type GameConfig struct {
 	ResponseBufferSize   int   `yaml:"response-buffer-size"`
 	PushBufferSize       int   `yaml:"push-buffer-size"`
 	SessionActorBuffSize int   `yaml:"session-actor-buffer-size"`
+	TraceProtoDebugMsg   bool  `yaml:"trace-proto-debug-msg"`
 }
 
 type Config struct {

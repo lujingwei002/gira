@@ -198,7 +198,7 @@ func (self *sproto) StructDecode(data []byte, req interface{}) error {
 
 // 根据协议，调用handler的相应方法
 // 实现gira.Proto RequestDispatch
-func (self *sproto) RequestDispatch(ctx context.Context, handler gira.ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, pushArr []gira.ProtoPush, err error) {
+func (self *sproto) RequestDispatch(ctx context.Context, handler gira.ProtoHandler, receiver interface{}, route string, session int32, req interface{}, traceDebugMsg bool) (dataResp []byte, pushArr []gira.ProtoPush, err error) {
 	resp, pushArr, err := handler.RequestDispatch(ctx, receiver, route, req)
 	// response
 	if resp == nil {
@@ -220,6 +220,9 @@ func (self *sproto) RequestDispatch(ctx context.Context, handler gira.ProtoHandl
 	if proto != nil && err != nil {
 		proto.SetErrorCode(codes.Code(err))
 		proto.SetErrorMsg(codes.Msg(err))
+		if traceDebugMsg {
+			proto.SetDebugMsg(codes.Stacktrace(err))
+		}
 	}
 	dataResp, err = self.rpc.ResponseEncode(route, session, proto)
 	if err != nil {

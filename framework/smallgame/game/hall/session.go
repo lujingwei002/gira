@@ -342,7 +342,7 @@ func (session *hall_sesssion) processClientMessage(message *hall_grpc.ClientMess
 		}
 	}()
 	session.mu.Lock()
-	resp, pushArr, err = session.hall.proto.RequestDispatch(timeoutCtx, session.hall.playerHandler, session.player, name, reqId, req)
+	resp, pushArr, err = session.hall.proto.RequestDispatch(timeoutCtx, session.hall.playerHandler, session.player, name, reqId, req, session.hall.config.TraceProtoDebugMsg)
 	if err != nil {
 		log.Errorw("request dispatch fail", "session_id", sessionId, "error", err)
 		return

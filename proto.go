@@ -16,6 +16,7 @@ type ProtoPush interface {
 type ProtoResponse interface {
 	SetErrorCode(v int32)
 	SetErrorMsg(v string)
+	SetDebugMsg(v string)
 }
 
 type ProtoHandler interface {
@@ -52,7 +53,7 @@ type Proto interface {
 	// 生成handler
 	RegisterHandler(handler interface{}) ProtoHandler
 	// 将request路由到handler的相应方法
-	RequestDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, session int32, req interface{}) (dataResp []byte, pushArr []ProtoPush, err error)
+	RequestDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, session int32, req interface{}, traceDebugMsg bool) (dataResp []byte, pushArr []ProtoPush, err error)
 	// 将push路由到handler的相应方法
 	PushDispatch(ctx context.Context, handler ProtoHandler, receiver interface{}, route string, req ProtoPush) error
 }

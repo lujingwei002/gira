@@ -113,6 +113,14 @@ func GetWorkDir() string {
 	return gira.App().GetWorkDir()
 }
 
+func Stop() error {
+	return gira.App().Stop()
+}
+
+func Wait() error {
+	return gira.App().Wait()
+}
+
 // ================= resource component =============================
 // 重载配置
 func ReloadResource() error {

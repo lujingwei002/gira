@@ -102,6 +102,7 @@ type Application interface {
 
 	// ======= 同步接口 ===========
 	Wait() error
+	Stop() error
 	Context() context.Context
 	Go(f func() error)
 	Done() <-chan struct{}
