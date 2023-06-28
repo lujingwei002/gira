@@ -52,7 +52,7 @@ var (
 	<<- $key := index $row $keyField.Tag >>
 	<<- $value := index $row $valueField.Tag >>
 	// << index $row $commentField.Tag >>
-	err<<camelString $key>> = codes.New(Code<<camelString $key>>, msg_<<camelString $key>>)
+	Err<<camelString $key>> = codes.New(Code<<camelString $key>>, msg_<<camelString $key>>)
 <<- end>>
 )
 
@@ -61,8 +61,8 @@ var (
 <<- $key := index $row $keyField.Tag >>
 <<- $value := index $row $valueField.Tag >>
 // << index $row $commentField.Tag >>
-func ThrowErr<<camelString $key>>(values ...interface{}) *codes.ErrorCode {
-	return codes.Throw(Code<<camelString $key>>, msg_<<camelString $key>>, values...)
+func TraceErr<<camelString $key>>(values ...interface{}) *codes.TraceError {
+	return Err<<camelString $key>>.Trace(values...)
 }
 <<- end>>
 <<- else >>

@@ -1,35 +1,41 @@
 package codes
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"runtime/debug"
 	"strconv"
 	"strings"
 )
 
+type Logger interface {
+	Errorw(msg string, keysAndValues ...interface{})
+}
+
+var defaultLogger Logger
+
+func SetLogger(l Logger) {
+	defaultLogger = l
+}
+
 // 错误码常量
 const (
 	CodeOk                             = 0
-	CodeMalformed                      = -1 // error格式错误,不是"code:msg"格式
-	CodeUnknown                        = -2
-	CodeNullPointer                    = -2
-	CodeNullObject                     = -7
-	CodeInvalidSdkToken                = -18
-	CodeInvalidArgs                    = -19
-	CodeInvalidJwt                     = -20
-	CodeJwtExpire                      = -21
-	CodeToDo                           = -22
-	CodeInvalidPassword                = -23
-	CodePayOrderStatusInvalid          = -24
-	CodeAccountPlatformNotSupport      = -25
-	CodePayOrderAccountPlatformInvalid = -26
-	CodePayOrderAmountInvalid          = -27
+	CodeUnknown                        = 1
+	CodeNullPointer                    = 2
+	CodeNullObject                     = 3
+	CodeInvalidSdkToken                = 4
+	CodeInvalidArgs                    = 5
+	CodeInvalidJwt                     = 6
+	CodeJwtExpire                      = 7
+	CodeToDo                           = 8
+	CodeInvalidPassword                = 9
+	CodePayOrderStatusInvalid          = 10
+	CodeAccountPlatformNotSupport      = 11
+	CodePayOrderAccountPlatformInvalid = 12
+	CodePayOrderAmountInvalid          = 13
 )
 const (
 	msg_OK                             = "成功"
-	msg_Malformed                      = "malformed error"
 	msg_Unknown                        = "未知错误"
 	msg_NullObject                     = "null object"
 	msg_InvalidSdkToken                = "无效的sdk token"
@@ -44,75 +50,45 @@ const (
 	msg_PayOrderAmountInvalid          = "pay order amount invalid"
 )
 
-func ThrowErrMalformed(values ...interface{}) *ErrorCode {
-	return Throw(CodeMalformed, msg_Malformed, values...)
-}
+var (
+	ErrUnknown                        = New(CodeUnknown, msg_Unknown)
+	ErrNullObject                     = New(CodeNullObject, msg_NullObject)
+	ErrInvalidSdkToken                = New(CodeInvalidSdkToken, msg_InvalidSdkToken)
+	ErrInvalidArgs                    = New(CodeInvalidArgs, msg_InvalidArgs)
+	ErrInvalidJwt                     = New(CodeInvalidJwt, msg_InvalidJwt)
+	ErrJwtExpire                      = New(CodeJwtExpire, msg_JwtExpire)
+	ErrToDo                           = New(CodeToDo, msg_ToDo)
+	ErrInvalidPassword                = New(CodeInvalidPassword, msg_InvalidPassword)
+	ErrPayOrderStatusInvalid          = New(CodePayOrderStatusInvalid, msg_PayOrderStatusInvalid)
+	ErrAccountPlatformNotSupport      = New(CodeAccountPlatformNotSupport, msg_AccountPlatformNotSupport)
+	ErrPayOrderAccountPlatformInvalid = New(CodePayOrderAccountPlatformInvalid, msg_PayOrderAccountPlatformInvalid)
+	ErrPayOrderAmountInvalid          = New(CodePayOrderAmountInvalid, msg_PayOrderAmountInvalid)
+)
 
-func ThrowErrUnknown(values ...interface{}) *ErrorCode {
-	return Throw(CodeUnknown, msg_Unknown, values...)
-}
-
-func ThrowErrNullObject(values ...interface{}) *ErrorCode {
-	return Throw(CodeNullObject, msg_NullObject, values...)
-}
-
-func ThrowErrInvalidSdkToken(values ...interface{}) *ErrorCode {
-	return Throw(CodeInvalidSdkToken, msg_InvalidSdkToken, values...)
-}
-
-func ThrowErrInvalidArgs(values ...interface{}) *ErrorCode {
-	return Throw(CodeInvalidArgs, msg_InvalidArgs, values...)
-}
-
-func ThrowErrInvalidJwt(values ...interface{}) *ErrorCode {
-	return Throw(CodeInvalidJwt, msg_InvalidJwt, values...)
-}
-
-func ThrowErrJwtExpire(values ...interface{}) *ErrorCode {
-	return Throw(CodeJwtExpire, msg_JwtExpire, values...)
-}
-
-func ThrowErrTodo(values ...interface{}) *ErrorCode {
-	return Throw(CodeToDo, msg_ToDo, values...)
-}
-
-func ThrowErrInvalidPassword(values ...interface{}) *ErrorCode {
-	return Throw(CodeInvalidPassword, msg_InvalidPassword, values...)
-}
-
-func ThrowErrPayOrderStatusInvalid(values ...interface{}) *ErrorCode {
-	return Throw(CodePayOrderStatusInvalid, msg_PayOrderStatusInvalid, values...)
-}
-
-func ThrowErrAccountPlatformNotSupport(values ...interface{}) *ErrorCode {
-	return Throw(CodeAccountPlatformNotSupport, msg_AccountPlatformNotSupport, values...)
-}
-
-func ThrowErrPayOrderAccountPlatformInvalid(values ...interface{}) *ErrorCode {
-	return Throw(CodePayOrderAccountPlatformInvalid, msg_PayOrderAccountPlatformInvalid, values...)
-}
-
-func ThrowErrPayOrderAmountInvalid(values ...interface{}) *ErrorCode {
-	return Throw(CodePayOrderAmountInvalid, msg_PayOrderAmountInvalid, values...)
+func TraceErrTodo(values ...interface{}) *TraceError {
+	return ErrToDo.Trace(values...)
 }
 
 // 根据code, msg, values创建error_code
-func Throw(code int32, msg string, values ...interface{}) *ErrorCode {
+func Trace(code int32, msg string, values ...interface{}) *CodeError {
 	var kvs map[string]interface{}
-	for i := 0; i < len(values); i += 2 {
-		j := i + 1
-		if j < len(values) {
-			if kvs == nil {
-				kvs = make(map[string]interface{})
-			}
+	if len(values)%2 != 0 {
+	} else if len(values) == 0 {
+	} else {
+		kvs = make(map[string]interface{})
+
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
 			if k, ok := values[i].(string); ok {
 				kvs[k] = values[j]
 			}
 		}
 	}
-	os.Stderr.WriteString(fmt.Sprintf("%s\n", kvs))
-	debug.PrintStack()
-	return &ErrorCode{
+	if defaultLogger != nil {
+		vs := append(values, "stack", string(debug.Stack()))
+		defaultLogger.Errorw(msg, vs...)
+	}
+	return &CodeError{
 		Code:   code,
 		Msg:    msg,
 		Values: kvs,
@@ -120,20 +96,21 @@ func Throw(code int32, msg string, values ...interface{}) *ErrorCode {
 }
 
 // 根据code, msg, values创建error_code
-func New(code int32, msg string, values ...interface{}) *ErrorCode {
+func New(code int32, msg string, values ...interface{}) *CodeError {
 	var kvs map[string]interface{}
-	for i := 0; i < len(values); i += 2 {
-		j := i + 1
-		if j < len(values) {
-			if kvs == nil {
-				kvs = make(map[string]interface{})
-			}
+	if len(values)%2 != 0 {
+	} else if len(values) == 0 {
+	} else {
+		kvs = make(map[string]interface{})
+
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
 			if k, ok := values[i].(string); ok {
 				kvs[k] = values[j]
 			}
 		}
 	}
-	return &ErrorCode{
+	return &CodeError{
 		Code:   code,
 		Msg:    msg,
 		Values: kvs,
@@ -141,27 +118,27 @@ func New(code int32, msg string, values ...interface{}) *ErrorCode {
 }
 
 // 转换或者创建error
-func NewOrCastError(err error) *ErrorCode {
+func NewOrCastError(err error) *CodeError {
 	if err == nil {
 		return nil
 	}
-	if e, ok := err.(*ErrorCode); ok {
+	if e, ok := err.(*CodeError); ok {
 		return e
 	} else {
 		msg := err.Error()
 		arr := strings.Split(msg, ":")
 		if len(arr) < 2 {
-			return &ErrorCode{
-				Code: CodeMalformed,
+			return &CodeError{
+				Code: CodeUnknown,
 				Msg:  msg,
 			}
 		} else if v, err := strconv.Atoi(arr[0]); err != nil {
-			return &ErrorCode{
-				Code: CodeMalformed,
+			return &CodeError{
+				Code: CodeUnknown,
 				Msg:  msg,
 			}
 		} else {
-			return &ErrorCode{
+			return &CodeError{
 				Code: int32(v),
 				Msg:  arr[1],
 			}
@@ -174,16 +151,19 @@ func Code(err error) int32 {
 	if err == nil {
 		return 0
 	}
-	if e, ok := err.(*ErrorCode); ok {
+	if e, ok := err.(*CodeError); ok {
+		return e.Code
+	}
+	if e, ok := err.(*TraceError); ok {
 		return e.Code
 	}
 	s := strings.Split(err.Error(), ":")
 	if len(s) == 0 {
-		return CodeMalformed
+		return CodeUnknown
 	}
 	i, err := strconv.Atoi(s[0])
 	if err != nil {
-		return CodeMalformed
+		return CodeUnknown
 	}
 	return int32(i)
 }
@@ -193,7 +173,10 @@ func Msg(err error) string {
 	if err == nil {
 		return msg_OK
 	}
-	if e, ok := err.(*ErrorCode); ok {
+	if e, ok := err.(*CodeError); ok {
+		return e.Msg
+	}
+	if e, ok := err.(*TraceError); ok {
 		return e.Msg
 	}
 	s := strings.Split(err.Error(), ":")
@@ -203,28 +186,55 @@ func Msg(err error) string {
 	return s[1]
 }
 
-// 提取错误栈
-func Stack(err error) string {
-	if e, ok := err.(*ErrorCode); ok {
-		return string(e.Stack)
-	}
-	return ""
+type CodeError struct {
+	Code   int32
+	Msg    string
+	Values map[string]interface{}
 }
 
-type ErrorCode struct {
+// 拷贝error并且附加stack
+func (e *CodeError) Trace(values ...interface{}) *TraceError {
+	var kvs map[string]interface{}
+	if len(values)%2 != 0 {
+		kvs = e.Values
+	} else if len(values) == 0 {
+		kvs = e.Values
+	} else {
+		kvs = make(map[string]interface{})
+		for k, v := range e.Values {
+			kvs[k] = v
+		}
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
+			if k, ok := values[i].(string); ok {
+				kvs[k] = values[j]
+			}
+		}
+	}
+	return &TraceError{Code: e.Code, Msg: e.Msg, Stack: debug.Stack(), Values: kvs}
+}
+
+// 格式化错误字符串
+func (e *CodeError) Error() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("%d: %s", e.Code, e.Msg))
+	if e.Values != nil {
+		for k, v := range e.Values {
+			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+		}
+	}
+	return sb.String()
+}
+
+// 跟踪错误信息
+type TraceError struct {
 	Code   int32
 	Msg    string
 	Stack  []byte
 	Values map[string]interface{}
 }
 
-// 拷贝error并且附加stack
-func (e *ErrorCode) Trace() *ErrorCode {
-	return &ErrorCode{Code: e.Code, Msg: e.Msg, Stack: debug.Stack(), Values: e.Values}
-}
-
-// 格式化错误字符串
-func (e *ErrorCode) Error() string {
+func (e *TraceError) Error() string {
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("%d: %s", e.Code, e.Msg))
 	if e.Values != nil {
@@ -233,57 +243,8 @@ func (e *ErrorCode) Error() string {
 		}
 	}
 	if e.Stack != nil {
-		sb.WriteString("\ntraceback:\n")
+		sb.WriteString("\nstacktrace:\n")
 		sb.Write(e.Stack)
 	}
 	return sb.String()
-}
-
-// 附加value到error中
-func (err *ErrorCode) WithValues(values ...interface{}) *ErrorCode {
-	for i := 0; i < len(values); i += 2 {
-		j := i + 1
-		if j < len(values) {
-			if err.Values == nil {
-				err.Values = make(map[string]interface{})
-			}
-			if k, ok := values[i].(string); ok {
-				err.Values[k] = values[j]
-			}
-		}
-	}
-	return err
-}
-
-// 附加stack到error中
-func (err *ErrorCode) WithTrace(values ...interface{}) *ErrorCode {
-	err.Stack = debug.Stack()
-	return err
-}
-
-// 附加错误描述到error中
-func (err *ErrorCode) WithMsg(msg string) *ErrorCode {
-	err.Msg = msg
-	return err
-}
-
-func (err *ErrorCode) WithFile(file string) *ErrorCode {
-	if err.Values == nil {
-		err.Values = make(map[string]interface{})
-	}
-	err.Values["file"] = file
-	return err
-}
-
-func (err *ErrorCode) WithLines(content []byte) *ErrorCode {
-	sb := strings.Builder{}
-	arr := bytes.Split(content, []byte("\n"))
-	for index, line := range arr {
-		sb.WriteString(fmt.Sprintf("%d: %s\n", index+1, line))
-	}
-	if err.Values == nil {
-		err.Values = make(map[string]interface{})
-	}
-	err.Values["lines"] = sb.String()
-	return err
 }

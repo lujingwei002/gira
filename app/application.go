@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lujingwei002/gira/codes"
 	"github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/gins"
@@ -122,6 +123,7 @@ func newApplication(args gira.ApplicationArgs) *Application {
 }
 
 func (application *Application) init() error {
+	var err error
 	applicationFacade := application.applicationFacade
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
@@ -170,15 +172,24 @@ func (application *Application) init() error {
 	if err := application.applicationFacade.OnConfigLoad(application.config); err != nil {
 		return err
 	}
+	var logger gira.Logger
+	var coreLogger gira.Logger
 	// 初始化日志
 	if application.config.CoreLog != nil {
-		if err := corelog.ConfigLog(*application.config.CoreLog); err != nil {
+		if coreLogger, err = corelog.ConfigLogger(*application.config.CoreLog); err != nil {
 			return err
 		}
 	}
 	if application.config.Log != nil {
-		if err := log.ConfigLog(*application.config.Log); err != nil {
+		if logger, err = log.ConfigLogger(*application.config.Log); err != nil {
 			return err
+		}
+	}
+	if application.config.LogErrorStack {
+		if coreLogger != nil {
+			codes.SetLogger(coreLogger)
+		} else if logger != nil {
+			codes.SetLogger(logger)
 		}
 	}
 	runtime.GOMAXPROCS(application.config.Thread)
@@ -381,23 +392,25 @@ func (application *Application) onStart() (err error) {
 			return application.registry.Watch(peerWatchHandlers, localPlayerWatchHandlers, serviceWatchHandlers)
 		})
 	}
-	application.errGroup.Go(func() error {
-		var handler gira.GatewayHandler
-		if h, ok := applicationFacade.(gira.GatewayHandler); ok {
-			handler = h
-		} else {
-			for _, fw := range application.frameworks {
-				if h, ok = fw.(gira.GatewayHandler); ok {
-					handler = h
-					break
+	if application.gate != nil {
+		application.errGroup.Go(func() error {
+			var handler gira.GatewayHandler
+			if h, ok := applicationFacade.(gira.GatewayHandler); ok {
+				handler = h
+			} else {
+				for _, fw := range application.frameworks {
+					if h, ok = fw.(gira.GatewayHandler); ok {
+						handler = h
+						break
+					}
 				}
 			}
-		}
-		if handler == nil {
-			return errors.ErrGateHandlerNotImplement
-		}
-		return application.gate.Serve(handler)
-	})
+			if handler == nil {
+				return errors.ErrGateHandlerNotImplement
+			}
+			return application.gate.Serve(handler)
+		})
+	}
 	application.errGroup.Go(func() error {
 		return application.serviceContainer.Serve()
 	})

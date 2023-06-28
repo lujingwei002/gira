@@ -26,16 +26,16 @@ func JWT() gin.HandlerFunc {
 		var claims *Claims
 		token := g.GetHeader("Authorization")
 		if token == "" {
-			err = codes.ThrowErrInvalidJwt()
+			err = codes.ErrInvalidJwt
 		} else {
 			//TODO
 			claims, err = ParseJwtToken1(token, "app.Config.Jwt.Secret")
 			if err != nil {
-				err = codes.ThrowErrInvalidJwt()
+				err = codes.ErrInvalidJwt
 			} else if time.Now().Unix() > claims.ExpiresAt {
-				err = codes.ThrowErrJwtExpire()
+				err = codes.ErrJwtExpire
 			} else if claims.MemberId == "" {
-				err = codes.ThrowErrInvalidJwt()
+				err = codes.ErrInvalidJwt
 			} else {
 				g.Set("MemberId", claims.MemberId)
 				g.Set("Claims", claims)

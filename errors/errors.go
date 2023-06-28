@@ -6,47 +6,8 @@ import (
 	"strings"
 )
 
-type SyntaxError struct {
-	msg      string
-	filePath string
-	lines    []string
-}
-
-func NewSyntaxError(msg string, filePath string, content string) *SyntaxError {
-	lines := strings.Split(content, "\n")
-	return &SyntaxError{
-		msg:      msg,
-		filePath: filePath,
-		lines:    lines,
-	}
-}
-
-func (e *SyntaxError) Error() string {
-	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("%s\n", e.msg))
-	sb.WriteString(fmt.Sprintf("%s\n", e.filePath))
-	for k, v := range e.lines {
-		sb.WriteString(fmt.Sprintf("%d: %s\n", k+1, v))
-	}
-	return sb.String()
-}
-
-type TodoError struct {
-	stack []byte
-}
-
-func (e *TodoError) Error() string {
-	sb := strings.Builder{}
-	return sb.String()
-}
-
-func (e *TodoError) Trace() error {
-	e.stack = debug.Stack()
-	return e
-}
-
 var (
-	ErrTodo                               = &TodoError{}
+	ErrTodo                               = New("TODO")
 	ErrNullObject                         = New("null object")
 	ErrNullPointer                        = New("null pointer")
 	ErrInvalidArgs                        = New("invalid args")
@@ -104,15 +65,57 @@ var (
 	ErrInvalidSdkToken                    = New("invalid sdk token")
 )
 
+func New(msg string, values ...interface{}) *Error {
+	var kvs map[string]interface{}
+	if len(values)%2 != 0 {
+
+	} else if len(values) == 0 {
+
+	} else {
+		kvs = make(map[string]interface{})
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
+			if k, ok := values[i].(string); ok {
+				kvs[k] = values[j]
+			}
+		}
+	}
+	return &Error{
+		Msg:    msg,
+		Values: kvs,
+	}
+}
+
+func Trace(msg string, values ...interface{}) *TraceError {
+	var kvs map[string]interface{}
+	if len(values)%2 != 0 {
+
+	} else if len(values) == 0 {
+
+	} else {
+		kvs = make(map[string]interface{})
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
+			if k, ok := values[i].(string); ok {
+				kvs[k] = values[j]
+			}
+		}
+	}
+	return &TraceError{
+		Msg:    msg,
+		Values: kvs,
+		Stack:  debug.Stack(),
+	}
+}
+
 type Error struct {
 	Msg    string
 	Values map[string]interface{}
 }
 
-// 格式化错误字符串
 func (e *Error) Error() string {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("%s\n", e.Msg))
+	sb.WriteString(e.Msg)
 	if e.Values != nil {
 		for k, v := range e.Values {
 			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
@@ -121,40 +124,68 @@ func (e *Error) Error() string {
 	return sb.String()
 }
 
-func New(msg string, values ...interface{}) *Error {
+func (e *Error) Trace(values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
-	for i := 0; i < len(values); i += 2 {
-		j := i + 1
-		if j < len(values) {
-			if kvs == nil {
-				kvs = make(map[string]interface{})
-			}
+	if len(values)%2 != 0 {
+		kvs = e.Values
+	} else if len(values) == 0 {
+		kvs = e.Values
+	} else {
+		kvs = make(map[string]interface{})
+		for k, v := range e.Values {
+			kvs[k] = v
+		}
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
 			if k, ok := values[i].(string); ok {
 				kvs[k] = values[j]
 			}
 		}
 	}
-	return &Error{
-		Msg:    msg,
-		Values: kvs,
+	return &TraceError{Msg: e.Msg, Stack: debug.Stack(), Values: kvs}
+}
+
+// 保存发生错误时的调用栈
+type TraceError struct {
+	Msg    string
+	Values map[string]interface{}
+	Stack  []byte
+}
+
+func (e *TraceError) Error() string {
+	sb := strings.Builder{}
+	sb.WriteString(e.Msg)
+	if e.Values != nil {
+		for k, v := range e.Values {
+			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+		}
+	}
+	sb.WriteString("\n")
+	sb.WriteString(string(e.Stack))
+	return sb.String()
+}
+
+type SyntaxError struct {
+	msg      string
+	filePath string
+	lines    []string
+}
+
+func NewSyntaxError(msg string, filePath string, content string) *SyntaxError {
+	lines := strings.Split(content, "\n")
+	return &SyntaxError{
+		msg:      msg,
+		filePath: filePath,
+		lines:    lines,
 	}
 }
 
-func Throw(msg string, values ...interface{}) *Error {
-	var kvs map[string]interface{}
-	for i := 0; i < len(values); i += 2 {
-		j := i + 1
-		if j < len(values) {
-			if kvs == nil {
-				kvs = make(map[string]interface{})
-			}
-			if k, ok := values[i].(string); ok {
-				kvs[k] = values[j]
-			}
-		}
+func (e *SyntaxError) Error() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("%s\n", e.msg))
+	sb.WriteString(fmt.Sprintf("%s\n", e.filePath))
+	for k, v := range e.lines {
+		sb.WriteString(fmt.Sprintf("%d: %s\n", k+1, v))
 	}
-	return &Error{
-		Msg:    msg,
-		Values: kvs,
-	}
+	return sb.String()
 }

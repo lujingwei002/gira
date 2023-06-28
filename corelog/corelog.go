@@ -10,34 +10,80 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var defaultLogger Logger
+var defaultLogger *Logger
 
-type Logger interface {
-	Infow(msg string, keysAndValues ...interface{})
-	Errorw(msg string, keysAndValues ...interface{})
-	Debugw(msg string, keysAndValues ...interface{})
-	Fatalw(msg string, keysAndValues ...interface{})
-	Warnw(msg string, keysAndValues ...interface{})
-	Info(args ...interface{})
-	Error(args ...interface{})
-	Debug(args ...interface{})
-	Fatal(args ...interface{})
-	Warn(args ...interface{})
-	Infof(template string, args ...interface{})
-	Errorf(template string, args ...interface{})
-	Debugf(template string, args ...interface{})
-	Fatalf(template string, args ...interface{})
-	Warnf(template string, args ...interface{})
+type Logger struct {
+	sugar *zap.SugaredLogger
 }
 
-func ConfigLog(config gira.LogConfig) error {
+func (l *Logger) Infow(msg string, kvs ...interface{}) {
+	l.sugar.Infow(msg, kvs...)
+}
+
+func (l *Logger) Errorw(msg string, kvs ...interface{}) {
+	l.sugar.Errorw(msg, kvs...)
+}
+
+func (l *Logger) Debugw(msg string, kvs ...interface{}) {
+	l.sugar.Debugw(msg, kvs...)
+}
+
+func (l *Logger) Fatalw(msg string, kvs ...interface{}) {
+	l.sugar.Fatalw(msg, kvs...)
+}
+
+func (l *Logger) Warnw(msg string, kvs ...interface{}) {
+	l.sugar.Warnw(msg, kvs...)
+}
+
+func (l *Logger) Info(args ...interface{}) {
+	l.sugar.Info(args...)
+}
+
+func (l *Logger) Error(args ...interface{}) {
+	l.sugar.Info(args...)
+}
+
+func (l *Logger) Debug(args ...interface{}) {
+	l.sugar.Info(args...)
+}
+
+func (l *Logger) Fatal(args ...interface{}) {
+	l.sugar.Info(args...)
+}
+
+func (l *Logger) Warn(args ...interface{}) {
+	l.sugar.Info(args...)
+}
+
+func (l *Logger) Infof(format string, args ...interface{}) {
+	l.sugar.Infof(format, args...)
+}
+
+func (l *Logger) Errorf(format string, args ...interface{}) {
+	l.sugar.Errorf(format, args...)
+}
+
+func (l *Logger) Debugf(format string, args ...interface{}) {
+	l.sugar.Debugf(format, args...)
+}
+
+func (l *Logger) Fatalf(format string, args ...interface{}) {
+	l.sugar.Fatalf(format, args...)
+}
+
+func (l *Logger) Warnf(format string, args ...interface{}) {
+	l.sugar.Warnf(format, args...)
+}
+
+func ConfigLogger(config gira.LogConfig) (*Logger, error) {
 	cores := make([]zapcore.Core, 0)
 	// 1.控制台输出
 	if config.Console {
 		var level zap.AtomicLevel
 		err := level.UnmarshalText([]byte(config.Level))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		enabler := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 			return lvl >= level.Level()
@@ -68,7 +114,7 @@ func ConfigLog(config gira.LogConfig) error {
 		var level zap.AtomicLevel
 		err := level.UnmarshalText([]byte(config.Level))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		enabler := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 			return lvl >= level.Level()
@@ -102,17 +148,21 @@ func ConfigLog(config gira.LogConfig) error {
 	}
 	// 创建日志对象
 	logger := zap.New(zapcore.NewTee(cores...))
-	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(1))
+	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(2))
 	sugar := logger.Sugar()
-	defaultLogger = sugar
-	return nil
+	defaultLogger = &Logger{
+		sugar: sugar,
+	}
+	return defaultLogger, nil
 }
 
 func init() {
 	logger, _ := zap.NewDevelopment()
-	logger = logger.WithOptions(zap.AddCallerSkip(1))
+	logger = logger.WithOptions(zap.AddCallerSkip(2))
 	sugar := logger.Sugar()
-	defaultLogger = sugar
+	defaultLogger = &Logger{
+		sugar: sugar,
+	}
 }
 
 func Info(args ...interface{}) {
