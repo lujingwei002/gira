@@ -87,6 +87,7 @@ import (
 	"context"
 	gosproto "github.com/xjdrew/gosproto"
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	log "github.com/lujingwei002/gira/corelog"
 	//"github.com/lujingwei002/gira/sproto"
 	"sync/atomic"
@@ -353,7 +354,7 @@ func (self *Client) <<.StructName>>(ctx context.Context, req *<<.Request.StructN
 		caller: make(chan* waitRequest, 1),
 	}
 	if _, loaded := self.requestDict.LoadOrStore(reqId, wait); loaded {
-		return nil, gira.ErrSprotoReqIdConflict
+		return nil, errors.New("<<.StructName>> request id conflict", "req_id", reqId)
 	}
 	if err := self.conn.Request("", reqId, data); err != nil {
 		return nil, err
@@ -368,15 +369,15 @@ func (self *Client) <<.StructName>>(ctx context.Context, req *<<.Request.StructN
 				return nil, v.err
 			}
 	        if uint64(wait.session) != wait.reqId {
-				return nil, gira.ErrSprotoResponseConversion 
+				return nil, errors.New("invalid <<.Response.StructName>> session", "session", wait.session, "req_id", wait.reqId)
 			}
 			resp1, ok := wait.resp.(*<<.Response.StructName>>)
 			if !ok {
-				return nil, gira.ErrSprotoResponseConversion
+				return nil, errors.New("invalid <<.Response.StructName>> proto")
 			}
 			return resp1, nil
 		case <-ctx.Done():
-			return nil, gira.ErrSprotoReqTimeout
+			return nil, ctx.Err()
 	}
 }
 <<- end>>
@@ -397,7 +398,7 @@ func (self *Client) Wait<<.StructName>>Push(ctx context.Context) (*<<.Push.Struc
 		}
 	} 
 	if _, loaded := self.waitPushDict.LoadOrStore("<<.StructName>>", wait); loaded {
-		return nil, gira.ErrSprotoWaitPushConflict
+		return nil, errors.New("wait push conflict", "name", "<<.StructName>>")
 	}
 	defer close(wait.caller)
 	select {
@@ -407,11 +408,11 @@ func (self *Client) Wait<<.StructName>>Push(ctx context.Context) (*<<.Push.Struc
 			}
 			resp1, ok := wait.resp.(*<<.Push.StructName>>)
 			if !ok {
-				return nil, gira.ErrSprotoPushConversion
+				return nil, errors.New("invalid <<.Push.StructName>> proto")
 			}
 			return resp1, nil
 		case <-ctx.Done():
-			return nil, gira.ErrSprotoWaitPushTimeout
+			return nil, ctx.Err()
 	}
 }
 

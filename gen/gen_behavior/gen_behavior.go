@@ -96,6 +96,7 @@ import (
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/facade"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/behavior"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -174,7 +175,7 @@ func Migrate(ctx context.Context, client  gira.DbClient, opts ...behavior.Migrat
 		driver.Use(client2)
 		return driver.Migrate(ctx, opts...)
 	default:
-		return gira.ErrDbNotSupport
+		return errors.ErrDbNotSupport
 	}
 }
 
@@ -183,13 +184,13 @@ func Use(ctx context.Context, client gira.DbClient, config gira.BehaviorConfig) 
 	case gira.MongoClient:
 		return UseMongo(ctx, client2, config)
 	default:
-		return gira.ErrDbNotSupport
+		return errors.ErrDbNotSupport
 	}
 }
 
 func UseMongo(ctx context.Context, client gira.MongoClient, config gira.BehaviorConfig) error {
 	if globalDriver != nil {
-		return gira.ErrTodo
+		return errors.ErrTodo
 	}
 	driver := NewMongo()
 	if err := driver.Use(client); err != nil {
@@ -204,7 +205,7 @@ func UseMongo(ctx context.Context, client gira.MongoClient, config gira.Behavior
 
 func Sync(ctx context.Context, opts ...behavior.SyncOption) error {
 	if globalDriver == nil {
-		return gira.ErrBehaviorNotInit
+		return errors.ErrBehaviorNotInit
 	}
 	return globalDriver.Sync(ctx, opts...)
 }
@@ -220,7 +221,7 @@ func Log<<.StructName>>(doc *<<.StructName>>) error {
 
 func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
 	if self.client != nil {
-		return gira.ErrTodo
+		return errors.ErrTodo
 	}
 	self.client = client.GetMongoClient()
 	self.database = client.GetMongoDatabase()

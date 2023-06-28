@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/lujingwei002/gira/codes"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 
@@ -40,8 +42,8 @@ func (server *Server) loginErrResponse(message gira.GatewayMessage, req gira.Pro
 	if err == nil {
 		return err
 	}
-	resp.SetErrorCode(gira.ErrCode(err))
-	resp.SetErrorMsg(gira.ErrMsg(err))
+	resp.SetErrorCode(codes.Code(err))
+	resp.SetErrorMsg(codes.Msg(err))
 	if data, err := server.proto.ResponseEncode("Login", int32(message.ReqId()), resp); err != nil {
 		return err
 	} else {
@@ -99,7 +101,7 @@ func (server *Server) ServeClientStream(client gira.GatewayConn) {
 			server.loginErrResponse(req, dataReq, err)
 		} else if claims.MemberId != memberId {
 			log.Errorw("invalid memberid", "token", token, "member_id", memberId, "expected_member_id", claims.MemberId)
-			server.loginErrResponse(req, dataReq, gira.ErrInvalidJwt)
+			server.loginErrResponse(req, dataReq, errors.ErrInvalidJwt)
 		} else {
 			memberId = claims.MemberId
 			session := newSession(server, sessionId, memberId)

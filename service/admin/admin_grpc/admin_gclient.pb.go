@@ -10,6 +10,7 @@ import (
 	context "context"
 	fmt "fmt"
 	gira "github.com/lujingwei002/gira"
+	errors "github.com/lujingwei002/gira/errors"
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
@@ -256,7 +257,7 @@ func (c *adminClients) getClient(address string) (AdminClient, error) {
 		c.mu.Unlock()
 	}
 	if v := pool.Get(); v == nil {
-		return nil, gira.ErrGrpcClientPoolNil
+		return nil, errors.ErrGrpcClientPoolNil
 	} else if err, ok := v.(error); ok {
 		return nil, err
 	} else {
@@ -393,9 +394,9 @@ func (c *adminClientsLocal) ReloadResource(ctx context.Context, in *ReloadResour
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(AdminServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.ReloadResource(cancelCtx, in)
 	}
@@ -455,7 +456,7 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -471,7 +472,7 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -500,7 +501,7 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -516,7 +517,7 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -545,7 +546,7 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -561,7 +562,7 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -590,7 +591,7 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -606,7 +607,7 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {

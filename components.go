@@ -2,6 +2,8 @@ package gira
 
 import (
 	"reflect"
+
+	"github.com/lujingwei002/gira/errors"
 )
 
 func TypeOf[T any]() reflect.Type {
@@ -27,7 +29,7 @@ type BaseComponent struct {
 func (c *BaseComponent) AddComponent(component Component) error {
 	o := c.GetObject()
 	if o == nil {
-		return ErrNullObject
+		return errors.ErrNullObject
 	}
 	return o.AddComponent(component)
 }

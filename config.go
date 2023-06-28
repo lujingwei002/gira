@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/proj"
 
 	yaml "gopkg.in/yaml.v3"
@@ -174,7 +175,7 @@ func LoadConfig(configFilePath string, dotEnvFilePath string, appType string, ap
 	if data, err := reader.read(configFilePath, dotEnvFilePath); err != nil {
 		return nil, err
 	} else if err := c.unmarshal(data); err != nil {
-		return nil, NewSyntaxError(err.Error(), configFilePath, string(data))
+		return nil, errors.NewSyntaxError(err.Error(), configFilePath, string(data))
 	}
 	// for _, v := range c.Db {
 	// 	v.MaxOpenConns = 32
@@ -263,7 +264,7 @@ func (self *DbConfig) Parse(uri string) error {
 	case MYSQL_NAME:
 		self.Driver = u.Scheme
 	default:
-		return ErrDbNotSupport
+		return errors.ErrDbNotSupport
 	}
 	host2 := strings.Split(u.Host, ":")
 	if len(host2) == 2 {
@@ -455,7 +456,7 @@ func (c *config_reader) readDotEnv(dotEnvFilePath string) error {
 	appNamePrefix := c.appName + "."
 	if _, err := os.Stat(dotEnvFilePath); err == nil {
 		if dict, err := godotenv.Read(dotEnvFilePath); err != nil {
-			return NewSyntaxError(err.Error(), dotEnvFilePath, "")
+			return errors.NewSyntaxError(err.Error(), dotEnvFilePath, "")
 		} else {
 			for k, v := range dict {
 				if strings.HasPrefix(k, appNamePrefix) {
@@ -466,7 +467,7 @@ func (c *config_reader) readDotEnv(dotEnvFilePath string) error {
 			}
 		}
 	} else {
-		return NewSyntaxError(err.Error(), dotEnvFilePath, "")
+		return errors.NewSyntaxError(err.Error(), dotEnvFilePath, "")
 	}
 	// 读文件中的环境变量到os.env中
 	// if _, err := os.Stat(dotEnvFilePath); err == nil {
@@ -569,7 +570,7 @@ func (c *config_reader) read(configFilePath string, dotEnvFilePath string) ([]by
 // 加载模板变量并返回
 func (c *config_reader) readTemplateData(filePath string) (map[string]interface{}, error) {
 	if _, err := os.Stat(filePath); err != nil {
-		return nil, NewSyntaxError(err.Error(), filePath, "")
+		return nil, errors.NewSyntaxError(err.Error(), filePath, "")
 	}
 	file := &config_file{
 		builder: &strings.Builder{},
@@ -583,15 +584,15 @@ func (c *config_reader) readTemplateData(filePath string) (map[string]interface{
 	t.Funcs(c.templateFuncs())
 	t, err = t.Parse(file.String())
 	if err != nil {
-		return nil, NewSyntaxError(err.Error(), filePath, file.String())
+		return nil, errors.NewSyntaxError(err.Error(), filePath, file.String())
 	}
 	out := strings.Builder{}
 	if err := t.Execute(&out, nil); err != nil {
-		return nil, NewSyntaxError(err.Error(), filePath, file.String())
+		return nil, errors.NewSyntaxError(err.Error(), filePath, file.String())
 	}
 	envData := make(map[string]interface{})
 	if err := yaml.Unmarshal([]byte(out.String()), envData); err != nil {
-		return nil, NewSyntaxError(err.Error(), filePath, file.String())
+		return nil, errors.NewSyntaxError(err.Error(), filePath, file.String())
 	}
 	return envData, nil
 }
@@ -604,7 +605,7 @@ func (c *config_reader) preprocess(file *config_file, indent string, filePath st
 	dir := path.Dir(filePath)
 	lines, err := os.Open(filePath)
 	if err != nil {
-		return NewSyntaxError(err.Error(), filePath, "")
+		return errors.NewSyntaxError(err.Error(), filePath, "")
 	}
 	// 正则表达式，用于匹配形如${VAR_NAME}的环境变量
 	re := regexp.MustCompile(`\${\w+}`)

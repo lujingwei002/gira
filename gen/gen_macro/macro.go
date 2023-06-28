@@ -563,7 +563,7 @@ func (<<.Method.ReceiverName>> <<.Method.ReceiverPtr>><<.Method.ReceiverType>>) 
 			return <<- range .Method.ReturnsHead>> __arg__.<<.Name>>, <<- end>> <<.Method.Arg0.Name>>.Err()
 		case <-__timer__.C:
 	        log.Errorw("actor call time out", "func", "<<.Method.Declaration>>")
-			return <<- range .Method.ReturnsHead>> __arg__.<<.Name>>, <<- end>> gira.ErrActorCallTimeOut
+			return <<- range .Method.ReturnsHead>> __arg__.<<.Name>>, <<- end>> errors.ErrActorCallTimeOut
 		}
 	} else {
 		select {

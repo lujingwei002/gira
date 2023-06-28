@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
 	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
@@ -40,8 +41,8 @@ func (session *client_session) serve(ctx context.Context, client gira.GatewayCon
 	server := hall.SelectPeer()
 	log.Infow("session open", "session_id", sessionId, "peer", server)
 	if server == nil {
-		hall.loginErrResponse(message, dataReq, gira.ErrUpstreamUnavailable)
-		return gira.ErrUpstreamUnavailable
+		hall.loginErrResponse(message, dataReq, errors.ErrUpstreamUnavailable)
+		return errors.ErrUpstreamUnavailable
 	}
 	// stream绑定server
 	streamCtx, streamCancelFunc := context.WithCancel(ctx)
@@ -50,7 +51,7 @@ func (session *client_session) serve(ctx context.Context, client gira.GatewayCon
 	}()
 	stream, err = server.NewClientStream(streamCtx)
 	if err != nil {
-		session.server.loginErrResponse(message, dataReq, gira.ErrUpstreamUnreachable)
+		session.server.loginErrResponse(message, dataReq, errors.ErrUpstreamUnreachable)
 		return err
 	}
 	session.stream = stream
@@ -191,7 +192,7 @@ func (self *client_session) processClientMessage(message gira.GatewayMessage) er
 	log.Infow("client=>upstream", "session_id", sessionId, "len", len(message.Payload()), "req_id", message.ReqId())
 	if self.stream == nil {
 		log.Warnw("当前服务器不可以用，无法转发", "req_id", message.ReqId())
-		return gira.ErrUpstreamUnavailable
+		return errors.ErrUpstreamUnavailable
 	} else {
 		data := &hall_grpc.ClientMessageRequest{
 			MemberId:  memberId,

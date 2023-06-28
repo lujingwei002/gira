@@ -14,6 +14,7 @@ import (
 	"fmt"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -44,12 +45,12 @@ func (self *player_registry) WhereIsUser(r *RegistryClient, userId string) (*gir
 		return nil, err
 	}
 	if len(getResp.Kvs) <= 0 {
-		return nil, gira.ErrUserNotFound
+		return nil, errors.ErrUserNotFound
 	}
 	fullName := string(getResp.Kvs[0].Value)
 	peer := r.GetPeer(fullName)
 	if peer == nil {
-		return nil, gira.ErrPeerNotFound
+		return nil, errors.ErrPeerNotFound
 	} else {
 		return peer, nil
 	}

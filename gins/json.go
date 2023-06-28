@@ -2,7 +2,7 @@ package gins
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/codes"
 )
 
 type BaseJsonResponse struct {
@@ -25,8 +25,8 @@ type JsonResponse interface {
 
 // 返回json response
 func HttpJsonResponse(g *gin.Context, httpCode int, err error, data JsonResponse) {
-	errorCode := gira.ErrCode(err)
-	errorMsg := gira.ErrMsg(err)
+	errorCode := codes.Code(err)
+	errorMsg := codes.Msg(err)
 	if data == nil {
 		resp := BaseJsonResponse{
 			Code: errorCode,

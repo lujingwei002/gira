@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/proj"
 	"github.com/natefinch/lumberjack"
@@ -114,7 +115,7 @@ func (s *MongoSink) Write(data []byte) (n int, err error) {
 		_, err = database.Collection(s.collection).InsertOne(context.Background(), doc, s.writeOption)
 		return
 	default:
-		err = gira.ErrDbNotSupport
+		err = errors.ErrDbNotSupport
 		return
 	}
 }

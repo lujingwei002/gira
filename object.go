@@ -2,6 +2,8 @@ package gira
 
 import (
 	"reflect"
+
+	"github.com/lujingwei002/gira/errors"
 )
 
 type Object struct {
@@ -13,7 +15,7 @@ type Object struct {
 func AddComponent(self Component, c Component) error {
 	o := self.GetObject()
 	if o == nil {
-		return ErrNullObject
+		return errors.ErrNullObject
 	}
 	return o.AddComponent(c)
 }
@@ -63,7 +65,7 @@ func (o *Object) GetComponent(t reflect.Type) Component {
 
 func (o *Object) AddComponent(component Component) error {
 	if component == nil {
-		return ErrNullPointer
+		return errors.ErrNullPointer
 	}
 	t := reflect.TypeOf(component)
 	if arr, ok := o.componentDict[t]; ok {

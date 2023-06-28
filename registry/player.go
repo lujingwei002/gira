@@ -19,6 +19,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -90,7 +91,7 @@ func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) erro
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
 		log.Warnw("player registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidPeer
+		return errors.New("invalid player registry key", "key", string(kv.Key))
 	}
 	userId := pats[3]
 	value := string(kv.Value)
@@ -119,7 +120,7 @@ func (self *player_registry) onLocalKvDelete(r *Registry, kv *mvccpb.KeyValue) e
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
 		log.Warnw("player registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidPeer
+		return errors.New("invalid player registry key", "key", string(kv.Key))
 	}
 	userId := pats[3]
 	if lastValue, ok := self.localPlayers.Load(userId); ok {
@@ -254,9 +255,9 @@ func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Pe
 		log.Warnw("player registry register", localKey, "=>", value, "failed", "lock by", fullName)
 		peer := r.GetPeer(fullName)
 		if peer == nil {
-			return nil, gira.ErrUserLocked
+			return nil, errors.ErrUserLocked
 		}
-		return peer, gira.ErrUserLocked
+		return peer, errors.ErrUserLocked
 	}
 }
 
@@ -271,7 +272,7 @@ func (self *player_registry) UnlockLocalUser(r *Registry, userId string) (*gira.
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
 	if v, ok := self.localPlayers.Load(userId); !ok {
-		return nil, gira.ErrUserNotFound
+		return nil, errors.ErrUserNotFound
 	} else {
 		player := v.(*gira.LocalPlayer)
 		log.Infow("player registry unregister", "local_key", localKey, "peer_key", peerKey, "user_key", userKey, "create_revision", player.CreateRevision)
@@ -295,9 +296,9 @@ func (self *player_registry) UnlockLocalUser(r *Registry, userId string) (*gira.
 			log.Warnw("player registry unregister fail", "local_key", localKey, "locked_by", appFullName)
 			peer := r.GetPeer(appFullName)
 			if peer == nil {
-				return nil, gira.ErrUserLocked
+				return nil, errors.ErrUserLocked
 			}
-			return peer, gira.ErrUserLocked
+			return peer, errors.ErrUserLocked
 		}
 	}
 }
@@ -317,12 +318,12 @@ func (self *player_registry) WhereIsUser(r *Registry, userId string) (*gira.Peer
 		return nil, err
 	}
 	if len(getResp.Kvs) <= 0 {
-		return nil, gira.ErrUserNotFound
+		return nil, errors.ErrUserNotFound
 	}
 	fullName := string(getResp.Kvs[0].Value)
 	peer := r.GetPeer(fullName)
 	if peer == nil {
-		return nil, gira.ErrPeerNotFound
+		return nil, errors.ErrPeerNotFound
 	} else {
 		return peer, nil
 	}

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/gins"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/service"
@@ -213,7 +214,7 @@ func (application *Application) start() (err error) {
 					corelog.Infow("+++++++++++++++++++++++++++++")
 					application.stop()
 					corelog.Info("application interrupt end")
-					return gira.ErrInterrupt
+					return errors.ErrInterrupt
 				case syscall.SIGUSR1:
 				case syscall.SIGUSR2:
 				default:
@@ -393,7 +394,7 @@ func (application *Application) onStart() (err error) {
 			}
 		}
 		if handler == nil {
-			return gira.ErrGateHandlerNotImplement
+			return errors.ErrGateHandlerNotImplement
 		}
 		return application.gate.Serve(handler)
 	})
@@ -486,7 +487,7 @@ func (application *Application) onCreate() error {
 	// ==== http ================
 	if application.config.Module.Http != nil {
 		if handler, ok := applicationFacade.(gira.HttpHandler); !ok {
-			return gira.ErrHttpHandlerNotImplement
+			return errors.ErrHttpHandlerNotImplement
 		} else {
 			router := handler.HttpHandler()
 			if httpServer, err := gins.NewConfigHttpServer(application.ctx, *application.config.Module.Http, router); err != nil {
@@ -511,7 +512,7 @@ func (application *Application) onCreate() error {
 			}
 		}
 		if handler == nil {
-			return gira.ErrGateHandlerNotImplement
+			return errors.ErrGateHandlerNotImplement
 		}
 		if gate, err := gate.NewConfigServer(application.ctx, *application.config.Module.Gateway); err != nil {
 			return err

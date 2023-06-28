@@ -9,6 +9,7 @@ package admin_grpc
 import (
 	context "context"
 	gira "github.com/lujingwei002/gira"
+	errors "github.com/lujingwei002/gira/errors"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	metadata "google.golang.org/grpc/metadata"
@@ -105,17 +106,17 @@ func (svr *adminServerRouter) ReloadResource(ctx context.Context, in *ReloadReso
 	var ok bool
 	if kv, ok = metadata.FromIncomingContext(ctx); !ok {
 		if kv, ok = metadata.FromOutgoingContext(ctx); !ok {
-			return nil, gira.ErrServerRouterMetaNotFound
+			return nil, errors.ErrServerRouterMetaNotFound
 		}
 	}
 	if keys, ok := kv[gira.GRPC_PATH_KEY]; !ok {
-		return nil, gira.ErrServerRouterKeyNotFound
+		return nil, errors.ErrServerRouterKeyNotFound
 	} else if len(keys) <= 0 {
-		return nil, gira.ErrServerRouterKeyNotFound
+		return nil, errors.ErrServerRouterKeyNotFound
 	} else if v, ok := svr.handlers.Load(keys[0]); !ok {
-		return nil, gira.ErrServerRouterHandlerNotRegist
+		return nil, errors.ErrServerRouterHandlerNotRegist
 	} else if handler, ok := v.(AdminServer); !ok {
-		return nil, gira.ErrServerRouterHandlerNotImplement
+		return nil, errors.ErrServerRouterHandlerNotImplement
 	} else {
 		if v, ok := svr.middlewares.Load(keys[0]); !ok {
 			return handler.ReloadResource(ctx, in)
@@ -133,7 +134,7 @@ func (svr *adminServerRouter) ReloadResource(ctx context.Context, in *ReloadReso
 				return nil, err
 			}
 			if r.out == nil && r.err == nil {
-				return nil, gira.ErrServerRouterHandlerNotImplement
+				return nil, errors.ErrServerRouterHandlerNotImplement
 			} else if r.out == nil && r.err != nil {
 				return nil, r.err
 			} else {

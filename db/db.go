@@ -10,6 +10,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -134,7 +135,7 @@ func NewConfigDbClient(ctx context.Context, name string, config gira.DbConfig) (
 	case gira.MYSQL_NAME:
 		return NewConfigMysqlClient(ctx, name, config)
 	default:
-		return nil, gira.ErrDbNotSupport
+		return nil, errors.ErrDbNotSupport
 	}
 }
 

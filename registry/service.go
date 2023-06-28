@@ -17,6 +17,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/options/service_options"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -71,7 +72,7 @@ func (trie *word_trie) add(path string) error {
 	for i := 1; i < len(words); i++ {
 		if len(words[i]) <= 0 {
 			trie.mu.Unlock()
-			return gira.ErrInvalidArgs.Trace()
+			return errors.ErrInvalidArgs
 		}
 	}
 	if header, ok := trie.headers[words[0]]; !ok {
@@ -97,11 +98,11 @@ func (trie *word_trie) delete(path string) error {
 	}
 	if len(words) <= 0 {
 		trie.mu.Unlock()
-		return gira.ErrTodo.Trace()
+		return errors.ErrTodo.Trace()
 	}
 	if header, ok := trie.headers[words[0]]; !ok {
 		trie.mu.Unlock()
-		return gira.ErrTodo.Trace()
+		return errors.ErrTodo.Trace()
 	} else {
 		trie.mu.Unlock()
 		if err := header.delete(words[1:]); err != nil {
@@ -238,7 +239,7 @@ func (node *word_trie_node) delete(words []string) error {
 		return nil
 	} else {
 		if c, ok := node.nodes[words[0]]; !ok {
-			return gira.ErrTodo.Trace()
+			return errors.ErrTodo.Trace()
 		} else {
 			if err := c.delete(words[1:]); err != nil {
 				return err
@@ -357,7 +358,7 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	var serviceName string
 	if len(words) <= 2 {
 		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidService
+		return errors.ErrInvalidService
 	}
 	words = words[2:]
 	if len(words) == 2 {
@@ -367,7 +368,7 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 		serviceName = words[0]
 	} else {
 		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidService
+		return errors.ErrInvalidService
 	}
 	value := string(kv.Value)
 	if _, ok := self.services.Load(serviceName); ok {
@@ -379,7 +380,7 @@ func (self *service_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 		peer := r.GetPeer(value)
 		if peer == nil {
 			log.Warnw("service registry on kv add, but peer not found", "service_name", serviceName, "peer", value)
-			return gira.ErrPeerNotFound
+			return errors.ErrPeerNotFound
 		}
 		service := &gira.ServiceName{
 			FullName:    serviceName,
@@ -404,7 +405,7 @@ func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error
 	var serviceName string
 	if len(words) <= 2 {
 		log.Warnw("service registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidService
+		return errors.ErrInvalidService
 	}
 	words = words[2:]
 	if len(words) == 2 {
@@ -564,7 +565,7 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 		catalogName = words[0]
 	} else if len(words) == 1 {
 	} else {
-		return nil, gira.ErrInvalidService
+		return nil, errors.ErrInvalidService
 	}
 	txn.If(clientv3.Compare(clientv3.CreateRevision(serviceKey), "=", 0)).
 		Then(clientv3.OpPut(serviceKey, value), clientv3.OpPut(peerKey, value)).
@@ -593,9 +594,9 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 		appFullName := string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value)
 		peer := r.GetPeer(appFullName)
 		if peer == nil {
-			return nil, gira.ErrServiceLocked
+			return nil, errors.ErrServiceLocked
 		}
-		return peer, gira.ErrServiceLocked
+		return peer, errors.ErrServiceLocked
 	}
 }
 
@@ -627,9 +628,9 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 		log.Warnw("service registry unregister fail", "service_name", serviceName, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
 		peer := r.GetPeer(appFullName)
 		if peer == nil {
-			return nil, gira.ErrServiceLocked
+			return nil, errors.ErrServiceLocked
 		}
-		return peer, gira.ErrServiceLocked
+		return peer, errors.ErrServiceLocked
 	}
 }
 

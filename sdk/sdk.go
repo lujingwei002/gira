@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/codes"
 	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/sdk/ultra"
 )
 
@@ -64,7 +66,7 @@ type SdkComponent struct {
 
 func (self *SdkComponent) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
-		return nil, gira.ErrSdkComponentNotImplement
+		return nil, errors.ErrSdkComponentNotImplement
 	} else {
 		return sdk.Login(accountPlat, openId, token, authUrl, appId, appSecret)
 	}
@@ -72,7 +74,7 @@ func (self *SdkComponent) Login(accountPlat string, openId string, token string,
 
 func (self *SdkComponent) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
-		return nil, gira.ErrSdkComponentNotImplement
+		return nil, errors.ErrSdkComponentNotImplement
 	} else {
 		return sdk.PayOrderCheck(accountPlat, args, paySecret)
 	}
@@ -84,7 +86,7 @@ type TestSdk struct {
 
 func (self *TestSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	if token != appSecret {
-		return nil, gira.ErrInvalidSdkToken.Trace()
+		return nil, errors.ErrInvalidSdkToken
 	}
 	result := &gira.SdkAccount{
 		OpenId:   openId,
@@ -95,13 +97,13 @@ func (self *TestSdk) Login(accountPlat string, openId string, token string, auth
 
 func (self *TestSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	if v, ok := args["cporder_id"]; !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order, cporder_id is nil")
 	} else if cporderId, ok := v.(string); !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order, cporder_id is not string type")
 	} else if v, ok := args["amount"]; !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order, amount is nil")
 	} else if amount, ok := v.(int64); !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order, cporder_id is not int64 type")
 	} else {
 		result := &gira.SdkPayOrder{
 			CporderId: cporderId,
@@ -128,7 +130,7 @@ func (self *PwdSdk) Login(accountPlat string, openId string, token string, authU
 }
 
 func (self *PwdSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
-	return nil, gira.ErrSdkPayOrderCheckMethodNotImplement
+	return nil, errors.ErrSdkPayOrderCheckMethodNotImplement
 }
 
 type UltraSdk struct {
@@ -148,7 +150,7 @@ func (self *UltraSdk) Login(accountPlat string, openId string, token string, aut
 	if _, resp, err := self.loginSdk.Login(openId, "", token); err != nil {
 		return nil, err
 	} else if resp.Code != 0 {
-		return nil, gira.NewErrorCode(int32(resp.Code), resp.Msg)
+		return nil, codes.New(int32(resp.Code), resp.Msg)
 	} else {
 		result := &gira.SdkAccount{
 			OpenId:   fmt.Sprintf("%v_%v", resp.ChannelId, resp.CUid),
@@ -160,13 +162,13 @@ func (self *UltraSdk) Login(accountPlat string, openId string, token string, aut
 
 func (self *UltraSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	if v, ok := args["data"]; !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order args, data is nil")
 	} else if data, ok := v.(string); !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order args, data is not string type")
 	} else if v, ok := args["sign"]; !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order args, sign is nil")
 	} else if sign, ok := v.(string); !ok {
-		return nil, gira.ErrSdkPayOrderCheckArgsInvalid
+		return nil, errors.New("invalid pay order args, sign is not string type")
 	} else if sdk, err := ultra.NewUSDK(context.Background(), "", "", "", paySecret, ultra.AreaGlobal); err != nil {
 		return nil, err
 	} else if response, _, payInfo, err := sdk.PayCallback(data, sign); err != nil {

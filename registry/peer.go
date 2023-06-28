@@ -38,6 +38,7 @@ import (
 	"time"
 
 	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 
 	"github.com/lujingwei002/gira"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
@@ -54,7 +55,6 @@ type peer_registry struct {
 	ctx                    context.Context
 	cancelFunc             context.CancelFunc
 	watchStartRevision     int64
-	alreadyRegistSelf      int64
 	selfRevision           int64
 }
 
@@ -161,7 +161,7 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
 		log.Errorw("peer registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidPeer
+		return errors.New("invalid peer registry key", "key", string(kv.Key))
 	}
 	fullName := pats[2]
 	attrName := pats[3]
@@ -232,7 +232,7 @@ func (self *peer_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
 		log.Warnw("peer registry got a invalid peer", "key", string(kv.Key))
-		return gira.ErrInvalidPeer
+		return errors.New("invalid peer registry key", "key", string(kv.Key))
 	}
 	fullName := pats[2]
 	attrName := pats[3]
@@ -264,7 +264,7 @@ func (self *peer_registry) onKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
 	if len(pats) != 4 {
 		log.Warnw("peer registry got a invalid key", "key", string(kv.Key))
-		return gira.ErrInvalidPeer
+		return errors.ErrInvalidPeer
 	}
 	fullName := pats[2]
 	attrName := pats[3]
@@ -460,17 +460,16 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		}
 		if txnResp.Succeeded {
 			log.Errorw("etcd register fail", "key", key, "value", value, "locked_by", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
-			return gira.ErrRegisterServerFail
+			return errors.New("peer already regist", "key", key)
 		} else {
 			if len(txnResp.Responses[0].GetResponseRange().Kvs) == 0 {
-				self.alreadyRegistSelf = 1
 				if name == GRPC_KEY {
 					self.selfRevision = txnResp.Responses[1].GetResponsePut().Header.Revision
 				}
 				log.Infow("peer registry register peer", "key", key, "value", value)
 			} else {
 				log.Infow("peer registry resume peer", "key", key, "value", value)
-				return gira.NewPeerAlreadyRegistError(key)
+				return errors.New("peer already regist", "key", key)
 			}
 		}
 	}

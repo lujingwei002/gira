@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/lujingwei002/gira/errors"
 )
 
 // 环境枚举
@@ -134,7 +136,7 @@ func FormatAppFullName(appType string, appId int32, zone string, env string) str
 func ParseAppFullName(fullName string) (name string, id int32, err error) {
 	pats := strings.Split(string(fullName), "_")
 	if len(pats) != 4 {
-		err = ErrInvalidPeer
+		err = errors.New("invalid app full name", "full_name", fullName)
 		return
 	}
 	name = pats[0]

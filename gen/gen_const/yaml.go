@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/proj"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -23,7 +23,7 @@ func (p *yaml_parser) parse(constState *const_state) error {
 			return err
 		}
 		if descriptors, ok := result["descriptor"]; !ok {
-			return gira.ErrTodo.Trace()
+			return errors.ErrTodo.Trace()
 		} else {
 			for _, row := range descriptors.([]interface{}) {
 				arr := row.([]interface{})

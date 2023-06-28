@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/framework/smallgame/game"
 	"github.com/lujingwei002/gira/framework/smallgame/game/config"
@@ -134,7 +135,7 @@ func (hall *hall_service) SessionCount() int64 {
 // 协程程安全
 func (hall *hall_service) Kick(ctx context.Context, userId string, reason string) (err error) {
 	if v, ok := hall.sessionDict.Load(userId); !ok {
-		return gira.ErrUserNotFound
+		return errors.ErrUserNotFound
 	} else {
 		session := v.(*hall_sesssion)
 		return session.Kick(ctx, reason)

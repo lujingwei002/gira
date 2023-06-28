@@ -23,7 +23,7 @@ package <<.Descriptor.Name>>
 <<- if eq .Descriptor.Name "ec">>
 
 import (
-	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/codes"
 )
 
 <<- $commentField := .CommentField >>
@@ -35,7 +35,7 @@ const (
 	<<- $key := index $row $keyField.Tag >>
 	<<- $value := index $row $valueField.Tag >>
 	// << index $row $commentField.Tag >>
-	E_<<upper $key>> = <<$value>>
+	Code<<camelString $key>> = <<$value>>
 <<- end>>
 )
 
@@ -44,7 +44,7 @@ const (
 	<<- $key := index $row $keyField.Tag >>
 	<<- $value := index $row $valueField.Tag >>
 	// << index $row $commentField.Tag >>
-	E_MSG_<<upper $key>> = "<<index $row $commentField.Tag>>"
+	msg_<<camelString $key>> = "<<index $row $commentField.Tag>>"
 <<- end>>
 )
 var (
@@ -52,7 +52,7 @@ var (
 	<<- $key := index $row $keyField.Tag >>
 	<<- $value := index $row $valueField.Tag >>
 	// << index $row $commentField.Tag >>
-	Err<<camelString $key>> = gira.NewErrorCode(<<$value>>, "<<index $row $commentField.Tag>>")
+	err<<camelString $key>> = codes.New(Code<<camelString $key>>, msg_<<camelString $key>>)
 <<- end>>
 )
 
@@ -61,8 +61,8 @@ var (
 <<- $key := index $row $keyField.Tag >>
 <<- $value := index $row $valueField.Tag >>
 // << index $row $commentField.Tag >>
-func NewErr<<camelString $key>>(values ...interface{}) *gira.ErrorCode {
-	return gira.NewErrorCodew(<<$value>>, "<<index $row $commentField.Tag>>", values...)
+func ThrowErr<<camelString $key>>(values ...interface{}) *codes.ErrorCode {
+	return codes.Throw(Code<<camelString $key>>, msg_<<camelString $key>>, values...)
 }
 <<- end>>
 <<- else >>

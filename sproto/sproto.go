@@ -9,7 +9,9 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/lujingwei002/gira/codes"
 	"github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 
 	"github.com/lujingwei002/gira"
 	gosproto "github.com/xjdrew/gosproto"
@@ -98,7 +100,7 @@ func (self *sproto) RequestDecode(packed []byte) (route string, session int32, r
 	var ok bool
 	resp, ok = sp.(gira.ProtoRequest)
 	if !ok {
-		err = gira.Errorw("invalid request proto", "name", route)
+		err = errors.New("invalid request proto", "name", route)
 		return
 	}
 	return
@@ -115,7 +117,7 @@ func (self *sproto) ResponseDecode(packed []byte) (route string, session int32, 
 	var ok bool
 	resp, ok = sp.(gira.ProtoResponse)
 	if !ok {
-		err = gira.Errorw("invalid response proto", "name", route)
+		err = errors.New("invalid response proto", "name", route)
 		return
 	}
 	return
@@ -132,7 +134,7 @@ func (self *sproto) PushDecode(packed []byte) (route string, session int32, resp
 	var ok bool
 	resp, ok = sp.(gira.ProtoPush)
 	if !ok {
-		err = gira.Errorw("invalid push proto", "name", route)
+		err = errors.New("invalid push proto", "name", route)
 		return
 	}
 	return
@@ -143,18 +145,18 @@ func (self *sproto) PushDecode(packed []byte) (route string, session int32, resp
 func (self *sproto) NewResponse(req gira.ProtoRequest) (resp gira.ProtoResponse, err error) {
 	proto := self.rpc.GetProtocolByName(req.GetRequestName())
 	if proto == nil {
-		err = gira.Errorw("request proto not found", "name", req.GetRequestName())
+		err = errors.New("request proto not found", "name", req.GetRequestName())
 		return
 	}
 	sp := reflect.New(proto.Response.Elem()).Interface()
 	if sp == nil {
-		err = gira.Errorw("response proto not found", "name", req.GetRequestName())
+		err = errors.New("response proto not found", "name", req.GetRequestName())
 		return
 	}
 	var ok bool
 	resp, ok = sp.(gira.ProtoResponse)
 	if !ok {
-		err = gira.Errorw("invalid response proto", "name", req.GetRequestName())
+		err = errors.New("invalid response proto", "name", req.GetRequestName())
 		return
 	}
 	return
@@ -206,18 +208,18 @@ func (self *sproto) RequestDispatch(ctx context.Context, handler gira.ProtoHandl
 			resp = elem.Interface()
 		}
 		if resp == nil {
-			err = gira.ErrSprotoResponseConversion
+			err = errors.New("response proto is nil", "name", route)
 			return
 		}
 	}
 	proto, ok := resp.(gira.ProtoResponse)
 	if !ok {
-		err = gira.ErrSprotoResponseConversion
+		err = errors.New("invalid response proto", "name", route)
 		return
 	}
 	if proto != nil && err != nil {
-		proto.SetErrorCode(gira.ErrCode(err))
-		proto.SetErrorMsg(gira.ErrMsg(err))
+		proto.SetErrorCode(codes.Code(err))
+		proto.SetErrorMsg(codes.Msg(err))
 	}
 	dataResp, err = self.rpc.ResponseEncode(route, session, proto)
 	if err != nil {
@@ -309,7 +311,7 @@ func (self *sproto_handler) RequestDispatch(ctx context.Context, receiver interf
 	handler, found := self.methods[route]
 	if !found {
 		corelog.Warnw("sproto request handler not found", "name", route)
-		err = gira.ErrSprotoHandlerNotImplement
+		err = errors.ErrSprotoHandlerNotImplement
 		return
 	}
 	args := []reflect.Value{reflect.ValueOf(receiver), reflect.ValueOf(ctx), reflect.ValueOf(req)}
@@ -345,7 +347,7 @@ func (self *sproto_handler) PushDispatch(ctx context.Context, receiver interface
 	handler, found := self.methods[route]
 	if !found {
 		corelog.Warnw("sproto push handler not found", "name", route)
-		err = gira.ErrSprotoHandlerNotImplement
+		err = errors.ErrSprotoHandlerNotImplement
 		return
 	}
 	args := []reflect.Value{reflect.ValueOf(receiver), reflect.ValueOf(ctx), reflect.ValueOf(push)}

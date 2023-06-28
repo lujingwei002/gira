@@ -10,6 +10,7 @@ import (
 	context "context"
 	fmt "fmt"
 	gira "github.com/lujingwei002/gira"
+	errors "github.com/lujingwei002/gira/errors"
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
@@ -600,7 +601,7 @@ func (c *hallClients) getClient(address string) (HallClient, error) {
 		c.mu.Unlock()
 	}
 	if v := pool.Get(); v == nil {
-		return nil, gira.ErrGrpcClientPoolNil
+		return nil, errors.ErrGrpcClientPoolNil
 	} else if err, ok := v.(error); ok {
 		return nil, err
 	} else {
@@ -810,9 +811,9 @@ func (c *hallClientsLocal) Info(ctx context.Context, in *InfoRequest, opts ...gr
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(HallServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.Info(cancelCtx, in)
 	}
@@ -825,9 +826,9 @@ func (c *hallClientsLocal) HealthCheck(ctx context.Context, in *HealthCheckReque
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(HallServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.HealthCheck(cancelCtx, in)
 	}
@@ -840,9 +841,9 @@ func (c *hallClientsLocal) MustPush(ctx context.Context, in *MustPushRequest, op
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(HallServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.MustPush(cancelCtx, in)
 	}
@@ -855,9 +856,9 @@ func (c *hallClientsLocal) SendMessage(ctx context.Context, in *SendMessageReque
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(HallServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.SendMessage(cancelCtx, in)
 	}
@@ -870,9 +871,9 @@ func (c *hallClientsLocal) CallMessage(ctx context.Context, in *CallMessageReque
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(HallServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.CallMessage(cancelCtx, in)
 	}
@@ -885,9 +886,9 @@ func (c *hallClientsLocal) UserInstead(ctx context.Context, in *UserInsteadReque
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(HallServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.UserInstead(cancelCtx, in)
 	}
@@ -900,9 +901,9 @@ func (c *hallClientsLocal) Kick(ctx context.Context, in *KickRequest, opts ...gr
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(HallServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.Kick(cancelCtx, in)
 	}
@@ -950,7 +951,7 @@ func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.Call
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -966,7 +967,7 @@ func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.Call
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -995,7 +996,7 @@ func (c *hallClientsUnicast) GateStream(ctx context.Context, opts ...grpc.CallOp
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1011,7 +1012,7 @@ func (c *hallClientsUnicast) GateStream(ctx context.Context, opts ...grpc.CallOp
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -1040,7 +1041,7 @@ func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1056,7 +1057,7 @@ func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -1085,7 +1086,7 @@ func (c *hallClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1101,7 +1102,7 @@ func (c *hallClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -1130,7 +1131,7 @@ func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, 
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1146,7 +1147,7 @@ func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, 
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -1175,7 +1176,7 @@ func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageReq
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1191,7 +1192,7 @@ func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageReq
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -1220,7 +1221,7 @@ func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageReq
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1236,7 +1237,7 @@ func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageReq
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -1265,7 +1266,7 @@ func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadReq
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1281,7 +1282,7 @@ func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadReq
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -1310,7 +1311,7 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -1326,7 +1327,7 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {

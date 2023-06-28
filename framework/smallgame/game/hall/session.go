@@ -2,7 +2,6 @@ package hall
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/actor"
+	"github.com/lujingwei002/gira/codes"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/framework/smallgame/game"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
@@ -65,7 +66,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 				log.Infow("user instead fail", "session_id", sessionId, "error", err)
 				return
 			} else if resp.ErrorCode != 0 {
-				err = gira.NewErrorCode(resp.ErrorCode, resp.ErrorMsg)
+				err = codes.New(resp.ErrorCode, resp.ErrorMsg)
 				log.Infow("user instead fail", "session_id", sessionId, "error", err)
 				return
 			} else {
@@ -89,7 +90,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 	// 如果还没释放完成，则失败
 	if _, ok := hall.sessionDict.Load(userId); ok {
 		log.Warnw("unexpect session", "session_id", sessionId)
-		err = gira.ErrUserInstead
+		err = errors.ErrUserInstead
 		return
 	}
 	// 创建会话
@@ -105,7 +106,7 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 
 	if _, loaded := hall.sessionDict.LoadOrStore(userId, session); loaded {
 		log.Warnw("session store fail", "session_id", sessionId)
-		err = gira.ErrUserInstead
+		err = errors.ErrUserInstead
 		return
 	}
 	atomic.AddInt64(&hall.sessionCount, 1)
@@ -378,7 +379,7 @@ func (session *hall_sesssion) processClientMessage(message *hall_grpc.ClientMess
 // 协程安全
 func (session *hall_sesssion) Close(ctx context.Context) (err error) {
 	if !atomic.CompareAndSwapInt32(&session.isClosed, 0, 1) {
-		err = gira.ErrSessionClosed
+		err = errors.ErrSessionClosed
 		return
 	}
 	userId := session.userId

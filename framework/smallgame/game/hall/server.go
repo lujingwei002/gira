@@ -8,6 +8,8 @@ import (
 	"runtime/debug"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/codes"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
 	"github.com/lujingwei002/gira/log"
@@ -33,8 +35,8 @@ func (self *hall_server) UserInstead(ctx context.Context, req *hall_grpc.UserIns
 	resp := &hall_grpc.UserInsteadResponse{}
 	reason := fmt.Sprintf("账号在%s登录", req.Address)
 	if err := self.hall.Instead(ctx, req.UserId, reason); err != nil {
-		resp.ErrorCode = gira.ErrCode(err)
-		resp.ErrorMsg = gira.ErrMsg(err)
+		resp.ErrorCode = codes.Code(err)
+		resp.ErrorMsg = codes.Msg(err)
 		return resp, nil
 	} else {
 
@@ -93,7 +95,7 @@ func (self *hall_server) MustPush(ctx context.Context, req *hall_grpc.MustPushRe
 		}
 	}()
 	if v, ok := self.hall.sessionDict.Load(userId); !ok {
-		err = gira.ErrNoSession
+		err = errors.ErrNoSession
 		return
 	} else {
 		session, _ := v.(*hall_sesssion)
@@ -205,7 +207,7 @@ func (self *hall_server) ClientStream(client hall_grpc.Hall_ClientStreamServer) 
 	log.Infow("bind memberid", "session_id", sessionId, "member_id", memberId)
 	if memberId == "" {
 		log.Errorw("invalid memberid", "session_id", sessionId, "member_id", memberId)
-		return gira.ErrInvalidMemberId
+		return errors.ErrInvalidMemberId
 	}
 	// 申请建立会话
 	var session *hall_sesssion

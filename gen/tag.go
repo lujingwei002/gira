@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 )
 
 type TagList struct {
@@ -15,7 +15,7 @@ type TagList struct {
 
 func (self *TagList) Int(k string) (int, error) {
 	if v, ok := self.Kv[k]; !ok {
-		return 0, gira.ErrTodo
+		return 0, errors.ErrTodo
 	} else if v, err := strconv.Atoi(v); err != nil {
 		return 0, err
 	} else {

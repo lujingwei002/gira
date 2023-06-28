@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/options/service_options"
 )
 
@@ -117,9 +118,9 @@ func GetWorkDir() string {
 func ReloadResource() error {
 	application := gira.App()
 	if c, ok := application.(gira.ResourceSource); !ok {
-		return gira.ErrResourceManagerNotImplement
+		return errors.ErrResourceManagerNotImplement
 	} else if r := c.GetResourceLoader(); r == nil {
-		return gira.ErrResourceManagerNotImplement
+		return errors.ErrResourceManagerNotImplement
 	} else {
 		return r.ReloadResource("resource")
 	}
@@ -129,7 +130,7 @@ func ReloadResource() error {
 func BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
 	application := gira.App()
 	if h, ok := application.(gira.AdminClient); !ok {
-		err = gira.ErrAdminClientNotImplement
+		err = errors.ErrAdminClientNotImplement
 		return
 	} else {
 		result, err = h.BroadcastReloadResource(ctx, name)
@@ -142,7 +143,7 @@ func BroadcastReloadResource(ctx context.Context, name string) (result gira.Broa
 func UnlockLocalUser(userId string) (*gira.Peer, error) {
 	application := gira.App()
 	if r := application.GetRegistry(); r == nil {
-		return nil, gira.ErrRegistryNOtImplement
+		return nil, errors.ErrRegistryNOtImplement
 	} else {
 		return r.UnlockLocalUser(userId)
 	}
@@ -152,7 +153,7 @@ func UnlockLocalUser(userId string) (*gira.Peer, error) {
 func LockLocalUser(userId string) (*gira.Peer, error) {
 	application := gira.App()
 	if r := application.GetRegistry(); r == nil {
-		return nil, gira.ErrRegistryNOtImplement
+		return nil, errors.ErrRegistryNOtImplement
 	} else {
 		return r.LockLocalUser(userId)
 	}
@@ -166,14 +167,14 @@ func WhereIsUser(userId string) (*gira.Peer, error) {
 	} else if r := application.GetRegistryClient(); r != nil {
 		return r.WhereIsUser(userId)
 	} else {
-		return nil, gira.ErrRegistryNOtImplement
+		return nil, errors.ErrRegistryNOtImplement
 	}
 }
 
 func ListPeerKvs() (peers map[string]string, err error) {
 	application := gira.App()
 	if r := application.GetRegistryClient(); r == nil {
-		err = gira.ErrRegistryNOtImplement
+		err = errors.ErrRegistryNOtImplement
 		return
 	} else {
 		peers, err = r.ListPeerKvs()
@@ -194,7 +195,7 @@ func RangePeers(f func(k any, v any) bool) {
 func ListServiceKvs() (peers map[string][]string, err error) {
 	application := gira.App()
 	if r := application.GetRegistryClient(); r == nil {
-		err = gira.ErrRegistryNOtImplement
+		err = errors.ErrRegistryNOtImplement
 		return
 	} else {
 		peers, err = r.ListServiceKvs()
@@ -218,7 +219,7 @@ func NewServiceName(serviceName string, opt ...service_options.RegisterOption) s
 func RegisterServiceName(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
 	application := gira.App()
 	if r := application.GetRegistry(); r == nil {
-		return nil, gira.ErrRegistryNOtImplement
+		return nil, errors.ErrRegistryNOtImplement
 	} else {
 		return r.RegisterService(serviceName, opt...)
 	}
@@ -228,7 +229,7 @@ func RegisterServiceName(serviceName string, opt ...service_options.RegisterOpti
 func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 	application := gira.App()
 	if r := application.GetRegistry(); r == nil {
-		return nil, gira.ErrRegistryNOtImplement
+		return nil, errors.ErrRegistryNOtImplement
 	} else {
 		return r.UnregisterService(serviceName)
 	}
@@ -242,7 +243,7 @@ func WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) 
 	} else if r := application.GetRegistryClient(); r != nil {
 		return r.WhereIsService(serviceName, opt...)
 	} else {
-		return nil, gira.ErrRegistryNOtImplement
+		return nil, errors.ErrRegistryNOtImplement
 	}
 }
 
@@ -251,7 +252,7 @@ func UnregisterPeer(appFullName string) error {
 	if r := application.GetRegistryClient(); r != nil {
 		return r.UnregisterPeer(appFullName)
 	} else {
-		return gira.ErrRegistryNOtImplement
+		return errors.ErrRegistryNOtImplement
 	}
 }
 
@@ -376,7 +377,7 @@ func WhereIsServer(name string) (svr interface{}, ok bool) {
 func SdkLogin(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	application := gira.App()
 	if s := application.GetSdk(); s == nil {
-		return nil, gira.ErrSdkComponentNotImplement
+		return nil, errors.ErrSdkComponentNotImplement
 	} else {
 		return s.Login(accountPlat, openId, token, authUrl, appId, appSecret)
 	}
@@ -386,7 +387,7 @@ func SdkLogin(accountPlat string, openId string, token string, authUrl string, a
 func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	application := gira.App()
 	if s := application.GetSdk(); s == nil {
-		return nil, gira.ErrSdkComponentNotImplement
+		return nil, errors.ErrSdkComponentNotImplement
 	} else {
 		return s.PayOrderCheck(accountPlat, args, paySecret)
 	}
@@ -397,7 +398,7 @@ func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret
 func StopService(service gira.Service) error {
 	application := gira.App()
 	if s := application.GetServiceContainer(); s == nil {
-		return gira.ErrServiceContainerNotImplement
+		return errors.ErrServiceContainerNotImplement
 	} else {
 		return s.StopService(service)
 	}
@@ -407,7 +408,7 @@ func StopService(service gira.Service) error {
 func StartService(name string, service gira.Service) error {
 	application := gira.App()
 	if s := application.GetServiceContainer(); s == nil {
-		return gira.ErrServiceContainerNotImplement
+		return errors.ErrServiceContainerNotImplement
 	} else {
 		return s.StartService(name, service)
 	}
@@ -419,7 +420,7 @@ func StartService(name string, service gira.Service) error {
 func Cron(spec string, cmd func()) error {
 	application := gira.App()
 	if s := application.GetCron(); s == nil {
-		return gira.ErrCronNotImplement
+		return errors.ErrCronNotImplement
 	} else {
 		return s.AddFunc(spec, cmd)
 	}

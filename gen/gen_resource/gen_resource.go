@@ -13,8 +13,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	"gopkg.in/yaml.v3"
 
 	"github.com/lujingwei002/gira/proj"
@@ -125,6 +125,7 @@ var code = `
 package resource
 import (
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	yaml "gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path/filepath"
@@ -379,7 +380,7 @@ func (self *<<.BundleStructName>>) SaveToDb(ctx context.Context, client gira.DbC
 	case gira.MongoClient:
 		return self.SaveToMongo(ctx, c.GetMongoDatabase(), dir)
 	default:
-		return gira.ErrDbNotSupport
+		return errors.ErrDbNotSupport
 	}
 }
 
@@ -457,7 +458,7 @@ func (self *<<.ArrTypeName>>) LoadFromDb(ctx context.Context, client gira.DbClie
 	case gira.MongoClient:
 		return self.LoadFromMongo(ctx, c.GetMongoDatabase())
 	default:
-		panic(gira.ErrDbNotSupport)
+		panic(errors.ErrDbNotSupport)
 	}
 }
 
@@ -477,7 +478,7 @@ func (self *<<.WrapStructName>>) LoadFromDb(ctx context.Context, client gira.DbC
 	case gira.MongoClient:
 		return self.LoadFromMongo(ctx, c.GetMongoDatabase())
 	default:
-		panic(gira.ErrDbNotSupport)
+		panic(errors.ErrDbNotSupport)
 	}
 }
 
@@ -524,7 +525,7 @@ func (self *<<.WrapStructName>>) LoadFromDb(ctx context.Context, client gira.DbC
 	case gira.MongoClient:
 		return self.LoadFromMongo(ctx, c.GetMongoDatabase())
 	default:
-		panic(gira.ErrDbNotSupport)
+		panic(errors.ErrDbNotSupport)
 	}
 }
 
@@ -986,7 +987,7 @@ func Gen(config Config) error {
 	// }
 	// srcHash := getSrcFileHash(srcFilePathArr)
 	// if srcHash == proj.Config.GenResourceHash {
-	// 	return gira.ErrGenNotChange
+	// 	return errors.ErrGenNotChange
 	// }
 	//for _, v := range state.ResourceArr {
 	// 解析excel
@@ -1003,7 +1004,7 @@ func Gen(config Config) error {
 	} else {
 		p = &yaml_parser{}
 	}
-	if err := p.parse(state); err != nil && err == gira.ErrGenNotChange {
+	if err := p.parse(state); err != nil && err == errors.ErrGenNotChange {
 		log.Info("===============gen resource finished, not change===============")
 		return nil
 	} else if err != nil {

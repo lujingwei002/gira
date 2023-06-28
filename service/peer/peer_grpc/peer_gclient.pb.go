@@ -10,6 +10,7 @@ import (
 	context "context"
 	fmt "fmt"
 	gira "github.com/lujingwei002/gira"
+	errors "github.com/lujingwei002/gira/errors"
 	facade "github.com/lujingwei002/gira/facade"
 	service_options "github.com/lujingwei002/gira/options/service_options"
 	grpc "google.golang.org/grpc"
@@ -198,7 +199,7 @@ func (c *peerClients) getClient(address string) (PeerClient, error) {
 		c.mu.Unlock()
 	}
 	if v := pool.Get(); v == nil {
-		return nil, gira.ErrGrpcClientPoolNil
+		return nil, errors.ErrGrpcClientPoolNil
 	} else if err, ok := v.(error); ok {
 		return nil, err
 	} else {
@@ -309,9 +310,9 @@ func (c *peerClientsLocal) HealthCheck(ctx context.Context, in *HealthCheckReque
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(PeerServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.HealthCheck(cancelCtx, in)
 	}
@@ -324,9 +325,9 @@ func (c *peerClientsLocal) MemStats(ctx context.Context, in *MemStatsRequest, op
 		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 	}
 	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else if svr, ok := s.(PeerServer); !ok {
-		return nil, gira.ErrServerNotFound
+		return nil, errors.ErrServerNotFound
 	} else {
 		return svr.MemStats(cancelCtx, in)
 	}
@@ -374,7 +375,7 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -390,7 +391,7 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {
@@ -419,7 +420,7 @@ func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, 
 		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
 			return nil, err
 		} else if len(peers) < 1 {
-			return nil, gira.ErrPeerNotFound
+			return nil, errors.ErrPeerNotFound
 		} else if facade.IsEnableResolver() {
 			address = peers[0].Url
 		} else {
@@ -435,7 +436,7 @@ func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, 
 		}
 	}
 	if len(address) <= 0 {
-		return nil, gira.ErrInvalidArgs
+		return nil, errors.ErrPeerNotFound
 	}
 	client, err := c.client.getClient(address)
 	if err != nil {

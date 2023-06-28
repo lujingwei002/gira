@@ -119,6 +119,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/db"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/corelog"
 	"context"
 	"encoding/json"
@@ -141,7 +142,7 @@ func Use(ctx context.Context, client gira.DbClient) (<<.DriverInterfaceName>>, e
 	case gira.MongoClient:
 		return UseMongo(ctx, c)
 	default:
-		return nil, gira.ErrDbNotSupport
+		return nil, errors.ErrDbNotSupport
 	}
 }
 
@@ -193,7 +194,7 @@ func Migrate(ctx context.Context, client  gira.DbClient, opts ...db.MigrateOptio
 		driver.Use(client2)
 		return driver.Migrate(ctx, opts...)
 	default:
-		return gira.ErrDbNotSupport
+		return errors.ErrDbNotSupport
 	}
 }
 
@@ -410,7 +411,7 @@ func (self *<<.ArrStructName>>) Add(<<.CapCamelSecondaryKey>> <<.SecondaryKeyFie
 	doc.<<.CamelPrimaryKey>> = self.<<.CamelPrimaryKey>>
 	// 已经有相同id的数据了
 	if _, ok := self.dict[<<.CapCamelSecondaryKey>>]; ok {
-		return nil, gira.ErrDataExist
+		return nil, errors.New("<<.ArrStructName>> secondary key conflict", "<<.CapCamelSecondaryKey>>", <<.CapCamelSecondaryKey>>)
 	}
 	self.dict[<<.CapCamelSecondaryKey>>] = doc
 	self.add[doc.Id] = doc 
@@ -419,7 +420,7 @@ func (self *<<.ArrStructName>>) Add(<<.CapCamelSecondaryKey>> <<.SecondaryKeyFie
 
 func (self *<<.ArrStructName>>) Delete(<<.CapCamelSecondaryKey>> <<.SecondaryKeyField.GoTypeName>>) error {
 	if doc, ok := self.dict[<<.CapCamelSecondaryKey>>]; !ok {
-		return gira.ErrDataNotFound
+		return errors.ErrDataNotFound
 	} else {
 		// 已经准备删除也，也当成成功返回
 		if _, ok := self.del[doc.Id]; ok {
@@ -486,7 +487,7 @@ type <<.MongoDriverStructName>> struct {
 
 func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
 	if self.client != nil {
-		return gira.ErrTodo
+		return errors.ErrTodo
 	}
 	self.client = client.GetMongoClient()
 	self.database = client.GetMongoDatabase()
@@ -713,13 +714,13 @@ func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, id primitive.Obje
 
 func (self *<<.MongoDaoStructName>>) Delete(ctx context.Context, doc *<<.StructName>>) error {
 	if doc == nil {
-		return gira.ErrNullPointer
+		return errors.ErrNullPointer
 	}
 	if doc.none {
-		return gira.ErrDataNotExist
+		return errors.ErrDataNotExist
 	}
 	if doc.Id.IsZero() {
-		return gira.ErrDataNotExist
+		return errors.ErrDataNotExist
 	}
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")
@@ -727,7 +728,7 @@ func (self *<<.MongoDaoStructName>>) Delete(ctx context.Context, doc *<<.StructN
 		return err
 	} else {
 		if result.DeletedCount != 1 {
-			return gira.ErrDataDeleteFail
+			return errors.ErrDataDeleteFail
 		}
 	}
 	doc.dirty = false

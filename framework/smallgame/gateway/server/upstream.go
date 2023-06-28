@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
 	"github.com/lujingwei002/gira/log"
@@ -129,7 +130,7 @@ func (server *Upstream) close() {
 
 func (server *Upstream) NewClientStream(ctx context.Context) (stream hall_grpc.Hall_ClientStreamClient, err error) {
 	if client := server.client; client == nil {
-		err = gira.ErrNullPointer
+		err = errors.ErrNullPointer
 		return
 	} else {
 		stream, err = client.ClientStream(ctx)
@@ -139,7 +140,7 @@ func (server *Upstream) NewClientStream(ctx context.Context) (stream hall_grpc.H
 
 func (server *Upstream) HealthCheck() (err error) {
 	if client := server.client; client == nil {
-		err = gira.ErrNullPointer
+		err = errors.ErrNullPointer
 		return
 	} else {
 		req := &hall_grpc.HealthCheckRequest{}
@@ -149,7 +150,7 @@ func (server *Upstream) HealthCheck() (err error) {
 		} else {
 			server.status = resp.Status
 			if resp.Status != hall_grpc.HallStatus_OK {
-				err = gira.ErrUpstreamUnavailable
+				err = errors.ErrUpstreamUnavailable
 				return
 			} else {
 				return

@@ -6,7 +6,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/codes"
 )
 
 type Claims struct {
@@ -26,16 +26,16 @@ func JWT() gin.HandlerFunc {
 		var claims *Claims
 		token := g.GetHeader("Authorization")
 		if token == "" {
-			err = gira.ErrInvalidJwt
+			err = codes.ThrowErrInvalidJwt()
 		} else {
 			//TODO
 			claims, err = ParseJwtToken1(token, "app.Config.Jwt.Secret")
 			if err != nil {
-				err = gira.ErrInvalidJwt
+				err = codes.ThrowErrInvalidJwt()
 			} else if time.Now().Unix() > claims.ExpiresAt {
-				err = gira.ErrJwtExpire
+				err = codes.ThrowErrJwtExpire()
 			} else if claims.MemberId == "" {
-				err = gira.ErrInvalidJwt
+				err = codes.ThrowErrInvalidJwt()
 			} else {
 				g.Set("MemberId", claims.MemberId)
 				g.Set("Claims", claims)
