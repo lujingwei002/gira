@@ -2,6 +2,7 @@ package codes
 
 import (
 	"fmt"
+	"reflect"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -95,6 +96,37 @@ func Trace(code int32, msg string, values ...interface{}) *CodeError {
 	}
 }
 
+func Unwrap(err error) error {
+	u, ok := err.(interface {
+		Unwrap() error
+	})
+	if !ok {
+		return nil
+	}
+	return u.Unwrap()
+}
+
+func Is(err error, target *CodeError) bool {
+	if target == nil {
+		return err == target
+	}
+	isComparable := reflect.TypeOf(target).Comparable()
+	for {
+		if isComparable && err == target {
+			return true
+		}
+		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
+			return true
+		}
+		// TODO: consider supporting target.Is(err). This would allow
+		// user-definable predicates, but also may allow for coping with sloppy
+		// APIs, thereby making it easier to get away with them.
+		if err = Unwrap(err); err == nil {
+			return false
+		}
+	}
+}
+
 // 根据code, msg, values创建error_code
 func New(code int32, msg string, values ...interface{}) *CodeError {
 	var kvs map[string]interface{}
@@ -154,8 +186,10 @@ func Code(err error) int32 {
 	if e, ok := err.(*CodeError); ok {
 		return e.Code
 	}
-	if e, ok := err.(*TraceError); ok {
-		return e.Code
+	if e1, ok := err.(*TraceError); ok {
+		if e2, ok := e1.err.(*CodeError); ok {
+			return e2.Code
+		}
 	}
 	s := strings.Split(err.Error(), ":")
 	if len(s) == 0 {
@@ -176,8 +210,10 @@ func Msg(err error) string {
 	if e, ok := err.(*CodeError); ok {
 		return e.Msg
 	}
-	if e, ok := err.(*TraceError); ok {
-		return e.Msg
+	if e1, ok := err.(*TraceError); ok {
+		if e2, ok := e1.err.(*CodeError); ok {
+			return e2.Msg
+		}
 	}
 	s := strings.Split(err.Error(), ":")
 	if len(s) < 2 {
@@ -211,7 +247,7 @@ func (e *CodeError) Trace(values ...interface{}) *TraceError {
 			}
 		}
 	}
-	return &TraceError{Code: e.Code, Msg: e.Msg, Stack: debug.Stack(), Values: kvs}
+	return &TraceError{err: e, stack: debug.Stack(), values: kvs}
 }
 
 // 格式化错误字符串
@@ -228,23 +264,33 @@ func (e *CodeError) Error() string {
 
 // 跟踪错误信息
 type TraceError struct {
-	Code   int32
-	Msg    string
-	Stack  []byte
-	Values map[string]interface{}
+	err    error
+	stack  []byte
+	values map[string]interface{}
 }
 
 func (e *TraceError) Error() string {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("%d: %s", e.Code, e.Msg))
-	if e.Values != nil {
-		for k, v := range e.Values {
+	sb.WriteString(e.err.Error())
+	if e.values != nil {
+		for k, v := range e.values {
 			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
 		}
 	}
-	if e.Stack != nil {
+	if e.stack != nil {
 		sb.WriteString("\nstacktrace:\n")
-		sb.Write(e.Stack)
+		sb.Write(e.stack)
 	}
 	return sb.String()
+}
+
+func (e *TraceError) Unwrap() error {
+	return e.err
+}
+
+func (e *TraceError) Is(err error) bool {
+	if e.err == nil {
+		return false
+	}
+	return e.err == err
 }

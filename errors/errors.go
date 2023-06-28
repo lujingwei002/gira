@@ -2,6 +2,7 @@ package errors
 
 import (
 	"fmt"
+	"reflect"
 	"runtime/debug"
 	"strings"
 )
@@ -65,6 +66,37 @@ var (
 	ErrInvalidSdkToken                    = New("invalid sdk token")
 )
 
+func Unwrap(err error) error {
+	u, ok := err.(interface {
+		Unwrap() error
+	})
+	if !ok {
+		return nil
+	}
+	return u.Unwrap()
+}
+
+func Is(err error, target *Error) bool {
+	if target == nil {
+		return err == target
+	}
+	isComparable := reflect.TypeOf(target).Comparable()
+	for {
+		if isComparable && err == target {
+			return true
+		}
+		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
+			return true
+		}
+		// TODO: consider supporting target.Is(err). This would allow
+		// user-definable predicates, but also may allow for coping with sloppy
+		// APIs, thereby making it easier to get away with them.
+		if err = Unwrap(err); err == nil {
+			return false
+		}
+	}
+}
+
 func New(msg string, values ...interface{}) *Error {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
@@ -86,7 +118,7 @@ func New(msg string, values ...interface{}) *Error {
 	}
 }
 
-func Trace(msg string, values ...interface{}) *TraceError {
+func Trace(err error, values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
 
@@ -102,9 +134,9 @@ func Trace(msg string, values ...interface{}) *TraceError {
 		}
 	}
 	return &TraceError{
-		Msg:    msg,
-		Values: kvs,
-		Stack:  debug.Stack(),
+		err:    err,
+		values: kvs,
+		stack:  debug.Stack(),
 	}
 }
 
@@ -142,27 +174,38 @@ func (e *Error) Trace(values ...interface{}) *TraceError {
 			}
 		}
 	}
-	return &TraceError{Msg: e.Msg, Stack: debug.Stack(), Values: kvs}
+	return &TraceError{err: e, stack: debug.Stack(), values: kvs}
 }
 
 // 保存发生错误时的调用栈
 type TraceError struct {
-	Msg    string
-	Values map[string]interface{}
-	Stack  []byte
+	err    error
+	values map[string]interface{}
+	stack  []byte
 }
 
 func (e *TraceError) Error() string {
 	sb := strings.Builder{}
-	sb.WriteString(e.Msg)
-	if e.Values != nil {
-		for k, v := range e.Values {
+	sb.WriteString(e.err.Error())
+	if e.values != nil {
+		for k, v := range e.values {
 			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
 		}
 	}
 	sb.WriteString("\n")
-	sb.WriteString(string(e.Stack))
+	sb.WriteString(string(e.stack))
 	return sb.String()
+}
+
+func (e *TraceError) Unwrap() error {
+	return e.err
+}
+
+func (e *TraceError) Is(err error) bool {
+	if e.err == nil {
+		return false
+	}
+	return e.err == err
 }
 
 type SyntaxError struct {
