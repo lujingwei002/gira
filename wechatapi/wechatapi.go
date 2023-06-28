@@ -12,11 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lujingwei002/gira"
+	"github.com/lujingwei002/gira/errors"
+
 	sts "github.com/tencentyun/qcloud-cos-sts-sdk/go"
 
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
+	terrors "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	sms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111" // 引入sms
 )
@@ -237,7 +238,7 @@ func GetWxaCodeUnLimit(accessToken string, scene string, page string, envVersion
 		}
 		return resp, nil
 	} else {
-		return nil, gira.ErrTodo
+		return nil, errors.ErrTodo
 	}
 }
 
@@ -402,7 +403,7 @@ func SmsSend(appId string, secretId string, secretKey string, region string, sig
 	// 通过client对象调用想要访问的接口，需要传入请求对象
 	resp, err := client.SendSms(request)
 	// 处理异常
-	if _, ok := err.(*errors.TencentCloudSDKError); ok {
+	if _, ok := err.(*terrors.TencentCloudSDKError); ok {
 		fmt.Printf("An API error has returned: %s", err)
 		return nil, err
 	}
