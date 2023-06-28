@@ -77,7 +77,6 @@ func Trace(err error, values ...interface{}) *TraceError {
 	} else if len(values) == 0 {
 	} else {
 		kvs = make(map[string]interface{})
-
 		for i := 0; i < len(values); i += 2 {
 			j := i + 1
 			if k, ok := values[i].(string); ok {
@@ -85,15 +84,13 @@ func Trace(err error, values ...interface{}) *TraceError {
 			}
 		}
 	}
-	if defaultLogger != nil {
-		vs := append(values, "stack", string(debug.Stack()))
-		defaultLogger.Errorw(err.Error(), vs...)
-	}
-	return &TraceError{
+	e := &TraceError{
 		err:    err,
 		values: kvs,
 		stack:  debug.Stack(),
 	}
+	e.Print()
+	return e
 }
 
 func Unwrap(err error) error {
@@ -106,8 +103,26 @@ func Unwrap(err error) error {
 	return u.Unwrap()
 }
 
-func Is(err error, target *CodeError) bool {
-	return target.Is(err)
+// from pkg "golang.org/x/xerrors"
+func Is(err error, target error) bool {
+	if target == nil {
+		return err == target
+	}
+	isComparable := reflect.TypeOf(target).Comparable()
+	for {
+		if isComparable && err == target {
+			return true
+		}
+		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
+			return true
+		}
+		// TODO: consider supporting target.Is(err). This would allow
+		// user-definable predicates, but also may allow for coping with sloppy
+		// APIs, thereby making it easier to get away with them.
+		if err = Unwrap(err); err == nil {
+			return false
+		}
+	}
 }
 
 // 根据code, msg, values创建error_code
@@ -129,35 +144,6 @@ func New(code int32, msg string, values ...interface{}) *CodeError {
 		Code:   code,
 		Msg:    msg,
 		Values: kvs,
-	}
-}
-
-// 转换或者创建error
-func NewOrCastError(err error) *CodeError {
-	if err == nil {
-		return nil
-	}
-	if e, ok := err.(*CodeError); ok {
-		return e
-	} else {
-		msg := err.Error()
-		arr := strings.Split(msg, ":")
-		if len(arr) < 2 {
-			return &CodeError{
-				Code: CodeUnknown,
-				Msg:  msg,
-			}
-		} else if v, err := strconv.Atoi(arr[0]); err != nil {
-			return &CodeError{
-				Code: CodeUnknown,
-				Msg:  msg,
-			}
-		} else {
-			return &CodeError{
-				Code: int32(v),
-				Msg:  arr[1],
-			}
-		}
 	}
 }
 
@@ -226,14 +212,9 @@ type CodeError struct {
 func (e *CodeError) Trace(values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
-		kvs = e.Values
 	} else if len(values) == 0 {
-		kvs = e.Values
 	} else {
 		kvs = make(map[string]interface{})
-		for k, v := range e.Values {
-			kvs[k] = v
-		}
 		for i := 0; i < len(values); i += 2 {
 			j := i + 1
 			if k, ok := values[i].(string); ok {
@@ -241,12 +222,9 @@ func (e *CodeError) Trace(values ...interface{}) *TraceError {
 			}
 		}
 	}
-	stack := debug.Stack()
-	if defaultLogger != nil {
-		vs := append(values, "stacktrace", string(stack))
-		defaultLogger.Errorw(e.Msg, vs...)
-	}
-	return &TraceError{err: e, stack: stack, values: kvs}
+	err := &TraceError{err: e, stack: debug.Stack(), values: kvs}
+	err.Print()
+	return err
 }
 
 // 格式化错误字符串
@@ -261,22 +239,11 @@ func (e *CodeError) Error() string {
 	return sb.String()
 }
 
-func (target *CodeError) Is(err error) bool {
-	if target == nil {
-		return err == target
+func (e *CodeError) Is(err error) bool {
+	if c, ok := err.(*CodeError); ok {
+		return e.Code == c.Code
 	}
-	isComparable := reflect.TypeOf(target).Comparable()
-	for {
-		if isComparable && err == target {
-			return true
-		}
-		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
-			return true
-		}
-		if err = Unwrap(err); err == nil {
-			return false
-		}
-	}
+	return e == err
 }
 
 // 跟踪错误信息
@@ -284,6 +251,12 @@ type TraceError struct {
 	err    error
 	stack  []byte
 	values map[string]interface{}
+}
+
+func (e *TraceError) Print() {
+	if defaultLogger != nil {
+		defaultLogger.Errorw(e.Error())
+	}
 }
 
 func (e *TraceError) Error() string {
@@ -294,10 +267,8 @@ func (e *TraceError) Error() string {
 			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
 		}
 	}
-	if e.stack != nil {
-		sb.WriteString("\nstacktrace:\n")
-		sb.Write(e.stack)
-	}
+	sb.WriteString("\n")
+	sb.WriteString(string(e.stack))
 	return sb.String()
 }
 
@@ -306,8 +277,5 @@ func (e *TraceError) Unwrap() error {
 }
 
 func (e *TraceError) Is(err error) bool {
-	if e.err == nil {
-		return false
-	}
-	return e.err == err
+	return e == err
 }

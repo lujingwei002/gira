@@ -76,7 +76,8 @@ func Unwrap(err error) error {
 	return u.Unwrap()
 }
 
-func Is(err error, target *Error) bool {
+// from pkg "golang.org/x/xerrors"
+func Is(err error, target error) bool {
 	if target == nil {
 		return err == target
 	}
@@ -100,9 +101,7 @@ func Is(err error, target *Error) bool {
 func New(msg string, values ...interface{}) *Error {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
-
 	} else if len(values) == 0 {
-
 	} else {
 		kvs = make(map[string]interface{})
 		for i := 0; i < len(values); i += 2 {
@@ -121,9 +120,7 @@ func New(msg string, values ...interface{}) *Error {
 func Trace(err error, values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
-
 	} else if len(values) == 0 {
-
 	} else {
 		kvs = make(map[string]interface{})
 		for i := 0; i < len(values); i += 2 {
@@ -145,6 +142,10 @@ type Error struct {
 	Values map[string]interface{}
 }
 
+func (e *Error) Is(err error) bool {
+	return e == err
+}
+
 func (e *Error) Error() string {
 	sb := strings.Builder{}
 	sb.WriteString(e.Msg)
@@ -159,14 +160,9 @@ func (e *Error) Error() string {
 func (e *Error) Trace(values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
-		kvs = e.Values
 	} else if len(values) == 0 {
-		kvs = e.Values
 	} else {
 		kvs = make(map[string]interface{})
-		for k, v := range e.Values {
-			kvs[k] = v
-		}
 		for i := 0; i < len(values); i += 2 {
 			j := i + 1
 			if k, ok := values[i].(string); ok {
@@ -202,10 +198,7 @@ func (e *TraceError) Unwrap() error {
 }
 
 func (e *TraceError) Is(err error) bool {
-	if e.err == nil {
-		return false
-	}
-	return e.err == err
+	return e == err
 }
 
 type SyntaxError struct {
