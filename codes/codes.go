@@ -71,7 +71,7 @@ func TraceErrTodo(values ...interface{}) *TraceError {
 }
 
 // 根据code, msg, values创建error_code
-func Trace(code int32, msg string, values ...interface{}) *CodeError {
+func Trace(err error, values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
 	} else if len(values) == 0 {
@@ -87,12 +87,12 @@ func Trace(code int32, msg string, values ...interface{}) *CodeError {
 	}
 	if defaultLogger != nil {
 		vs := append(values, "stack", string(debug.Stack()))
-		defaultLogger.Errorw(msg, vs...)
+		defaultLogger.Errorw(err.Error(), vs...)
 	}
-	return &CodeError{
-		Code:   code,
-		Msg:    msg,
-		Values: kvs,
+	return &TraceError{
+		err:    err,
+		values: kvs,
+		stack:  debug.Stack(),
 	}
 }
 
@@ -107,24 +107,7 @@ func Unwrap(err error) error {
 }
 
 func Is(err error, target *CodeError) bool {
-	if target == nil {
-		return err == target
-	}
-	isComparable := reflect.TypeOf(target).Comparable()
-	for {
-		if isComparable && err == target {
-			return true
-		}
-		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
-			return true
-		}
-		// TODO: consider supporting target.Is(err). This would allow
-		// user-definable predicates, but also may allow for coping with sloppy
-		// APIs, thereby making it easier to get away with them.
-		if err = Unwrap(err); err == nil {
-			return false
-		}
-	}
+	return target.Is(err)
 }
 
 // 根据code, msg, values创建error_code
@@ -276,6 +259,24 @@ func (e *CodeError) Error() string {
 		}
 	}
 	return sb.String()
+}
+
+func (target *CodeError) Is(err error) bool {
+	if target == nil {
+		return err == target
+	}
+	isComparable := reflect.TypeOf(target).Comparable()
+	for {
+		if isComparable && err == target {
+			return true
+		}
+		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
+			return true
+		}
+		if err = Unwrap(err); err == nil {
+			return false
+		}
+	}
 }
 
 // 跟踪错误信息
