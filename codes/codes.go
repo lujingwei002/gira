@@ -3,13 +3,12 @@ package codes
 import (
 	"fmt"
 	"reflect"
-	"runtime/debug"
 	"strconv"
 	"strings"
 )
 
 type Logger interface {
-	Errorw(msg string, keysAndValues ...interface{})
+	Error(...interface{})
 }
 
 var defaultLogger Logger
@@ -67,7 +66,7 @@ var (
 )
 
 func TraceErrTodo(values ...interface{}) *TraceError {
-	return ErrToDo.Trace(values...)
+	return ErrToDo.TraceWithSkip(1, values...)
 }
 
 // 根据code, msg, values创建error_code
@@ -87,7 +86,7 @@ func Trace(err error, values ...interface{}) *TraceError {
 	e := &TraceError{
 		err:    err,
 		values: kvs,
-		stack:  debug.Stack(),
+		stack:  takeStacktrace(1),
 	}
 	e.Print()
 	return e
@@ -210,6 +209,10 @@ type CodeError struct {
 
 // 拷贝error并且附加stack
 func (e *CodeError) Trace(values ...interface{}) *TraceError {
+	return e.TraceWithSkip(1)
+}
+
+func (e *CodeError) TraceWithSkip(skip int, values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
 	} else if len(values) == 0 {
@@ -222,7 +225,7 @@ func (e *CodeError) Trace(values ...interface{}) *TraceError {
 			}
 		}
 	}
-	err := &TraceError{err: e, stack: debug.Stack(), values: kvs}
+	err := &TraceError{err: e, stack: takeStacktrace(skip + 1), values: kvs}
 	err.Print()
 	return err
 }
@@ -233,7 +236,7 @@ func (e *CodeError) Error() string {
 	sb.WriteString(fmt.Sprintf("%d: %s", e.Code, e.Msg))
 	if e.Values != nil {
 		for k, v := range e.Values {
-			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+			sb.WriteString(fmt.Sprintf("\n%s: %v", k, v))
 		}
 	}
 	return sb.String()
@@ -249,13 +252,13 @@ func (e *CodeError) Is(err error) bool {
 // 跟踪错误信息
 type TraceError struct {
 	err    error
-	stack  []byte
+	stack  string
 	values map[string]interface{}
 }
 
 func (e *TraceError) Print() {
 	if defaultLogger != nil {
-		defaultLogger.Errorw(e.Error())
+		defaultLogger.Error(e.Error())
 	}
 }
 
@@ -264,11 +267,11 @@ func (e *TraceError) Error() string {
 	sb.WriteString(e.err.Error())
 	if e.values != nil {
 		for k, v := range e.values {
-			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+			sb.WriteString(fmt.Sprintf("\n%s: %v", k, v))
 		}
 	}
 	sb.WriteString("\n")
-	sb.WriteString(string(e.stack))
+	sb.WriteString(e.stack)
 	return sb.String()
 }
 

@@ -172,7 +172,6 @@ func (application *Application) init() error {
 	if err := application.applicationFacade.OnConfigLoad(application.config); err != nil {
 		return err
 	}
-	var logger gira.Logger
 	var coreLogger gira.Logger
 	// 初始化日志
 	if application.config.CoreLog != nil {
@@ -181,16 +180,12 @@ func (application *Application) init() error {
 		}
 	}
 	if application.config.Log != nil {
-		if logger, err = log.ConfigLogger(*application.config.Log); err != nil {
+		if _, err = log.ConfigLogger(*application.config.Log); err != nil {
 			return err
 		}
 	}
-	if application.config.LogErrorStack {
-		if coreLogger != nil {
-			codes.SetLogger(coreLogger)
-		} else if logger != nil {
-			codes.SetLogger(logger)
-		}
+	if coreLogger != nil && application.config.CoreLog.TraceErrorStack {
+		codes.SetLogger(coreLogger)
 	}
 	runtime.GOMAXPROCS(application.config.Thread)
 	return nil

@@ -151,7 +151,7 @@ func (e *Error) Error() string {
 	sb.WriteString(e.Msg)
 	if e.Values != nil {
 		for k, v := range e.Values {
-			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+			sb.WriteString(fmt.Sprintf("\n%s: %v", k, v))
 		}
 	}
 	return sb.String()
@@ -185,7 +185,7 @@ func (e *TraceError) Error() string {
 	sb.WriteString(e.err.Error())
 	if e.values != nil {
 		for k, v := range e.values {
-			sb.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+			sb.WriteString(fmt.Sprintf("\n%s: %v", k, v))
 		}
 	}
 	sb.WriteString("\n")

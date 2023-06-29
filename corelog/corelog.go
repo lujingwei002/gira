@@ -2,7 +2,6 @@ package corelog
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/lujingwei002/gira"
 	"github.com/natefinch/lumberjack"
@@ -42,19 +41,19 @@ func (l *Logger) Info(args ...interface{}) {
 }
 
 func (l *Logger) Error(args ...interface{}) {
-	l.sugar.Info(args...)
+	l.sugar.Error(args...)
 }
 
 func (l *Logger) Debug(args ...interface{}) {
-	l.sugar.Info(args...)
+	l.sugar.Debug(args...)
 }
 
 func (l *Logger) Fatal(args ...interface{}) {
-	l.sugar.Info(args...)
+	l.sugar.Fatal(args...)
 }
 
 func (l *Logger) Warn(args ...interface{}) {
-	l.sugar.Info(args...)
+	l.sugar.Warn(args...)
 }
 
 func (l *Logger) Infof(format string, args ...interface{}) {
@@ -120,15 +119,37 @@ func ConfigLogger(config gira.LogConfig) (*Logger, error) {
 	}
 
 	// 2.滚动文件输出
-	if config.File {
-		var level zap.AtomicLevel
-		err := level.UnmarshalText([]byte(config.Level))
-		if err != nil {
-			return nil, err
+	for _, file := range config.Files {
+
+		var enabler zap.LevelEnablerFunc
+		if file.Filter != "" {
+			var level zap.AtomicLevel
+			err := level.UnmarshalText([]byte(file.Filter))
+			if err != nil {
+				return nil, err
+			}
+			enabler = zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+				return lvl == level.Level()
+			})
+		} else if file.Level != "" {
+			var level zap.AtomicLevel
+			err := level.UnmarshalText([]byte(file.Level))
+			if err != nil {
+				return nil, err
+			}
+			enabler = zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+				return lvl >= level.Level()
+			})
+		} else if config.Level != "" {
+			var level zap.AtomicLevel
+			err := level.UnmarshalText([]byte(config.Level))
+			if err != nil {
+				return nil, err
+			}
+			enabler = zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+				return lvl >= level.Level()
+			})
 		}
-		enabler := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-			return lvl >= level.Level()
-		})
 
 		encoderCfg := zapcore.EncoderConfig{
 			TimeKey:        "time",
@@ -143,14 +164,20 @@ func ConfigLogger(config gira.LogConfig) (*Logger, error) {
 			EncodeDuration: zapcore.SecondsDurationEncoder,
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		}
+		var format zapcore.Encoder
+		if file.Format == "console" {
+			format = zapcore.NewConsoleEncoder(encoderCfg)
+		} else {
+			format = zapcore.NewJSONEncoder(encoderCfg)
+		}
 		rollingCore := zapcore.NewCore(
-			zapcore.NewJSONEncoder(encoderCfg), // 滚动日志输出格式
+			format, // 滚动日志输出格式
 			zapcore.AddSync(&lumberjack.Logger{
-				Filename:   filepath.Join(config.Dir, config.Name), // 日志文件路径
-				MaxSize:    config.MaxSize,                         // 每个日志文件的最大大小，单位为 MB
-				MaxBackups: config.MaxBackups,                      // 保留的旧日志文件的最大个数
-				MaxAge:     config.MaxAge,                          // 保留的旧日志文件的最大天数
-				Compress:   config.Compress,                        // 是否压缩旧日志文件
+				Filename:   file.Path,       // 日志文件路径
+				MaxSize:    file.MaxSize,    // 每个日志文件的最大大小，单位为 MB
+				MaxBackups: file.MaxBackups, // 保留的旧日志文件的最大个数
+				MaxAge:     file.MaxAge,     // 保留的旧日志文件的最大天数
+				Compress:   file.Compress,   // 是否压缩旧日志文件
 			}),
 			enabler,
 		)

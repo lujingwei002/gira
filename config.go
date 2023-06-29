@@ -192,17 +192,22 @@ func newDefaultConfig() *Config {
 
 // 日志配置
 type LogConfig struct {
-	Console    bool   `yaml:"console"`
-	File       bool   `yaml:"file"`
-	MaxSize    int    `yaml:"max-size"`
-	MaxBackups int    `yaml:"max-backups"`
-	MaxAge     int    `yaml:"max-age"`
-	Compress   bool   `yaml:"compress"`
-	Level      string `yaml:"level"`
-	DbLevel    string `yaml:"db-level"`
-	Db         bool   `yaml:"db"`
-	Dir        string `yaml:"dir"`
-	Name       string `yaml:"name"`
+	Console         bool   `yaml:"console"`
+	Db              bool   `yaml:"db"`
+	Level           string `yaml:"level"` // ERROR|WARN|INFO|DEBUG
+	DbLevel         string `yaml:"db-level"`
+	TraceErrorStack bool   `yaml:"trace-error-stack"`
+	// 输出到文件
+	Files []struct {
+		Level      string `yaml:"level"`  // 大于level的都会被输出
+		Filter     string `yaml:"filter"` // 等于filter的才会被输出, filter比level优先级更高
+		MaxSize    int    `yaml:"max-size"`
+		MaxBackups int    `yaml:"max-backups"`
+		MaxAge     int    `yaml:"max-age"`
+		Compress   bool   `yaml:"compress"`
+		Path       string `yaml:"path"`
+		Format     string `yaml:"format"` // json|console
+	} `yaml:"files"`
 }
 
 // jwt配置
@@ -393,18 +398,17 @@ type ResourceConfig struct {
 }
 
 type Config struct {
-	Raw           []byte
-	Thread        int         `yaml:"thread"`
-	Env           string      `yaml:"env"`
-	Zone          string      `yaml:"zone"`
-	Log           *LogConfig  `yaml:"log"`
-	CoreLog       *LogConfig  `yaml:"core-log"`
-	Pprof         PprofConfig `yaml:"pprof"`
-	Sandbox       int         `yaml:"sandbox"`
-	Db            map[string]*DbConfig
-	Resource      ResourceConfig `yaml:"resource"`
-	LogErrorStack bool           `yaml:"log-error-stack"`
-	Module        struct {
+	Raw      []byte
+	Thread   int         `yaml:"thread"`
+	Env      string      `yaml:"env"`
+	Zone     string      `yaml:"zone"`
+	Log      *LogConfig  `yaml:"log"`
+	CoreLog  *LogConfig  `yaml:"core-log"`
+	Pprof    PprofConfig `yaml:"pprof"`
+	Sandbox  int         `yaml:"sandbox"`
+	Db       map[string]*DbConfig
+	Resource ResourceConfig `yaml:"resource"`
+	Module   struct {
 		Behavior   *BehaviorConfig   `yaml:"behavior"`
 		Http       *HttpConfig       `yaml:"http,omitempty"`
 		Etcd       *EtcdConfig       `yaml:"etcd"`

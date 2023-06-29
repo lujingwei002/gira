@@ -62,7 +62,7 @@ var (
 <<- $value := index $row $valueField.Tag >>
 // << index $row $commentField.Tag >>
 func TraceErr<<camelString $key>>(values ...interface{}) *codes.TraceError {
-	return Err<<camelString $key>>.Trace(values...)
+	return Err<<camelString $key>>.TraceWithSkip(1, values...)
 }
 <<- end>>
 <<- else >>
