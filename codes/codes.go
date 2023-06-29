@@ -18,6 +18,7 @@ func SetLogger(l Logger) {
 }
 
 // 错误码常量
+// 1-255 系统预留
 const (
 	CodeOk                             = 0
 	CodeUnknown                        = 1
@@ -27,22 +28,23 @@ const (
 	CodeInvalidArgs                    = 5
 	CodeInvalidJwt                     = 6
 	CodeJwtExpire                      = 7
-	CodeToDo                           = 8
+	CodeTODO                           = 8
 	CodeInvalidPassword                = 9
 	CodePayOrderStatusInvalid          = 10
 	CodeAccountPlatformNotSupport      = 11
 	CodePayOrderAccountPlatformInvalid = 12
 	CodePayOrderAmountInvalid          = 13
+	CodeMax                            = 255
 )
 const (
-	msg_OK                             = "成功"
+	msg_Ok                             = "成功"
 	msg_Unknown                        = "未知错误"
 	msg_NullObject                     = "null object"
 	msg_InvalidSdkToken                = "无效的sdk token"
 	msg_InvalidArgs                    = "无效参数"
 	msg_InvalidJwt                     = "无效的token"
 	msg_JwtExpire                      = "token已过期"
-	msg_ToDo                           = "TODO"
+	msg_TODO                           = "TODO"
 	msg_InvalidPassword                = "inivalid password"
 	msg_PayOrderStatusInvalid          = "pay order status invalid"
 	msg_AccountPlatformNotSupport      = "account platform not support"
@@ -51,46 +53,20 @@ const (
 )
 
 var (
+	ErrOk                             = New(CodeOk, msg_Ok)
 	ErrUnknown                        = New(CodeUnknown, msg_Unknown)
 	ErrNullObject                     = New(CodeNullObject, msg_NullObject)
 	ErrInvalidSdkToken                = New(CodeInvalidSdkToken, msg_InvalidSdkToken)
 	ErrInvalidArgs                    = New(CodeInvalidArgs, msg_InvalidArgs)
 	ErrInvalidJwt                     = New(CodeInvalidJwt, msg_InvalidJwt)
 	ErrJwtExpire                      = New(CodeJwtExpire, msg_JwtExpire)
-	ErrToDo                           = New(CodeToDo, msg_ToDo)
+	ErrTODO                           = New(CodeTODO, msg_TODO)
 	ErrInvalidPassword                = New(CodeInvalidPassword, msg_InvalidPassword)
 	ErrPayOrderStatusInvalid          = New(CodePayOrderStatusInvalid, msg_PayOrderStatusInvalid)
 	ErrAccountPlatformNotSupport      = New(CodeAccountPlatformNotSupport, msg_AccountPlatformNotSupport)
 	ErrPayOrderAccountPlatformInvalid = New(CodePayOrderAccountPlatformInvalid, msg_PayOrderAccountPlatformInvalid)
 	ErrPayOrderAmountInvalid          = New(CodePayOrderAmountInvalid, msg_PayOrderAmountInvalid)
 )
-
-func TraceErrTodo(values ...interface{}) *TraceError {
-	return ErrToDo.TraceWithSkip(1, values...)
-}
-
-// 根据code, msg, values创建error_code
-func Trace(err error, values ...interface{}) *TraceError {
-	var kvs map[string]interface{}
-	if len(values)%2 != 0 {
-	} else if len(values) == 0 {
-	} else {
-		kvs = make(map[string]interface{})
-		for i := 0; i < len(values); i += 2 {
-			j := i + 1
-			if k, ok := values[i].(string); ok {
-				kvs[k] = values[j]
-			}
-		}
-	}
-	e := &TraceError{
-		err:    err,
-		values: kvs,
-		stack:  takeStacktrace(1),
-	}
-	e.Print()
-	return e
-}
 
 func Unwrap(err error) error {
 	u, ok := err.(interface {
@@ -124,7 +100,35 @@ func Is(err error, target error) bool {
 	}
 }
 
-// 根据code, msg, values创建error_code
+// TODO错误
+func TraceErrTODO(values ...interface{}) *TraceError {
+	return ErrTODO.TraceWithSkip(1, values...)
+}
+
+// wrap error
+func Trace(err error, values ...interface{}) *TraceError {
+	var kvs map[string]interface{}
+	if len(values)%2 != 0 {
+	} else if len(values) == 0 {
+	} else {
+		kvs = make(map[string]interface{})
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
+			if k, ok := values[i].(string); ok {
+				kvs[k] = values[j]
+			}
+		}
+	}
+	e := &TraceError{
+		err:    err,
+		values: kvs,
+		stack:  takeStacktrace(1),
+	}
+	e.Print()
+	return e
+}
+
+// 创建error_code
 func New(code int32, msg string, values ...interface{}) *CodeError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
@@ -173,7 +177,7 @@ func Code(err error) int32 {
 // 提取错误描述
 func Msg(err error) string {
 	if err == nil {
-		return msg_OK
+		return msg_Ok
 	}
 	if e, ok := err.(*CodeError); ok {
 		return e.Msg
@@ -209,7 +213,7 @@ type CodeError struct {
 
 // 拷贝error并且附加stack
 func (e *CodeError) Trace(values ...interface{}) *TraceError {
-	return e.TraceWithSkip(1)
+	return e.TraceWithSkip(1, values...)
 }
 
 func (e *CodeError) TraceWithSkip(skip int, values ...interface{}) *TraceError {

@@ -238,7 +238,7 @@ func GetWxaCodeUnLimit(accessToken string, scene string, page string, envVersion
 		}
 		return resp, nil
 	} else {
-		return nil, errors.ErrTodo
+		return nil, errors.ErrTODO
 	}
 }
 

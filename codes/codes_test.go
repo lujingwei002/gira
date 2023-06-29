@@ -3,10 +3,16 @@ package codes
 import (
 	"fmt"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func TestCodes_Trace(t *testing.T) {
 	fmt.Println(ErrInvalidArgs.Trace("name", "ljw"))
+}
+
+func TestCodes_TraceMongoErrNoDocuments(t *testing.T) {
+	fmt.Println(Trace(mongo.ErrNoDocuments, "aa", "bb"))
 }
 
 func TestErrors_Is1(t *testing.T) {
@@ -16,6 +22,7 @@ func TestErrors_Is1(t *testing.T) {
 		expect  bool
 	}{
 		{
+			// TraceError -> CodeError
 			ErrInvalidPassword.Trace("name", "aa"),
 			func(err error) bool {
 				return Is(err, ErrInvalidPassword)
@@ -23,6 +30,7 @@ func TestErrors_Is1(t *testing.T) {
 			true,
 		},
 		{
+			// TraceError -> TraceError -> CodeError
 			Trace(ErrInvalidPassword.Trace("name", "aa")),
 			func(err error) bool {
 				return Is(err, ErrInvalidPassword)
@@ -30,6 +38,7 @@ func TestErrors_Is1(t *testing.T) {
 			true,
 		},
 		{
+			// TraceError -> TraceError -> CodeError
 			Trace(ErrInvalidPassword.Trace("name", "aa")),
 			func(err error) bool {
 				return Is(err, ErrPayOrderStatusInvalid)
@@ -37,9 +46,18 @@ func TestErrors_Is1(t *testing.T) {
 			false,
 		},
 		{
+			// 错误码相同，也判断为相同
 			Trace(ErrInvalidPassword.Trace("name", "aa")),
 			func(err error) bool {
 				return Is(err, New(CodeInvalidPassword, ""))
+			},
+			true,
+		},
+		{
+			// TraceError -> mongo.ErrNoDocuments
+			Trace(mongo.ErrNoDocuments),
+			func(err error) bool {
+				return Is(err, mongo.ErrNoDocuments)
 			},
 			true,
 		},

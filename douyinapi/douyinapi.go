@@ -218,7 +218,7 @@ func CreateQRCode(accessToken string, appName string, path string, setIcon bool,
 		}
 		return resp, nil
 	} else {
-		return nil, errors.ErrTodo
+		return nil, errors.ErrTODO
 	}
 }
 

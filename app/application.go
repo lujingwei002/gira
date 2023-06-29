@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lujingwei002/gira/behaviorlog"
 	"github.com/lujingwei002/gira/codes"
 	"github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
@@ -172,20 +173,24 @@ func (application *Application) init() error {
 	if err := application.applicationFacade.OnConfigLoad(application.config); err != nil {
 		return err
 	}
-	var coreLogger gira.Logger
 	// 初始化日志
 	if application.config.CoreLog != nil {
-		if coreLogger, err = corelog.ConfigLogger(*application.config.CoreLog); err != nil {
+		if err = corelog.Config(*application.config.CoreLog); err != nil {
+			return err
+		}
+		if application.config.CoreLog.TraceErrorStack {
+			codes.SetLogger(corelog.GetDefaultLogger())
+		}
+	}
+	if application.config.BehaviorLog != nil {
+		if err = behaviorlog.Config(*application.config.BehaviorLog); err != nil {
 			return err
 		}
 	}
 	if application.config.Log != nil {
-		if _, err = log.ConfigLogger(*application.config.Log); err != nil {
+		if err = log.Config(*application.config.Log); err != nil {
 			return err
 		}
-	}
-	if coreLogger != nil && application.config.CoreLog.TraceErrorStack {
-		codes.SetLogger(coreLogger)
 	}
 	runtime.GOMAXPROCS(application.config.Thread)
 	return nil

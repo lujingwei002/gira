@@ -15,7 +15,7 @@ type TagList struct {
 
 func (self *TagList) Int(k string) (int, error) {
 	if v, ok := self.Kv[k]; !ok {
-		return 0, errors.ErrTodo
+		return 0, errors.ErrTODO
 	} else if v, err := strconv.Atoi(v); err != nil {
 		return 0, err
 	} else {

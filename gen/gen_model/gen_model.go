@@ -487,7 +487,7 @@ type <<.MongoDriverStructName>> struct {
 
 func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
 	if self.client != nil {
-		return errors.ErrTodo
+		return errors.ErrTODO
 	}
 	self.client = client.GetMongoClient()
 	self.database = client.GetMongoDatabase()

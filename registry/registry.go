@@ -161,7 +161,7 @@ func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig) (*Registry,
 		return nil, err
 	}
 	r.client = client
-	log.Infow("connect registry success", "endpoints", endpoints)
+	log.Debugw("connect registry success", "endpoints", endpoints)
 	if v, err := newConfigPeerRegistry(r); err != nil {
 		return nil, err
 	} else {

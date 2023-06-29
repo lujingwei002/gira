@@ -23,7 +23,7 @@ func (p *yaml_parser) parse(constState *const_state) error {
 			return err
 		}
 		if descriptors, ok := result["descriptor"]; !ok {
-			return errors.ErrTodo.Trace()
+			return errors.ErrTODO.Trace()
 		} else {
 			for _, row := range descriptors.([]interface{}) {
 				arr := row.([]interface{})

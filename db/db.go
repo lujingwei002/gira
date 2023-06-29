@@ -43,7 +43,7 @@ func NewConfigMongoDbClient(ctx context.Context, name string, config gira.DbConf
 		return nil, err
 	}
 	client.client = conn
-	corelog.Infow("connect database success", "name", name, "uri", uri)
+	corelog.Debugw("connect database success", "name", name, "uri", uri)
 	return client, nil
 }
 
@@ -75,7 +75,7 @@ func NewConfigRedisClient(ctx context.Context, name string, config gira.DbConfig
 		return nil, err
 	}
 	client.client = rdb
-	corelog.Infow("connect database success", "name", name, "uri", uri)
+	corelog.Debugw("connect database success", "name", name, "uri", uri)
 	return client, nil
 }
 
@@ -112,7 +112,7 @@ func NewConfigMysqlClient(ctx context.Context, name string, config gira.DbConfig
 		return nil, err
 	}
 	client.client = db
-	corelog.Infow("connect database success", "name", name, "uri", uri)
+	corelog.Debugw("connect database success", "name", name, "uri", uri)
 	return client, nil
 }
 

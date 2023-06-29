@@ -95,6 +95,7 @@ package <<.DbName>>
 import (
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
+	behaviorlog "github.com/lujingwei002/gira/behaviorlog"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/behavior"
@@ -190,7 +191,7 @@ func Use(ctx context.Context, client gira.DbClient, config gira.BehaviorConfig) 
 
 func UseMongo(ctx context.Context, client gira.MongoClient, config gira.BehaviorConfig) error {
 	if globalDriver != nil {
-		return errors.ErrTodo
+		return errors.ErrTODO
 	}
 	driver := NewMongo()
 	if err := driver.Use(client); err != nil {
@@ -221,7 +222,7 @@ func Log<<.StructName>>(doc *<<.StructName>>) error {
 
 func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
 	if self.client != nil {
-		return errors.ErrTodo
+		return errors.ErrTODO
 	}
 	self.client = client.GetMongoClient()
 	self.database = client.GetMongoDatabase()
@@ -298,7 +299,7 @@ func (self *<<.MongoDaoStructName>>) Log(doc *<<.StructName>>) error {
 	<<- if .HasLogTimeField>>
 	doc.LogTime = time.Now().Unix()
 	<<- end>>
-	log.Infow("<<.CollName>>",
+	behaviorlog.Infow("<<.CollName>>",
 	<<- range .FieldArr>> 
 		<<- range .CommentArr>>
 		//<<.>>

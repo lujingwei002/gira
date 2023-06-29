@@ -98,11 +98,11 @@ func (trie *word_trie) delete(path string) error {
 	}
 	if len(words) <= 0 {
 		trie.mu.Unlock()
-		return errors.ErrTodo.Trace()
+		return errors.ErrTODO.Trace()
 	}
 	if header, ok := trie.headers[words[0]]; !ok {
 		trie.mu.Unlock()
-		return errors.ErrTodo.Trace()
+		return errors.ErrTODO.Trace()
 	} else {
 		trie.mu.Unlock()
 		if err := header.delete(words[1:]); err != nil {
@@ -156,7 +156,7 @@ func (header *word_trie_header_node) collect(result []string) []string {
 func (header *word_trie_header_node) debugTrace() {
 	header.mu.Lock()
 	defer header.mu.Unlock()
-	log.Infow("header", "value", header.value, "path", header.path, "set", header.set)
+	log.Debugw("header", "value", header.value, "path", header.path, "set", header.set)
 	for _, node := range header.nodes {
 		node.debugTrace()
 	}
@@ -239,7 +239,7 @@ func (node *word_trie_node) delete(words []string) error {
 		return nil
 	} else {
 		if c, ok := node.nodes[words[0]]; !ok {
-			return errors.ErrTodo.Trace()
+			return errors.ErrTODO.Trace()
 		} else {
 			if err := c.delete(words[1:]); err != nil {
 				return err
@@ -253,7 +253,7 @@ func (node *word_trie_node) delete(words []string) error {
 }
 
 func (node *word_trie_node) debugTrace() {
-	log.Infow("node", "value", node.value, "path", node.path, "set", node.set)
+	log.Debugw("node", "value", node.value, "path", node.path, "set", node.set)
 	for _, node := range node.nodes {
 		node.debugTrace()
 	}
@@ -331,7 +331,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 	if r.isNotify == 0 {
 		return
 	}
-	log.Infow("service registry on service add", "service_name", service.FullName, "peer", service.Peer.FullName)
+	log.Debugw("service registry on service add", "service_name", service.FullName, "peer", service.Peer.FullName)
 	for _, handler := range r.serviceWatchHandlers {
 		handler.OnServiceAdd(service)
 	}
@@ -339,7 +339,7 @@ func (self *service_registry) onServiceAdd(r *Registry, service *gira.ServiceNam
 
 // on service delete callback
 func (self *service_registry) onServiceDelete(r *Registry, service *gira.ServiceName) {
-	log.Infow("service registry on service delete", "service_name", service.FullName, "peer", service.Peer.FullName)
+	log.Debugw("service registry on service delete", "service_name", service.FullName, "peer", service.Peer.FullName)
 	for _, handler := range r.serviceWatchHandlers {
 		handler.OnServiceDelete(service)
 	}
@@ -416,7 +416,7 @@ func (self *service_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error
 	// value := string(kv.Value) value没有值
 	if lastValue, ok := self.services.Load(serviceName); ok {
 		lastService := lastValue.(*gira.ServiceName)
-		log.Infow("service registry remove service", "service_name", serviceName, "last_peer", lastService.Peer.FullName)
+		log.Debugw("service registry remove service", "service_name", serviceName, "last_peer", lastService.Peer.FullName)
 		self.services.Delete(serviceName)
 		self.prefixIndex.delete(strings.Join(words, "/"))
 		self.onServiceDelete(r, lastService)
@@ -457,7 +457,7 @@ func (self *service_registry) initServices(r *Registry) error {
 			return err
 		}
 		if txnResp.Succeeded {
-			log.Infow("service registry unregister", "service_key", serviceKey, "peer_key", peerKey, "service_name", serviceName)
+			log.Debugw("service registry unregister", "service_key", serviceKey, "peer_key", peerKey, "service_name", serviceName)
 		} else {
 			log.Warnw("service registry unregister", "service_key", serviceKey, "peer_key", peerKey, "service_name", serviceName)
 		}
@@ -481,7 +481,7 @@ func (self *service_registry) watchServices(r *Registry) error {
 	watcher := clientv3.NewWatcher(client)
 	// r.application.Go(func() error {
 	watchRespChan := watcher.Watch(self.ctx, self.servicePrefix, clientv3.WithRev(watchStartRevision), clientv3.WithPrefix(), clientv3.WithPrevKV())
-	log.Infow("service registry started", "service_prefix", self.servicePrefix, "watch_start_revision", watchStartRevision)
+	log.Debugw("service registry started", "service_prefix", self.servicePrefix, "watch_start_revision", watchStartRevision)
 	for watchResp := range watchRespChan {
 		// log.Info("etcd watch got events")
 		for _, event := range watchResp.Events {
@@ -499,7 +499,7 @@ func (self *service_registry) watchServices(r *Registry) error {
 			}
 		}
 	}
-	log.Info("service registry watch exit")
+	log.Debug("service registry watch exit")
 	return nil
 	// })
 }
@@ -509,7 +509,7 @@ func (self *service_registry) unregisterServices(r *Registry) error {
 	kv := clientv3.NewKV(client)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	log.Infow("service registry unregister", "peer_prefix", self.peerServicePrefix)
+	log.Debugw("service registry unregister", "peer_prefix", self.peerServicePrefix)
 
 	var txnResp *clientv3.TxnResponse
 	var err error
@@ -525,7 +525,7 @@ func (self *service_registry) unregisterServices(r *Registry) error {
 			return true
 		}
 		if txnResp.Succeeded {
-			log.Infow("service registry unregister", "peer_key", peerKey, "create_revision", service.CreateRevision)
+			log.Debugw("service registry unregister", "peer_key", peerKey, "create_revision", service.CreateRevision)
 		} else {
 			log.Warnw("service registry unregister", "peer_key", peerKey, "create_revision", service.CreateRevision)
 		}
@@ -555,7 +555,8 @@ func (self *service_registry) RegisterService(r *Registry, serviceName string, o
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
-	log.Infow("service registry register", "service_name", serviceName, "peer_key", peerKey, "service_key", serviceKey)
+	// log.Debugw("service registry register", "service_name", serviceName, "peer_key", peerKey, "service_key", serviceKey)
+	log.Debugw("service registry register", "service_key", serviceKey)
 	value := r.appFullName
 
 	var catalogName string
@@ -609,7 +610,7 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 	var err error
 	var txnResp *clientv3.TxnResponse
 	txn := kv.Txn(self.ctx)
-	log.Infow("service registry", "peer_key", peerKey, "service_key", serviceKey)
+	log.Debugw("service registry", "peer_key", peerKey, "service_key", serviceKey)
 	txn.If(clientv3.Compare(clientv3.Value(serviceKey), "=", r.appFullName), clientv3.Compare(clientv3.CreateRevision(serviceKey), "!=", 0)).
 		Then(clientv3.OpDelete(peerKey), clientv3.OpDelete(serviceKey)).
 		Else(clientv3.OpGet(serviceKey))
@@ -618,7 +619,7 @@ func (self *service_registry) UnregisterService(r *Registry, serviceName string)
 		return nil, err
 	}
 	if txnResp.Succeeded {
-		log.Infow("service registry unregister", "service_name", serviceName)
+		log.Debugw("service registry unregister", "service_name", serviceName)
 		return nil, nil
 	} else {
 		var appFullName string

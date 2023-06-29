@@ -3,12 +3,11 @@ package errors
 import (
 	"fmt"
 	"reflect"
-	"runtime/debug"
 	"strings"
 )
 
 var (
-	ErrTodo                               = New("TODO")
+	ErrTODO                               = New("TODO")
 	ErrNullObject                         = New("null object")
 	ErrNullPointer                        = New("null pointer")
 	ErrInvalidArgs                        = New("invalid args")
@@ -98,25 +97,7 @@ func Is(err error, target error) bool {
 	}
 }
 
-func New(msg string, values ...interface{}) *Error {
-	var kvs map[string]interface{}
-	if len(values)%2 != 0 {
-	} else if len(values) == 0 {
-	} else {
-		kvs = make(map[string]interface{})
-		for i := 0; i < len(values); i += 2 {
-			j := i + 1
-			if k, ok := values[i].(string); ok {
-				kvs[k] = values[j]
-			}
-		}
-	}
-	return &Error{
-		Msg:    msg,
-		Values: kvs,
-	}
-}
-
+// wrap error
 func Trace(err error, values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
@@ -133,7 +114,27 @@ func Trace(err error, values ...interface{}) *TraceError {
 	return &TraceError{
 		err:    err,
 		values: kvs,
-		stack:  debug.Stack(),
+		stack:  takeStacktrace(1),
+	}
+}
+
+// 创建error
+func New(msg string, values ...interface{}) *Error {
+	var kvs map[string]interface{}
+	if len(values)%2 != 0 {
+	} else if len(values) == 0 {
+	} else {
+		kvs = make(map[string]interface{})
+		for i := 0; i < len(values); i += 2 {
+			j := i + 1
+			if k, ok := values[i].(string); ok {
+				kvs[k] = values[j]
+			}
+		}
+	}
+	return &Error{
+		Msg:    msg,
+		Values: kvs,
 	}
 }
 
@@ -158,6 +159,10 @@ func (e *Error) Error() string {
 }
 
 func (e *Error) Trace(values ...interface{}) *TraceError {
+	return e.TraceWithSkip(1, values...)
+}
+
+func (e *Error) TraceWithSkip(skip int, values ...interface{}) *TraceError {
 	var kvs map[string]interface{}
 	if len(values)%2 != 0 {
 	} else if len(values) == 0 {
@@ -170,14 +175,19 @@ func (e *Error) Trace(values ...interface{}) *TraceError {
 			}
 		}
 	}
-	return &TraceError{err: e, stack: debug.Stack(), values: kvs}
+	err := &TraceError{err: e, stack: takeStacktrace(skip + 1), values: kvs}
+	err.Print()
+	return err
 }
 
 // 保存发生错误时的调用栈
 type TraceError struct {
 	err    error
 	values map[string]interface{}
-	stack  []byte
+	stack  string
+}
+
+func (e *TraceError) Print() {
 }
 
 func (e *TraceError) Error() string {

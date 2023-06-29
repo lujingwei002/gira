@@ -398,17 +398,18 @@ type ResourceConfig struct {
 }
 
 type Config struct {
-	Raw      []byte
-	Thread   int         `yaml:"thread"`
-	Env      string      `yaml:"env"`
-	Zone     string      `yaml:"zone"`
-	Log      *LogConfig  `yaml:"log"`
-	CoreLog  *LogConfig  `yaml:"core-log"`
-	Pprof    PprofConfig `yaml:"pprof"`
-	Sandbox  int         `yaml:"sandbox"`
-	Db       map[string]*DbConfig
-	Resource ResourceConfig `yaml:"resource"`
-	Module   struct {
+	Raw         []byte
+	Thread      int         `yaml:"thread"`
+	Env         string      `yaml:"env"`
+	Zone        string      `yaml:"zone"`
+	Log         *LogConfig  `yaml:"log"`
+	CoreLog     *LogConfig  `yaml:"core-log"`
+	BehaviorLog *LogConfig  `yaml:"behavior-log"`
+	Pprof       PprofConfig `yaml:"pprof"`
+	Sandbox     int         `yaml:"sandbox"`
+	Db          map[string]*DbConfig
+	Resource    ResourceConfig `yaml:"resource"`
+	Module      struct {
 		Behavior   *BehaviorConfig   `yaml:"behavior"`
 		Http       *HttpConfig       `yaml:"http,omitempty"`
 		Etcd       *EtcdConfig       `yaml:"etcd"`

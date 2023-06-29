@@ -396,7 +396,7 @@ func envListAction(c *cli.Context) error {
 }
 
 func beforeAction(args *cli.Context) error {
-	if err := log.ConfigCliLog(); err != nil {
+	if err := log.ConfigAsCli(); err != nil {
 		return err
 	}
 	log.Println()

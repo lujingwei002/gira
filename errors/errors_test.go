@@ -3,6 +3,8 @@ package errors
 import (
 	"fmt"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func TestErrors_Trace(t *testing.T) {
@@ -26,6 +28,7 @@ func TestErrors_Is1(t *testing.T) {
 		expect  bool
 	}{
 		{
+			// TraceError -> Error
 			ErrConfigHandlerNotImplement.Trace("name", "aa"),
 			func(err error) bool {
 				return Is(err, ErrConfigHandlerNotImplement)
@@ -33,6 +36,7 @@ func TestErrors_Is1(t *testing.T) {
 			true,
 		},
 		{
+			// TraceError -> TraceError -> Error
 			Trace(ErrConfigHandlerNotImplement.Trace("name", "aa")),
 			func(err error) bool {
 				return Is(err, ErrConfigHandlerNotImplement)
@@ -45,6 +49,14 @@ func TestErrors_Is1(t *testing.T) {
 				return Is(err, ErrAdminClientNotImplement)
 			},
 			false,
+		},
+		{
+			// TraceError -> mongo.ErrNoDocuments
+			Trace(mongo.ErrNoDocuments),
+			func(err error) bool {
+				return Is(err, mongo.ErrNoDocuments)
+			},
+			true,
 		},
 	}
 	for index, v := range arr {
