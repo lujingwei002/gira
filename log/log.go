@@ -21,7 +21,8 @@ import (
 var defaultLogger *Logger
 
 type Logger struct {
-	sugar *zap.SugaredLogger
+	logger *zap.Logger
+	sugar  *zap.SugaredLogger
 }
 
 func (l *Logger) Infow(msg string, kvs ...interface{}) {
@@ -84,6 +85,15 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 	l.sugar.Warnf(format, args...)
 }
 
+func (l *Logger) Named(s string) gira.Logger {
+	logger := l.logger.Named(s)
+	sugar := logger.Sugar()
+	return &Logger{
+		sugar:  sugar,
+		logger: logger,
+	}
+}
+
 func ConfigCliLog() error {
 	// 配置日志输出
 	encoderConfig := zapcore.EncoderConfig{
@@ -136,7 +146,8 @@ func ConfigCliLog() error {
 	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(2))
 	sugar := logger.Sugar()
 	defaultLogger = &Logger{
-		sugar: sugar,
+		logger: logger,
+		sugar:  sugar,
 	}
 	return nil
 }
@@ -278,7 +289,8 @@ func ConfigLogger(config gira.LogConfig) (*Logger, error) {
 	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(2))
 	sugar := logger.Sugar()
 	defaultLogger = &Logger{
-		sugar: sugar,
+		logger: logger,
+		sugar:  sugar,
 	}
 	return defaultLogger, nil
 }
@@ -288,7 +300,8 @@ func init() {
 	logger = logger.WithOptions(zap.AddCallerSkip(2))
 	sugar := logger.Sugar()
 	defaultLogger = &Logger{
-		sugar: sugar,
+		logger: logger,
+		sugar:  sugar,
 	}
 }
 
