@@ -7,6 +7,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/options/service_options"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
@@ -108,4 +109,13 @@ func (r *RegistryClient) ListPeerKvs() (kvs map[string]string, err error) {
 func (r *RegistryClient) ListServiceKvs() (kvs map[string][]string, err error) {
 	kvs, err = r.serviceRegistry.listServiceKvs(r)
 	return
+}
+
+// 查找节点
+func (r *RegistryClient) WhereIsPeer(appFullName string) (*gira.Peer, error) {
+	if p := r.peerRegistry.getPeer(r, appFullName); p != nil {
+		return p, nil
+	} else {
+		return nil, errors.ErrPeerNotFound
+	}
 }

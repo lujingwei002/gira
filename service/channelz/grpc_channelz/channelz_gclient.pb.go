@@ -436,6 +436,7 @@ type ChannelzClientsMulticast interface {
 type ChannelzClientsUnicast interface {
 	Where(serviceName string) ChannelzClientsUnicast
 	WherePeer(peer *gira.Peer) ChannelzClientsUnicast
+	WherePeerFullName(appFullName string) ChannelzClientsUnicast
 	WhereAddress(address string) ChannelzClientsUnicast
 	WhereUser(userId string) ChannelzClientsUnicast
 
@@ -788,12 +789,13 @@ func (c *channelzClientsLocal) GetSocket(ctx context.Context, in *grpc_channelz_
 }
 
 type channelzClientsUnicast struct {
-	peer        *gira.Peer
-	serviceName string
-	address     string
-	userId      string
-	client      *channelzClients
-	headers     metadata.MD
+	peer         *gira.Peer
+	peerFullName string
+	serviceName  string
+	address      string
+	userId       string
+	client       *channelzClients
+	headers      metadata.MD
 }
 
 func (c *channelzClientsUnicast) Where(serviceName string) ChannelzClientsUnicast {
@@ -803,6 +805,11 @@ func (c *channelzClientsUnicast) Where(serviceName string) ChannelzClientsUnicas
 
 func (c *channelzClientsUnicast) WherePeer(peer *gira.Peer) ChannelzClientsUnicast {
 	c.peer = peer
+	return c
+}
+
+func (c *channelzClientsUnicast) WherePeerFullName(peerFullName string) ChannelzClientsUnicast {
+	c.peerFullName = peerFullName
 	return c
 }
 
@@ -821,6 +828,14 @@ func (c *channelzClientsUnicast) GetTopChannels(ctx context.Context, in *grpc_ch
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -866,6 +881,14 @@ func (c *channelzClientsUnicast) GetServers(ctx context.Context, in *grpc_channe
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -911,6 +934,14 @@ func (c *channelzClientsUnicast) GetServer(ctx context.Context, in *grpc_channel
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -956,6 +987,14 @@ func (c *channelzClientsUnicast) GetServerSockets(ctx context.Context, in *grpc_
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1001,6 +1040,14 @@ func (c *channelzClientsUnicast) GetChannel(ctx context.Context, in *grpc_channe
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1046,6 +1093,14 @@ func (c *channelzClientsUnicast) GetSubchannel(ctx context.Context, in *grpc_cha
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1091,6 +1146,14 @@ func (c *channelzClientsUnicast) GetSocket(ctx context.Context, in *grpc_channel
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {

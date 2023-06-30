@@ -22,6 +22,7 @@ import (
 
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
+	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -193,6 +194,15 @@ func (r *Registry) UnlockLocalUser(userId string) (*gira.Peer, error) {
 // 查找玩家
 func (r *Registry) WhereIsUser(userId string) (*gira.Peer, error) {
 	return r.playerRegistry.WhereIsUser(r, userId)
+}
+
+// 查找节点
+func (r *Registry) WhereIsPeer(appFullName string) (*gira.Peer, error) {
+	if p := r.peerRegistry.getPeer(r, appFullName); p != nil {
+		return p, nil
+	} else {
+		return nil, errors.ErrPeerNotFound
+	}
 }
 
 // 查找服务

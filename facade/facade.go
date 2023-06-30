@@ -179,6 +179,18 @@ func WhereIsUser(userId string) (*gira.Peer, error) {
 	}
 }
 
+// 查找节点位置
+func WhereIsPeer(appFullName string) (*gira.Peer, error) {
+	application := gira.App()
+	if r := application.GetRegistry(); r != nil {
+		return r.WhereIsPeer(appFullName)
+	} else if r := application.GetRegistryClient(); r != nil {
+		return r.WhereIsPeer(appFullName)
+	} else {
+		return nil, errors.ErrRegistryNOtImplement
+	}
+}
+
 func ListPeerKvs() (peers map[string]string, err error) {
 	application := gira.App()
 	if r := application.GetRegistryClient(); r == nil {

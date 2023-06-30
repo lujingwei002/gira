@@ -148,6 +148,7 @@ type PeerClientsMulticast interface {
 type PeerClientsUnicast interface {
 	Where(serviceName string) PeerClientsUnicast
 	WherePeer(peer *gira.Peer) PeerClientsUnicast
+	WherePeerFullName(appFullName string) PeerClientsUnicast
 	WhereAddress(address string) PeerClientsUnicast
 	WhereUser(userId string) PeerClientsUnicast
 
@@ -334,12 +335,13 @@ func (c *peerClientsLocal) MemStats(ctx context.Context, in *MemStatsRequest, op
 }
 
 type peerClientsUnicast struct {
-	peer        *gira.Peer
-	serviceName string
-	address     string
-	userId      string
-	client      *peerClients
-	headers     metadata.MD
+	peer         *gira.Peer
+	peerFullName string
+	serviceName  string
+	address      string
+	userId       string
+	client       *peerClients
+	headers      metadata.MD
 }
 
 func (c *peerClientsUnicast) Where(serviceName string) PeerClientsUnicast {
@@ -349,6 +351,11 @@ func (c *peerClientsUnicast) Where(serviceName string) PeerClientsUnicast {
 
 func (c *peerClientsUnicast) WherePeer(peer *gira.Peer) PeerClientsUnicast {
 	c.peer = peer
+	return c
+}
+
+func (c *peerClientsUnicast) WherePeerFullName(peerFullName string) PeerClientsUnicast {
+	c.peerFullName = peerFullName
 	return c
 }
 
@@ -367,6 +374,14 @@ func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -412,6 +427,14 @@ func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, 
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {

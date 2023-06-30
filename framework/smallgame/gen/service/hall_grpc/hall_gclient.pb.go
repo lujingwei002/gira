@@ -518,6 +518,7 @@ type HallClientsMulticast interface {
 type HallClientsUnicast interface {
 	Where(serviceName string) HallClientsUnicast
 	WherePeer(peer *gira.Peer) HallClientsUnicast
+	WherePeerFullName(appFullName string) HallClientsUnicast
 	WhereAddress(address string) HallClientsUnicast
 	WhereUser(userId string) HallClientsUnicast
 
@@ -910,12 +911,13 @@ func (c *hallClientsLocal) Kick(ctx context.Context, in *KickRequest, opts ...gr
 }
 
 type hallClientsUnicast struct {
-	peer        *gira.Peer
-	serviceName string
-	address     string
-	userId      string
-	client      *hallClients
-	headers     metadata.MD
+	peer         *gira.Peer
+	peerFullName string
+	serviceName  string
+	address      string
+	userId       string
+	client       *hallClients
+	headers      metadata.MD
 }
 
 func (c *hallClientsUnicast) Where(serviceName string) HallClientsUnicast {
@@ -925,6 +927,11 @@ func (c *hallClientsUnicast) Where(serviceName string) HallClientsUnicast {
 
 func (c *hallClientsUnicast) WherePeer(peer *gira.Peer) HallClientsUnicast {
 	c.peer = peer
+	return c
+}
+
+func (c *hallClientsUnicast) WherePeerFullName(peerFullName string) HallClientsUnicast {
+	c.peerFullName = peerFullName
 	return c
 }
 
@@ -943,6 +950,14 @@ func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.Call
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -988,6 +1003,14 @@ func (c *hallClientsUnicast) GateStream(ctx context.Context, opts ...grpc.CallOp
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1033,6 +1056,14 @@ func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1078,6 +1109,14 @@ func (c *hallClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1123,6 +1162,14 @@ func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, 
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1168,6 +1215,14 @@ func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1213,6 +1268,14 @@ func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1258,6 +1321,14 @@ func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadReq
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -1303,6 +1374,14 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {

@@ -202,6 +202,7 @@ type AdminClientsMulticast interface {
 type AdminClientsUnicast interface {
 	Where(serviceName string) AdminClientsUnicast
 	WherePeer(peer *gira.Peer) AdminClientsUnicast
+	WherePeerFullName(appFullName string) AdminClientsUnicast
 	WhereAddress(address string) AdminClientsUnicast
 	WhereUser(userId string) AdminClientsUnicast
 
@@ -415,12 +416,13 @@ func (c *adminClientsLocal) ReloadResource3(ctx context.Context, opts ...grpc.Ca
 }
 
 type adminClientsUnicast struct {
-	peer        *gira.Peer
-	serviceName string
-	address     string
-	userId      string
-	client      *adminClients
-	headers     metadata.MD
+	peer         *gira.Peer
+	peerFullName string
+	serviceName  string
+	address      string
+	userId       string
+	client       *adminClients
+	headers      metadata.MD
 }
 
 func (c *adminClientsUnicast) Where(serviceName string) AdminClientsUnicast {
@@ -430,6 +432,11 @@ func (c *adminClientsUnicast) Where(serviceName string) AdminClientsUnicast {
 
 func (c *adminClientsUnicast) WherePeer(peer *gira.Peer) AdminClientsUnicast {
 	c.peer = peer
+	return c
+}
+
+func (c *adminClientsUnicast) WherePeerFullName(peerFullName string) AdminClientsUnicast {
+	c.peerFullName = peerFullName
 	return c
 }
 
@@ -448,6 +455,14 @@ func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadReso
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -493,6 +508,14 @@ func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -538,6 +561,14 @@ func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadRes
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {
@@ -583,6 +614,14 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 	var address string
 	if len(c.address) > 0 {
 		address = c.address
+	} else if len(c.peerFullName) > 0 {
+		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+			return nil, err
+		} else if facade.IsEnableResolver() {
+			address = peer.Url
+		} else {
+			address = peer.Address
+		}
 	} else if c.peer != nil && facade.IsEnableResolver() {
 		address = c.peer.Url
 	} else if c.peer != nil {

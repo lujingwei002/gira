@@ -17,6 +17,8 @@ type Registry interface {
 	UnregisterService(serviceName string) (*Peer, error)
 	// 查找服务
 	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
+	// 查找节点
+	WhereIsPeer(appFullName string) (*Peer, error)
 }
 
 type RegistryClient interface {
@@ -27,6 +29,8 @@ type RegistryClient interface {
 	UnregisterPeer(appFullName string) error
 	ListPeerKvs() (peers map[string]string, err error)
 	ListServiceKvs() (services map[string][]string, err error)
+	// 查找节点
+	WhereIsPeer(appFullName string) (*Peer, error)
 }
 
 type RegistryComponent interface {
