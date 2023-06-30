@@ -2,6 +2,7 @@ package gira
 
 import "context"
 
+// 服务
 type Service interface {
 	// 服务启动
 	OnStart(ctx context.Context) error
@@ -11,6 +12,7 @@ type Service interface {
 	OnStop() error
 }
 
+// 服务容器
 type ServiceContainer interface {
 	// 启动服务
 	StartService(name string, service Service) error

@@ -1,5 +1,6 @@
 package gira
 
+// sdk账号
 type SdkAccount struct {
 	UnionId         string
 	OpenId          string
@@ -12,6 +13,7 @@ type SdkAccount struct {
 	LargePic        string // 大头像地址
 }
 
+// sdk支付订单
 type SdkPayOrder struct {
 	CporderId  string
 	OrderId    string
@@ -24,5 +26,6 @@ type SdkPayOrder struct {
 type Sdk interface {
 	// 登录
 	Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*SdkAccount, error)
+	// 检测支付订单是否有效
 	PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*SdkPayOrder, error)
 }

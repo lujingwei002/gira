@@ -7,7 +7,6 @@ import (
 
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
-	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
@@ -19,9 +18,6 @@ type RegistryClient struct {
 	config      gira.EtcdClientConfig
 	appId       int32
 	appFullName string // 节点全名
-	env         string
-	zone        string
-	appType     string // 节点名
 	client      *clientv3.Client
 	ctx         context.Context
 	cancelFunc  context.CancelFunc
@@ -35,14 +31,11 @@ func (r *RegistryClient) StartAsClient() error {
 	return nil
 }
 
-func NewConfigRegistryClient(ctx context.Context, config *gira.EtcdClientConfig) (*RegistryClient, error) {
+func NewConfigRegistryClient(ctx context.Context, config *gira.EtcdClientConfig, appId int32, appFullName string) (*RegistryClient, error) {
 	r := &RegistryClient{
 		config:      *config,
-		appFullName: facade.GetAppFullName(),
-		appId:       facade.GetAppId(),
-		appType:     facade.GetAppType(),
-		zone:        facade.GetZone(),
-		env:         facade.GetEnv(),
+		appFullName: appFullName,
+		appId:       appId,
 	}
 	r.ctx, r.cancelFunc = context.WithCancel(ctx)
 	// 配置endpoints
@@ -66,7 +59,6 @@ func NewConfigRegistryClient(ctx context.Context, config *gira.EtcdClientConfig)
 		return nil, err
 	}
 	r.client = client
-	// log.Infow("connect registry success", "endpoints", endpoints)
 	if v, err := newConfigPeerRegistry(r); err != nil {
 		return nil, err
 	} else {
@@ -99,6 +91,7 @@ func (r *RegistryClient) NewServiceName(serviceName string, opt ...service_optio
 	return r.serviceRegistry.NewServiceName(r, serviceName, opt...)
 }
 
+// 查找节点位置
 func (r *RegistryClient) GetPeer(fullName string) *gira.Peer {
 	return r.peerRegistry.getPeer(r, fullName)
 }

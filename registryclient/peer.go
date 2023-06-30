@@ -26,7 +26,7 @@ func newConfigPeerRegistry(r *RegistryClient) (*peer_registry, error) {
 }
 
 func (self *peer_registry) getPeer(r *RegistryClient, appFullName string) *gira.Peer {
-	name, serverId, err := gira.ParseAppFullName(appFullName)
+	appType, appId, err := gira.ParseAppFullName(appFullName)
 	if err != nil {
 		return nil
 	}
@@ -38,8 +38,8 @@ func (self *peer_registry) getPeer(r *RegistryClient, appFullName string) *gira.
 		return nil
 	}
 	peer := &gira.Peer{
-		Id:       serverId,
-		Name:     name,
+		Id:       appId,
+		Name:     appType,
 		FullName: r.appFullName,
 		Kvs:      make(map[string]string),
 	}

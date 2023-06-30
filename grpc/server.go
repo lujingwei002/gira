@@ -23,14 +23,14 @@ type Server struct {
 	mu         sync.Mutex
 }
 
-func NewConfigServer(config gira.GrpcConfig) *Server {
+func NewConfigServer(config gira.GrpcConfig) (*Server, error) {
 	opts := []grpc.ServerOption{grpc.NumStreamWorkers(config.Workers)}
 	self := &Server{
 		config:  config,
 		server:  grpc.NewServer(opts...),
 		servers: make(map[string]interface{}),
 	}
-	return self
+	return self, nil
 }
 
 // 实现接口 grpc.ServiceRegistrar
@@ -50,6 +50,7 @@ func (self *Server) GetServer(name string) (svr interface{}, ok bool) {
 }
 
 func (self *Server) Listen() error {
+
 	if listener, err := net.Listen("tcp", self.config.Address); err != nil {
 		return err
 	} else {
@@ -65,6 +66,7 @@ func (self *Server) Serve(ctx context.Context) error {
 		<-self.ctx.Done()
 		self.server.GracefulStop()
 	}()
+
 	err := self.server.Serve(self.listener)
 	log.Debugw("gpc server on stop2", "error", err)
 	return err

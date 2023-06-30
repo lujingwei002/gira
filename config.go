@@ -386,6 +386,7 @@ type GrpcConfig struct {
 	Address  string `yaml:"address"`
 	Workers  uint32 `yaml:"workers"`
 	Resolver bool   `yaml:"resolver"` // 是否开启resolver
+	Admin    bool   `yaml:"admin"`
 }
 
 type PprofConfig struct {

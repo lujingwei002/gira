@@ -43,12 +43,14 @@ type Peer struct {
 	Kvs      map[string]string // /server/account_1/ 下的键
 }
 
+// 玩家位置
 type LocalPlayer struct {
 	UserId         string
 	LoginTime      int64
 	CreateRevision int64
 }
 
+// 服务名
 type ServiceName struct {
 	// <<GroupName>>/<<ShortName>>
 	Peer           *Peer

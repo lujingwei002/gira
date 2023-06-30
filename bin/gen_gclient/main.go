@@ -14,16 +14,23 @@ const version = "1.3.0"
 
 var requireUnimplemented *bool
 
+type Options struct {
+	ProtoAndGrpcPackage *string
+}
+
+var opts Options
+
 func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 	if *showVersion {
-		fmt.Printf("protoc-gen-go-grpc %v\n", version)
+		fmt.Printf("protoc-gen-go-gclient %v\n", version)
 		return
 	}
 
 	var flags flag.FlagSet
 	requireUnimplemented = flags.Bool("require_unimplemented_servers", true, "set to false to match legacy behavior")
+	opts.ProtoAndGrpcPackage = flags.String("proto_and_grpc_pacakge", "", "proto and grpc package")
 
 	protogen.Options{
 		ParamFunc: flags.Set,
@@ -34,7 +41,7 @@ func main() {
 				continue
 			}
 			// log.Println(f)
-			generateFile(gen, f)
+			generateFile(gen, f, opts)
 		}
 		return nil
 	})

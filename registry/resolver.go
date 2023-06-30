@@ -26,26 +26,35 @@ type peer_resolver_builder struct {
 type peer_resolver struct {
 	cc       resolver.ClientConn
 	builder  *peer_resolver_builder
-	r        *Registry
+	reg      *Registry
 	fullName string
+	Address  string
 }
 
 func (builder *peer_resolver_builder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r := &peer_resolver{
 		cc:       cc,
-		r:        builder.r,
+		reg:      builder.r,
 		builder:  builder,
-		fullName: target.Endpoint,
+		fullName: target.Endpoint(),
 	}
 
 	if last, loaded := builder.resolvers.LoadOrStore(r.fullName, r); loaded {
-		return last.(*peer_resolver), nil
+		r = last.(*peer_resolver)
+		addr := resolver.Address{
+			Addr: r.Address,
+		}
+		cc.UpdateState(resolver.State{
+			Addresses: []resolver.Address{addr},
+		})
+		return r, nil
 	} else {
-		if peer := r.r.peerRegistry.getPeer(r.r, r.fullName); peer == nil {
+		if peer := r.reg.peerRegistry.getPeer(r.reg, r.fullName); peer == nil {
 			return r, nil
 		} else {
+			r.Address = peer.Address
 			addr := resolver.Address{
-				Addr: peer.Address,
+				Addr: r.Address,
 			}
 			cc.UpdateState(resolver.State{
 				Addresses: []resolver.Address{addr},
@@ -55,12 +64,12 @@ func (builder *peer_resolver_builder) Build(target resolver.Target, cc resolver.
 	}
 }
 
-func (builder *peer_resolver_builder) onPeerUpdate(r *Registry, peer *gira.Peer) error {
+func (builder *peer_resolver_builder) onPeerUpdate(reg *Registry, peer *gira.Peer) error {
 	if last, ok := builder.resolvers.Load(peer.FullName); !ok {
 		return nil
 	} else {
 		peerResolver := last.(*peer_resolver)
-		return peerResolver.onPeerUpdate(r, peer)
+		return peerResolver.onPeerUpdate(reg, peer)
 	}
 }
 
@@ -68,18 +77,19 @@ func (builder *peer_resolver_builder) Scheme() string {
 	return PeerScheme
 }
 
-func (self *peer_resolver) ResolveNow(o resolver.ResolveNowOptions) {
+func (r *peer_resolver) ResolveNow(o resolver.ResolveNowOptions) {
 }
 
-func (self *peer_resolver) Close() {
-	self.builder.resolvers.Delete(self.fullName)
+func (r *peer_resolver) Close() {
+	r.builder.resolvers.Delete(r.fullName)
 }
 
-func (self *peer_resolver) onPeerUpdate(r *Registry, peer *gira.Peer) error {
+func (r *peer_resolver) onPeerUpdate(reg *Registry, peer *gira.Peer) error {
+	r.Address = peer.Address
 	addr := resolver.Address{
-		Addr: peer.Address,
+		Addr: r.Address,
 	}
-	self.cc.UpdateState(resolver.State{
+	r.cc.UpdateState(resolver.State{
 		Addresses: []resolver.Address{addr},
 	})
 	return nil

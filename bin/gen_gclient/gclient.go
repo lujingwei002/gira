@@ -45,6 +45,16 @@ const (
 	timePackage    = protogen.GoImportPath("time")
 )
 
+var pbPackage protogen.GoImportPath
+
+func PbPackageIdent(s string) interface{} {
+	if pbPackage == "" {
+		return s
+	} else {
+		return pbPackage.Ident(s)
+	}
+}
+
 type serviceGenerateHelperInterface interface {
 	formatFullMethodSymbol(service *protogen.Service, method *protogen.Method) string
 	genServiceName(g *protogen.GeneratedFile, service *protogen.Service)
@@ -187,11 +197,12 @@ const fileDescriptorProtoPackageFieldNumber = 2
 const fileDescriptorProtoSyntaxFieldNumber = 12
 
 // generateFile generates a _gclient.pb.go file containing gRPC service definitions.
-func generateFile(gen *protogen.Plugin, file *protogen.File) *protogen.GeneratedFile {
+func generateFile(gen *protogen.Plugin, file *protogen.File, opts Options) *protogen.GeneratedFile {
 	if len(file.Services) == 0 {
 		return nil
 	}
 	filename := file.GeneratedFilenamePrefix + "_gclient.pb.go"
+
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
 	// Attach all comments associated with the syntax field.
 	genLeadingComments(g, file.Desc.SourceLocations().ByPath(protoreflect.SourcePath{fileDescriptorProtoSyntaxFieldNumber}))
@@ -209,6 +220,15 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) *protogen.Generated
 	genLeadingComments(g, file.Desc.SourceLocations().ByPath(protoreflect.SourcePath{fileDescriptorProtoPackageFieldNumber}))
 	g.P("package ", file.GoPackageName)
 	g.P()
+	pbPackage = protogen.GoImportPath(*opts.ProtoAndGrpcPackage)
+	if *opts.ProtoAndGrpcPackage != "" {
+		for _, service := range file.Services {
+			for _, method := range service.Methods {
+				method.Output.GoIdent.GoImportPath = pbPackage
+				method.Input.GoIdent.GoImportPath = pbPackage
+			}
+		}
+	}
 	generateFileContent(gen, file, g)
 	return g
 }
@@ -250,7 +270,7 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 		}
 	}
 	for _, response := range responseArr {
-		structName := fmt.Sprintf("%s_MulticastResult", g.QualifiedGoIdent(response.GoIdent))
+		structName := fmt.Sprintf("%s_MulticastResult", response.GoIdent.GoName)
 		g.P("type ", structName, " struct {")
 		g.P("	errors 			[]error")
 		g.P("	peerCount 		int")
@@ -397,7 +417,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("var Default", clientsName, " = New", clientsName, "()")
 
 	// func getClient
-	g.P("func (c *", unexport(service.GoName), "Clients) getClient(address string) (", clientName, ", error) {")
+	g.P("func (c *", unexport(service.GoName), "Clients) getClient(address string) (", PbPackageIdent(clientName), ", error) {")
 	g.P("c.mu.Lock()")
 	g.P("var pool *sync.Pool")
 	g.P("var ok bool")
@@ -408,7 +428,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("	if err != nil {")
 	g.P("			return err")
 	g.P("	}")
-	g.P("	client := New", clientName, "(conn)")
+	g.P("	client := ", PbPackageIdent("New"+clientName), "(conn)")
 	g.P("	return client")
 	g.P("},")
 	g.P("}")
@@ -422,13 +442,13 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("} else if err, ok := v.(error); ok {")
 	g.P("	return nil, err")
 	g.P("} else {")
-	g.P("	return v.(", clientName, "), nil")
+	g.P("	return v.(", PbPackageIdent(clientName), "), nil")
 	g.P("}")
 	g.P("}")
 	g.P()
 
 	// func putClient
-	g.P("func (c *", unexport(service.GoName), "Clients) putClient(address string, client ", clientName, ") {")
+	g.P("func (c *", unexport(service.GoName), "Clients) putClient(address string, client ", PbPackageIdent(clientName), ") {")
 	g.P("c.mu.Lock()")
 	g.P("var pool *sync.Pool")
 	g.P("var ok bool")
@@ -721,7 +741,7 @@ func clientsMulticastSignature(g *protogen.GeneratedFile, method *protogen.Metho
 	}
 	s += ", opts ..." + g.QualifiedGoIdent(grpcPackage.Ident("CallOption")) + ") ("
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-		s += "*" + g.QualifiedGoIdent(method.Output.GoIdent) + "_MulticastResult"
+		s += "*" + method.Output.GoIdent.GoName + "_MulticastResult"
 	} else {
 		s += "*" + method.Parent.GoName + "_" + method.GoName + "Client_MulticastResult"
 	}
@@ -815,7 +835,7 @@ func genClientsLocalMethod(gen *protogen.Plugin, file *protogen.File, g *protoge
 		g.P("    }")
 		g.P("    if s, ok := ", facadePackage.Ident("WhereIsServer"), "(c.client.serviceName); !ok {")
 		g.P("	     return nil, ", errorsPackage.Ident("ErrServerNotFound"))
-		g.P(" 	 } else if svr, ok := s.(", service.GoName, "Server); !ok {")
+		g.P(" 	 } else if svr, ok := s.(", PbPackageIdent(service.GoName), "Server); !ok {")
 		g.P("	     return nil, ", errorsPackage.Ident("ErrServerNotFound"))
 		g.P(" 	 } else {")
 		g.P(" 	     return svr.", method.GoName, "(cancelCtx, in)")
@@ -939,7 +959,7 @@ func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *pro
 	g.P("	return nil, err")
 	g.P("}")
 	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
-		g.P("result := &", method.Output.GoIdent, "_MulticastResult{}")
+		g.P("result := &", method.Output.GoIdent.GoName, "_MulticastResult{}")
 	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
 		g.P("result := &", method.Parent.GoName, "_", method.GoName, "Client_MulticastResult{}")
 	} else {

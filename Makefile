@@ -15,6 +15,7 @@ cli:
 service:
 	protoc --go_out=service/admin --go-grpc_out=service/admin --go-gclient_out=service/admin --go-gserver_out=service/admin service/admin/admin.proto
 	protoc --go_out=service/peer --go-grpc_out=service/peer --go-gclient_out=service/peer service/peer/peer.proto
+	protoc --go-gclient_out=proto_and_grpc_pacakge=google.golang.org/grpc/channelz/grpc_channelz_v1:service/channelz service/channelz/channelz.proto
 
 
 .PHONY: gen cli service framework

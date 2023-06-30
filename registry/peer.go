@@ -153,6 +153,7 @@ func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) {
 	for _, handler := range r.peerWatchHandlers {
 		handler.OnPeerUpdate(peer)
 	}
+	r.peerResolver.onPeerUpdate(r, peer)
 }
 
 func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {

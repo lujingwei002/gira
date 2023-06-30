@@ -37,6 +37,7 @@ import (
 	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
 	"github.com/lujingwei002/gira/service/admin/admin_grpc"
+	channelz_service "github.com/lujingwei002/gira/service/channelz"
 	peer_service "github.com/lujingwei002/gira/service/peer"
 
 	_ "net/http/pprof"
@@ -345,6 +346,12 @@ func (application *Application) onStart() (err error) {
 				return
 			}
 		}
+		if application.config.Module.Grpc.Admin {
+			service := channelz_service.NewService()
+			if err = application.serviceContainer.StartService("channelz", service); err != nil {
+				return
+			}
+		}
 	}
 	// ==== framework start ================
 	for _, fw := range application.frameworks {
@@ -440,7 +447,7 @@ func (application *Application) onCreate() error {
 	}
 	// ==== registry client ================
 	if application.config.Module.EtcdClient != nil {
-		if r, err := registryclient.NewConfigRegistryClient(application.ctx, application.config.Module.EtcdClient); err != nil {
+		if r, err := registryclient.NewConfigRegistryClient(application.ctx, application.config.Module.EtcdClient, application.appId, application.appFullName); err != nil {
 			return err
 		} else {
 			application.registryClient = r
@@ -489,7 +496,11 @@ func (application *Application) onCreate() error {
 
 	// ==== grpc ================
 	if application.config.Module.Grpc != nil {
-		application.grpcServer = grpc.NewConfigServer(*application.config.Module.Grpc)
+		if s, err := grpc.NewConfigServer(*application.config.Module.Grpc); err != nil {
+			return err
+		} else {
+			application.grpcServer = s
+		}
 	}
 
 	// ==== sdk================
