@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira/codes"
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/log"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway"

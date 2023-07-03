@@ -78,6 +78,7 @@ type ProjectConfig struct {
 	SrcGenConstDir       string // src/gen/const/
 	SrcGenResourceDir    string // src/gen/resource/
 	SrcGenBehaviorDir    string // src/gen/behavior/
+	GenBehaviorDir       string // gen/behavior/
 	ExcelDir             string // doc/resource/
 	ConstDocFilePath     string // doc/const.yaml
 	DocResourceFilePath  string // doc/resource.yaml
@@ -162,6 +163,7 @@ func (p *ProjectConfig) load() error {
 	p.SrcGenResourceDir = path.Join(p.SrcGenDir, "resource")
 	p.SrcGenProtocolDir = path.Join(p.SrcGenDir, "protocol")
 	p.SrcGenBehaviorDir = path.Join(p.SrcGenDir, "behavior")
+	p.GenBehaviorDir = path.Join(p.GenDir, "behavior")
 	p.ExcelDir = path.Join(p.DocDir, "resource")
 	p.ConstDocFilePath = path.Join(p.DocDir, "const.yaml")
 	p.DocResourceFilePath = path.Join(p.DocDir, "resource.yaml")

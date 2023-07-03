@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/lujingwei002/gira"
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/framework/smallgame/gateway/config"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
-	"github.com/lujingwei002/gira/log"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )

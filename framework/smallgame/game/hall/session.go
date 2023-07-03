@@ -11,11 +11,11 @@ import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/actor"
 	"github.com/lujingwei002/gira/codes"
+	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/framework/smallgame/game"
 	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
-	"github.com/lujingwei002/gira/log"
 )
 
 // 锁是和session绑定的，因此由session来抢占会释放
