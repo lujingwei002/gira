@@ -50,7 +50,6 @@ func (self *Server) GetServer(name string) (svr interface{}, ok bool) {
 }
 
 func (self *Server) Listen() error {
-
 	if listener, err := net.Listen("tcp", self.config.Address); err != nil {
 		return err
 	} else {

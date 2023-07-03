@@ -20,24 +20,24 @@ type HttpServer struct {
 }
 
 func NewConfigHttpServer(ctx context.Context, config gira.HttpConfig, router http.Handler) (*HttpServer, error) {
-	self := &HttpServer{
+	s := &HttpServer{
 		config:  config,
 		Handler: router,
 	}
-	self.ctx, self.cancelFunc = context.WithCancel(ctx)
+	s.ctx, s.cancelFunc = context.WithCancel(ctx)
 	server := &http.Server{
-		Addr:           self.config.Addr,
-		Handler:        self.Handler,
-		ReadTimeout:    time.Duration(self.config.ReadTimeout) * time.Second,
-		WriteTimeout:   time.Duration(self.config.WriteTimeout) * time.Second,
+		Addr:           s.config.Addr,
+		Handler:        s.Handler,
+		ReadTimeout:    time.Duration(s.config.ReadTimeout) * time.Second,
+		WriteTimeout:   time.Duration(s.config.WriteTimeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	self.server = server
-	return self, nil
+	s.server = server
+	return s, nil
 }
 
 func (self *HttpServer) Stop() error {
-	log.Debugw("http server on stop1")
+	log.Debugw("http server on stop")
 	self.cancelFunc()
 	return nil
 }

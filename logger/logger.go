@@ -92,6 +92,15 @@ func (l *Logger) Named(s string) gira.Logger {
 	}
 }
 
+const (
+	EncoderKey_time       = "time"
+	EncoderKey_level      = "level"
+	EncoderKey_name       = "logger"
+	EncoderKey_caller     = "caller"
+	EncoderKey_message    = "msg"
+	EncoderKey_stacktrace = "stacktrace"
+)
+
 type MongoSink struct {
 	collection  string
 	writeOption *options.InsertOneOptions
@@ -122,12 +131,12 @@ func (s *MongoSink) Write(data []byte) (n int, err error) {
 func NewDefaultCliLogger() (*Logger, error) {
 	// 配置日志输出
 	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
+		TimeKey:        EncoderKey_time,
+		LevelKey:       EncoderKey_level,
+		NameKey:        EncoderKey_name,
+		CallerKey:      EncoderKey_caller,
+		MessageKey:     EncoderKey_message,
+		StacktraceKey:  EncoderKey_stacktrace,
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -141,12 +150,12 @@ func NewDefaultCliLogger() (*Logger, error) {
 	)
 	// 滚动日志配置
 	rollingCfg := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
+		TimeKey:        EncoderKey_time,
+		LevelKey:       EncoderKey_level,
+		NameKey:        EncoderKey_name,
+		CallerKey:      EncoderKey_caller,
+		MessageKey:     EncoderKey_message,
+		StacktraceKey:  EncoderKey_stacktrace,
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -189,12 +198,12 @@ func NewConfigLogger(config gira.LogConfig) (*Logger, error) {
 			return lvl >= level.Level()
 		})
 		encoderConfig := zapcore.EncoderConfig{
-			TimeKey:        "time",
-			LevelKey:       "level",
-			NameKey:        "logger",
-			CallerKey:      "caller",
-			MessageKey:     "msg",
-			StacktraceKey:  "stacktrace",
+			TimeKey:        EncoderKey_time,
+			LevelKey:       EncoderKey_level,
+			NameKey:        EncoderKey_name,
+			CallerKey:      EncoderKey_caller,
+			MessageKey:     EncoderKey_message,
+			StacktraceKey:  EncoderKey_stacktrace,
 			LineEnding:     zapcore.DefaultLineEnding,
 			EncodeLevel:    zapcore.LowercaseLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -241,12 +250,12 @@ func NewConfigLogger(config gira.LogConfig) (*Logger, error) {
 			})
 		}
 		encoderCfg := zapcore.EncoderConfig{
-			TimeKey:        "time",
-			LevelKey:       "level",
-			NameKey:        "logger",
-			CallerKey:      "caller",
-			MessageKey:     "msg",
-			StacktraceKey:  "stacktrace",
+			TimeKey:        EncoderKey_time,
+			LevelKey:       EncoderKey_level,
+			NameKey:        EncoderKey_name,
+			CallerKey:      EncoderKey_caller,
+			MessageKey:     EncoderKey_message,
+			StacktraceKey:  EncoderKey_stacktrace,
 			LineEnding:     zapcore.DefaultLineEnding,
 			EncodeLevel:    zapcore.LowercaseLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -283,12 +292,12 @@ func NewConfigLogger(config gira.LogConfig) (*Logger, error) {
 			return lvl >= level.Level()
 		})
 		encoderCfg := zapcore.EncoderConfig{
-			TimeKey:        "time",
-			LevelKey:       "level",
-			NameKey:        "logger",
-			CallerKey:      "caller",
-			MessageKey:     "msg",
-			StacktraceKey:  "stacktrace",
+			TimeKey:        EncoderKey_time,
+			LevelKey:       EncoderKey_level,
+			NameKey:        EncoderKey_name,
+			CallerKey:      EncoderKey_caller,
+			MessageKey:     EncoderKey_message,
+			StacktraceKey:  EncoderKey_stacktrace,
 			LineEnding:     zapcore.DefaultLineEnding,
 			EncodeLevel:    zapcore.LowercaseLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
@@ -307,112 +316,6 @@ func NewConfigLogger(config gira.LogConfig) (*Logger, error) {
 		cores = append(cores, mongoCore)
 	}
 
-	// 创建日志对象
-	logger := zap.New(zapcore.NewTee(cores...))
-	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(2))
-	sugar := logger.Sugar()
-	l := &Logger{
-		logger: logger,
-		sugar:  sugar,
-	}
-	return l, nil
-}
-
-func NewConfig1(config gira.LogConfig) (*Logger, error) {
-	cores := make([]zapcore.Core, 0)
-	// 1.控制台输出
-	if config.Console {
-		var level zap.AtomicLevel
-		err := level.UnmarshalText([]byte(config.Level))
-		if err != nil {
-			return nil, err
-		}
-		enabler := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-			return lvl >= level.Level()
-		})
-		encoderConfig := zapcore.EncoderConfig{
-			TimeKey:        "time",
-			LevelKey:       "level",
-			NameKey:        "logger",
-			CallerKey:      "caller",
-			MessageKey:     "msg",
-			StacktraceKey:  "stacktrace",
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.LowercaseLevelEncoder,
-			EncodeTime:     zapcore.ISO8601TimeEncoder,
-			EncodeDuration: zapcore.SecondsDurationEncoder,
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-		}
-		consoleCore := zapcore.NewCore(
-			zapcore.NewConsoleEncoder(encoderConfig), // 控制台输出格式
-			zapcore.AddSync(os.Stdout),               // 输出到控制台
-			enabler,
-		)
-		cores = append(cores, consoleCore)
-	}
-	// 2.滚动文件输出
-	for _, file := range config.Files {
-		var enabler zap.LevelEnablerFunc
-		if file.Filter != "" {
-			var level zap.AtomicLevel
-			err := level.UnmarshalText([]byte(file.Filter))
-			if err != nil {
-				return nil, err
-			}
-			enabler = zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-				return lvl == level.Level()
-			})
-		} else if file.Level != "" {
-			var level zap.AtomicLevel
-			err := level.UnmarshalText([]byte(file.Level))
-			if err != nil {
-				return nil, err
-			}
-			enabler = zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-				return lvl >= level.Level()
-			})
-		} else if config.Level != "" {
-			var level zap.AtomicLevel
-			err := level.UnmarshalText([]byte(config.Level))
-			if err != nil {
-				return nil, err
-			}
-			enabler = zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-				return lvl >= level.Level()
-			})
-		}
-		encoderCfg := zapcore.EncoderConfig{
-			TimeKey:        "time",
-			LevelKey:       "level",
-			NameKey:        "logger",
-			CallerKey:      "caller",
-			MessageKey:     "msg",
-			StacktraceKey:  "stacktrace",
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.LowercaseLevelEncoder,
-			EncodeTime:     zapcore.ISO8601TimeEncoder,
-			EncodeDuration: zapcore.SecondsDurationEncoder,
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-		}
-		var format zapcore.Encoder
-		if file.Format == "console" {
-			format = zapcore.NewConsoleEncoder(encoderCfg)
-		} else {
-			format = zapcore.NewJSONEncoder(encoderCfg)
-		}
-		rollingCore := zapcore.NewCore(
-			format, // 滚动日志输出格式
-			zapcore.AddSync(&lumberjack.Logger{
-				Filename:   file.Path,       // 日志文件路径
-				MaxSize:    file.MaxSize,    // 每个日志文件的最大大小，单位为 MB
-				MaxBackups: file.MaxBackups, // 保留的旧日志文件的最大个数
-				MaxAge:     file.MaxAge,     // 保留的旧日志文件的最大天数
-				Compress:   file.Compress,   // 是否压缩旧日志文件
-			}),
-			enabler,
-		)
-		cores = append(cores, rollingCore)
-	}
 	// 创建日志对象
 	logger := zap.New(zapcore.NewTee(cores...))
 	logger = logger.WithOptions(zap.WithCaller(true), zap.AddCallerSkip(2))
