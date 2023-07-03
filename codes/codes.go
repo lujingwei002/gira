@@ -26,7 +26,7 @@ const (
 	CodeNullObject                     = 3
 	CodeInvalidSdkToken                = 4
 	CodeInvalidArgs                    = 5
-	CodeInvalidJwt                     = 6
+	CodeInvalidJwt                     = -20
 	CodeJwtExpire                      = 7
 	CodeTODO                           = 8
 	CodeInvalidPassword                = 9
