@@ -270,15 +270,15 @@ func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClien
 	}
 	<<- end>>
 	<<- if eq .BundleType "raw">>
-		if compress {
-			if err := self.<<.BundleStructName>>.LoadFromBin(dir); err != nil {
-				return err
-			}
-		} else {
-			if err := self.<<.BundleStructName>>.LoadFromYaml(dir); err != nil {
-				return err
-			}
+	if compress {
+		if err := self.<<.BundleStructName>>.LoadFromBin(dir); err != nil {
+			return err
 		}
+	} else {
+		if err := self.<<.BundleStructName>>.LoadFromYaml(dir); err != nil {
+			return err
+		}
+	}
 	<<- end>>
 	<<- if eq .BundleType "bin">>
 	if err := self.<<.BundleStructName>>.LoadFromBin(dir); err != nil {
@@ -325,8 +325,9 @@ func (self* <<.BundleStructName>>) Clear() {
 // 从yaml文件加载资源
 func (self* <<.BundleStructName>>) LoadFromYaml(dir string) error {
 	self.Clear()
+	<<- $bundleName := .BundleName>>
 	<<- range .ResourceArr>>
-	var <<.CapStructName>>filePath = filepath.Join(dir, "<<.YamlFileName>>")
+	var <<.CapStructName>>filePath = filepath.Join(dir, "<<$bundleName>>", "<<.YamlFileName>>")
 	if err := self.<<.WrapStructName>>.LoadFromYaml(<<.CapStructName>>filePath); err != nil {
 		return err
 	}
@@ -386,9 +387,10 @@ func (self *<<.BundleStructName>>) SaveToDb(ctx context.Context, client gira.DbC
 
 // 将资源保存到db上
 func (self *<<.BundleStructName>>) SaveToMongo(ctx context.Context, database *mongo.Database, dir string) error {
+	<<- $bundleName := .BundleName >>
 	<<- range .ResourceArr>>
 	// 加载<<.ResourceName>>
-	var <<.CapStructName>>filePath = filepath.Join(dir, "<<.YamlFileName>>")
+	var <<.CapStructName>>filePath = filepath.Join(dir, "<<$bundleName>>", "<<.YamlFileName>>")
 	var <<.ArrTypeName>> <<.ArrTypeName>>
 	if err := <<.ArrTypeName>>.LoadFromYaml(<<.CapStructName>>filePath); err != nil {
 		return err
@@ -890,13 +892,34 @@ func genResourcesVersion(state *gen_state) error {
 	return nil
 }
 
-func genResourcesYamlAndGo(state *gen_state) error {
+func genResourcesYaml(state *gen_state) error {
 	log.Info("生成yaml文件")
 	if _, err := os.Stat(proj.Config.ResourceDir); os.IsNotExist(err) {
 		if err := os.Mkdir(proj.Config.ResourceDir, 0755); err != nil {
 			return err
 		}
 	}
+	for _, bundle := range state.BundleArr {
+		for name, v := range bundle.ResourceArr {
+			log.Info(name, "==>", path.Join(bundle.BundleName, v.YamlFileName))
+			if _, err := os.Stat(path.Join(proj.Config.ResourceDir, bundle.BundleName)); os.IsNotExist(err) {
+				if err := os.Mkdir(path.Join(proj.Config.ResourceDir, bundle.BundleName), 0755); err != nil {
+					return err
+				}
+			}
+			filePath := path.Join(proj.Config.ResourceDir, bundle.BundleName, v.YamlFileName)
+			file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
+			if err != nil {
+				return err
+			}
+			file.Truncate(0)
+			file.WriteString(fotmatYamlString(v))
+			file.WriteString("\n")
+			file.Close()
+		}
+	}
+	return nil
+
 	for name, v := range state.ResourceDict {
 		log.Info(name, "==>", v.YamlFileName)
 		filePath := path.Join(proj.Config.ResourceDir, v.YamlFileName)
@@ -909,6 +932,10 @@ func genResourcesYamlAndGo(state *gen_state) error {
 		file.WriteString("\n")
 		file.Close()
 	}
+	return nil
+}
+
+func genResourcesLoader(state *gen_state) error {
 	log.Info("生成go文件")
 	if _, err := os.Stat(proj.Config.SrcGenResourceDir); err != nil && os.IsNotExist(err) {
 		if err := os.Mkdir(proj.Config.SrcGenResourceDir, 0755); err != nil {
@@ -1010,8 +1037,12 @@ func Gen(config Config) error {
 	} else if err != nil {
 		return err
 	}
-	// 生成YAML和go
-	if err := genResourcesYamlAndGo(state); err != nil {
+	// 生成YAML
+	if err := genResourcesYaml(state); err != nil {
+		return err
+	}
+	// 生成go
+	if err := genResourcesLoader(state); err != nil {
 		return err
 	}
 	// 生成cli程序
