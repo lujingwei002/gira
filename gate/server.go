@@ -378,7 +378,9 @@ func (server *Server) listenAndServeWSTLS() error {
 		}
 		server.serveWsConn(conn)
 	})
-	if err := http.ListenAndServeTLS(server.BindAddr, server.tslCertificate, server.tslKey, nil); err == http.ErrServerClosed {
+	httpServer := &http.Server{Addr: server.BindAddr}
+	server.httpServer = httpServer
+	if err := httpServer.ListenAndServeTLS(server.tslCertificate, server.tslKey); err == http.ErrServerClosed {
 		return nil
 	} else if err != nil {
 		return err

@@ -237,7 +237,13 @@ func (application *Application) start() (err error) {
 				application.stop()
 				corelog.Info("application stop end")
 				return nil
+				// 有服务出错
+				// case <-application.errCtx.Done():
+				// 	corelog.Info("application errgroup", application.errCtx.Err())
+				// 	application.stop()
+				// 	return nil
 			}
+
 		}
 	})
 	application.status = application_status_started
@@ -415,7 +421,8 @@ func (application *Application) onStart() (err error) {
 			if handler == nil {
 				return errors.ErrGateHandlerNotImplement
 			}
-			return application.gate.Serve(handler)
+			err := application.gate.Serve(handler)
+			return err
 		})
 	}
 	application.errGroup.Go(func() error {
