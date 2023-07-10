@@ -43,6 +43,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/robfig/cron"
+	"golang.org/x/net/trace"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -438,7 +439,12 @@ func (application *Application) onCreate() error {
 	// ==== pprof ================
 	if application.config.Pprof.Port != 0 {
 		go func() {
-			corelog.Infof("pprof start at http://%s:%d/debug", application.config.Pprof.Bind, application.config.Pprof.Port)
+			corelog.Infof("pprof start at http://%s:%d/debug/pprof", application.config.Pprof.Bind, application.config.Pprof.Port)
+			if application.config.Pprof.EnabledTrace {
+				trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
+					return true, true
+				}
+			}
 			http.ListenAndServe(fmt.Sprintf("%s:%d", application.config.Pprof.Bind, application.config.Pprof.Port), nil)
 		}()
 	}

@@ -383,15 +383,17 @@ type SdkConfig struct {
 }
 
 type GrpcConfig struct {
-	Address  string `yaml:"address"`
-	Workers  uint32 `yaml:"workers"`
-	Resolver bool   `yaml:"resolver"` // 是否开启resolver
-	Admin    bool   `yaml:"admin"`
+	Address      string `yaml:"address"`
+	Workers      uint32 `yaml:"workers"`
+	Resolver     bool   `yaml:"resolver"` // 是否开启resolver
+	Admin        bool   `yaml:"admin"`
+	EnabledTrace bool   `yaml:"enabled-trace"`
 }
 
 type PprofConfig struct {
-	Port int    `yaml:"port"`
-	Bind string `yaml:"bind"`
+	Port         int    `yaml:"port"`
+	Bind         string `yaml:"bind"`
+	EnabledTrace bool   `yaml:"enabled-trace"`
 }
 
 type ResourceConfig struct {

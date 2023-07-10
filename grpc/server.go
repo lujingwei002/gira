@@ -30,6 +30,9 @@ func NewConfigServer(config gira.GrpcConfig) (*Server, error) {
 		server:  grpc.NewServer(opts...),
 		servers: make(map[string]interface{}),
 	}
+	if config.EnabledTrace {
+		grpc.EnableTracing = true
+	}
 	return self, nil
 }
 
