@@ -231,13 +231,29 @@ type GetPhoneNumberResponse struct {
 // https://developer.open-douyin.com/docs/resource/zh-CN/mini-app/develop/guide/open-capabilities/sensitive-data-process/
 // 获取手机号码
 func GetPhoneNumber(sessionKey string, encryptedData string, iv string) (*GetPhoneNumberResponse, error) {
-	src, _ := base64.StdEncoding.DecodeString(encryptedData)
-	_key, _ := base64.StdEncoding.DecodeString(sessionKey)
-	_iv, _ := base64.StdEncoding.DecodeString(iv)
-	block, _ := aes.NewCipher(_key)
+	src, err := base64.StdEncoding.DecodeString(encryptedData)
+	if err != nil {
+		return nil, err
+	}
+	_key, err := base64.StdEncoding.DecodeString(sessionKey)
+	if err != nil {
+		return nil, err
+	}
+	_iv, err := base64.StdEncoding.DecodeString(iv)
+	if err != nil {
+		return nil, err
+	}
+	block, err := aes.NewCipher(_key)
+	if err != nil {
+		return nil, err
+	}
 	mode := cipher.NewCBCDecrypter(block, _iv)
 	dst := make([]byte, len(src))
 	mode.CryptBlocks(dst, src)
+	// 去除填充  --- 数据尾端有'/x0e'占位符,去除它
+	l := len(dst)
+	dst = dst[:l-int(dst[l-1])]
+	fmt.Println("1ff", string(dst))
 	resp := &GetPhoneNumberResponse{}
 	if err := json.Unmarshal(dst, resp); err != nil {
 		return nil, err

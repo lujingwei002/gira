@@ -2,6 +2,7 @@ package aliapi
 
 import (
 	"encoding/json"
+    "time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -13,6 +14,7 @@ type StsGetCredentialResponse struct {
 	TmpSecretID  string `json:"TmpSecretId"`
 	TmpSecretKey string `json:"TmpSecretKey"`
 	SessionToken string `json:"Token"`
+    Expiration int64 `json:"expiration"`
 }
 
 type StsGetCredentialPolicyStatement struct {
@@ -42,7 +44,7 @@ func StsGetCredential(accessKeyId string, accessKeySecret string, ossRamRoleArn 
 			{
 				Action:   []string{"oss:PutObject"},
 				Effect:   "Allow",
-				Resource: []string{"acs:oss:*:*.darenwo/*"},
+				Resource: []string{"acs:oss:*:*:darenwo/*"},
 			},
 		},
 	}
@@ -64,5 +66,10 @@ func StsGetCredential(accessKeyId string, accessKeySecret string, ossRamRoleArn 
 	response.TmpSecretID = r.Credentials.AccessKeyId
 	response.SessionToken = r.Credentials.SecurityToken
 	response.TmpSecretKey = r.Credentials.AccessKeySecret
+    if v, err := time.Parse(time.RFC3339, r.Credentials.Expiration); err != nil {
+        response.Expiration = time.Now().Unix() + 3600
+    } else {
+        response.Expiration = v.Unix()
+    }
 	return response, nil
 }
