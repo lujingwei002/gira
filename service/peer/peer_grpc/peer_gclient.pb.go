@@ -129,9 +129,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PeerClients interface {
 	WithServiceName(serviceName string) PeerClients
-	Local() PeerClientsLocal
+	// 发送到一个节点
 	Unicast() PeerClientsUnicast
 	Multicast(count int) PeerClientsMulticast
+	// 广播给所有节点
 	Broadcast() PeerClientsMulticast
 
 	HealthCheck(ctx context.Context, address string, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
@@ -151,14 +152,7 @@ type PeerClientsUnicast interface {
 	WherePeerFullName(appFullName string) PeerClientsUnicast
 	WhereAddress(address string) PeerClientsUnicast
 	WhereUser(userId string) PeerClientsUnicast
-
-	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
-	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error)
-}
-
-type PeerClientsLocal interface {
-	WhereUser(userId string) PeerClientsLocal
-	WithTimeout(timeout int64) PeerClientsLocal
+	Local() PeerClientsUnicast
 
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error)
@@ -223,19 +217,10 @@ func (c *peerClients) WithServiceName(serviceName string) PeerClients {
 	return c
 }
 
-func (c *peerClients) Local() PeerClientsLocal {
-	headers := make(map[string]string)
-	u := &peerClientsLocal{
-		timeout: 5,
-		headers: metadata.New(headers),
-		client:  c,
-	}
-	return u
-}
-
 func (c *peerClients) Unicast() PeerClientsUnicast {
 	headers := make(map[string]string)
 	u := &peerClientsUnicast{
+		timeout: 5,
 		headers: metadata.New(headers),
 		client:  c,
 	}
@@ -286,62 +271,21 @@ func (c *peerClients) MemStats(ctx context.Context, address string, in *MemStats
 	return out, nil
 }
 
-type peerClientsLocal struct {
-	timeout int64
-	userId  string
-	client  *peerClients
-	headers metadata.MD
-}
-
-func (c *peerClientsLocal) WhereUser(userId string) PeerClientsLocal {
-	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
-	return c
-}
-
-func (c *peerClientsLocal) WithTimeout(timeout int64) PeerClientsLocal {
-	c.timeout = timeout
-	return c
-}
-
-func (c *peerClientsLocal) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(PeerServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.HealthCheck(cancelCtx, in)
-	}
-}
-
-func (c *peerClientsLocal) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(PeerServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.MemStats(cancelCtx, in)
-	}
-}
-
 type peerClientsUnicast struct {
+	timeout      int64
 	peer         *gira.Peer
 	peerFullName string
 	serviceName  string
 	address      string
 	userId       string
+	local        bool
 	client       *peerClients
 	headers      metadata.MD
+}
+
+func (c *peerClientsUnicast) Local() PeerClientsUnicast {
+	c.local = true
+	return c
 }
 
 func (c *peerClientsUnicast) Where(serviceName string) PeerClientsUnicast {
@@ -371,109 +315,142 @@ func (c *peerClientsUnicast) WhereUser(userId string) PeerClientsUnicast {
 }
 
 func (c *peerClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(PeerServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.HealthCheck(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.HealthCheck(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
-func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
+		if len(address) <= 0 {
 			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+		client, err := c.client.getClient(address)
+		if err != nil {
 			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
 		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.HealthCheck(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
+
+}
+func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse, error) {
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(PeerServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else {
+			return svr.MemStats(cancelCtx, in)
+		}
+
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.MemStats(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.MemStats(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+
 }
 
 type peerClientsMulticast struct {

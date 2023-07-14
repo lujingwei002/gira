@@ -179,9 +179,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdminClients interface {
 	WithServiceName(serviceName string) AdminClients
-	Local() AdminClientsLocal
+	// 发送到一个节点
 	Unicast() AdminClientsUnicast
 	Multicast(count int) AdminClientsMulticast
+	// 广播给所有节点
 	Broadcast() AdminClientsMulticast
 
 	ReloadResource(ctx context.Context, address string, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
@@ -205,16 +206,7 @@ type AdminClientsUnicast interface {
 	WherePeerFullName(appFullName string) AdminClientsUnicast
 	WhereAddress(address string) AdminClientsUnicast
 	WhereUser(userId string) AdminClientsUnicast
-
-	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
-	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
-	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (Admin_ReloadResource2Client, error)
-	ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error)
-}
-
-type AdminClientsLocal interface {
-	WhereUser(userId string) AdminClientsLocal
-	WithTimeout(timeout int64) AdminClientsLocal
+	Local() AdminClientsUnicast
 
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error)
@@ -281,19 +273,10 @@ func (c *adminClients) WithServiceName(serviceName string) AdminClients {
 	return c
 }
 
-func (c *adminClients) Local() AdminClientsLocal {
-	headers := make(map[string]string)
-	u := &adminClientsLocal{
-		timeout: 5,
-		headers: metadata.New(headers),
-		client:  c,
-	}
-	return u
-}
-
 func (c *adminClients) Unicast() AdminClientsUnicast {
 	headers := make(map[string]string)
 	u := &adminClientsUnicast{
+		timeout: 5,
 		headers: metadata.New(headers),
 		client:  c,
 	}
@@ -370,59 +353,21 @@ func (c *adminClients) ReloadResource3(ctx context.Context, address string, opts
 	return out, nil
 }
 
-type adminClientsLocal struct {
-	timeout int64
-	userId  string
-	client  *adminClients
-	headers metadata.MD
-}
-
-func (c *adminClientsLocal) WhereUser(userId string) AdminClientsLocal {
-	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
-	return c
-}
-
-func (c *adminClientsLocal) WithTimeout(timeout int64) AdminClientsLocal {
-	c.timeout = timeout
-	return c
-}
-
-func (c *adminClientsLocal) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(AdminServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.ReloadResource(cancelCtx, in)
-	}
-}
-
-func (c *adminClientsLocal) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource1 not implemented")
-}
-
-func (c *adminClientsLocal) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (Admin_ReloadResource2Client, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource2 not implemented")
-}
-
-func (c *adminClientsLocal) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReloadResource3 not implemented")
-}
-
 type adminClientsUnicast struct {
+	timeout      int64
 	peer         *gira.Peer
 	peerFullName string
 	serviceName  string
 	address      string
 	userId       string
+	local        bool
 	client       *adminClients
 	headers      metadata.MD
+}
+
+func (c *adminClientsUnicast) Local() AdminClientsUnicast {
+	c.local = true
+	return c
 }
 
 func (c *adminClientsUnicast) Where(serviceName string) AdminClientsUnicast {
@@ -452,215 +397,247 @@ func (c *adminClientsUnicast) WhereUser(userId string) AdminClientsUnicast {
 }
 
 func (c *adminClientsUnicast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(AdminServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.ReloadResource(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.ReloadResource(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.ReloadResource(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *adminClientsUnicast) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource1Client, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
-		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.ReloadResource1(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ReloadResource1 not implemented")
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.ReloadResource1(ctx, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *adminClientsUnicast) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (Admin_ReloadResource2Client, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
-		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.ReloadResource2(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ReloadResource2 not implemented")
 
-func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
+		if len(address) <= 0 {
 			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+		client, err := c.client.getClient(address)
+		if err != nil {
 			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
 		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.ReloadResource2(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
+
+}
+func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (Admin_ReloadResource3Client, error) {
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ReloadResource3 not implemented")
+
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.ReloadResource3(ctx, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.ReloadResource3(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+
 }
 
 type adminClientsMulticast struct {

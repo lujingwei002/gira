@@ -391,9 +391,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChannelzClients interface {
 	WithServiceName(serviceName string) ChannelzClients
-	Local() ChannelzClientsLocal
+	// 发送到一个节点
 	Unicast() ChannelzClientsUnicast
 	Multicast(count int) ChannelzClientsMulticast
+	// 广播给所有节点
 	Broadcast() ChannelzClientsMulticast
 
 	// Gets all root channels (i.e. channels the application has directly
@@ -439,27 +440,7 @@ type ChannelzClientsUnicast interface {
 	WherePeerFullName(appFullName string) ChannelzClientsUnicast
 	WhereAddress(address string) ChannelzClientsUnicast
 	WhereUser(userId string) ChannelzClientsUnicast
-
-	// Gets all root channels (i.e. channels the application has directly
-	// created). This does not include subchannels nor non-top level channels.
-	GetTopChannels(ctx context.Context, in *grpc_channelz_v1.GetTopChannelsRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetTopChannelsResponse, error)
-	// Gets all servers that exist in the process.
-	GetServers(ctx context.Context, in *grpc_channelz_v1.GetServersRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServersResponse, error)
-	// Returns a single Server, or else a NOT_FOUND code.
-	GetServer(ctx context.Context, in *grpc_channelz_v1.GetServerRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServerResponse, error)
-	// Gets all server sockets that exist in the process.
-	GetServerSockets(ctx context.Context, in *grpc_channelz_v1.GetServerSocketsRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServerSocketsResponse, error)
-	// Returns a single Channel, or else a NOT_FOUND code.
-	GetChannel(ctx context.Context, in *grpc_channelz_v1.GetChannelRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetChannelResponse, error)
-	// Returns a single Subchannel, or else a NOT_FOUND code.
-	GetSubchannel(ctx context.Context, in *grpc_channelz_v1.GetSubchannelRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetSubchannelResponse, error)
-	// Returns a single Socket or else a NOT_FOUND code.
-	GetSocket(ctx context.Context, in *grpc_channelz_v1.GetSocketRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetSocketResponse, error)
-}
-
-type ChannelzClientsLocal interface {
-	WhereUser(userId string) ChannelzClientsLocal
-	WithTimeout(timeout int64) ChannelzClientsLocal
+	Local() ChannelzClientsUnicast
 
 	// Gets all root channels (i.e. channels the application has directly
 	// created). This does not include subchannels nor non-top level channels.
@@ -537,19 +518,10 @@ func (c *channelzClients) WithServiceName(serviceName string) ChannelzClients {
 	return c
 }
 
-func (c *channelzClients) Local() ChannelzClientsLocal {
-	headers := make(map[string]string)
-	u := &channelzClientsLocal{
-		timeout: 5,
-		headers: metadata.New(headers),
-		client:  c,
-	}
-	return u
-}
-
 func (c *channelzClients) Unicast() ChannelzClientsUnicast {
 	headers := make(map[string]string)
 	u := &channelzClientsUnicast{
+		timeout: 5,
 		headers: metadata.New(headers),
 		client:  c,
 	}
@@ -665,137 +637,21 @@ func (c *channelzClients) GetSocket(ctx context.Context, address string, in *grp
 	return out, nil
 }
 
-type channelzClientsLocal struct {
-	timeout int64
-	userId  string
-	client  *channelzClients
-	headers metadata.MD
-}
-
-func (c *channelzClientsLocal) WhereUser(userId string) ChannelzClientsLocal {
-	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
-	return c
-}
-
-func (c *channelzClientsLocal) WithTimeout(timeout int64) ChannelzClientsLocal {
-	c.timeout = timeout
-	return c
-}
-
-func (c *channelzClientsLocal) GetTopChannels(ctx context.Context, in *grpc_channelz_v1.GetTopChannelsRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetTopChannelsResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.GetTopChannels(cancelCtx, in)
-	}
-}
-
-func (c *channelzClientsLocal) GetServers(ctx context.Context, in *grpc_channelz_v1.GetServersRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServersResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.GetServers(cancelCtx, in)
-	}
-}
-
-func (c *channelzClientsLocal) GetServer(ctx context.Context, in *grpc_channelz_v1.GetServerRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServerResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.GetServer(cancelCtx, in)
-	}
-}
-
-func (c *channelzClientsLocal) GetServerSockets(ctx context.Context, in *grpc_channelz_v1.GetServerSocketsRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServerSocketsResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.GetServerSockets(cancelCtx, in)
-	}
-}
-
-func (c *channelzClientsLocal) GetChannel(ctx context.Context, in *grpc_channelz_v1.GetChannelRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetChannelResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.GetChannel(cancelCtx, in)
-	}
-}
-
-func (c *channelzClientsLocal) GetSubchannel(ctx context.Context, in *grpc_channelz_v1.GetSubchannelRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetSubchannelResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.GetSubchannel(cancelCtx, in)
-	}
-}
-
-func (c *channelzClientsLocal) GetSocket(ctx context.Context, in *grpc_channelz_v1.GetSocketRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetSocketResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.GetSocket(cancelCtx, in)
-	}
-}
-
 type channelzClientsUnicast struct {
+	timeout      int64
 	peer         *gira.Peer
 	peerFullName string
 	serviceName  string
 	address      string
 	userId       string
+	local        bool
 	client       *channelzClients
 	headers      metadata.MD
+}
+
+func (c *channelzClientsUnicast) Local() ChannelzClientsUnicast {
+	c.local = true
+	return c
 }
 
 func (c *channelzClientsUnicast) Where(serviceName string) ChannelzClientsUnicast {
@@ -825,374 +681,487 @@ func (c *channelzClientsUnicast) WhereUser(userId string) ChannelzClientsUnicast
 }
 
 func (c *channelzClientsUnicast) GetTopChannels(ctx context.Context, in *grpc_channelz_v1.GetTopChannelsRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetTopChannelsResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.GetTopChannels(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GetTopChannels(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GetTopChannels(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *channelzClientsUnicast) GetServers(ctx context.Context, in *grpc_channelz_v1.GetServersRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServersResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.GetServers(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GetServers(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GetServers(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *channelzClientsUnicast) GetServer(ctx context.Context, in *grpc_channelz_v1.GetServerRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServerResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.GetServer(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GetServer(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GetServer(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *channelzClientsUnicast) GetServerSockets(ctx context.Context, in *grpc_channelz_v1.GetServerSocketsRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetServerSocketsResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.GetServerSockets(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GetServerSockets(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GetServerSockets(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *channelzClientsUnicast) GetChannel(ctx context.Context, in *grpc_channelz_v1.GetChannelRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetChannelResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.GetChannel(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GetChannel(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GetChannel(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *channelzClientsUnicast) GetSubchannel(ctx context.Context, in *grpc_channelz_v1.GetSubchannelRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetSubchannelResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.GetSubchannel(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GetSubchannel(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
-func (c *channelzClientsUnicast) GetSocket(ctx context.Context, in *grpc_channelz_v1.GetSocketRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetSocketResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
+		if len(address) <= 0 {
 			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+		client, err := c.client.getClient(address)
+		if err != nil {
 			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
 		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GetSubchannel(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
+
+}
+func (c *channelzClientsUnicast) GetSocket(ctx context.Context, in *grpc_channelz_v1.GetSocketRequest, opts ...grpc.CallOption) (*grpc_channelz_v1.GetSocketResponse, error) {
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else {
+			return svr.GetSocket(cancelCtx, in)
+		}
+
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GetSocket(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GetSocket(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+
 }
 
 type channelzClientsMulticast struct {

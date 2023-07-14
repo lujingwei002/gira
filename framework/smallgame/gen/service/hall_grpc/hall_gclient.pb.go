@@ -467,9 +467,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HallClients interface {
 	WithServiceName(serviceName string) HallClients
-	Local() HallClientsLocal
+	// 发送到一个节点
 	Unicast() HallClientsUnicast
 	Multicast(count int) HallClientsMulticast
+	// 广播给所有节点
 	Broadcast() HallClientsMulticast
 
 	// client消息流
@@ -521,30 +522,7 @@ type HallClientsUnicast interface {
 	WherePeerFullName(appFullName string) HallClientsUnicast
 	WhereAddress(address string) HallClientsUnicast
 	WhereUser(userId string) HallClientsUnicast
-
-	// client消息流
-	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
-	// 网关消息流
-	GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error)
-	// 状态
-	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
-	// 心跳
-	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
-	// rpc PushStream (stream PushStreamNotify) returns (PushStreamPush) {}
-	MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error)
-	// 发送消息
-	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
-	// 发送消息
-	CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error)
-	// 顶号下线
-	UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error)
-	// 踢人下线
-	Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error)
-}
-
-type HallClientsLocal interface {
-	WhereUser(userId string) HallClientsLocal
-	WithTimeout(timeout int64) HallClientsLocal
+	Local() HallClientsUnicast
 
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error)
@@ -625,19 +603,10 @@ func (c *hallClients) WithServiceName(serviceName string) HallClients {
 	return c
 }
 
-func (c *hallClients) Local() HallClientsLocal {
-	headers := make(map[string]string)
-	u := &hallClientsLocal{
-		timeout: 5,
-		headers: metadata.New(headers),
-		client:  c,
-	}
-	return u
-}
-
 func (c *hallClients) Unicast() HallClientsUnicast {
 	headers := make(map[string]string)
 	u := &hallClientsUnicast{
+		timeout: 5,
 		headers: metadata.New(headers),
 		client:  c,
 	}
@@ -779,145 +748,21 @@ func (c *hallClients) Kick(ctx context.Context, address string, in *KickRequest,
 	return out, nil
 }
 
-type hallClientsLocal struct {
-	timeout int64
-	userId  string
-	client  *hallClients
-	headers metadata.MD
-}
-
-func (c *hallClientsLocal) WhereUser(userId string) HallClientsLocal {
-	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
-	return c
-}
-
-func (c *hallClientsLocal) WithTimeout(timeout int64) HallClientsLocal {
-	c.timeout = timeout
-	return c
-}
-
-func (c *hallClientsLocal) ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ClientStream not implemented")
-}
-
-func (c *hallClientsLocal) GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GateStream not implemented")
-}
-
-func (c *hallClientsLocal) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(HallServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.Info(cancelCtx, in)
-	}
-}
-
-func (c *hallClientsLocal) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(HallServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.HealthCheck(cancelCtx, in)
-	}
-}
-
-func (c *hallClientsLocal) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(HallServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.MustPush(cancelCtx, in)
-	}
-}
-
-func (c *hallClientsLocal) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(HallServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.SendMessage(cancelCtx, in)
-	}
-}
-
-func (c *hallClientsLocal) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(HallServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.CallMessage(cancelCtx, in)
-	}
-}
-
-func (c *hallClientsLocal) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(HallServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.UserInstead(cancelCtx, in)
-	}
-}
-
-func (c *hallClientsLocal) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
-	cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-	defer cancelFunc()
-	if c.headers.Len() > 0 {
-		cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-	}
-	if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
-		return nil, errors.ErrServerNotFound
-	} else if svr, ok := s.(HallServer); !ok {
-		return nil, errors.ErrServerNotFound
-	} else {
-		return svr.Kick(cancelCtx, in)
-	}
-}
-
 type hallClientsUnicast struct {
+	timeout      int64
 	peer         *gira.Peer
 	peerFullName string
 	serviceName  string
 	address      string
 	userId       string
+	local        bool
 	client       *hallClients
 	headers      metadata.MD
+}
+
+func (c *hallClientsUnicast) Local() HallClientsUnicast {
+	c.local = true
+	return c
 }
 
 func (c *hallClientsUnicast) Where(serviceName string) HallClientsUnicast {
@@ -947,480 +792,603 @@ func (c *hallClientsUnicast) WhereUser(userId string) HallClientsUnicast {
 }
 
 func (c *hallClientsUnicast) ClientStream(ctx context.Context, opts ...grpc.CallOption) (Hall_ClientStreamClient, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
-		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.ClientStream(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ClientStream not implemented")
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.ClientStream(ctx, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *hallClientsUnicast) GateStream(ctx context.Context, opts ...grpc.CallOption) (Hall_GateStreamClient, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
-		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.GateStream(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method GateStream not implemented")
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.GateStream(ctx, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *hallClientsUnicast) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.Info(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.Info(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.Info(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *hallClientsUnicast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.HealthCheck(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.HealthCheck(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.HealthCheck(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *hallClientsUnicast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.MustPush(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.MustPush(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.MustPush(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *hallClientsUnicast) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.SendMessage(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.SendMessage(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.SendMessage(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *hallClientsUnicast) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.CallMessage(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.CallMessage(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.CallMessage(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+}
 func (c *hallClientsUnicast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
-			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
 		} else {
-			address = peers[0].Address
+			return svr.UserInstead(cancelCtx, in)
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
-	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.UserInstead(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
-func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
-	var address string
-	if len(c.address) > 0 {
-		address = c.address
-	} else if len(c.peerFullName) > 0 {
-		if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
-			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
 		}
-	} else if c.peer != nil && facade.IsEnableResolver() {
-		address = c.peer.Url
-	} else if c.peer != nil {
-		address = c.peer.Address
-	} else if len(c.serviceName) > 0 {
-		if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
-			return nil, err
-		} else if len(peers) < 1 {
+		if len(address) <= 0 {
 			return nil, errors.ErrPeerNotFound
-		} else if facade.IsEnableResolver() {
-			address = peers[0].Url
-		} else {
-			address = peers[0].Address
 		}
-	} else if len(c.userId) > 0 {
-		if peer, err := facade.WhereIsUser(c.userId); err != nil {
+		client, err := c.client.getClient(address)
+		if err != nil {
 			return nil, err
-		} else if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
 		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.UserInstead(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	if len(address) <= 0 {
-		return nil, errors.ErrPeerNotFound
+
+}
+func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse, error) {
+	if c.local {
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else {
+			return svr.Kick(cancelCtx, in)
+		}
+
+	} else {
+		var address string
+		if len(c.address) > 0 {
+			address = c.address
+		} else if len(c.peerFullName) > 0 {
+			if peer, err := facade.WhereIsPeer(c.peerFullName); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		} else if c.peer != nil && facade.IsEnableResolver() {
+			address = c.peer.Url
+		} else if c.peer != nil {
+			address = c.peer.Address
+		} else if len(c.serviceName) > 0 {
+			if peers, err := facade.WhereIsServiceName(c.serviceName); err != nil {
+				return nil, err
+			} else if len(peers) < 1 {
+				return nil, errors.ErrPeerNotFound
+			} else if facade.IsEnableResolver() {
+				address = peers[0].Url
+			} else {
+				address = peers[0].Address
+			}
+		} else if len(c.userId) > 0 {
+			if peer, err := facade.WhereIsUser(c.userId); err != nil {
+				return nil, err
+			} else if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+		}
+		if len(address) <= 0 {
+			return nil, errors.ErrPeerNotFound
+		}
+		client, err := c.client.getClient(address)
+		if err != nil {
+			return nil, err
+		}
+		defer c.client.putClient(address, client)
+		if c.headers.Len() > 0 {
+			ctx = metadata.NewOutgoingContext(ctx, c.headers)
+		}
+		out, err := client.Kick(ctx, in, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
 	}
-	client, err := c.client.getClient(address)
-	if err != nil {
-		return nil, err
-	}
-	defer c.client.putClient(address, client)
-	if c.headers.Len() > 0 {
-		ctx = metadata.NewOutgoingContext(ctx, c.headers)
-	}
-	out, err := client.Kick(ctx, in, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+
 }
 
 type hallClientsMulticast struct {
