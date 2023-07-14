@@ -121,11 +121,14 @@ func (serviceGenerateHelper) generateClientsUnicastStruct(g *protogen.GeneratedF
 func (serviceGenerateHelper) generateClientsMulticastStruct(g *protogen.GeneratedFile, clientsMulticastName string, clientsName string) {
 	g.P("type ", unexport(clientsMulticastName), " struct {")
 	// g.P("cc ", grpcPackage.Ident("ClientConnInterface"))
+	g.P("timeout 		int64")
 	g.P("count 			int")
 	g.P("serviceName 	string")
 	g.P("regex 			string")
 	g.P("prefix			bool")
+	g.P("local			bool")
 	g.P("client 		*" + unexport(clientsName))
+	g.P("headers		", metaPackage.Ident("MD"))
 	g.P("}")
 	g.P()
 }
@@ -349,6 +352,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	g.P("type ", clientsMulticastName, " interface {")
 	g.P("    WhereRegex(regex string) " + clientsMulticastName)
 	g.P("    WherePrefix(prefix bool) " + clientsMulticastName)
+	g.P("    Local() " + clientsMulticastName)
 	for _, method := range service.Methods {
 		g.Annotate(clientsMulticastName+"."+method.GoName, method.Location)
 		if method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
@@ -457,8 +461,11 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 
 	// func Multicast
 	g.P("func (c *", unexport(service.GoName), "Clients) Multicast(count int) ", clientsMulticastName, " {")
+	g.P("   headers := make(map[string]string)")
 	g.P("	u := &" + unexport(clientsMulticastName) + "{")
+	g.P("		timeout: 5,")
 	g.P("		count: count,")
+	g.P("       headers: ", metaPackage.Ident("New"), "(headers),")
 	g.P("		serviceName: ", fmtPackage.Ident("Sprintf"), "(\"%s/\", c.serviceName),")
 	g.P("		client: c,")
 	g.P("	}")
@@ -525,7 +532,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	// func WhereUser
 	g.P("func (c *", unexport(service.GoName), "ClientsUnicast) WhereUser(userId string) ", clientsUnicastName, " {")
 	g.P("	c.userId = userId")
-	g.P("	c.headers.Append(", giraPackage.Ident("GRPC_PATH_KEY"), ", userId)")
+	g.P("	c.headers.Set(", giraPackage.Ident("GRPC_PATH_KEY"), ", userId)")
 	g.P("	return c")
 	g.P("}")
 	g.P()
@@ -586,6 +593,12 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 			g.P("}")
 		}
 	}
+	// func Local
+	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) Local() ", clientsMulticastName, " {")
+	g.P("   c.local = true")
+	g.P("	return c")
+	g.P("}")
+	g.P()
 	// func WhereRegex
 	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) WhereRegex(regex string) ", clientsMulticastName, " {")
 	g.P("	c.regex = regex")
@@ -868,6 +881,36 @@ func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *pro
 		g.P(deprecationComment)
 	}
 	g.P("func (c *", unexport(service.GoName), "ClientsMulticast) ", clientsMulticastSignature(g, method), "{")
+
+	g.P("    if c.local {")
+
+	if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
+		g.P("    result := &", method.Output.GoIdent.GoName, "_MulticastResult{}")
+		g.P("    cancelCtx, cancelFunc := ", contextPackage.Ident("WithTimeout"), "(ctx, ", timePackage.Ident("Second"), "*", timePackage.Ident("Duration"), "(c.timeout))")
+		g.P("    defer cancelFunc()")
+		g.P("    if c.headers.Len() > 0 {")
+		g.P("        cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)")
+		g.P("    }")
+		g.P("    if s, ok := ", facadePackage.Ident("WhereIsServer"), "(c.client.serviceName); !ok {")
+		g.P("	     return nil, ", errorsPackage.Ident("ErrServerNotFound"))
+		g.P(" 	 } else if svr, ok := s.(", PbPackageIdent(service.GoName), "Server); !ok {")
+		g.P("	     return nil, ", errorsPackage.Ident("ErrServerNotFound"))
+		g.P(" 	 } else if resp , err := svr.", method.GoName, "(cancelCtx, in); err != nil {")
+		g.P("	     return nil, err")
+		g.P("	 } else {")
+		g.P("        result.responses = append(result.responses, resp)")
+		g.P(" 	 } ")
+		g.P("return result, nil")
+	} else if method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
+		g.P("return nil, ", statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		g.P()
+	} else {
+		g.P("return nil, ", statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		g.P()
+	}
+
+	g.P("    } else {")
+
 	g.P("var peers []*gira.Peer")
 	g.P("var whereOpts []", optionsPackage.Ident("WhereOption"))
 	g.P("// 多播")
@@ -976,6 +1019,7 @@ func genClientsMulticastMethod(gen *protogen.Plugin, file *protogen.File, g *pro
 		g.P("}")
 		g.P()
 	}
+	g.P("}")
 }
 
 func serverSignature(g *protogen.GeneratedFile, method *protogen.Method) string {

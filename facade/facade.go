@@ -179,6 +179,24 @@ func WhereIsUser(userId string) (*gira.Peer, error) {
 	}
 }
 
+func ListLocalUser() []string {
+	application := gira.App()
+	if r := application.GetRegistry(); r != nil {
+		return r.ListLocalUser()
+	} else {
+		return nil
+	}
+}
+
+func SelfPeer(userId string) *gira.Peer {
+	application := gira.App()
+	if r := application.GetRegistry(); r == nil {
+		return nil
+	} else {
+		return r.SelfPeer()
+	}
+}
+
 // 查找节点位置
 func WhereIsPeer(appFullName string) (*gira.Peer, error) {
 	application := gira.App()

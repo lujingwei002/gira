@@ -417,6 +417,7 @@ type ChannelzClients interface {
 type ChannelzClientsMulticast interface {
 	WhereRegex(regex string) ChannelzClientsMulticast
 	WherePrefix(prefix bool) ChannelzClientsMulticast
+	Local() ChannelzClientsMulticast
 	// Gets all root channels (i.e. channels the application has directly
 	// created). This does not include subchannels nor non-top level channels.
 	GetTopChannels(ctx context.Context, in *grpc_channelz_v1.GetTopChannelsRequest, opts ...grpc.CallOption) (*GetTopChannelsResponse_MulticastResult, error)
@@ -529,8 +530,11 @@ func (c *channelzClients) Unicast() ChannelzClientsUnicast {
 }
 
 func (c *channelzClients) Multicast(count int) ChannelzClientsMulticast {
+	headers := make(map[string]string)
 	u := &channelzClientsMulticast{
+		timeout:     5,
 		count:       count,
+		headers:     metadata.New(headers),
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
 		client:      c,
 	}
@@ -676,7 +680,7 @@ func (c *channelzClientsUnicast) WhereAddress(address string) ChannelzClientsUni
 
 func (c *channelzClientsUnicast) WhereUser(userId string) ChannelzClientsUnicast {
 	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
+	c.headers.Set(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -1165,11 +1169,19 @@ func (c *channelzClientsUnicast) GetSocket(ctx context.Context, in *grpc_channel
 }
 
 type channelzClientsMulticast struct {
+	timeout     int64
 	count       int
 	serviceName string
 	regex       string
 	prefix      bool
+	local       bool
 	client      *channelzClients
+	headers     metadata.MD
+}
+
+func (c *channelzClientsMulticast) Local() ChannelzClientsMulticast {
+	c.local = true
+	return c
 }
 
 func (c *channelzClientsMulticast) WhereRegex(regex string) ChannelzClientsMulticast {
@@ -1183,344 +1195,478 @@ func (c *channelzClientsMulticast) WherePrefix(prefix bool) ChannelzClientsMulti
 }
 
 func (c *channelzClientsMulticast) GetTopChannels(ctx context.Context, in *grpc_channelz_v1.GetTopChannelsRequest, opts ...grpc.CallOption) (*GetTopChannelsResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &GetTopChannelsResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &GetTopChannelsResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.GetTopChannels(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.GetTopChannels(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &GetTopChannelsResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GetTopChannels(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *channelzClientsMulticast) GetServers(ctx context.Context, in *grpc_channelz_v1.GetServersRequest, opts ...grpc.CallOption) (*GetServersResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &GetServersResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &GetServersResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.GetServers(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.GetServers(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &GetServersResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GetServers(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *channelzClientsMulticast) GetServer(ctx context.Context, in *grpc_channelz_v1.GetServerRequest, opts ...grpc.CallOption) (*GetServerResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &GetServerResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &GetServerResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.GetServer(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.GetServer(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &GetServerResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GetServer(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *channelzClientsMulticast) GetServerSockets(ctx context.Context, in *grpc_channelz_v1.GetServerSocketsRequest, opts ...grpc.CallOption) (*GetServerSocketsResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &GetServerSocketsResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &GetServerSocketsResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.GetServerSockets(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.GetServerSockets(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &GetServerSocketsResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GetServerSockets(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *channelzClientsMulticast) GetChannel(ctx context.Context, in *grpc_channelz_v1.GetChannelRequest, opts ...grpc.CallOption) (*GetChannelResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &GetChannelResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &GetChannelResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.GetChannel(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.GetChannel(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &GetChannelResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GetChannel(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *channelzClientsMulticast) GetSubchannel(ctx context.Context, in *grpc_channelz_v1.GetSubchannelRequest, opts ...grpc.CallOption) (*GetSubchannelResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &GetSubchannelResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &GetSubchannelResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.GetSubchannel(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.GetSubchannel(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &GetSubchannelResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GetSubchannel(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *channelzClientsMulticast) GetSocket(ctx context.Context, in *grpc_channelz_v1.GetSocketRequest, opts ...grpc.CallOption) (*GetSocketResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &GetSocketResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &GetSocketResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.GetSocket(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.GetSocket(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &GetSocketResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GetSocket(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
+
 }

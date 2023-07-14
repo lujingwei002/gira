@@ -496,6 +496,7 @@ type HallClients interface {
 type HallClientsMulticast interface {
 	WhereRegex(regex string) HallClientsMulticast
 	WherePrefix(prefix bool) HallClientsMulticast
+	Local() HallClientsMulticast
 	// client消息流
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error)
 	// 网关消息流
@@ -614,8 +615,11 @@ func (c *hallClients) Unicast() HallClientsUnicast {
 }
 
 func (c *hallClients) Multicast(count int) HallClientsMulticast {
+	headers := make(map[string]string)
 	u := &hallClientsMulticast{
+		timeout:     5,
 		count:       count,
+		headers:     metadata.New(headers),
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
 		client:      c,
 	}
@@ -787,7 +791,7 @@ func (c *hallClientsUnicast) WhereAddress(address string) HallClientsUnicast {
 
 func (c *hallClientsUnicast) WhereUser(userId string) HallClientsUnicast {
 	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
+	c.headers.Set(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -1392,11 +1396,14 @@ func (c *hallClientsUnicast) Kick(ctx context.Context, in *KickRequest, opts ...
 }
 
 type hallClientsMulticast struct {
+	timeout     int64
 	count       int
 	serviceName string
 	regex       string
 	prefix      bool
+	local       bool
 	client      *hallClients
+	headers     metadata.MD
 }
 
 type Hall_ClientStreamClient_MulticastResult struct {
@@ -1494,6 +1501,11 @@ func (r *Hall_GateStreamClient_MulticastResult) Errors(index int) error {
 	}
 	return r.errors[index]
 }
+func (c *hallClientsMulticast) Local() HallClientsMulticast {
+	c.local = true
+	return c
+}
+
 func (c *hallClientsMulticast) WhereRegex(regex string) HallClientsMulticast {
 	c.regex = regex
 	return c
@@ -1505,440 +1517,584 @@ func (c *hallClientsMulticast) WherePrefix(prefix bool) HallClientsMulticast {
 }
 
 func (c *hallClientsMulticast) ClientStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_ClientStreamClient_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &Hall_ClientStreamClient_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
-		}
-		out, err := client.ClientStream(ctx, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(address, client)
-			continue
-		}
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
-	}
-	return result, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ClientStream not implemented")
 
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+		}
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
+		if err != nil {
+			return nil, err
+		}
+		result := &Hall_ClientStreamClient_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.ClientStream(ctx, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
+		}
+		return result, nil
+	}
+
+}
 func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.CallOption) (*Hall_GateStreamClient_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &Hall_GateStreamClient_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
-		}
-		out, err := client.GateStream(ctx, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(address, client)
-			continue
-		}
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
-	}
-	return result, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method GateStream not implemented")
 
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+		}
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
+		if err != nil {
+			return nil, err
+		}
+		result := &Hall_GateStreamClient_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.GateStream(ctx, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
+		}
+		return result, nil
+	}
+
+}
 func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &InfoResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &InfoResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.Info(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.Info(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &InfoResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.Info(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *hallClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &HealthCheckResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &HealthCheckResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.HealthCheck(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.HealthCheck(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &HealthCheckResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.HealthCheck(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &MustPushResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &MustPushResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.MustPush(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.MustPush(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &MustPushResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.MustPush(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &SendMessageResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &SendMessageResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.SendMessage(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.SendMessage(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &SendMessageResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.SendMessage(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &CallMessageResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &CallMessageResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.CallMessage(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.CallMessage(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &CallMessageResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.CallMessage(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &UserInsteadResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &UserInsteadResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.UserInstead(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.UserInstead(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &UserInsteadResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.UserInstead(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &KickResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &KickResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(HallServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.Kick(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.Kick(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &KickResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.Kick(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
+
 }

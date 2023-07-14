@@ -194,6 +194,7 @@ type AdminClients interface {
 type AdminClientsMulticast interface {
 	WhereRegex(regex string) AdminClientsMulticast
 	WherePrefix(prefix bool) AdminClientsMulticast
+	Local() AdminClientsMulticast
 	ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error)
 	ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource1Client_MulticastResult, error)
 	ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (*Admin_ReloadResource2Client_MulticastResult, error)
@@ -284,8 +285,11 @@ func (c *adminClients) Unicast() AdminClientsUnicast {
 }
 
 func (c *adminClients) Multicast(count int) AdminClientsMulticast {
+	headers := make(map[string]string)
 	u := &adminClientsMulticast{
+		timeout:     5,
 		count:       count,
+		headers:     metadata.New(headers),
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
 		client:      c,
 	}
@@ -392,7 +396,7 @@ func (c *adminClientsUnicast) WhereAddress(address string) AdminClientsUnicast {
 
 func (c *adminClientsUnicast) WhereUser(userId string) AdminClientsUnicast {
 	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
+	c.headers.Set(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -641,11 +645,14 @@ func (c *adminClientsUnicast) ReloadResource3(ctx context.Context, opts ...grpc.
 }
 
 type adminClientsMulticast struct {
+	timeout     int64
 	count       int
 	serviceName string
 	regex       string
 	prefix      bool
+	local       bool
 	client      *adminClients
+	headers     metadata.MD
 }
 
 type Admin_ReloadResource1Client_MulticastResult struct {
@@ -791,6 +798,11 @@ func (r *Admin_ReloadResource3Client_MulticastResult) Errors(index int) error {
 	}
 	return r.errors[index]
 }
+func (c *adminClientsMulticast) Local() AdminClientsMulticast {
+	c.local = true
+	return c
+}
+
 func (c *adminClientsMulticast) WhereRegex(regex string) AdminClientsMulticast {
 	c.regex = regex
 	return c
@@ -802,194 +814,229 @@ func (c *adminClientsMulticast) WherePrefix(prefix bool) AdminClientsMulticast {
 }
 
 func (c *adminClientsMulticast) ReloadResource(ctx context.Context, in *ReloadResourceRequest, opts ...grpc.CallOption) (*ReloadResourceResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &ReloadResourceResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &ReloadResourceResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(AdminServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.ReloadResource(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.ReloadResource(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &ReloadResourceResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.ReloadResource(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *adminClientsMulticast) ReloadResource1(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource1Client_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &Admin_ReloadResource1Client_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
-		}
-		out, err := client.ReloadResource1(ctx, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(address, client)
-			continue
-		}
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
-	}
-	return result, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ReloadResource1 not implemented")
 
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+		}
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
+		if err != nil {
+			return nil, err
+		}
+		result := &Admin_ReloadResource1Client_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.ReloadResource1(ctx, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
+		}
+		return result, nil
+	}
+
+}
 func (c *adminClientsMulticast) ReloadResource2(ctx context.Context, in *ReloadResourceRequest2, opts ...grpc.CallOption) (*Admin_ReloadResource2Client_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &Admin_ReloadResource2Client_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
-		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
-		}
-		out, err := client.ReloadResource2(ctx, in, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(address, client)
-			continue
-		}
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
-	}
-	return result, nil
-}
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ReloadResource2 not implemented")
 
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
+		}
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
+		if err != nil {
+			return nil, err
+		}
+		result := &Admin_ReloadResource2Client_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.ReloadResource2(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
+		}
+		return result, nil
+	}
+
+}
 func (c *adminClientsMulticast) ReloadResource3(ctx context.Context, opts ...grpc.CallOption) (*Admin_ReloadResource3Client_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &Admin_ReloadResource3Client_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
-		} else {
-			address = peer.Address
+	if c.local {
+		return nil, status.Errorf(codes.Unimplemented, "method ReloadResource3 not implemented")
+
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		client, err := c.client.getClient(address)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+			return nil, err
 		}
-		out, err := client.ReloadResource3(ctx, opts...)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			c.client.putClient(address, client)
-			continue
+		result := &Admin_ReloadResource3Client_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.ReloadResource3(ctx, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
+
 }

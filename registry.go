@@ -8,6 +8,7 @@ type Registry interface {
 	// 如果失败，则返回当前所在的节点
 	LockLocalUser(userId string) (*Peer, error)
 	UnlockLocalUser(userId string) (*Peer, error)
+	ListLocalUser() []string
 	WhereIsUser(userId string) (*Peer, error)
 	RangePeers(f func(k any, v any) bool)
 	NewServiceName(serviceName string, opt ...service_options.RegisterOption) string
@@ -19,6 +20,8 @@ type Registry interface {
 	WhereIsService(serviceName string, opt ...service_options.WhereOption) ([]*Peer, error)
 	// 查找节点
 	WhereIsPeer(appFullName string) (*Peer, error)
+	// 自身节点
+	SelfPeer() *Peer
 }
 
 type RegistryClient interface {

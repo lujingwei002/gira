@@ -181,6 +181,10 @@ func NewConfigRegistry(ctx context.Context, config *gira.EtcdConfig) (*Registry,
 	return r, nil
 }
 
+func (r *Registry) ListLocalUser() []string {
+	return r.playerRegistry.ListLocalUser(r)
+}
+
 // 锁定玩家
 func (r *Registry) LockLocalUser(userId string) (*gira.Peer, error) {
 	return r.playerRegistry.LockLocalUser(r, userId)

@@ -212,6 +212,16 @@ func (self *player_registry) unregisterLocalPlayers(r *Registry) error {
 	return nil
 }
 
+func (self *player_registry) ListLocalUser(r *Registry) []string {
+	userIds := make([]string, 0)
+	self.localPlayers.Range(func(key, value any) bool {
+		userId := key.(string)
+		userIds = append(userIds, userId)
+		return true
+	})
+	return userIds
+}
+
 // 锁定玩家
 func (self *player_registry) LockLocalUser(r *Registry, userId string) (*gira.Peer, error) {
 	//if _, ok := self.localPlayers.Load(userId); ok {

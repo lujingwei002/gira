@@ -142,6 +142,7 @@ type PeerClients interface {
 type PeerClientsMulticast interface {
 	WhereRegex(regex string) PeerClientsMulticast
 	WherePrefix(prefix bool) PeerClientsMulticast
+	Local() PeerClientsMulticast
 	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error)
 	MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse_MulticastResult, error)
 }
@@ -228,8 +229,11 @@ func (c *peerClients) Unicast() PeerClientsUnicast {
 }
 
 func (c *peerClients) Multicast(count int) PeerClientsMulticast {
+	headers := make(map[string]string)
 	u := &peerClientsMulticast{
+		timeout:     5,
 		count:       count,
+		headers:     metadata.New(headers),
 		serviceName: fmt.Sprintf("%s/", c.serviceName),
 		client:      c,
 	}
@@ -310,7 +314,7 @@ func (c *peerClientsUnicast) WhereAddress(address string) PeerClientsUnicast {
 
 func (c *peerClientsUnicast) WhereUser(userId string) PeerClientsUnicast {
 	c.userId = userId
-	c.headers.Append(gira.GRPC_PATH_KEY, userId)
+	c.headers.Set(gira.GRPC_PATH_KEY, userId)
 	return c
 }
 
@@ -454,11 +458,19 @@ func (c *peerClientsUnicast) MemStats(ctx context.Context, in *MemStatsRequest, 
 }
 
 type peerClientsMulticast struct {
+	timeout     int64
 	count       int
 	serviceName string
 	regex       string
 	prefix      bool
+	local       bool
 	client      *peerClients
+	headers     metadata.MD
+}
+
+func (c *peerClientsMulticast) Local() PeerClientsMulticast {
+	c.local = true
+	return c
 }
 
 func (c *peerClientsMulticast) WhereRegex(regex string) PeerClientsMulticast {
@@ -472,99 +484,138 @@ func (c *peerClientsMulticast) WherePrefix(prefix bool) PeerClientsMulticast {
 }
 
 func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &HealthCheckResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &HealthCheckResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(PeerServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.HealthCheck(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.HealthCheck(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &HealthCheckResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.HealthCheck(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
-}
 
+}
 func (c *peerClientsMulticast) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse_MulticastResult, error) {
-	var peers []*gira.Peer
-	var whereOpts []service_options.WhereOption
-	// 多播
-	whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
-	if c.count > 0 {
-		whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
-	}
-	serviceName := c.serviceName
-	if len(c.regex) > 0 {
-		serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
-		whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
-	}
-	if c.prefix {
-		whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
-	}
-	peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
-	if err != nil {
-		return nil, err
-	}
-	result := &MemStatsResponse_MulticastResult{}
-	result.peerCount = len(peers)
-	for _, peer := range peers {
-		var address string
-		if facade.IsEnableResolver() {
-			address = peer.Url
+	if c.local {
+		result := &MemStatsResponse_MulticastResult{}
+		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+		defer cancelFunc()
+		if c.headers.Len() > 0 {
+			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+		}
+		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if svr, ok := s.(PeerServer); !ok {
+			return nil, errors.ErrServerNotFound
+		} else if resp, err := svr.MemStats(cancelCtx, in); err != nil {
+			return nil, err
 		} else {
-			address = peer.Address
+			result.responses = append(result.responses, resp)
 		}
-		client, err := c.client.getClient(address)
-		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
-			continue
+		return result, nil
+	} else {
+		var peers []*gira.Peer
+		var whereOpts []service_options.WhereOption
+		// 多播
+		whereOpts = append(whereOpts, service_options.WithWhereCatalogOption())
+		if c.count > 0 {
+			whereOpts = append(whereOpts, service_options.WithWhereMaxCountOption(c.count))
 		}
-		out, err := client.MemStats(ctx, in, opts...)
+		serviceName := c.serviceName
+		if len(c.regex) > 0 {
+			serviceName = fmt.Sprintf("%s%s", c.serviceName, c.regex)
+			whereOpts = append(whereOpts, service_options.WithWhereRegexOption())
+		}
+		if c.prefix {
+			whereOpts = append(whereOpts, service_options.WithWherePrefixOption())
+		}
+		peers, err := facade.WhereIsServiceName(serviceName, whereOpts...)
 		if err != nil {
-			result.errors = append(result.errors, err)
-			result.errorPeers = append(result.errorPeers, peer)
+			return nil, err
+		}
+		result := &MemStatsResponse_MulticastResult{}
+		result.peerCount = len(peers)
+		for _, peer := range peers {
+			var address string
+			if facade.IsEnableResolver() {
+				address = peer.Url
+			} else {
+				address = peer.Address
+			}
+			client, err := c.client.getClient(address)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				continue
+			}
+			out, err := client.MemStats(ctx, in, opts...)
+			if err != nil {
+				result.errors = append(result.errors, err)
+				result.errorPeers = append(result.errorPeers, peer)
+				c.client.putClient(address, client)
+				continue
+			}
 			c.client.putClient(address, client)
-			continue
+			result.responses = append(result.responses, out)
+			result.successPeers = append(result.successPeers, peer)
 		}
-		c.client.putClient(address, client)
-		result.responses = append(result.responses, out)
-		result.successPeers = append(result.successPeers, peer)
+		return result, nil
 	}
-	return result, nil
+
 }
