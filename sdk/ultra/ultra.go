@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -114,6 +115,8 @@ func (u *USDK) sign(content map[string]string, key string) string {
 //	错误信息
 func (u *USDK) Login(cUid, cName, accessToken string) (respBody []byte, authInfo *AuthInfo, err error) {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	log.Println(u.productId)
+	log.Println(u.productKey)
 	data := u.encodeData(map[string]string{"cUid": cUid, "cName": cName, "accessToken": accessToken})
 	sign := u.sign(map[string]string{"data": data, "pcode": u.productId, "timestamp": timestamp}, u.productKey)
 	form := url.Values{"data": {data}, "pcode": {u.productId}, "timestamp": {timestamp}, "sign": {sign}}
