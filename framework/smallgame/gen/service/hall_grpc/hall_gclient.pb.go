@@ -1624,22 +1624,24 @@ func (c *hallClientsMulticast) GateStream(ctx context.Context, opts ...grpc.Call
 }
 func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse_MulticastResult, error) {
 	if c.local {
-		result := &InfoResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(HallServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.Info(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(HallServer); ok {
+			result := &InfoResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.Info(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1692,22 +1694,24 @@ func (c *hallClientsMulticast) Info(ctx context.Context, in *InfoRequest, opts .
 }
 func (c *hallClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error) {
 	if c.local {
-		result := &HealthCheckResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(HallServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.HealthCheck(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(HallServer); ok {
+			result := &HealthCheckResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.HealthCheck(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1760,22 +1764,24 @@ func (c *hallClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 }
 func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest, opts ...grpc.CallOption) (*MustPushResponse_MulticastResult, error) {
 	if c.local {
-		result := &MustPushResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(HallServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.MustPush(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(HallServer); ok {
+			result := &MustPushResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.MustPush(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1828,22 +1834,24 @@ func (c *hallClientsMulticast) MustPush(ctx context.Context, in *MustPushRequest
 }
 func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse_MulticastResult, error) {
 	if c.local {
-		result := &SendMessageResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(HallServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.SendMessage(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(HallServer); ok {
+			result := &SendMessageResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.SendMessage(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1896,22 +1904,24 @@ func (c *hallClientsMulticast) SendMessage(ctx context.Context, in *SendMessageR
 }
 func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageRequest, opts ...grpc.CallOption) (*CallMessageResponse_MulticastResult, error) {
 	if c.local {
-		result := &CallMessageResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(HallServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.CallMessage(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(HallServer); ok {
+			result := &CallMessageResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.CallMessage(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1964,22 +1974,24 @@ func (c *hallClientsMulticast) CallMessage(ctx context.Context, in *CallMessageR
 }
 func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadRequest, opts ...grpc.CallOption) (*UserInsteadResponse_MulticastResult, error) {
 	if c.local {
-		result := &UserInsteadResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(HallServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.UserInstead(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(HallServer); ok {
+			result := &UserInsteadResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.UserInstead(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -2032,22 +2044,24 @@ func (c *hallClientsMulticast) UserInstead(ctx context.Context, in *UserInsteadR
 }
 func (c *hallClientsMulticast) Kick(ctx context.Context, in *KickRequest, opts ...grpc.CallOption) (*KickResponse_MulticastResult, error) {
 	if c.local {
-		result := &KickResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(HallServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.Kick(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(HallServer); ok {
+			result := &KickResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.Kick(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption

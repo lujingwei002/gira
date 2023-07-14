@@ -1196,22 +1196,24 @@ func (c *channelzClientsMulticast) WherePrefix(prefix bool) ChannelzClientsMulti
 
 func (c *channelzClientsMulticast) GetTopChannels(ctx context.Context, in *grpc_channelz_v1.GetTopChannelsRequest, opts ...grpc.CallOption) (*GetTopChannelsResponse_MulticastResult, error) {
 	if c.local {
-		result := &GetTopChannelsResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.GetTopChannels(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); ok {
+			result := &GetTopChannelsResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.GetTopChannels(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1264,22 +1266,24 @@ func (c *channelzClientsMulticast) GetTopChannels(ctx context.Context, in *grpc_
 }
 func (c *channelzClientsMulticast) GetServers(ctx context.Context, in *grpc_channelz_v1.GetServersRequest, opts ...grpc.CallOption) (*GetServersResponse_MulticastResult, error) {
 	if c.local {
-		result := &GetServersResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.GetServers(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); ok {
+			result := &GetServersResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.GetServers(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1332,22 +1336,24 @@ func (c *channelzClientsMulticast) GetServers(ctx context.Context, in *grpc_chan
 }
 func (c *channelzClientsMulticast) GetServer(ctx context.Context, in *grpc_channelz_v1.GetServerRequest, opts ...grpc.CallOption) (*GetServerResponse_MulticastResult, error) {
 	if c.local {
-		result := &GetServerResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.GetServer(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); ok {
+			result := &GetServerResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.GetServer(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1400,22 +1406,24 @@ func (c *channelzClientsMulticast) GetServer(ctx context.Context, in *grpc_chann
 }
 func (c *channelzClientsMulticast) GetServerSockets(ctx context.Context, in *grpc_channelz_v1.GetServerSocketsRequest, opts ...grpc.CallOption) (*GetServerSocketsResponse_MulticastResult, error) {
 	if c.local {
-		result := &GetServerSocketsResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.GetServerSockets(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); ok {
+			result := &GetServerSocketsResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.GetServerSockets(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1468,22 +1476,24 @@ func (c *channelzClientsMulticast) GetServerSockets(ctx context.Context, in *grp
 }
 func (c *channelzClientsMulticast) GetChannel(ctx context.Context, in *grpc_channelz_v1.GetChannelRequest, opts ...grpc.CallOption) (*GetChannelResponse_MulticastResult, error) {
 	if c.local {
-		result := &GetChannelResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.GetChannel(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); ok {
+			result := &GetChannelResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.GetChannel(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1536,22 +1546,24 @@ func (c *channelzClientsMulticast) GetChannel(ctx context.Context, in *grpc_chan
 }
 func (c *channelzClientsMulticast) GetSubchannel(ctx context.Context, in *grpc_channelz_v1.GetSubchannelRequest, opts ...grpc.CallOption) (*GetSubchannelResponse_MulticastResult, error) {
 	if c.local {
-		result := &GetSubchannelResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.GetSubchannel(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); ok {
+			result := &GetSubchannelResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.GetSubchannel(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -1604,22 +1616,24 @@ func (c *channelzClientsMulticast) GetSubchannel(ctx context.Context, in *grpc_c
 }
 func (c *channelzClientsMulticast) GetSocket(ctx context.Context, in *grpc_channelz_v1.GetSocketRequest, opts ...grpc.CallOption) (*GetSocketResponse_MulticastResult, error) {
 	if c.local {
-		result := &GetSocketResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.GetSocket(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(grpc_channelz_v1.ChannelzServer); ok {
+			result := &GetSocketResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.GetSocket(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption

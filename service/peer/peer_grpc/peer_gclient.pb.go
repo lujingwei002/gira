@@ -485,22 +485,24 @@ func (c *peerClientsMulticast) WherePrefix(prefix bool) PeerClientsMulticast {
 
 func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse_MulticastResult, error) {
 	if c.local {
-		result := &HealthCheckResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(PeerServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.HealthCheck(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(PeerServer); ok {
+			result := &HealthCheckResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.HealthCheck(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
@@ -553,22 +555,24 @@ func (c *peerClientsMulticast) HealthCheck(ctx context.Context, in *HealthCheckR
 }
 func (c *peerClientsMulticast) MemStats(ctx context.Context, in *MemStatsRequest, opts ...grpc.CallOption) (*MemStatsResponse_MulticastResult, error) {
 	if c.local {
-		result := &MemStatsResponse_MulticastResult{}
-		cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
-		defer cancelFunc()
-		if c.headers.Len() > 0 {
-			cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
-		}
 		if s, ok := facade.WhereIsServer(c.client.serviceName); !ok {
 			return nil, errors.ErrServerNotFound
-		} else if svr, ok := s.(PeerServer); !ok {
-			return nil, errors.ErrServerNotFound
-		} else if resp, err := svr.MemStats(cancelCtx, in); err != nil {
-			return nil, err
+		} else if svr, ok := s.(PeerServer); ok {
+			result := &MemStatsResponse_MulticastResult{}
+			cancelCtx, cancelFunc := context.WithTimeout(ctx, time.Second*time.Duration(c.timeout))
+			defer cancelFunc()
+			if c.headers.Len() > 0 {
+				cancelCtx = metadata.NewOutgoingContext(cancelCtx, c.headers)
+			}
+			if resp, err := svr.MemStats(cancelCtx, in); err != nil {
+				return nil, err
+			} else {
+				result.responses = append(result.responses, resp)
+			}
+			return result, nil
 		} else {
-			result.responses = append(result.responses, resp)
+			return nil, errors.ErrServerNotFound
 		}
-		return result, nil
 	} else {
 		var peers []*gira.Peer
 		var whereOpts []service_options.WhereOption
