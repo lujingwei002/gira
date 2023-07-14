@@ -17,15 +17,18 @@ func NewConfigSdk(config gira.SdkConfig) *SdkComponent {
 	}
 	if config.Test != nil {
 		self.testSdk = NewConfigTestSdk(*config.Test)
-		self.sdkDict["test"] = self.testSdk
+		self.sdkDict["test"] = NewConfigTestSdk(*config.Test)
 	}
 	if config.Pwd != nil {
 		self.pwdSdk = NewConfigGfSdk(*config.Pwd)
-		self.sdkDict["pwd"] = self.pwdSdk
+		self.sdkDict["pwd"] = NewConfigGfSdk(*config.Pwd)
 	}
 	if config.Ultra != nil {
 		self.ultraSdk = NewConfigUltraSdk(*config.Ultra)
-		self.sdkDict["ultra"] = self.ultraSdk
+		self.sdkDict["ultra"] = NewConfigUltraSdk(*config.Ultra)
+	}
+	if config.Ultra2 != nil {
+		self.sdkDict["ultra2"] = NewConfigUltraSdk(*config.Ultra2)
 	}
 	return self
 }

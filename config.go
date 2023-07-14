@@ -377,9 +377,10 @@ type UltraSdkConfig struct {
 	Secret string `yaml:"secret"`
 }
 type SdkConfig struct {
-	Test  *TestSdkConfig  `yaml:"test"`
-	Pwd   *PwdSdkConfig   `yaml:"pwd"`
-	Ultra *UltraSdkConfig `yaml:"ultra"`
+	Test   *TestSdkConfig  `yaml:"test"`
+	Pwd    *PwdSdkConfig   `yaml:"pwd"`
+	Ultra  *UltraSdkConfig `yaml:"ultra"`
+	Ultra2 *UltraSdkConfig `yaml:"ultra2"`
 }
 
 type GrpcConfig struct {
