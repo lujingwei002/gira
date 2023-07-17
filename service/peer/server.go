@@ -6,7 +6,7 @@ import (
 
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
-	"github.com/lujingwei002/gira/service/peer/peer_grpc"
+	"github.com/lujingwei002/gira/service/peer/peerpb"
 )
 
 type PeerService struct {
@@ -15,11 +15,11 @@ type PeerService struct {
 }
 
 type peer_server struct {
-	peer_grpc.UnimplementedPeerServer
+	peerpb.UnimplementedPeerServer
 }
 
-func (self *peer_server) HealthCheck(context.Context, *peer_grpc.HealthCheckRequest) (*peer_grpc.HealthCheckResponse, error) {
-	resp := &peer_grpc.HealthCheckResponse{
+func (self *peer_server) HealthCheck(context.Context, *peerpb.HealthCheckRequest) (*peerpb.HealthCheckResponse, error) {
+	resp := &peerpb.HealthCheckResponse{
 		BuildTime:     facade.GetBuildTime(),
 		AppVersion:    facade.GetAppVersion(),
 		UpTime:        facade.GetUpTime(),
@@ -29,10 +29,10 @@ func (self *peer_server) HealthCheck(context.Context, *peer_grpc.HealthCheckRequ
 	return resp, nil
 }
 
-func (self *peer_server) MemStats(context.Context, *peer_grpc.MemStatsRequest) (*peer_grpc.MemStatsResponse, error) {
+func (self *peer_server) MemStats(context.Context, *peerpb.MemStatsRequest) (*peerpb.MemStatsResponse, error) {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	resp := &peer_grpc.MemStatsResponse{
+	resp := &peerpb.MemStatsResponse{
 		Alloc:        memStats.Alloc,
 		TotalAlloc:   memStats.TotalAlloc,
 		Sys:          memStats.Sys,
@@ -67,10 +67,10 @@ func (self *PeerService) OnStart(ctx context.Context) error {
 	if _, err := facade.RegisterServiceName(GetServiceName()); err != nil {
 		return err
 	}
-	peer_grpc.RegisterPeerServer(facade.GrpcServer(), self.peerServer)
+	peerpb.RegisterPeerServer(facade.GrpcServer(), self.peerServer)
 	return nil
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(peer_grpc.PeerServerName, service_options.WithAsAppServiceOption())
+	return facade.NewServiceName(peerpb.PeerServerName, service_options.WithAsAppServiceOption())
 }

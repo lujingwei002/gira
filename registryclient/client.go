@@ -94,26 +94,26 @@ func (r *RegistryClient) NewServiceName(serviceName string, opt ...service_optio
 
 // 查找节点位置
 func (r *RegistryClient) GetPeer(fullName string) *gira.Peer {
-	return r.peerRegistry.getPeer(r, fullName)
+	return r.peerRegistry.GetPeer(r, fullName)
 }
 
 func (r *RegistryClient) UnregisterPeer(appFullName string) error {
 	return r.peerRegistry.UnregisterPeer(r, appFullName)
 }
 
-func (r *RegistryClient) ListPeerKvs() (kvs map[string]string, err error) {
-	kvs, err = r.peerRegistry.listPeerKvs(r)
+func (r *RegistryClient) ListPeerKvs() (peers map[string]string, err error) {
+	peers, err = r.peerRegistry.ListPeerKvs(r)
 	return
 }
 
-func (r *RegistryClient) ListServiceKvs() (kvs map[string][]string, err error) {
-	kvs, err = r.serviceRegistry.listServiceKvs(r)
+func (r *RegistryClient) ListServiceKvs() (services map[string][]string, err error) {
+	services, err = r.serviceRegistry.ListServiceKvs(r)
 	return
 }
 
 // 查找节点
 func (r *RegistryClient) WhereIsPeer(appFullName string) (*gira.Peer, error) {
-	if p := r.peerRegistry.getPeer(r, appFullName); p != nil {
+	if p := r.peerRegistry.GetPeer(r, appFullName); p != nil {
 		return p, nil
 	} else {
 		return nil, errors.ErrPeerNotFound

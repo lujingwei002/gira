@@ -2,7 +2,6 @@ package hall
 
 import (
 	"context"
-	"fmt"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -15,7 +14,7 @@ import (
 	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/framework/smallgame/game"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hallpb"
 )
 
 // 锁是和session绑定的，因此由session来抢占会释放
@@ -31,9 +30,9 @@ type hall_sesssion struct {
 	userId           string
 	avatar           game.UserAvatar
 	player           game.Player
-	chClientResponse chan *hall_grpc.ClientMessageResponse // 由stream负责关闭
-	chClientRequest  chan *hall_grpc.ClientMessageRequest  // 由stream负责关闭
-	chPeerPush       chan gira.ProtoPush                   // 其他节点，或者自己节点转发来的的push消息，由session负责关闭
+	chClientResponse chan *hallpb.ClientMessageResponse // 由stream负责关闭
+	chClientRequest  chan *hallpb.ClientMessageRequest  // 由stream负责关闭
+	chPeerPush       chan gira.ProtoPush                // 其他节点，或者自己节点转发来的的push消息，由session负责关闭
 	clientCancelFunc context.CancelFunc
 	isClosed         int32
 	mu               sync.Mutex
@@ -58,10 +57,11 @@ func newSession(hall *hall_service, sessionId uint64, memberId string) (session 
 		} else {
 			// 顶号下线
 			log.Infow("user instead", "session_id", userId)
-			var resp *hall_grpc.UserInsteadResponse
-			if resp, err = hall_grpc.DefaultHallClients.Unicast().WherePeer(peer).UserInstead(ctx, &hall_grpc.UserInsteadRequest{
+			var resp *hallpb.UserInsteadResponse
+			if resp, err = hallpb.DefaultHallClients.Unicast().WherePeer(peer).UserInstead(ctx, &hallpb.UserInsteadRequest{
 				UserId:  userId,
-				Address: fmt.Sprintf("%d服", facade.GetAppId()),
+				Address: "其他地方",
+				// Address: fmt.Sprintf("%d服", facade.GetAppId()),
 			}); err != nil {
 				log.Infow("user instead fail", "session_id", sessionId, "error", err)
 				return
@@ -261,7 +261,7 @@ func (session *hall_sesssion) load() (player game.Player, err error) {
 
 // 发送控制消息，并关闭会话
 // 协程安全
-func (self *hall_sesssion) sendPacketAndClose(ctx context.Context, typ hall_grpc.PacketType, reason string) (err error) {
+func (self *hall_sesssion) sendPacketAndClose(ctx context.Context, typ hallpb.PacketType, reason string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Errorw("sendPacketAndClose", "type", typ, "reason", reason)
@@ -270,7 +270,7 @@ func (self *hall_sesssion) sendPacketAndClose(ctx context.Context, typ hall_grpc
 			err = e.(error)
 		}
 	}()
-	resp := &hall_grpc.ClientMessageResponse{}
+	resp := &hallpb.ClientMessageResponse{}
 	resp.Type = typ
 	resp.SessionId = self.sessionId
 	resp.ReqId = 0
@@ -287,7 +287,6 @@ func (session *hall_sesssion) processActorRequest(req actor.Request) {
 	}()
 	session.mu.Lock()
 	req.Next()
-	return
 }
 
 // 处理peer的push消息
@@ -316,7 +315,7 @@ func (session *hall_sesssion) processPeerPush(req gira.ProtoPush) (err error) {
 
 // 处理客户端的消息
 // session加锁
-func (session *hall_sesssion) processClientMessage(message *hall_grpc.ClientMessageRequest) (err error) {
+func (session *hall_sesssion) processClientMessage(message *hallpb.ClientMessageRequest) (err error) {
 	sessionId := session.sessionId
 	var name string
 	var reqId int32
@@ -351,8 +350,8 @@ func (session *hall_sesssion) processClientMessage(message *hall_grpc.ClientMess
 		return nil
 	}
 	// log.Debugw("data response", "session_id", sessionId, "data response", len(dataResp))
-	response := &hall_grpc.ClientMessageResponse{}
-	response.Type = hall_grpc.PacketType_DATA
+	response := &hallpb.ClientMessageResponse{}
+	response.Type = hallpb.PacketType_DATA
 	response.SessionId = message.SessionId
 	response.ReqId = message.ReqId
 	response.Data = resp
@@ -363,8 +362,8 @@ func (session *hall_sesssion) processClientMessage(message *hall_grpc.ClientMess
 			log.Errorw("push fail", "session_id", sessionId, "error", err)
 		} else {
 			log.Infow("push to client", "session_id", sessionId, "name", push.GetPushName(), "data", len(dataPush))
-			response := &hall_grpc.ClientMessageResponse{}
-			response.Type = hall_grpc.PacketType_DATA
+			response := &hallpb.ClientMessageResponse{}
+			response.Type = hallpb.PacketType_DATA
 			response.SessionId = message.SessionId
 			response.ReqId = 0
 			response.Data = dataPush
@@ -418,13 +417,13 @@ func (session *hall_sesssion) Close(ctx context.Context) (err error) {
 // 踢下线
 // 协程安全
 func (self *hall_sesssion) Kick(ctx context.Context, reason string) (err error) {
-	return self.sendPacketAndClose(ctx, hall_grpc.PacketType_KICK, reason)
+	return self.sendPacketAndClose(ctx, hallpb.PacketType_KICK, reason)
 }
 
 // 顶号下线
 // 协程安全
 func (self *hall_sesssion) Instead(ctx context.Context, reason string) (err error) {
-	return self.sendPacketAndClose(ctx, hall_grpc.PacketType_USER_INSTEAD, reason)
+	return self.sendPacketAndClose(ctx, hallpb.PacketType_USER_INSTEAD, reason)
 }
 
 // 推送消息
@@ -441,8 +440,8 @@ func (self *hall_sesssion) Push(push gira.ProtoPush) (err error) {
 				err = e.(error)
 			}
 		}()
-		resp := &hall_grpc.ClientMessageResponse{}
-		resp.Type = hall_grpc.PacketType_DATA
+		resp := &hallpb.ClientMessageResponse{}
+		resp.Type = hallpb.PacketType_DATA
 		resp.SessionId = self.sessionId
 		resp.ReqId = 0
 		resp.Data = data
@@ -452,13 +451,3 @@ func (self *hall_sesssion) Push(push gira.ProtoPush) (err error) {
 		return
 	}
 }
-
-// func (self *hall_sesssion) Notify(userId string, resp gira.ProtoPush) error {
-// 	if v, ok := self.hall.SessionDict.Load(userId); !ok {
-// 		return gira.ErrNoSession
-// 	} else {
-// 		otherSession, _ := v.(*hall_sesssion)
-// 		return otherSession.Push(resp)
-// 	}
-// }
-//

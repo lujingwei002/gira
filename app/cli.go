@@ -9,9 +9,9 @@ import (
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/log"
 	"github.com/lujingwei002/gira/proj"
-	"github.com/lujingwei002/gira/service/admin/admin_grpc"
+	"github.com/lujingwei002/gira/service/admin/adminpb"
 	peer_service "github.com/lujingwei002/gira/service/peer"
-	"github.com/lujingwei002/gira/service/peer/peer_grpc"
+	"github.com/lujingwei002/gira/service/peer/peerpb"
 	"gopkg.in/yaml.v3"
 
 	"github.com/lujingwei002/gira"
@@ -356,7 +356,7 @@ func statusAction(args *cli.Context) error {
 	}
 	ctx := facade.Context()
 	serviceName := peer_service.GetServiceName()
-	if _, err := peer_grpc.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peer_grpc.HealthCheckRequest{}); err != nil {
+	if _, err := peerpb.DefaultPeerClients.Unicast().Where(serviceName).HealthCheck(ctx, &peerpb.HealthCheckRequest{}); err != nil {
 		log.Println(err)
 		log.Println("dead")
 		return nil
@@ -406,7 +406,7 @@ func reloadAction(args *cli.Context) error {
 	}
 	ctx := facade.Context()
 	serviceName := peer_service.GetServiceName()
-	if _, err := admin_grpc.DefaultAdminClients.Unicast().Where(serviceName).ReloadResource(ctx, &admin_grpc.ReloadResourceRequest{}); err != nil {
+	if _, err := adminpb.DefaultAdminClients.Unicast().Where(serviceName).ReloadResource(ctx, &adminpb.ReloadResourceRequest{}); err != nil {
 		log.Println(err)
 		return nil
 	} else {

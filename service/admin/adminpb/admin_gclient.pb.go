@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: service/admin/admin.proto
 
-package admin_grpc
+package adminpb
 
 import (
 	context "context"
@@ -171,7 +171,7 @@ func (r *ReloadResourceResponse2_MulticastResult) Errors(index int) error {
 }
 
 const (
-	AdminServerName = "admin_grpc.Admin"
+	AdminServerName = "adminpb.Admin"
 )
 
 // AdminClient is the client API for Admin service.

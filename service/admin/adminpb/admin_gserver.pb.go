@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: service/admin/admin.proto
 
-package admin_grpc
+package adminpb
 
 import (
 	context "context"
@@ -34,12 +34,14 @@ type AdminServerRouterMiddleware interface {
 
 // AdminServerRouter is the default server router middleware context for Admin service.
 type AdminServerRouterMiddlewareContext interface {
+	Handler() AdminServer
 	Next()
 	Wait() error
 }
 
 type adminServerRouterMiddlewareContext struct {
-	handler    func() (resp interface{}, err error)
+	handler    AdminServer
+	invoke     func() (resp interface{}, err error)
 	ctx        context.Context
 	fullMethod string
 	in         interface{}
@@ -49,13 +51,16 @@ type adminServerRouterMiddlewareContext struct {
 	c          chan struct{}
 }
 
+func (m *adminServerRouterMiddlewareContext) Handler() AdminServer {
+	return m.handler
+}
 func (m *adminServerRouterMiddlewareContext) Next() {
 	defer func() {
 		if e := recover(); e != nil {
 			m.err = e.(error)
 		}
 	}()
-	m.out, m.err = m.handler()
+	m.out, m.err = m.invoke()
 	if m.c != nil {
 		m.c <- struct{}{}
 	}
@@ -75,21 +80,21 @@ func (m *adminServerRouterMiddlewareContext) Wait() error {
 
 // AdminServerRouter is the default server router for Admin service.
 type AdminServerRouter interface {
+	RegisterMiddleware(middle AdminServerRouterMiddleware)
 	RegisterHandler(key string, handler AdminServerRouterHandler)
-	RegisterMiddleware(key string, middle AdminServerRouterMiddleware)
 	UnregisterHandler(key string, handler AdminServerRouterHandler)
 }
 
 // adminServerRouter is the default server router for Admin service.
 type adminServerRouter struct {
 	UnimplementedAdminServer
-	mu          sync.Mutex
-	handlers    sync.Map
-	middlewares sync.Map
+	mu         sync.Mutex
+	handlers   sync.Map
+	middleware AdminServerRouterMiddleware
 }
 
-func (svr *adminServerRouter) RegisterMiddleware(key string, middleware AdminServerRouterMiddleware) {
-	svr.middlewares.Store(key, middleware)
+func (svr *adminServerRouter) RegisterMiddleware(middleware AdminServerRouterMiddleware) {
+	svr.middleware = middleware
 }
 
 func (svr *adminServerRouter) RegisterHandler(key string, handler AdminServerRouterHandler) {
@@ -98,7 +103,6 @@ func (svr *adminServerRouter) RegisterHandler(key string, handler AdminServerRou
 
 func (svr *adminServerRouter) UnregisterHandler(key string, handler AdminServerRouterHandler) {
 	svr.handlers.Delete(key)
-	svr.middlewares.Delete(key)
 }
 
 func (svr *adminServerRouter) ReloadResource(ctx context.Context, in *ReloadResourceRequest) (*ReloadResourceResponse, error) {
@@ -118,15 +122,16 @@ func (svr *adminServerRouter) ReloadResource(ctx context.Context, in *ReloadReso
 	} else if handler, ok := v.(AdminServer); !ok {
 		return nil, errors.ErrServerRouterHandlerNotImplement
 	} else {
-		if v, ok := svr.middlewares.Load(keys[0]); !ok {
+		if middleware := svr.middleware; middleware == nil {
 			return handler.ReloadResource(ctx, in)
-		} else if middleware, ok := v.(AdminServerRouterMiddleware); ok {
+		} else {
 			r := &adminServerRouterMiddlewareContext{
 				fullMethod: Admin_ReloadResource_FullMethodName,
 				method:     "ReloadResource",
 				ctx:        ctx,
 				in:         in,
-				handler: func() (resp interface{}, err error) {
+				handler:    handler,
+				invoke: func() (resp interface{}, err error) {
 					return handler.ReloadResource(ctx, in)
 				},
 			}
@@ -140,8 +145,6 @@ func (svr *adminServerRouter) ReloadResource(ctx context.Context, in *ReloadReso
 			} else {
 				return r.out.(*ReloadResourceResponse), r.err
 			}
-		} else {
-			return handler.ReloadResource(ctx, in)
 		}
 	}
 }
@@ -256,7 +259,7 @@ func (x *adminReloadResource3ServerRouter) Recv() (*ReloadResourceRequest2, erro
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Admin_ServiceRouterDesc = grpc.ServiceDesc{
-	ServiceName: "admin_grpc.Admin",
+	ServiceName: "adminpb.Admin",
 	HandlerType: (*AdminServerRouter)(nil),
 	Methods: []grpc.MethodDesc{
 		{

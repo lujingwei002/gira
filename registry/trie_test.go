@@ -68,12 +68,12 @@ func TestWordTrie5(t *testing.T) {
 
 func TestWordTrie6(t *testing.T) {
 	trie := newWordTrie()
-	trie.add("admin_grpc.Admin/admin_grpc.Admin_4001")
-	trie.add("peer_grpc.Peer/peer_grpc.Peer_4001")
-	trie.add("admin_grpc.Admin/admin_grpc.Admin_1001")
-	trie.delete("peer_grpc.Peer/peer_grpc.Peer_4001")
+	trie.add("adminpb.Admin/adminpb.Admin_4001")
+	trie.add("peerpb.Peer/peerpb.Peer_4001")
+	trie.add("adminpb.Admin/adminpb.Admin_1001")
+	trie.delete("peerpb.Peer/peerpb.Peer_4001")
 
-	fmt.Println("search /", trie.search("admin_grpc.Admin/"))
+	fmt.Println("search /", trie.search("adminpb.Admin/"))
 
 	trie.debugTrace()
 }

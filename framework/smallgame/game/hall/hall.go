@@ -12,7 +12,7 @@ import (
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/framework/smallgame/game"
 	"github.com/lujingwei002/gira/framework/smallgame/game/config"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hallpb"
 	"github.com/lujingwei002/gira/options/service_options"
 )
 
@@ -29,7 +29,7 @@ func NewService(proto gira.Proto, config config.GameConfig, hallHandler game.Hal
 		config:        config,
 		hallHandler:   hallHandler,
 		playerHandler: playerHandler,
-		status:        hall_grpc.HallStatus_UnAvailable,
+		status:        hallpb.HallStatus_UnAvailable,
 	}
 	service.hallServer = &hall_server{
 		hall: service,
@@ -38,7 +38,7 @@ func NewService(proto gira.Proto, config config.GameConfig, hallHandler game.Hal
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(hall_grpc.HallServerName, service_options.WithAsAppServiceOption())
+	return facade.NewServiceName(hallpb.HallServerName, service_options.WithAsAppServiceOption())
 }
 
 type hall_service struct {
@@ -54,7 +54,7 @@ type hall_service struct {
 	playerHandler        gira.ProtoHandler
 	proto                gira.Proto
 	config               config.GameConfig
-	status               hall_grpc.HallStatus
+	status               hallpb.HallStatus
 }
 
 func (hall *hall_service) OnStart(ctx context.Context) error {
@@ -65,7 +65,7 @@ func (hall *hall_service) OnStart(ctx context.Context) error {
 	// 后台运行
 	hall.backgroundCtx, hall.backgroundCancelFunc = context.WithCancel(context.Background())
 	hall.gateStreamCtx, hall.gateStreamCancelFunc = context.WithCancel(hall.backgroundCtx)
-	hall_grpc.RegisterHallServer(facade.GrpcServer(), hall.hallServer)
+	hallpb.RegisterHallServer(facade.GrpcServer(), hall.hallServer)
 	return nil
 }
 
@@ -94,7 +94,7 @@ func (hall *hall_service) Serve() error {
 	// 	}
 	// 	return nil
 	// })
-	hall.status = hall_grpc.HallStatus_OK
+	hall.status = hallpb.HallStatus_OK
 	for {
 		select {
 		case <-hall.ctx.Done():
@@ -103,7 +103,7 @@ func (hall *hall_service) Serve() error {
 		}
 	}
 TAG_CLEAN_UP:
-	hall.status = hall_grpc.HallStatus_UnAvailable
+	hall.status = hallpb.HallStatus_UnAvailable
 	hall.gateStreamCancelFunc()
 
 	for {
@@ -188,7 +188,7 @@ func (hall *hall_service) Push(ctx context.Context, userId string, push gira.Pro
 		if err != nil {
 			return
 		}
-		if _, err = hall_grpc.DefaultHallClients.Unicast().WherePeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
+		if _, err = hallpb.DefaultHallClients.Unicast().WherePeer(peer).MustPush(ctx, &hallpb.MustPushRequest{
 			UserId: userId,
 			Data:   data,
 		}); err != nil {
@@ -224,7 +224,7 @@ func (hall *hall_service) MustPush(ctx context.Context, userId string, push gira
 		if err != nil {
 			return
 		}
-		if _, err = hall_grpc.DefaultHallClients.Unicast().WherePeer(peer).MustPush(ctx, &hall_grpc.MustPushRequest{
+		if _, err = hallpb.DefaultHallClients.Unicast().WherePeer(peer).MustPush(ctx, &hallpb.MustPushRequest{
 			UserId: userId,
 			Data:   data,
 		}); err != nil {

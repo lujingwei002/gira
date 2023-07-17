@@ -5,7 +5,7 @@ import (
 
 	"github.com/lujingwei002/gira/facade"
 	"github.com/lujingwei002/gira/options/service_options"
-	"github.com/lujingwei002/gira/service/admin/admin_grpc"
+	"github.com/lujingwei002/gira/service/admin/adminpb"
 )
 
 type AdminService struct {
@@ -14,11 +14,11 @@ type AdminService struct {
 }
 
 type admin_server struct {
-	admin_grpc.UnimplementedAdminServer
+	adminpb.UnimplementedAdminServer
 }
 
-func (self *admin_server) ReloadResource(context.Context, *admin_grpc.ReloadResourceRequest) (*admin_grpc.ReloadResourceResponse, error) {
-	resp := &admin_grpc.ReloadResourceResponse{}
+func (self *admin_server) ReloadResource(context.Context, *adminpb.ReloadResourceRequest) (*adminpb.ReloadResourceResponse, error) {
+	resp := &adminpb.ReloadResourceResponse{}
 	if err := facade.ReloadResource(); err != nil {
 		return nil, err
 	}
@@ -47,10 +47,10 @@ func (self *AdminService) OnStart(ctx context.Context) error {
 		return err
 	}
 	// 注册handler
-	admin_grpc.RegisterAdminServer(facade.GrpcServer(), self.adminServer)
+	adminpb.RegisterAdminServer(facade.GrpcServer(), self.adminServer)
 	return nil
 }
 
 func GetServiceName() string {
-	return facade.NewServiceName(admin_grpc.AdminServerName, service_options.WithAsAppServiceOption())
+	return facade.NewServiceName(adminpb.AdminServerName, service_options.WithAsAppServiceOption())
 }

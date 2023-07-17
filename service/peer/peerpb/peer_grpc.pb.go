@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: service/peer/peer.proto
 
-package peer_grpc
+package peerpb
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Peer_HealthCheck_FullMethodName = "/peer_grpc.Peer/HealthCheck"
-	Peer_MemStats_FullMethodName    = "/peer_grpc.Peer/MemStats"
+	Peer_HealthCheck_FullMethodName = "/peerpb.Peer/HealthCheck"
+	Peer_MemStats_FullMethodName    = "/peerpb.Peer/MemStats"
 )
 
 // PeerClient is the client API for Peer service.
@@ -129,7 +129,7 @@ func _Peer_MemStats_Handler(srv interface{}, ctx context.Context, dec func(inter
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Peer_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "peer_grpc.Peer",
+	ServiceName: "peerpb.Peer",
 	HandlerType: (*PeerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

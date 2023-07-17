@@ -36,7 +36,7 @@ import (
 	"github.com/lujingwei002/gira/registryclient"
 	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
-	"github.com/lujingwei002/gira/service/admin/admin_grpc"
+	"github.com/lujingwei002/gira/service/admin/adminpb"
 	channelz_service "github.com/lujingwei002/gira/service/channelz"
 	peer_service "github.com/lujingwei002/gira/service/peer"
 
@@ -717,10 +717,10 @@ func (application *Application) GetResourceLoader() gira.ResourceLoader {
 // ================== implement gira.AdminClient ==================
 // 重载配置
 func (application *Application) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
-	req := &admin_grpc.ReloadResourceRequest{
+	req := &adminpb.ReloadResourceRequest{
 		Name: name,
 	}
-	result, err = admin_grpc.DefaultAdminClients.Broadcast().ReloadResource(ctx, req)
+	result, err = adminpb.DefaultAdminClients.Broadcast().ReloadResource(ctx, req)
 	return
 }
 

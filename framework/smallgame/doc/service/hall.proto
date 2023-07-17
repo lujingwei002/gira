@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-option go_package = "./hall_grpc";
-package hall_grpc;
+option go_package = "./hallpb";
+package hallpb;
 
 service Hall {
     // client消息流

@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: doc/service/hall.proto
 
-package hall_grpc
+package hallpb
 
 import (
 	context "context"
@@ -459,7 +459,7 @@ func (r *KickResponse_MulticastResult) Errors(index int) error {
 }
 
 const (
-	HallServerName = "hall_grpc.Hall"
+	HallServerName = "hallpb.Hall"
 )
 
 // HallClient is the client API for Hall service.

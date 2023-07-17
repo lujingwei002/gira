@@ -9,7 +9,7 @@ import (
 	"github.com/lujingwei002/gira"
 	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
-	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hall_grpc"
+	"github.com/lujingwei002/gira/framework/smallgame/gen/service/hallpb"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,7 +19,7 @@ type client_session struct {
 	sessionId       uint64
 	memberId        string
 	client          gira.GatewayConn
-	stream          hall_grpc.Hall_ClientStreamClient
+	stream          hallpb.Hall_ClientStreamClient
 	server          *Server
 	pendingMessages []gira.GatewayMessage
 }
@@ -36,7 +36,7 @@ func newSession(server *Server, sessionId uint64, memberId string) *client_sessi
 func (session *client_session) serve(ctx context.Context, client gira.GatewayConn, message gira.GatewayMessage, dataReq gira.ProtoRequest) error {
 	sessionId := session.sessionId
 	var err error
-	var stream hall_grpc.Hall_ClientStreamClient
+	var stream hallpb.Hall_ClientStreamClient
 	hall := session.server
 	server := hall.SelectPeer()
 	log.Infow("session open", "session_id", sessionId, "peer", server)
@@ -77,7 +77,7 @@ func (session *client_session) serve(ctx context.Context, client gira.GatewayCon
 			}
 		}()
 		for {
-			var resp *hall_grpc.ClientMessageResponse
+			var resp *hallpb.ClientMessageResponse
 			// 上游关闭时，stream并不会返回，会一直阻塞
 			if resp, err = stream.Recv(); err == nil {
 				session.processStreamMessage(resp)
@@ -194,7 +194,7 @@ func (self *client_session) processClientMessage(message gira.GatewayMessage) er
 		log.Warnw("当前服务器不可以用，无法转发", "req_id", message.ReqId())
 		return errors.ErrUpstreamUnavailable
 	} else {
-		data := &hall_grpc.ClientMessageRequest{
+		data := &hallpb.ClientMessageRequest{
 			MemberId:  memberId,
 			SessionId: sessionId,
 			ReqId:     message.ReqId(),
@@ -208,20 +208,20 @@ func (self *client_session) processClientMessage(message gira.GatewayMessage) er
 }
 
 // 处理上游的消息
-func (session *client_session) processStreamMessage(message *hall_grpc.ClientMessageResponse) error {
+func (session *client_session) processStreamMessage(message *hallpb.ClientMessageResponse) error {
 	sessionId := session.sessionId
 	log.Infow("upstream=>client", "session_id", sessionId, "type", message.Type, "route", message.Route, "len", len(message.Data), "req_id", message.ReqId)
 
 	switch message.Type {
-	case hall_grpc.PacketType_DATA:
+	case hallpb.PacketType_DATA:
 		if message.ReqId != 0 {
 			session.client.Response(message.ReqId, message.Data)
 		} else {
 			session.client.Push("", message.Data)
 		}
-	case hall_grpc.PacketType_USER_INSTEAD:
+	case hallpb.PacketType_USER_INSTEAD:
 		session.client.Kick(string(message.Data))
-	case hall_grpc.PacketType_KICK:
+	case hallpb.PacketType_KICK:
 		session.client.Kick(string(message.Data))
 	}
 	return nil

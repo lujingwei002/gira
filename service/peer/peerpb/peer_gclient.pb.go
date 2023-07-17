@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: service/peer/peer.proto
 
-package peer_grpc
+package peerpb
 
 import (
 	context "context"
@@ -121,7 +121,7 @@ func (r *MemStatsResponse_MulticastResult) Errors(index int) error {
 }
 
 const (
-	PeerServerName = "peer_grpc.Peer"
+	PeerServerName = "peerpb.Peer"
 )
 
 // PeerClient is the client API for Peer service.

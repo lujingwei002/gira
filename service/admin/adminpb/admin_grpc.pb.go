@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: service/admin/admin.proto
 
-package admin_grpc
+package adminpb
 
 import (
 	context "context"
@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Admin_ReloadResource_FullMethodName  = "/admin_grpc.Admin/ReloadResource"
-	Admin_ReloadResource1_FullMethodName = "/admin_grpc.Admin/ReloadResource1"
-	Admin_ReloadResource2_FullMethodName = "/admin_grpc.Admin/ReloadResource2"
-	Admin_ReloadResource3_FullMethodName = "/admin_grpc.Admin/ReloadResource3"
+	Admin_ReloadResource_FullMethodName  = "/adminpb.Admin/ReloadResource"
+	Admin_ReloadResource1_FullMethodName = "/adminpb.Admin/ReloadResource1"
+	Admin_ReloadResource2_FullMethodName = "/adminpb.Admin/ReloadResource2"
+	Admin_ReloadResource3_FullMethodName = "/adminpb.Admin/ReloadResource3"
 )
 
 // AdminClient is the client API for Admin service.
@@ -284,7 +284,7 @@ func (x *adminReloadResource3Server) Recv() (*ReloadResourceRequest2, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Admin_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "admin_grpc.Admin",
+	ServiceName: "adminpb.Admin",
 	HandlerType: (*AdminServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

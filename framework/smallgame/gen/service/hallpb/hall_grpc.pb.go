@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: doc/service/hall.proto
 
-package hall_grpc
+package hallpb
 
 import (
 	context "context"
@@ -19,15 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Hall_ClientStream_FullMethodName = "/hall_grpc.Hall/ClientStream"
-	Hall_GateStream_FullMethodName   = "/hall_grpc.Hall/GateStream"
-	Hall_Info_FullMethodName         = "/hall_grpc.Hall/Info"
-	Hall_HealthCheck_FullMethodName  = "/hall_grpc.Hall/HealthCheck"
-	Hall_MustPush_FullMethodName     = "/hall_grpc.Hall/MustPush"
-	Hall_SendMessage_FullMethodName  = "/hall_grpc.Hall/SendMessage"
-	Hall_CallMessage_FullMethodName  = "/hall_grpc.Hall/CallMessage"
-	Hall_UserInstead_FullMethodName  = "/hall_grpc.Hall/UserInstead"
-	Hall_Kick_FullMethodName         = "/hall_grpc.Hall/Kick"
+	Hall_ClientStream_FullMethodName = "/hallpb.Hall/ClientStream"
+	Hall_GateStream_FullMethodName   = "/hallpb.Hall/GateStream"
+	Hall_Info_FullMethodName         = "/hallpb.Hall/Info"
+	Hall_HealthCheck_FullMethodName  = "/hallpb.Hall/HealthCheck"
+	Hall_MustPush_FullMethodName     = "/hallpb.Hall/MustPush"
+	Hall_SendMessage_FullMethodName  = "/hallpb.Hall/SendMessage"
+	Hall_CallMessage_FullMethodName  = "/hallpb.Hall/CallMessage"
+	Hall_UserInstead_FullMethodName  = "/hallpb.Hall/UserInstead"
+	Hall_Kick_FullMethodName         = "/hallpb.Hall/Kick"
 )
 
 // HallClient is the client API for Hall service.
@@ -438,7 +438,7 @@ func _Hall_Kick_Handler(srv interface{}, ctx context.Context, dec func(interface
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Hall_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "hall_grpc.Hall",
+	ServiceName: "hallpb.Hall",
 	HandlerType: (*HallServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

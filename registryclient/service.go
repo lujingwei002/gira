@@ -40,7 +40,7 @@ func (self *service_registry) NewServiceName(r *RegistryClient, serviceName stri
 		v.ConfigRegisterOption(&opts)
 	}
 	if opts.AsAppService {
-		serviceName = fmt.Sprintf("%s/%s_%d", serviceName, serviceName, r.appId)
+		serviceName = fmt.Sprintf("%s/%d", serviceName, r.appId)
 	}
 	return serviceName
 }
@@ -95,22 +95,8 @@ func (self *service_registry) WhereIsService(r *RegistryClient, serviceName stri
 	}
 }
 
-func (self *peer_registry) listPeerKvs(r *RegistryClient) (kvs map[string]string, err error) {
-	client := r.client
-	kv := clientv3.NewKV(client)
-	var getResp *clientv3.GetResponse
-	if getResp, err = kv.Get(self.ctx, self.prefix, clientv3.WithPrefix()); err != nil {
-		return
-	}
-	kvs = make(map[string]string)
-	for _, kv := range getResp.Kvs {
-		kvs[string(kv.Key)] = string(kv.Value)
-	}
-	return
-}
-
 // 列出全部的服务
-func (self *service_registry) listServiceKvs(r *RegistryClient) (kvs map[string][]string, err error) {
+func (self *service_registry) ListServiceKvs(r *RegistryClient) (kvs map[string][]string, err error) {
 	client := r.client
 	kv := clientv3.NewKV(client)
 	var getResp *clientv3.GetResponse
@@ -120,14 +106,14 @@ func (self *service_registry) listServiceKvs(r *RegistryClient) (kvs map[string]
 	kvs = make(map[string][]string)
 	for _, kv := range getResp.Kvs {
 		words := strings.Split(string(kv.Key), "/")
-		var serviceName string
+		var serviceFullName string
 		if len(words) == 4 {
-			serviceName = fmt.Sprintf("%s/%s", words[2], words[3])
+			serviceFullName = fmt.Sprintf("%s/%s", words[2], words[3])
 		} else if len(words) == 3 {
-			serviceName = words[2]
+			serviceFullName = words[2]
 		}
 		peerFullName := string(kv.Value)
-		kvs[peerFullName] = append(kvs[peerFullName], serviceName)
+		kvs[peerFullName] = append(kvs[peerFullName], serviceFullName)
 	}
 	return
 }

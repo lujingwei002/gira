@@ -47,7 +47,7 @@ type Peer struct {
 	FullName string // 服务全名
 	Address  string // grpc地址
 	Url      string
-	Kvs      map[string]string // /server/account_1/ 下的键
+	Metadata map[string]string // /server/account_1/ 下的键
 }
 
 // 玩家位置
@@ -60,11 +60,11 @@ type LocalPlayer struct {
 // 服务名
 type ServiceName struct {
 	// <<GroupName>>/<<ShortName>>
-	Peer           *Peer
-	FullName       string
-	CatalogName    string
-	IsSelf         bool
-	CreateRevision int64
+	Peer            *Peer
+	ServiceFullName string
+	ServiceTypeName string
+	IsSelf          bool
+	CreateRevision  int64
 }
 
 // 侦听伙伴节点

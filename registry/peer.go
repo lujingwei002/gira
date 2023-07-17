@@ -61,8 +61,8 @@ type peer_registry struct {
 func newConfigPeerRegistry(r *Registry) (*peer_registry, error) {
 	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &peer_registry{
-		prefix:     "/peer/",
-		selfPrefix: fmt.Sprintf("/peer/%s/", r.appFullName),
+		prefix:     "/peer/attribute/",
+		selfPrefix: fmt.Sprintf("/peer/attribute/%s/", r.appFullName),
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 	}
@@ -158,12 +158,13 @@ func (self *peer_registry) onPeerUpdate(r *Registry, peer *gira.Peer) {
 
 func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
-	if len(pats) != 4 {
+	if len(pats) != 5 {
 		log.Errorw("peer registry got a invalid key", "key", string(kv.Key))
 		return errors.New("invalid peer registry key", "key", string(kv.Key))
 	}
-	fullName := pats[2]
-	attrName := pats[3]
+	pats = pats[3:]
+	fullName := pats[0]
+	attrName := pats[1]
 	name, serverId, err := gira.ParseAppFullName(fullName)
 	if err != nil {
 		log.Errorw("peer registry got a invalid key", "full_name", fullName)
@@ -191,7 +192,7 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 				log.Debugw("peer registry update peer", "full_name", fullName, GRPC_KEY, attrValue, "last_attr_value", lastPeer.Address)
 			}
 		} else {
-			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
+			if lastAttrValue, ok := lastPeer.Metadata[attrName]; ok {
 				if lastAttrValue != attrValue {
 					log.Debugw("peer registry update peer attr", "full_name", fullName, attrName, attrValue, "last_attr_value", lastAttrValue)
 				} else {
@@ -200,14 +201,14 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			} else {
 				log.Debugw("peer registry add peer attr", "full_name", fullName, attrName, attrValue)
 			}
-			lastPeer.Kvs[attrName] = attrValue
+			lastPeer.Metadata[attrName] = attrValue
 		}
 	} else {
 		peer := &gira.Peer{
 			Id:       serverId,
 			Name:     name,
 			FullName: fullName,
-			Kvs:      make(map[string]string),
+			Metadata: make(map[string]string),
 		}
 		self.peers.Store(fullName, peer)
 		if attrName == GRPC_KEY {
@@ -220,7 +221,7 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 			}
 			self.onPeerAdd(r, peer)
 		} else {
-			peer.Kvs[attrName] = attrValue
+			peer.Metadata[attrName] = attrValue
 			log.Debugw("peer registry add peer attr", "full_name", fullName, attrName, attrValue)
 		}
 	}
@@ -229,12 +230,13 @@ func (self *peer_registry) onKvPut(r *Registry, kv *mvccpb.KeyValue) error {
 
 func (self *peer_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
-	if len(pats) != 4 {
+	if len(pats) != 5 {
 		log.Warnw("peer registry got a invalid peer", "key", string(kv.Key))
 		return errors.New("invalid peer registry key", "key", string(kv.Key))
 	}
-	fullName := pats[2]
-	attrName := pats[3]
+	pats = pats[3:]
+	fullName := pats[0]
+	attrName := pats[1]
 	if lastValue, ok := self.peers.Load(fullName); ok {
 		lastPeer := lastValue.(*gira.Peer)
 		if attrName == GRPC_KEY {
@@ -244,8 +246,8 @@ func (self *peer_registry) onKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 			lastPeer.Url = ""
 			self.onPeerDelete(r, lastPeer)
 		} else {
-			if lastAttrValue, ok := lastPeer.Kvs[attrName]; ok {
-				delete(lastPeer.Kvs, attrName)
+			if lastAttrValue, ok := lastPeer.Metadata[attrName]; ok {
+				delete(lastPeer.Metadata, attrName)
 				log.Warnw("peer registry remove peer attr", "full_name", fullName, attrName, lastAttrValue)
 			} else {
 				log.Warnw("peer registry remove peer attr, but attr not found!!!!!", "full_name", fullName, attrName, "")

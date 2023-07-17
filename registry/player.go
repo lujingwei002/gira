@@ -26,7 +26,7 @@ import (
 
 type player_registry struct {
 	peerTypePrefix     string   // /peer_type_user/<<AppName>>/      根据服务类型查找全部玩家
-	peerPrefix         string   // /peer_user/<<AppFullName>>  根据服务全名查找全部玩家
+	peerPrefix         string   // /peer/user/<<AppFullName>>  根据服务全名查找全部玩家
 	userPrefix         string   // /user/<<UserId>>/       	 	可以根据user_id查找当前所在的服
 	localPlayers       sync.Map // 本节点上的用户
 	ctx                context.Context
@@ -37,8 +37,8 @@ type player_registry struct {
 func newConfigPlayerRegistry(r *Registry) (*player_registry, error) {
 	ctx, cancelFunc := context.WithCancel(r.ctx)
 	self := &player_registry{
-		peerTypePrefix: fmt.Sprintf("/peer_type_user/%s/", r.name),
-		peerPrefix:     fmt.Sprintf("/peer_user/%s/", r.appFullName),
+		peerTypePrefix: fmt.Sprintf("/peer_type/user/%s/", r.name),
+		peerPrefix:     fmt.Sprintf("/peer/user/%s/", r.appFullName),
 		userPrefix:     "/user/",
 		ctx:            ctx,
 		cancelFunc:     cancelFunc,
@@ -89,11 +89,11 @@ func (self *player_registry) onLocalPlayerDelete(r *Registry, player *gira.Local
 
 func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
-	if len(pats) != 4 {
+	if len(pats) != 5 {
 		log.Warnw("player registry got a invalid key", "key", string(kv.Key))
 		return errors.New("invalid player registry key", "key", string(kv.Key))
 	}
-	userId := pats[3]
+	userId := pats[4]
 	value := string(kv.Value)
 	loginTime, err := strconv.Atoi(value)
 	if err != nil {
@@ -118,11 +118,11 @@ func (self *player_registry) onLocalKvAdd(r *Registry, kv *mvccpb.KeyValue) erro
 
 func (self *player_registry) onLocalKvDelete(r *Registry, kv *mvccpb.KeyValue) error {
 	pats := strings.Split(string(kv.Key), "/")
-	if len(pats) != 4 {
+	if len(pats) != 5 {
 		log.Warnw("player registry got a invalid key", "key", string(kv.Key))
 		return errors.New("invalid player registry key", "key", string(kv.Key))
 	}
-	userId := pats[3]
+	userId := pats[4]
 	if lastValue, ok := self.localPlayers.Load(userId); ok {
 		lastPlayer := lastValue.(*gira.LocalPlayer)
 		log.Infow("player registry remove local player", "user_id", userId)
