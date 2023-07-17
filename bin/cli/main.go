@@ -106,6 +106,18 @@ func main() {
 								Usage:    "env config file",
 								Required: false,
 							},
+							&cli.BoolFlag{
+								Name:     "drop",
+								Value:    false,
+								Usage:    "drop collection",
+								Required: false,
+							},
+							&cli.BoolFlag{
+								Name:     "force",
+								Value:    false,
+								Usage:    "force overwrite collection",
+								Required: false,
+							},
 						},
 					},
 					{
@@ -314,6 +326,12 @@ func resourcePushAction(c *cli.Context) error {
 		uri := dbConfig.Uri()
 		bin := "bin/resource"
 		argv := []string{"push", "--uri", uri}
+		if c.Bool("force") {
+			argv = append(argv, "--force")
+		}
+		if c.Bool("drop") {
+			argv = append(argv, "--drop")
+		}
 		return command(bin, argv)
 	}
 }

@@ -34,6 +34,7 @@ import (
 	"os"
 	"fmt"
 	"github.com/lujingwei002/gira/db"
+	"github.com/lujingwei002/gira/options/resource_options"
 	"github.com/urfave/cli/v2"
 	"<<.Module>>/gen/resource"
 )
@@ -41,6 +42,8 @@ import (
 var resVersion string
 var buildTime string
 var uri string
+var drop bool
+var force bool
 
 func main() {
 	app := &cli.App{
@@ -67,6 +70,18 @@ func main() {
 						Required: true,
 						Usage: "database uri",
 						Destination: &uri,
+					},
+					&cli.BoolFlag{
+						Name: "drop",
+						Value: false,
+						Usage: "drop collection",
+						Destination: &drop,
+					},
+					&cli.BoolFlag{
+						Name: "force",
+						Value: false,
+						Usage: "force overwrite collection",
+						Destination: &force,
 					},
 				},
 			},
@@ -109,10 +124,17 @@ func compressAction(args *cli.Context) error {
 }
 
 func pushAction(args *cli.Context) error {
+	opts := make([]resource_options.PushOption, 0)
+	if drop {
+		opts = append(opts, resource_options.WithPushDropOption())
+	}
+	if force {
+		opts = append(opts, resource_options.WithPushForceOption())
+	}
 	if client, err := db.NewDbClientFromUri(context.Background(), "resource", uri); err != nil {
 		return err
 	} else {
-		return resource.Push(context.Background(), client, "resource")
+		return resource.Push(context.Background(), client, "resource", opts...)
 	}
 }
 `
@@ -126,6 +148,7 @@ package resource
 import (
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/errors"
+	"github.com/lujingwei002/gira/options/resource_options"
 	yaml "gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path/filepath"
@@ -146,12 +169,12 @@ import (
 // Parameters:
 // uri - mongodb://root:123456@192.168.1.200:3331/resourcedb
 // dir - bundle所在的目录
-func Push(ctx context.Context, client gira.DbClient, dir string) error {
+func Push(ctx context.Context, client gira.DbClient, dir string, opts ...resource_options.PushOption) error {
 	<<- range .BundleArr>>
 	<<- if  eq .BundleType "db">>
 	<<.CapBundleStructName>> := &<<.BundleStructName>>{}
 	// 推送<<.BundleName>>
-	if err := <<.CapBundleStructName>>.SaveToDb(ctx, client, dir); err != nil {
+	if err := <<.CapBundleStructName>>.SaveToDb(ctx, client, dir, opts...); err != nil {
         return err
 	}
 	<<- end>>
@@ -376,17 +399,22 @@ func (self *<<.BundleStructName>>) SaveToBin(dir string) error {
 	return nil
 }
 
-func (self *<<.BundleStructName>>) SaveToDb(ctx context.Context, client gira.DbClient, dir string) error {
+func (self *<<.BundleStructName>>) SaveToDb(ctx context.Context, client gira.DbClient, dir string, opts ...resource_options.PushOption) error {
 	switch c := client.(type) {
 	case gira.MongoClient:
-		return self.SaveToMongo(ctx, c.GetMongoDatabase(), dir)
+		return self.SaveToMongo(ctx, c.GetMongoDatabase(), dir, opts...)
 	default:
 		return errors.ErrDbNotSupport
 	}
 }
 
 // 将资源保存到db上
-func (self *<<.BundleStructName>>) SaveToMongo(ctx context.Context, database *mongo.Database, dir string) error {
+func (self *<<.BundleStructName>>) SaveToMongo(ctx context.Context, database *mongo.Database, dir string, opts ...resource_options.PushOption) error {
+	pushOptions := &resource_options.PushOptions {
+	}
+	for _, v := range opts {
+		v.ConfigPushOption(pushOptions)
+	}
 	<<- $bundleName := .BundleName >>
 	<<- range .ResourceArr>>
 	// 加载<<.ResourceName>>
@@ -400,17 +428,48 @@ func (self *<<.BundleStructName>>) SaveToMongo(ctx context.Context, database *mo
 	// 保存 <<.ResourceName>>
 	if coll := database.Collection("<<.TableName>>"); coll == nil {
 		return fmt.Errorf("collection <<.TableName>> not found")
-	} else {
+	} else if pushOptions.Drop {
+		coll.Drop(ctx)
+	} else if pushOptions.Force {
 		coll.Drop(ctx)
 		models := make([]mongo.WriteModel, 0)
 		for _, v := range <<.ArrTypeName>> {
 			models = append(models, mongo.NewInsertOneModel().SetDocument(v))
 		}
-		if _, err := coll.BulkWrite(ctx, models); err != nil {
-			log.Info("push <<.TableName>> fail", err)
-			return err
+		if len(models) > 0 {
+			if _, err := coll.BulkWrite(ctx, models); err != nil {
+				log.Info("push <<.TableName>> force fail", err)
+				return err
+			} else {
+				log.Infof("push <<.TableName>>(%d) force success", len(models))
+			} 
 		} else {
-			log.Infof("push <<.TableName>>(%d) success", len(<<.ArrTypeName>>))
+			log.Infof("push <<.TableName>>(%d) force success", len(models))
+		}
+	} else {
+		models := make([]mongo.WriteModel, 0)
+		<<- if gt .KeyLen 0 >>
+		<<- $key0 := .Key0 >>
+		for _, v := range <<.ArrTypeName>> {
+			doc := &<<.StructName>>{}
+			err := coll.FindOne(ctx, bson.D{{"<< $key0 >>", v.<<camelString $key0>>}}).Decode(doc)
+			if err != nil && errors.Is(err, mongo.ErrNoDocuments) {
+				log.Infof("insert <<.TableName>> %v", v.<<camelString $key0>>)
+				models = append(models, mongo.NewInsertOneModel().SetDocument(v))
+			} else if err != nil {
+				return err
+			}
+		}
+		<<- end>>
+		if len(models) > 0 {
+			if _, err := coll.BulkWrite(ctx, models); err != nil {
+				log.Info("push <<.TableName>> fail", err)
+				return err
+			} else {
+				log.Infof("push <<.TableName>>(%d) success", len(models))
+			}
+		} else {
+			log.Infof("push <<.TableName>>(%d) success", len(models))
 		}
 	}
 	<<end>>
@@ -648,6 +707,7 @@ type Resource struct {
 	ArrTypeName    string // ErrorCodeArr
 	FilePath       string
 	Type           resource_type
+	KeyArr         []string
 
 	// map类型
 	MapTypeName            string // ErrorCodeMap
@@ -665,6 +725,14 @@ type Resource struct {
 	FieldDict map[string]*Field // 字段信息
 	FieldArr  []*Field          // 字段信息
 	ValueArr  [][]interface{}   // 字段值
+}
+
+func (self *Resource) Key0() string {
+	return self.KeyArr[0]
+}
+
+func (self *Resource) KeyLen() int {
+	return len(self.KeyArr)
 }
 
 func (self *Resource) IsDeriveMap() bool {

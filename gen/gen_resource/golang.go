@@ -315,6 +315,7 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, filePath string, f
 			YamlFileName:   yamlFileName,
 			MapKeyArr:      keyArr,
 			ObjectKeyArr:   keyArr,
+			KeyArr:         keyArr,
 		}
 		if typ == resource_type_array {
 			r.WrapStructName = r.ArrTypeName
