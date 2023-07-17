@@ -69,6 +69,35 @@ func (p *golang_parser) extraModelsAnnotate(fset *token.FileSet, filePath string
 	return annotates, nil
 }
 
+type index_annotate struct {
+	Unique bool
+}
+
+func (p *golang_parser) extraIndexAnnotate(fset *token.FileSet, filePath string, s *ast.StructType, modelName string, indexName string, comments []*ast.Comment) (*index_annotate, error) {
+	values := make(map[string]interface{})
+	lines := make([]string, 0)
+	for _, comment := range comments {
+		if !strings.HasPrefix(comment.Text, "// @") {
+			continue
+		}
+		lines = append(lines, strings.Replace(comment.Text, "// @", "", 1))
+	}
+	str := strings.Join(lines, "\n")
+	if err := yaml.Unmarshal([]byte(str), values); err != nil {
+		log.Printf("\n%s\n", str)
+		return nil, err
+	}
+	annotates := &index_annotate{}
+	if v, ok := values["unique"]; ok {
+		if b, ok := v.(bool); !ok {
+			return nil, p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s %s unique annotate must bool", modelName, indexName))
+		} else {
+			annotates.Unique = b
+		}
+	}
+	return annotates, nil
+}
+
 type golang_parser struct {
 }
 
@@ -163,7 +192,7 @@ func (p *golang_parser) parseFile(state *gen_state, filePath string) (err error)
 		}
 		return true
 	})
-	return nil
+	return
 }
 
 func (p *golang_parser) extraComment(commentGroup *ast.CommentGroup) ([]string, error) {
@@ -467,6 +496,13 @@ func (p *golang_parser) parseIndexStruct(state *gen_state, coll *Collection, fil
 		if st, ok := f.Type.(*ast.StructType); ok {
 			var fullName string
 			index.KeyDict = make(map[string]*Key)
+			if f.Doc != nil {
+				if annotations, err := p.extraIndexAnnotate(fset, filePath, st, structName, indexName, f.Doc.List); err != nil {
+					return err
+				} else {
+					index.Unique = annotations.Unique
+				}
+			}
 			for _, f1 := range st.Fields.List {
 				k := f1.Names[0].Name
 				if f1.Tag == nil {

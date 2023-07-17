@@ -568,6 +568,9 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 		corelog.Printf("[+]%s.<<.FullName>>", collName)
 		if _, err := indexView.CreateOne(ctx, mongo.IndexModel{
             Keys: keys,
+			<<- if .Unique >>
+			Options: options.Index().SetUnique(true),
+			<<end>>
         }); err != nil {
 			return err
 		}
@@ -1045,6 +1048,7 @@ type Index struct {
 	KeyArr   []*Key
 	Tag      int
 	FullName string
+	Unique   bool
 }
 
 type Collection struct {

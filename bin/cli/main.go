@@ -285,7 +285,7 @@ func migrateAction(c *cli.Context) error {
 		return err
 	} else {
 		if dbConfig, ok := config.Db[db]; !ok {
-			log.Error("db config not found")
+			log.Errorw("db config not found", "db", db)
 			return nil
 		} else {
 			uri := dbConfig.Uri()
