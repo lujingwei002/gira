@@ -226,6 +226,8 @@ type GetPhoneNumberResponse struct {
 	PhoneNumber     string `json:"phoneNumber"`
 	PurePhoneNumber string `json:"purePhoneNumber"`
 	CountryCode     string `json:"countryCode"`
+	AvatarUrl string `json:"avatarUrl"`
+	NickName string `json:"nickName"`
 }
 
 // https://developer.open-douyin.com/docs/resource/zh-CN/mini-app/develop/guide/open-capabilities/sensitive-data-process/
