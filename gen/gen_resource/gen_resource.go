@@ -153,6 +153,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"encoding/gob"
+	"path"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	log "github.com/lujingwei002/gira/corelog"
@@ -170,6 +171,7 @@ import (
 // uri - mongodb://root:123456@192.168.1.200:3331/resourcedb
 // dir - bundle所在的目录
 func Push(ctx context.Context, client gira.DbClient, dir string, opts ...resource_options.PushOption) error {
+	dir = path.Join(dir, "conf")
 	<<- range .BundleArr>>
 	<<- if  eq .BundleType "db">>
 	<<.CapBundleStructName>> := &<<.BundleStructName>>{}
@@ -187,6 +189,7 @@ func Push(ctx context.Context, client gira.DbClient, dir string, opts ...resourc
 // Parameters:
 // dir - 配置文件yaml所在的目录
 func Compress(dir string) error {
+	dir = path.Join(dir, "conf")
 <<range .BundleArr>>
 	// <<.BundleStructName>>
 	<<.CapBundleStructName>> := &<<.BundleStructName>>{}
@@ -945,7 +948,7 @@ type version_file struct {
 
 func genResourcesVersion(state *gen_state) error {
 	log.Info("生成version文件")
-	filePath := filepath.Join(proj.Config.ResourceDir, ".version.yaml")
+	filePath := filepath.Join(proj.Config.ResourceDir, "conf", ".version.yaml")
 	v := version_file{}
 	v.ResVersion = fmt.Sprintf("%s.%s", state.ResVersion, state.Config.RespositoryVersion)
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
@@ -973,12 +976,17 @@ func genResourcesYaml(state *gen_state) error {
 	for _, bundle := range state.BundleArr {
 		for name, v := range bundle.ResourceArr {
 			log.Info(name, "==>", path.Join(bundle.BundleName, v.YamlFileName))
-			if _, err := os.Stat(path.Join(proj.Config.ResourceDir, bundle.BundleName)); os.IsNotExist(err) {
-				if err := os.Mkdir(path.Join(proj.Config.ResourceDir, bundle.BundleName), 0755); err != nil {
+			if _, err := os.Stat(path.Join(proj.Config.ResourceDir, "conf")); os.IsNotExist(err) {
+				if err := os.Mkdir(path.Join(proj.Config.ResourceDir, "conf"), 0755); err != nil {
 					return err
 				}
 			}
-			filePath := path.Join(proj.Config.ResourceDir, bundle.BundleName, v.YamlFileName)
+			if _, err := os.Stat(path.Join(proj.Config.ResourceDir, "conf", bundle.BundleName)); os.IsNotExist(err) {
+				if err := os.Mkdir(path.Join(proj.Config.ResourceDir, "conf", bundle.BundleName), 0755); err != nil {
+					return err
+				}
+			}
+			filePath := path.Join(proj.Config.ResourceDir, "conf", bundle.BundleName, v.YamlFileName)
 			file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 			if err != nil {
 				return err
