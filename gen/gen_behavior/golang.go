@@ -64,7 +64,7 @@ type golang_parser struct {
 
 func (p *golang_parser) parse(state *gen_state) error {
 	filePathArr := make([]string, 0)
-	if err := filepath.WalkDir(path.Join(proj.Config.DocDir, "behavior"), func(path string, d os.DirEntry, err error) error {
+	if err := filepath.WalkDir(path.Join(proj.Dir.DocDir, "behavior"), func(path string, d os.DirEntry, err error) error {
 		if d == nil {
 			return nil
 		}
@@ -190,14 +190,14 @@ func (p *golang_parser) parseBehaviors(state *gen_state, filePath string, fileCo
 		dbName := annotations.Behaviors
 		if v, ok := state.databasDict[dbName]; !ok {
 			database = &Database{
-				Module:              proj.Config.Module,
+				Module:              proj.Module,
 				CollectionArr:       make([]*Collection, 0),
-				GenXmlDir:           path.Join(proj.Config.GenBehaviorDir, dbName),
-				GenXmlFilePath:      path.Join(proj.Config.GenBehaviorDir, dbName, fmt.Sprintf("%s.xml", dbName)),
-				SrcGenModelDir:      path.Join(proj.Config.SrcGenBehaviorDir, dbName),
-				SrcGenModelFilePath: path.Join(proj.Config.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-				SrcGenBinFilePath:   path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-				SrcGenBinDir:        path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin"),
+				GenXmlDir:           path.Join(proj.Dir.GenBehaviorDir, dbName),
+				GenXmlFilePath:      path.Join(proj.Dir.GenBehaviorDir, dbName, fmt.Sprintf("%s.xml", dbName)),
+				SrcGenModelDir:      path.Join(proj.Dir.SrcGenBehaviorDir, dbName),
+				SrcGenModelFilePath: path.Join(proj.Dir.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+				SrcGenBinFilePath:   path.Join(proj.Dir.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
+				SrcGenBinDir:        path.Join(proj.Dir.SrcGenBehaviorDir, dbName, "bin"),
 				DbName:              dbName,
 				DbStructName:        camelString(dbName),
 				MongoDaoStructName:  fmt.Sprintf("%sMongoDao", camelString(dbName)),

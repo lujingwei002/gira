@@ -960,7 +960,7 @@ type version_file struct {
 
 func genResourcesVersion(state *gen_state) error {
 	log.Info("生成version文件")
-	filePath := filepath.Join(proj.Config.ResourceDir, "conf", ".version.yaml")
+	filePath := filepath.Join(proj.Dir.ResourceDir, "conf", ".version.yaml")
 	v := version_file{}
 	v.ResVersion = fmt.Sprintf("%s.%s", state.ResVersion, state.Config.RespositoryVersion)
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
@@ -980,25 +980,25 @@ func genResourcesVersion(state *gen_state) error {
 
 func genResourcesYaml(state *gen_state) error {
 	log.Info("生成yaml文件")
-	if _, err := os.Stat(proj.Config.ResourceDir); os.IsNotExist(err) {
-		if err := os.Mkdir(proj.Config.ResourceDir, 0755); err != nil {
+	if _, err := os.Stat(proj.Dir.ResourceDir); os.IsNotExist(err) {
+		if err := os.Mkdir(proj.Dir.ResourceDir, 0755); err != nil {
 			return err
 		}
 	}
 	for _, bundle := range state.BundleArr {
 		for name, v := range bundle.ResourceArr {
 			log.Info(name, "==>", path.Join(bundle.BundleName, v.YamlFileName))
-			if _, err := os.Stat(path.Join(proj.Config.ResourceDir, "conf")); os.IsNotExist(err) {
-				if err := os.Mkdir(path.Join(proj.Config.ResourceDir, "conf"), 0755); err != nil {
+			if _, err := os.Stat(path.Join(proj.Dir.ResourceDir, "conf")); os.IsNotExist(err) {
+				if err := os.Mkdir(path.Join(proj.Dir.ResourceDir, "conf"), 0755); err != nil {
 					return err
 				}
 			}
-			if _, err := os.Stat(path.Join(proj.Config.ResourceDir, "conf", bundle.BundleName)); os.IsNotExist(err) {
-				if err := os.Mkdir(path.Join(proj.Config.ResourceDir, "conf", bundle.BundleName), 0755); err != nil {
+			if _, err := os.Stat(path.Join(proj.Dir.ResourceDir, "conf", bundle.BundleName)); os.IsNotExist(err) {
+				if err := os.Mkdir(path.Join(proj.Dir.ResourceDir, "conf", bundle.BundleName), 0755); err != nil {
 					return err
 				}
 			}
-			filePath := path.Join(proj.Config.ResourceDir, "conf", bundle.BundleName, v.YamlFileName)
+			filePath := path.Join(proj.Dir.ResourceDir, "conf", bundle.BundleName, v.YamlFileName)
 			file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 			if err != nil {
 				return err
@@ -1013,7 +1013,7 @@ func genResourcesYaml(state *gen_state) error {
 
 	for name, v := range state.ResourceDict {
 		log.Info(name, "==>", v.YamlFileName)
-		filePath := path.Join(proj.Config.ResourceDir, v.YamlFileName)
+		filePath := path.Join(proj.Dir.ResourceDir, v.YamlFileName)
 		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err
@@ -1028,8 +1028,8 @@ func genResourcesYaml(state *gen_state) error {
 
 func genResourcesLoader(state *gen_state) error {
 	log.Info("生成go文件")
-	if _, err := os.Stat(proj.Config.SrcGenResourceDir); err != nil && os.IsNotExist(err) {
-		if err := os.Mkdir(proj.Config.SrcGenResourceDir, 0755); err != nil {
+	if _, err := os.Stat(proj.Dir.SrcGenResourceDir); err != nil && os.IsNotExist(err) {
+		if err := os.Mkdir(proj.Dir.SrcGenResourceDir, 0755); err != nil {
 			return err
 		}
 	}
@@ -1039,7 +1039,7 @@ func genResourcesLoader(state *gen_state) error {
 		"capUpper":    capUpperString,
 		"camelString": camelString,
 	}
-	resourcesPath := path.Join(proj.Config.SrcGenResourceDir, "resource.gen.go")
+	resourcesPath := path.Join(proj.Dir.SrcGenResourceDir, "resource.gen.go")
 	file, err := os.OpenFile(resourcesPath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -1059,10 +1059,10 @@ func genResourcesLoader(state *gen_state) error {
 }
 
 func genResourceCli(state *gen_state) error {
-	if _, err := os.Stat(path.Join(proj.Config.SrcGenResourceDir, "bin")); err != nil && os.IsNotExist(err) {
-		os.Mkdir(path.Join(proj.Config.SrcGenResourceDir, "bin"), 0755)
+	if _, err := os.Stat(path.Join(proj.Dir.SrcGenResourceDir, "bin")); err != nil && os.IsNotExist(err) {
+		os.Mkdir(path.Join(proj.Dir.SrcGenResourceDir, "bin"), 0755)
 	}
-	resourceFilePath := path.Join(proj.Config.SrcGenResourceDir, "bin", "resource.gen.go")
+	resourceFilePath := path.Join(proj.Dir.SrcGenResourceDir, "bin", "resource.gen.go")
 	file, err := os.OpenFile(resourceFilePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -1091,7 +1091,7 @@ func Gen(config Config) error {
 	// 初始化
 	state := &gen_state{
 		Config:       config,
-		Module:       proj.Config.Module,
+		Module:       proj.Module,
 		ResourceDict: make(map[string]*Resource, 0),
 		ResourceArr:  make([]*Resource, 0),
 		BundleDict:   make(map[string]*Bundle, 0),

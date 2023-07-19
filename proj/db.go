@@ -7,8 +7,8 @@ import (
 	"github.com/lujingwei002/gira/db"
 )
 
-func UseAccountDbClient(ctx context.Context, driver gira.DbDao, config *gira.Config) error {
-	if client, err := db.NewConfigDbClient(ctx, gira.ACCOUNTDB_NAME, *config.Db[gira.ACCOUNTDB_NAME]); err != nil {
+func UseAccountDbClient(ctx context.Context, driver gira.DbDao) error {
+	if client, err := db.NewConfigDbClient(ctx, gira.ACCOUNTDB_NAME, *Config.Db[gira.ACCOUNTDB_NAME]); err != nil {
 		return err
 	} else if err := driver.UseClient(client); err != nil {
 		return err
@@ -17,8 +17,8 @@ func UseAccountDbClient(ctx context.Context, driver gira.DbDao, config *gira.Con
 	}
 }
 
-func UseGameDbClient(ctx context.Context, driver gira.DbDao, config *gira.Config) error {
-	if client, err := db.NewConfigDbClient(ctx, gira.GAMEDB_NAME, *config.Db[gira.GAMEDB_NAME]); err != nil {
+func UseGameDbClient(ctx context.Context, driver gira.DbDao) error {
+	if client, err := db.NewConfigDbClient(ctx, gira.GAMEDB_NAME, *Config.Db[gira.GAMEDB_NAME]); err != nil {
 		return err
 	} else if err := driver.UseClient(client); err != nil {
 		return err
@@ -27,8 +27,8 @@ func UseGameDbClient(ctx context.Context, driver gira.DbDao, config *gira.Config
 	}
 }
 
-func UseResourceDbClient(ctx context.Context, driver gira.DbDao, config *gira.Config) error {
-	if client, err := db.NewConfigDbClient(ctx, gira.RESOURCEDB_NAME, *config.Db[gira.RESOURCEDB_NAME]); err != nil {
+func UseResourceDbClient(ctx context.Context, driver gira.DbDao) error {
+	if client, err := db.NewConfigDbClient(ctx, gira.RESOURCEDB_NAME, *Config.Db[gira.RESOURCEDB_NAME]); err != nil {
 		return err
 	} else if err := driver.UseClient(client); err != nil {
 		return err
@@ -37,8 +37,8 @@ func UseResourceDbClient(ctx context.Context, driver gira.DbDao, config *gira.Co
 	}
 }
 
-func NewResourceDbClient(ctx context.Context, config *gira.Config) (gira.DbClient, error) {
-	if client, err := db.NewConfigDbClient(ctx, gira.RESOURCEDB_NAME, *config.Db[gira.RESOURCEDB_NAME]); err != nil {
+func NewResourceDbClient(ctx context.Context) (gira.DbClient, error) {
+	if client, err := db.NewConfigDbClient(ctx, gira.RESOURCEDB_NAME, *Config.Db[gira.RESOURCEDB_NAME]); err != nil {
 		return nil, err
 	} else {
 		return client, nil

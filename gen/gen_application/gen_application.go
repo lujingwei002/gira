@@ -57,14 +57,14 @@ type Parser interface {
 }
 
 func gen(state *gen_state) error {
-	if _, err := os.Stat(proj.Config.SrcGenApplicationDir); err != nil && os.IsNotExist(err) {
-		if err := os.Mkdir(proj.Config.SrcGenApplicationDir, 0755); err != nil {
+	if _, err := os.Stat(proj.Dir.SrcGenApplicationDir); err != nil && os.IsNotExist(err) {
+		if err := os.Mkdir(proj.Dir.SrcGenApplicationDir, 0755); err != nil {
 			return err
 		}
 	}
 	for _, v := range state.applications {
 		sb := strings.Builder{}
-		srcGenApplicationDir := path.Join(proj.Config.SrcGenApplicationDir, v.ApplicationName)
+		srcGenApplicationDir := path.Join(proj.Dir.SrcGenApplicationDir, v.ApplicationName)
 		if _, err := os.Stat(srcGenApplicationDir); err != nil && os.IsNotExist(err) {
 			if err := os.Mkdir(srcGenApplicationDir, 0755); err != nil {
 				return err

@@ -18,7 +18,7 @@ type applications_yaml_file struct {
 }
 
 func (p *yaml_parser) parse(state *gen_state) error {
-	applicationFilePath := path.Join(proj.Config.DocDir, "application.yaml")
+	applicationFilePath := path.Join(proj.Dir.DocDir, "application.yaml")
 	if data, err := ioutil.ReadFile(applicationFilePath); err != nil {
 		return err
 	} else {
@@ -29,7 +29,7 @@ func (p *yaml_parser) parse(state *gen_state) error {
 		for _, v := range applicationsFile.Application {
 			state.applications = append(state.applications, application{
 				ApplicationName: v.Name,
-				ModuleName:      proj.Config.Module,
+				ModuleName:      proj.Module,
 			})
 		}
 	}

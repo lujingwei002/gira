@@ -118,7 +118,7 @@ func (p *yaml_parser) parse(state *gen_state) error {
 	// srcFilePathArr := make([]string, 0)
 	// srcFilePathArr = append(srcFilePathArr, proj.Config.DocResourceFilePath)
 
-	if data, err := ioutil.ReadFile(proj.Config.DocResourceFilePath); err != nil {
+	if data, err := ioutil.ReadFile(proj.Dir.DocResourceFilePath); err != nil {
 		return err
 	} else {
 		kv := make(map[string]interface{})
@@ -224,7 +224,7 @@ func (p *yaml_parser) parse(state *gen_state) error {
 				}
 				// 解析excel
 				// filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
-				if err := r.readExcel(path.Join(proj.Config.ExcelDir, filePath)); err != nil {
+				if err := r.readExcel(path.Join(proj.Dir.ExcelDir, filePath)); err != nil {
 					return err
 				}
 				// 解析struct

@@ -26,9 +26,14 @@ const (
 )
 
 var (
-	Config      *ProjectConfig
-	BuildConfig *BuildConfigs
-	TaskConfig  *TaskConfigs
+	Version       string
+	Module        string
+	Env           string //当前环境 local|dev|qa|prd
+	Zone          string // 当前区 wc|qq|gf|review
+	Dir           *DirConfigs
+	ProjectConfig *ProjectConfigs
+	BuildConfig   *BuildConfigs
+	TaskConfig    *TaskConfigs
 )
 
 type CommandConfig struct {
@@ -52,14 +57,14 @@ type TaskConfigs struct {
 	Targets map[string][]string
 }
 
-type ProjectConfig struct {
+type ProjectConfigs struct {
 	Version         string `yaml:"version"`
 	Module          string `yaml:"module"`
 	GenResourceHash string `yaml:"gen_resource_hash"`
 	Applications    map[string]struct {
 	} `yaml:"application"`
-	Env                  string //当前环境 local|dev|qa|prd
-	Zone                 string // 当前区 wc|qq|gf|review
+}
+type DirConfigs struct {
 	ProjectDir           string
 	DotEnvFilePath       string // .env
 	ProjectConfFilePath  string // gira.yaml
@@ -93,8 +98,12 @@ type ProjectConfig struct {
 }
 
 func init() {
-	Config = &ProjectConfig{}
-	if err := Config.load(); err != nil {
+	Dir = &DirConfigs{}
+	if err := Dir.init(); err != nil {
+		panic(err)
+	}
+	ProjectConfig = &ProjectConfigs{}
+	if err := ProjectConfig.load(); err != nil {
 		panic(err)
 	}
 	BuildConfig = &BuildConfigs{}
@@ -108,7 +117,7 @@ func init() {
 }
 
 func Update(key string, value interface{}) error {
-	if data, err := ioutil.ReadFile(Config.ProjectConfFilePath); err != nil {
+	if data, err := ioutil.ReadFile(Dir.ProjectConfFilePath); err != nil {
 		return err
 	} else {
 		result := make(map[string]interface{})
@@ -119,7 +128,7 @@ func Update(key string, value interface{}) error {
 		if data, err := yaml.Marshal(result); err != nil {
 			return err
 		} else {
-			if err := ioutil.WriteFile(Config.ProjectConfFilePath, data, 0644); err != nil {
+			if err := ioutil.WriteFile(Dir.ProjectConfFilePath, data, 0644); err != nil {
 				return err
 			}
 		}
@@ -128,7 +137,7 @@ func Update(key string, value interface{}) error {
 }
 
 // 加载gira.yaml并初始化项目目录
-func (p *ProjectConfig) load() error {
+func (c *DirConfigs) init() error {
 	// 初始化
 	// 向上查找gira.yaml文件
 	if workDir, err := os.Getwd(); err != nil {
@@ -138,7 +147,7 @@ func (p *ProjectConfig) load() error {
 		for {
 			projectFilePath := filepath.Join(dir, "gira.yaml")
 			if _, err := os.Stat(projectFilePath); err == nil {
-				p.ProjectDir = dir
+				c.ProjectDir = dir
 				break
 			}
 			dir = filepath.Dir(dir)
@@ -147,52 +156,58 @@ func (p *ProjectConfig) load() error {
 			}
 		}
 	}
-	p.ProjectConfFilePath = path.Join(p.ProjectDir, project_config_file_name)
-	p.EnvDir = path.Join(p.ProjectDir, "env")
-	p.ConfigDir = path.Join(p.ProjectDir, "config")
-	p.RunDir = path.Join(p.ProjectDir, "run")
-	p.LogDir = path.Join(p.ProjectDir, "log")
-	p.DotEnvFilePath = path.Join(p.ConfigDir, ".env")
-	p.DocDir = path.Join(p.ProjectDir, "doc")
-	p.ResourceDir = path.Join(p.ProjectDir, "resource")
-	p.GenDir = path.Join(p.ProjectDir, "gen")
-	p.SrcTestDir = path.Join(p.ProjectDir, "src", "test")
-	p.GenModelDir = path.Join(p.ProjectDir, "gen", "model")
-	p.SrcDir = path.Join(p.ProjectDir, "src")
-	p.SrcGenDir = path.Join(p.ProjectDir, "src", "gen")
-	p.SrcDocDir = path.Join(p.ProjectDir, "src", "doc")
-	p.SrcGenConstDir = path.Join(p.SrcGenDir, "const")
-	p.SrcGenModelDir = path.Join(p.SrcGenDir, "model")
-	p.SrcGenApplicationDir = path.Join(p.SrcGenDir, "application")
-	p.SrcGenResourceDir = path.Join(p.SrcGenDir, "resource")
-	p.SrcGenProtocolDir = path.Join(p.SrcGenDir, "protocol")
-	p.SrcGenBehaviorDir = path.Join(p.SrcGenDir, "behavior")
-	p.GenBehaviorDir = path.Join(p.GenDir, "behavior")
-	p.ExcelDir = path.Join(p.DocDir, "resource")
-	p.ConstDocFilePath = path.Join(p.DocDir, "const.yaml")
-	p.DocResourceFilePath = path.Join(p.DocDir, "resource.yaml")
-	p.DocProtocolFilePath = path.Join(p.DocDir, "protocol.yaml")
-	p.DocProtocolDir = path.Join(p.DocDir, "protocol")
-	p.DocModelDir = path.Join(p.DocDir, "model")
-	p.DocBehaviorDir = path.Join(p.DocDir, "behavior")
-	p.GenProtocolDir = path.Join(p.GenDir, "protocol")
-	if _, err := os.Stat(p.ProjectConfFilePath); err != nil && os.IsNotExist(err) {
+	c.ProjectConfFilePath = path.Join(c.ProjectDir, project_config_file_name)
+	c.EnvDir = path.Join(c.ProjectDir, "env")
+	c.ConfigDir = path.Join(c.ProjectDir, "config")
+	c.RunDir = path.Join(c.ProjectDir, "run")
+	c.LogDir = path.Join(c.ProjectDir, "log")
+	c.DotEnvFilePath = path.Join(c.ConfigDir, ".env")
+	c.DocDir = path.Join(c.ProjectDir, "doc")
+	c.ResourceDir = path.Join(c.ProjectDir, "resource")
+	c.GenDir = path.Join(c.ProjectDir, "gen")
+	c.SrcTestDir = path.Join(c.ProjectDir, "src", "test")
+	c.GenModelDir = path.Join(c.ProjectDir, "gen", "model")
+	c.SrcDir = path.Join(c.ProjectDir, "src")
+	c.SrcGenDir = path.Join(c.ProjectDir, "src", "gen")
+	c.SrcDocDir = path.Join(c.ProjectDir, "src", "doc")
+	c.SrcGenConstDir = path.Join(c.SrcGenDir, "const")
+	c.SrcGenModelDir = path.Join(c.SrcGenDir, "model")
+	c.SrcGenApplicationDir = path.Join(c.SrcGenDir, "application")
+	c.SrcGenResourceDir = path.Join(c.SrcGenDir, "resource")
+	c.SrcGenProtocolDir = path.Join(c.SrcGenDir, "protocol")
+	c.SrcGenBehaviorDir = path.Join(c.SrcGenDir, "behavior")
+	c.GenBehaviorDir = path.Join(c.GenDir, "behavior")
+	c.ExcelDir = path.Join(c.DocDir, "resource")
+	c.ConstDocFilePath = path.Join(c.DocDir, "const.yaml")
+	c.DocResourceFilePath = path.Join(c.DocDir, "resource.yaml")
+	c.DocProtocolFilePath = path.Join(c.DocDir, "protocol.yaml")
+	c.DocProtocolDir = path.Join(c.DocDir, "protocol")
+	c.DocModelDir = path.Join(c.DocDir, "model")
+	c.DocBehaviorDir = path.Join(c.DocDir, "behavior")
+	c.GenProtocolDir = path.Join(c.GenDir, "protocol")
+	return nil
+}
+
+func (c *ProjectConfigs) load() error {
+	if _, err := os.Stat(Dir.ProjectConfFilePath); err != nil && os.IsNotExist(err) {
 		return err
 	}
-	data, err := ioutil.ReadFile(p.ProjectConfFilePath)
+	data, err := ioutil.ReadFile(Dir.ProjectConfFilePath)
 	if err != nil {
 		return err
 	}
 	//使用yaml.Unmarshal将yaml文件中的信息反序列化给Config结构体
-	if err := yaml.Unmarshal(data, p); err != nil {
+	if err := yaml.Unmarshal(data, c); err != nil {
 		return err
 	}
+	Version = c.Version
+	Module = c.Module
 	return nil
 }
 
 // 加载build.yaml
 func (self *BuildConfigs) load() error {
-	buildConfigFilePath := filepath.Join(Config.ProjectDir, ".gira", "build.yaml")
+	buildConfigFilePath := filepath.Join(Dir.ProjectDir, ".gira", "build.yaml")
 	if _, err := os.Stat(buildConfigFilePath); err == nil {
 		if data, err := ioutil.ReadFile(buildConfigFilePath); err != nil {
 			return err
@@ -207,7 +222,7 @@ func (self *BuildConfigs) load() error {
 
 // 加载tasks.yaml
 func (self *TaskConfigs) load() error {
-	taskConfigFilePath := filepath.Join(Config.ProjectDir, ".gira", "tasks.yaml")
+	taskConfigFilePath := filepath.Join(Dir.ProjectDir, ".gira", "tasks.yaml")
 	if _, err := os.Stat(taskConfigFilePath); err == nil {
 		if data, err := ioutil.ReadFile(taskConfigFilePath); err != nil {
 			return err

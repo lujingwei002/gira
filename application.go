@@ -113,6 +113,7 @@ type Application interface {
 	GetCron() Cron
 	GetGrpcServer() GrpcServer
 	GetRegistry() Registry
+	GetResourceSource() ResourceSource
 	GetRegistryClient() RegistryClient
 }
 

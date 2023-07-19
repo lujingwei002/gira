@@ -305,7 +305,7 @@ func envSwitchAction(args *cli.Context) error {
 		return nil
 	}
 	expectName := args.Args().Get(0)
-	envDir := proj.Config.EnvDir
+	envDir := proj.Dir.EnvDir
 	found := false
 	if d, err := os.Open(envDir); err != nil {
 		return err
@@ -328,12 +328,12 @@ func envSwitchAction(args *cli.Context) error {
 		log.Println("env not found, you can select one of below env")
 		return envListAction(args)
 	}
-	os.Remove(filepath.Join(proj.Config.EnvDir, ".env"))
-	os.Remove(filepath.Join(proj.Config.EnvDir, "config.yaml"))
-	if err := os.Symlink(filepath.Join(proj.Config.EnvDir, expectName, ".env"), filepath.Join(proj.Config.EnvDir, ".env")); err != nil {
+	os.Remove(filepath.Join(proj.Dir.EnvDir, ".env"))
+	os.Remove(filepath.Join(proj.Dir.EnvDir, "config.yaml"))
+	if err := os.Symlink(filepath.Join(proj.Dir.EnvDir, expectName, ".env"), filepath.Join(proj.Dir.EnvDir, ".env")); err != nil {
 		return err
 	}
-	if err := os.Symlink(filepath.Join(proj.Config.EnvDir, expectName, "config.yaml"), filepath.Join(proj.Config.EnvDir, "config.yaml")); err != nil {
+	if err := os.Symlink(filepath.Join(proj.Dir.EnvDir, expectName, "config.yaml"), filepath.Join(proj.Dir.EnvDir, "config.yaml")); err != nil {
 		return err
 	}
 	log.Printf("switch %s success", expectName)
@@ -345,7 +345,7 @@ func envListAction(c *cli.Context) error {
 	if config, err := proj.LoadCliConfig(); err != nil {
 		return err
 	} else {
-		envDir := proj.Config.EnvDir
+		envDir := proj.Dir.EnvDir
 		if d, err := os.Open(envDir); err != nil {
 			return err
 		} else {
@@ -370,7 +370,7 @@ func envListAction(c *cli.Context) error {
 }
 
 func beforeAction(args *cli.Context) error {
-	if err := log.ConfigAsCli(proj.Config.LogDir); err != nil {
+	if err := log.ConfigAsCli(proj.Dir.LogDir); err != nil {
 		return err
 	}
 	log.Println()

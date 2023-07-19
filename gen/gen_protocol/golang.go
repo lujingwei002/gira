@@ -33,7 +33,7 @@ func (p *golang_parser) extraComment(commentGroup *ast.CommentGroup) ([]string, 
 
 func (p *golang_parser) parse(state *gen_state) error {
 	nameArr := make([]string, 0)
-	if d, err := os.Open(proj.Config.DocProtocolDir); err != nil {
+	if d, err := os.Open(proj.Dir.DocProtocolDir); err != nil {
 		return err
 	} else {
 		if files, err := d.ReadDir(0); err != nil {
@@ -50,9 +50,9 @@ func (p *golang_parser) parse(state *gen_state) error {
 	}
 
 	for _, name := range nameArr {
-		dir := filepath.Join(proj.Config.DocProtocolDir, name)
+		dir := filepath.Join(proj.Dir.DocProtocolDir, name)
 		protocolFilePathArr := make([]string, 0)
-		protocolFilePath := filepath.Join(proj.Config.DocProtocolDir, fmt.Sprintf("%s.go", name))
+		protocolFilePath := filepath.Join(proj.Dir.DocProtocolDir, fmt.Sprintf("%s.go", name))
 		protocolFilePathArr = append(protocolFilePathArr, protocolFilePath)
 		if _, err := os.Stat(dir); err == nil {
 			filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {

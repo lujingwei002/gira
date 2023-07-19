@@ -770,9 +770,9 @@ func genCli(state *gen_state) error {
 // 生成协议
 func Gen() error {
 	log.Info("===============gen behavior start===============")
-	if _, err := os.Stat(proj.Config.SrcGenBehaviorDir); err != nil {
+	if _, err := os.Stat(proj.Dir.SrcGenBehaviorDir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.Mkdir(proj.Config.SrcGenBehaviorDir, 0755); err != nil {
+			if err := os.Mkdir(proj.Dir.SrcGenBehaviorDir, 0755); err != nil {
 				return err
 			}
 		} else {

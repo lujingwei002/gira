@@ -64,15 +64,15 @@ type MacroFunc struct {
 
 func scanDirFiles(config *Config) map[string][]string {
 	dirArr := make([]string, 0)
-	dirArr = append(dirArr, proj.Config.SrcDir)
+	dirArr = append(dirArr, proj.Dir.SrcDir)
 	if config.SrcDirs != nil {
 		dirArr = append(dirArr, config.SrcDirs...)
 	}
 	files := make(map[string][]string, 0)
 	for _, dir := range dirArr {
 		filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
-			if strings.HasPrefix(path, proj.Config.SrcGenDir) {
-			} else if strings.HasPrefix(path, proj.Config.SrcTestDir) {
+			if strings.HasPrefix(path, proj.Dir.SrcGenDir) {
+			} else if strings.HasPrefix(path, proj.Dir.SrcTestDir) {
 			} else if !d.IsDir() && strings.HasSuffix(d.Name(), "_test.go") {
 			} else if !d.IsDir() && strings.HasSuffix(d.Name(), "_macro.go") {
 			} else if !d.IsDir() && strings.HasSuffix(d.Name(), ".macro.go") {

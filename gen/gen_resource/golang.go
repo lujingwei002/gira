@@ -326,7 +326,7 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, filePath string, f
 		}
 		// 解析excel
 		// filePath := path.Join(proj.Config.ExcelDir, v.FilePath)
-		if err := r.readExcel(path.Join(proj.Config.ExcelDir, filePath)); err != nil {
+		if err := r.readExcel(path.Join(proj.Dir.ExcelDir, filePath)); err != nil {
 			return err
 		}
 		// 解析struct, 附加或者覆盖字段
@@ -388,7 +388,7 @@ func (p *golang_parser) parseResourceStruct(state *gen_state, filePath string, f
 }
 
 func (p *golang_parser) parse(state *gen_state) (err error) {
-	filePath := path.Join(proj.Config.DocDir, "resource.go")
+	filePath := path.Join(proj.Dir.DocDir, "resource.go")
 	fset := token.NewFileSet()
 	var f *ast.File
 	var fileContent []byte

@@ -66,6 +66,7 @@ type Application struct {
 	errCtx             context.Context
 	errGroup           *errgroup.Group
 	resourceLoader     gira.ResourceLoader
+	resourceSource     gira.ResourceSource
 	config             *gira.Config
 	chQuit             chan struct{}
 	status             int64
@@ -129,27 +130,27 @@ func (application *Application) init() error {
 	rand.Seed(time.Now().UnixNano())
 	application.upTime = time.Now().Unix()
 	// 项目环境,目录初始化
-	application.workDir = proj.Config.ProjectDir
+	application.workDir = proj.Dir.ProjectDir
 	if err := os.Chdir(application.workDir); err != nil {
 		return err
 	}
-	application.projectFilePath = proj.Config.ProjectConfFilePath
+	application.projectFilePath = proj.Dir.ProjectConfFilePath
 	if _, err := os.Stat(application.projectFilePath); err != nil {
 		return err
 	}
-	application.envDir = proj.Config.EnvDir
-	application.configDir = proj.Config.ConfigDir
+	application.envDir = proj.Dir.EnvDir
+	application.configDir = proj.Dir.ConfigDir
 	if _, err := os.Stat(application.configDir); err != nil {
 		return err
 	}
-	application.runDir = proj.Config.RunDir
+	application.runDir = proj.Dir.RunDir
 	if _, err := os.Stat(application.runDir); err != nil {
 		if err := os.Mkdir(application.runDir, 0755); err != nil {
 			return err
 		}
 	}
 	application.runConfigFilePath = filepath.Join(application.runDir, fmt.Sprintf("%s", application.appFullName))
-	application.logDir = proj.Config.LogDir
+	application.logDir = proj.Dir.LogDir
 	// 初始化框架
 	if f, ok := applicationFacade.(gira.ApplicationFramework); ok {
 		application.frameworks = f.OnFrameworkInit()
@@ -495,11 +496,14 @@ func (application *Application) onCreate() error {
 
 	// ==== 加载resource ================
 	if resourceComponent, ok := application.applicationFacade.(gira.ResourceSource); ok {
+		application.resourceSource = resourceComponent
 		resourceLoader := resourceComponent.GetResourceLoader()
 		if resourceLoader != nil {
 			application.resourceLoader = resourceLoader
 			if err := application.resourceLoader.LoadResource(application.ctx, application.resourceDbClient, path.Join("resource", "conf"), application.config.Resource.Compress); err != nil {
 				return err
+			} else {
+				resourceComponent.OnResourcePostLoad()
 			}
 		}
 	}
@@ -668,6 +672,14 @@ func (application *Application) GetSdk() gira.Sdk {
 		return nil
 	} else {
 		return application.sdk
+	}
+}
+
+func (application *Application) GetResourceSource() gira.ResourceSource {
+	if application.resourceSource == nil {
+		return nil
+	} else {
+		return application.resourceSource
 	}
 }
 

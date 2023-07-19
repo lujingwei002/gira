@@ -179,7 +179,7 @@ func camelString(s string) string {
 func genConstFile(constState *const_state, descriptor *Descriptor, data *excel_data) error {
 
 	log.Info("gen const ", descriptor.Name)
-	dir := path.Join(proj.Config.SrcGenConstDir, descriptor.Name)
+	dir := path.Join(proj.Dir.SrcGenConstDir, descriptor.Name)
 	if err := os.RemoveAll(dir); err != nil {
 		return err
 	}
@@ -305,7 +305,7 @@ func parse(constState *const_state) error {
 	}
 	// 读取excel文件
 	for name, v := range constState.constFile.descriptorDict {
-		filePath := path.Join(proj.Config.ExcelDir, v.filePath)
+		filePath := path.Join(proj.Dir.ExcelDir, v.filePath)
 		resource := &excel_data{
 			Descriptor: v,
 			FieldDict:  make(map[string]*Field, 0),
@@ -323,7 +323,7 @@ func parse(constState *const_state) error {
 func genCode(constState *const_state) error {
 	log.Info("生成go文件")
 	// 生成cost文件夹
-	dir := proj.Config.SrcGenConstDir
+	dir := proj.Dir.SrcGenConstDir
 	if err := os.RemoveAll(dir); err != nil {
 		return err
 	}

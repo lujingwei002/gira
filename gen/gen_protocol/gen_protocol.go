@@ -695,9 +695,9 @@ type protocol struct {
 }
 
 func genSproto(genState *gen_state, proto *protocol) error {
-	dir := filepath.Join(proj.Config.GenProtocolDir, proto.Module)
-	if _, err := os.Stat(proj.Config.GenProtocolDir); os.IsNotExist(err) {
-		if err := os.Mkdir(proj.Config.GenProtocolDir, 0755); err != nil {
+	dir := filepath.Join(proj.Dir.GenProtocolDir, proto.Module)
+	if _, err := os.Stat(proj.Dir.GenProtocolDir); os.IsNotExist(err) {
+		if err := os.Mkdir(proj.Dir.GenProtocolDir, 0755); err != nil {
 			return err
 		}
 	}
@@ -734,9 +734,9 @@ func genSproto(genState *gen_state, proto *protocol) error {
 }
 
 func genSprotoGo(genState *gen_state, proto *protocol) error {
-	dir := filepath.Join(proj.Config.SrcGenProtocolDir, proto.Module)
-	if _, err := os.Stat(proj.Config.SrcGenProtocolDir); os.IsNotExist(err) {
-		if err := os.Mkdir(proj.Config.SrcGenProtocolDir, 0755); err != nil {
+	dir := filepath.Join(proj.Dir.SrcGenProtocolDir, proto.Module)
+	if _, err := os.Stat(proj.Dir.SrcGenProtocolDir); os.IsNotExist(err) {
+		if err := os.Mkdir(proj.Dir.SrcGenProtocolDir, 0755); err != nil {
 			return err
 		}
 	}
@@ -774,9 +774,9 @@ func genSprotoGo(genState *gen_state, proto *protocol) error {
 }
 
 func genSprotoGo2(genState *gen_state, proto *protocol) error {
-	dir := filepath.Join(proj.Config.SrcGenProtocolDir, proto.Module)
-	if _, err := os.Stat(proj.Config.SrcGenProtocolDir); os.IsNotExist(err) {
-		if err := os.Mkdir(proj.Config.SrcGenProtocolDir, 0755); err != nil {
+	dir := filepath.Join(proj.Dir.SrcGenProtocolDir, proto.Module)
+	if _, err := os.Stat(proj.Dir.SrcGenProtocolDir); os.IsNotExist(err) {
+		if err := os.Mkdir(proj.Dir.SrcGenProtocolDir, 0755); err != nil {
 			return err
 		}
 	}

@@ -107,7 +107,7 @@ func (p *golang_parser) newAstError(fset *token.FileSet, filePath string, pos to
 
 func (p *golang_parser) parse(state *gen_state) error {
 	filePathArr := make([]string, 0)
-	filepath.WalkDir(proj.Config.DocModelDir, func(path string, d os.DirEntry, err error) error {
+	filepath.WalkDir(proj.Dir.DocModelDir, func(path string, d os.DirEntry, err error) error {
 		if d == nil {
 			return nil
 		}
@@ -222,13 +222,13 @@ func (p *golang_parser) parseModelsStruct(state *gen_state, filePath string, fil
 		dbName := annotations.Models
 		if v, ok := state.databasDict[dbName]; !ok {
 			database = &Database{
-				Module:              proj.Config.Module,
+				Module:              proj.Module,
 				CollectionArr:       make([]*Collection, 0),
-				GenBinFilePath:      path.Join(proj.Config.SrcGenModelDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-				GenBinDir:           path.Join(proj.Config.SrcGenModelDir, dbName, "bin"),
-				GenModelDir:         path.Join(proj.Config.SrcGenModelDir, dbName),
-				GenModelFilePath:    path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-				GenProtobufFilePath: path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.gen.proto", dbName)),
+				GenBinFilePath:      path.Join(proj.Dir.SrcGenModelDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
+				GenBinDir:           path.Join(proj.Dir.SrcGenModelDir, dbName, "bin"),
+				GenModelDir:         path.Join(proj.Dir.SrcGenModelDir, dbName),
+				GenModelFilePath:    path.Join(proj.Dir.SrcGenModelDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+				GenProtobufFilePath: path.Join(proj.Dir.GenModelDir, dbName, fmt.Sprintf("%s.gen.proto", dbName)),
 				DbName:              dbName,
 				DbStructName:        camelString(dbName),
 				MongoDaoStructName:  fmt.Sprintf("%sMongoDao", camelString(dbName)),

@@ -1231,9 +1231,9 @@ type Parser interface {
 // 生成协议
 func Gen() error {
 	log.Info("===============gen model start===============")
-	if _, err := os.Stat(proj.Config.SrcGenModelDir); err != nil {
+	if _, err := os.Stat(proj.Dir.SrcGenModelDir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.Mkdir(proj.Config.SrcGenModelDir, 0755); err != nil {
+			if err := os.Mkdir(proj.Dir.SrcGenModelDir, 0755); err != nil {
 				return err
 			}
 		} else {

@@ -134,7 +134,7 @@ func (p *golang_parser) parseApplicationsStruct(state *gen_state, filePath strin
 }
 
 func (p *golang_parser) parse(state *gen_state) (err error) {
-	filePath := path.Join(proj.Config.DocDir, "application.go")
+	filePath := path.Join(proj.Dir.DocDir, "application.go")
 	fset := token.NewFileSet()
 	var f *ast.File
 	var fileContent []byte

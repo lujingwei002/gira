@@ -39,7 +39,7 @@ func (self sort_index_by_name) Less(i, j int) bool { return self[i].Tag < self[j
 
 func (p *yaml_parser) parse(state *gen_state) error {
 	filePathArr := make([]string, 0)
-	if err := filepath.WalkDir(proj.Config.DocBehaviorDir, func(path string, d os.DirEntry, err error) error {
+	if err := filepath.WalkDir(proj.Dir.DocBehaviorDir, func(path string, d os.DirEntry, err error) error {
 		if d == nil {
 			return nil
 		}
@@ -71,12 +71,12 @@ func (p *yaml_parser) parseFile(state *gen_state, filePath string) error {
 	fileName := path.Base(filePath)
 	dbName := strings.Replace(fileName, ".yaml", "", 1)
 	database := &Database{
-		Module:              proj.Config.Module,
+		Module:              proj.Module,
 		CollectionArr:       make([]*Collection, 0),
-		SrcGenModelDir:      path.Join(proj.Config.SrcGenBehaviorDir, dbName),
-		SrcGenModelFilePath: path.Join(proj.Config.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-		SrcGenBinFilePath:   path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-		SrcGenBinDir:        path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin"),
+		SrcGenModelDir:      path.Join(proj.Dir.SrcGenBehaviorDir, dbName),
+		SrcGenModelFilePath: path.Join(proj.Dir.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+		SrcGenBinFilePath:   path.Join(proj.Dir.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
+		SrcGenBinDir:        path.Join(proj.Dir.SrcGenBehaviorDir, dbName, "bin"),
 		DbName:              dbName,
 		DbStructName:        camelString(dbName),
 		MongoDaoStructName:  fmt.Sprintf("%sMongoDao", camelString(dbName)),

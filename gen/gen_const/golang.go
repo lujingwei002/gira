@@ -128,7 +128,7 @@ func (p *golang_parser) parseConstStruct(state *const_state, fset *token.FileSet
 }
 
 func (p *golang_parser) parse(state *const_state) (err error) {
-	filePath := path.Join(proj.Config.DocDir, "const.go")
+	filePath := path.Join(proj.Dir.DocDir, "const.go")
 	fset := token.NewFileSet()
 	var f *ast.File
 	var fileContent []byte

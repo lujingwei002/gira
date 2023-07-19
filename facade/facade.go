@@ -2,6 +2,7 @@ package facade
 
 import (
 	"context"
+	"log"
 	"path"
 
 	"github.com/lujingwei002/gira"
@@ -126,12 +127,19 @@ func Wait() error {
 // 重载配置
 func ReloadResource() error {
 	application := gira.App()
-	if c, ok := application.(gira.ResourceSource); !ok {
+	if s := application.GetResourceSource(); s == nil {
+		log.Println("cccc1")
 		return errors.ErrResourceManagerNotImplement
-	} else if r := c.GetResourceLoader(); r == nil {
+	} else if r := s.GetResourceLoader(); r == nil {
+		log.Println("cccc2")
 		return errors.ErrResourceManagerNotImplement
 	} else {
-		return r.LoadResource(application.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress)
+		if err := r.LoadResource(application.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress); err != nil {
+			return err
+		} else {
+			s.OnResourcePostLoad()
+			return nil
+		}
 	}
 }
 

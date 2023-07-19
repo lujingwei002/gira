@@ -14,7 +14,7 @@ type yaml_parser struct {
 }
 
 func (p *yaml_parser) parse(constState *const_state) error {
-	filePath := path.Join(proj.Config.DocDir, "const.yaml")
+	filePath := path.Join(proj.Dir.DocDir, "const.yaml")
 	if data, err := ioutil.ReadFile(filePath); err != nil {
 		return err
 	} else {
