@@ -2,6 +2,7 @@ package facade
 
 import (
 	"context"
+	"path"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/errors"
@@ -130,7 +131,7 @@ func ReloadResource() error {
 	} else if r := c.GetResourceLoader(); r == nil {
 		return errors.ErrResourceManagerNotImplement
 	} else {
-		return r.ReloadResource("resource")
+		return r.LoadResource(application.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress)
 	}
 }
 

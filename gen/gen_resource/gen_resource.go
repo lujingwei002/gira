@@ -226,10 +226,17 @@ type version_file struct {
 <<range .LoaderArr>>
 // <<.LoaderName>>加载器，负载加载拥有的bundle
 type <<.LoaderStructName>> struct {
+	handler gira.ResourceHandler
 	version version_file
 	<<- range .BundleArr>>
 	<<.BundleStructName>>
 	<<- end>>
+}
+
+func New<<.LoaderStructName>>(handler gira.ResourceHandler) *<<.LoaderStructName>>{
+	return &<<.LoaderStructName>>{
+		handler: handler,
+	}
 }
 
 func (self *<<.LoaderStructName>>) GetResVersion() string {
@@ -285,7 +292,7 @@ func (self *<<.LoaderStructName>>) LoadFromDb(ctx context.Context, client gira.D
 }
 
 // 根据bundle的类型，从相应的源中加载资源
-func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClient, dir string, compress bool) error {
+func (self *<<.LoaderStructName>>) LoadResource(ctx context.Context, client gira.DbClient, dir string, compress bool) error {
 	if err := self.LoadVersion(dir); err != nil {
 		return err
 	}
@@ -312,11 +319,16 @@ func (self *<<.LoaderStructName>>) Load(ctx context.Context, client gira.DbClien
 	}
 	<<- end>>
 	<<- end>>
+	if self.handler != nil {
+		if err := self.convert(self.handler); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 // 加载成功后，对配置进行处理
-func (self *<<.LoaderStructName>>) Convert(handler gira.ResourceHandler) error {
+func (self *<<.LoaderStructName>>) convert(handler gira.ResourceHandler) error {
 	handler.OnResourcePreLoad()
 	h := handler.(<<.HandlerStructName>>)
 	<<- range .BundleArr>>

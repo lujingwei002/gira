@@ -1,15 +1,14 @@
 package gira
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 )
 
 type ResourceLoader interface {
 	// 加载资源
-	LoadResource(dir string) error
-	// 重载资源
-	ReloadResource(dir string) error
+	LoadResource(ctx context.Context, client DbClient, dir string, compress bool) error
 	// 配置版本
 	GetResVersion() string
 	// loader版本

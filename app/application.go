@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"sync/atomic"
@@ -497,7 +498,7 @@ func (application *Application) onCreate() error {
 		resourceLoader := resourceComponent.GetResourceLoader()
 		if resourceLoader != nil {
 			application.resourceLoader = resourceLoader
-			if err := application.resourceLoader.LoadResource("resource"); err != nil {
+			if err := application.resourceLoader.LoadResource(application.ctx, application.resourceDbClient, path.Join("resource", "conf"), application.config.Resource.Compress); err != nil {
 				return err
 			}
 		}
