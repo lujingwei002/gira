@@ -1,4 +1,4 @@
-package sdk
+package platform
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"github.com/lujingwei002/gira/codes"
 	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
-	"github.com/lujingwei002/gira/sdk/ultra"
+	"github.com/lujingwei002/gira/platform/ultra"
 )
 
-func NewConfigSdk(config gira.SdkConfig) *SdkComponent {
-	self := &SdkComponent{
+func NewConfigSdk(config gira.PlatformConfig) *PlatformSdk {
+	self := &PlatformSdk{
 		sdkDict: make(map[string]sdk_server),
 	}
 	if config.Test != nil {
@@ -33,21 +33,21 @@ func NewConfigSdk(config gira.SdkConfig) *SdkComponent {
 	return self
 }
 
-func NewConfigTestSdk(config gira.TestSdkConfig) *TestSdk {
+func NewConfigTestSdk(config gira.TestPlatformConfig) *TestSdk {
 	self := &TestSdk{
 		config: config,
 	}
 	return self
 }
 
-func NewConfigGfSdk(config gira.PwdSdkConfig) *PwdSdk {
+func NewConfigGfSdk(config gira.PwdPlatformConfig) *PwdSdk {
 	self := &PwdSdk{
 		config: config,
 	}
 	return self
 }
 
-func NewConfigUltraSdk(config gira.UltraSdkConfig) *UltraSdk {
+func NewConfigUltraSdk(config gira.UltraPlatformConfig) *UltraSdk {
 	self := &UltraSdk{
 		config: config,
 	}
@@ -60,14 +60,14 @@ type sdk_server interface {
 	PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error)
 }
 
-type SdkComponent struct {
+type PlatformSdk struct {
 	testSdk  *TestSdk
 	pwdSdk   *PwdSdk
 	ultraSdk *UltraSdk
 	sdkDict  map[string]sdk_server
 }
 
-func (self *SdkComponent) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
+func (self *PlatformSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
 		return nil, errors.ErrSdkComponentNotImplement
 	} else {
@@ -75,7 +75,7 @@ func (self *SdkComponent) Login(accountPlat string, openId string, token string,
 	}
 }
 
-func (self *SdkComponent) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
+func (self *PlatformSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	if sdk, ok := self.sdkDict[accountPlat]; !ok {
 		return nil, errors.ErrSdkComponentNotImplement
 	} else {
@@ -84,7 +84,7 @@ func (self *SdkComponent) PayOrderCheck(accountPlat string, args map[string]inte
 }
 
 type TestSdk struct {
-	config gira.TestSdkConfig
+	config gira.TestPlatformConfig
 }
 
 func (self *TestSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
@@ -120,7 +120,7 @@ func (self *TestSdk) PayOrderCheck(accountPlat string, args map[string]interface
 }
 
 type PwdSdk struct {
-	config gira.PwdSdkConfig
+	config gira.PwdPlatformConfig
 }
 
 func (self *PwdSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
@@ -137,7 +137,7 @@ func (self *PwdSdk) PayOrderCheck(accountPlat string, args map[string]interface{
 }
 
 type UltraSdk struct {
-	config   gira.UltraSdkConfig
+	config   gira.UltraPlatformConfig
 	loginSdk *ultra.USDK
 }
 

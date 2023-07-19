@@ -186,21 +186,21 @@ type GatewayConfig struct {
 	Heartbeat        time.Duration `yaml:"heartbeat"`
 }
 
-type TestSdkConfig struct {
+type TestPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
-type PwdSdkConfig struct {
+type PwdPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
 
-type UltraSdkConfig struct {
+type UltraPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
-type SdkConfig struct {
-	Test   *TestSdkConfig  `yaml:"test"`
-	Pwd    *PwdSdkConfig   `yaml:"pwd"`
-	Ultra  *UltraSdkConfig `yaml:"ultra"`
-	Ultra2 *UltraSdkConfig `yaml:"ultra2"`
+type PlatformConfig struct {
+	Test   *TestPlatformConfig  `yaml:"test"`
+	Pwd    *PwdPlatformConfig   `yaml:"pwd"`
+	Ultra  *UltraPlatformConfig `yaml:"ultra"`
+	Ultra2 *UltraPlatformConfig `yaml:"ultra2"`
 }
 
 type GrpcConfig struct {
@@ -243,7 +243,7 @@ type Config struct {
 		Etcd       *EtcdConfig       `yaml:"etcd"`
 		EtcdClient *EtcdClientConfig `yaml:"etcd-client"`
 		Grpc       *GrpcConfig       `yaml:"grpc"`
-		Sdk        *SdkConfig        `yaml:"sdk"`
+		Plat       *PlatformConfig   `yaml:"plat"`
 		Jwt        *JwtConfig        `yaml:"jwt"`
 		Gateway    *GatewayConfig    `yaml:"gateway"`
 		Admin      *AdminConfig      `yaml:"admin"`

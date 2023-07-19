@@ -109,7 +109,7 @@ type Application interface {
 
 	// ======= 组件 ===========
 	GetServiceContainer() ServiceContainer
-	GetSdk() Sdk
+	GetPlatformSdk() PlatformSdk
 	GetCron() Cron
 	GetGrpcServer() GrpcServer
 	GetRegistry() Registry

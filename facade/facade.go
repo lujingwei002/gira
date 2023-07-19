@@ -423,7 +423,7 @@ func WhereIsServer(name string) (svr interface{}, ok bool) {
 // 登录sdk
 func SdkLogin(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
 	application := gira.App()
-	if s := application.GetSdk(); s == nil {
+	if s := application.GetPlatformSdk(); s == nil {
 		return nil, errors.ErrSdkComponentNotImplement
 	} else {
 		return s.Login(accountPlat, openId, token, authUrl, appId, appSecret)
@@ -433,7 +433,7 @@ func SdkLogin(accountPlat string, openId string, token string, authUrl string, a
 // 验证sdk订单
 func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	application := gira.App()
-	if s := application.GetSdk(); s == nil {
+	if s := application.GetPlatformSdk(); s == nil {
 		return nil, errors.ErrSdkComponentNotImplement
 	} else {
 		return s.PayOrderCheck(accountPlat, args, paySecret)

@@ -23,7 +23,7 @@ type SdkPayOrder struct {
 	Response   string
 }
 
-type Sdk interface {
+type PlatformSdk interface {
 	// 登录
 	Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*SdkAccount, error)
 	// 检测支付订单是否有效

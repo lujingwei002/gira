@@ -32,10 +32,10 @@ import (
 	"github.com/lujingwei002/gira/db"
 	"github.com/lujingwei002/gira/gate"
 	"github.com/lujingwei002/gira/grpc"
+	"github.com/lujingwei002/gira/platform"
 	"github.com/lujingwei002/gira/proj"
 	"github.com/lujingwei002/gira/registry"
 	"github.com/lujingwei002/gira/registryclient"
-	"github.com/lujingwei002/gira/sdk"
 	admin_service "github.com/lujingwei002/gira/service/admin"
 	"github.com/lujingwei002/gira/service/admin/adminpb"
 	channelz_service "github.com/lujingwei002/gira/service/channelz"
@@ -95,7 +95,7 @@ type Application struct {
 	accountCacheClient gira.DbClient
 	adminCacheClient   gira.DbClient
 	adminDbClient      gira.DbClient
-	sdk                *sdk.SdkComponent
+	platformSdk        *platform.PlatformSdk
 	gate               *gate.Server
 	grpcServer         *grpc.Server
 	serviceContainer   *service.ServiceContainer
@@ -518,8 +518,8 @@ func (application *Application) onCreate() error {
 	}
 
 	// ==== sdk================
-	if application.config.Module.Sdk != nil {
-		application.sdk = sdk.NewConfigSdk(*application.config.Module.Sdk)
+	if application.config.Module.Plat != nil {
+		application.platformSdk = platform.NewConfigSdk(*application.config.Module.Plat)
 	}
 
 	// ==== http ================
@@ -667,11 +667,11 @@ func (application *Application) Frameworks() []gira.Framework {
 }
 
 // ================== gira.SdkComponent ==================
-func (application *Application) GetSdk() gira.Sdk {
-	if application.sdk == nil {
+func (application *Application) GetPlatformSdk() gira.PlatformSdk {
+	if application.platformSdk == nil {
 		return nil
 	} else {
-		return application.sdk
+		return application.platformSdk
 	}
 }
 
