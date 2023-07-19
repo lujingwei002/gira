@@ -190,18 +190,18 @@ func (p *golang_parser) parseBehaviors(state *gen_state, filePath string, fileCo
 		dbName := annotations.Behaviors
 		if v, ok := state.databasDict[dbName]; !ok {
 			database = &Database{
-				Module:                proj.Config.Module,
-				CollectionArr:         make([]*Collection, 0),
-				GenXmlDir:             path.Join(proj.Config.GenBehaviorDir, dbName),
-				GenXmlFilePath:        path.Join(proj.Config.GenBehaviorDir, dbName, fmt.Sprintf("%s.xml", dbName)),
-				SrcGenModelDir:        path.Join(proj.Config.SrcGenBehaviorDir, dbName),
-				SrcGenModelFilePath:   path.Join(proj.Config.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-				SrcGenBinFilePath:     path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-				SrcGenBinDir:          path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin"),
-				DbName:                dbName,
-				DbStructName:          camelString(dbName),
-				MongoDriverStructName: fmt.Sprintf("%sMongoDriver", camelString(dbName)),
-				DriverInterfaceName:   fmt.Sprintf("%sDriver", camelString(dbName)),
+				Module:              proj.Config.Module,
+				CollectionArr:       make([]*Collection, 0),
+				GenXmlDir:           path.Join(proj.Config.GenBehaviorDir, dbName),
+				GenXmlFilePath:      path.Join(proj.Config.GenBehaviorDir, dbName, fmt.Sprintf("%s.xml", dbName)),
+				SrcGenModelDir:      path.Join(proj.Config.SrcGenBehaviorDir, dbName),
+				SrcGenModelFilePath: path.Join(proj.Config.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+				SrcGenBinFilePath:   path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
+				SrcGenBinDir:        path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin"),
+				DbName:              dbName,
+				DbStructName:        camelString(dbName),
+				MongoDaoStructName:  fmt.Sprintf("%sMongoDao", camelString(dbName)),
+				DaoInterfaceName:    fmt.Sprintf("%sDao", camelString(dbName)),
 			}
 			state.databaseArr = append(state.databaseArr, database)
 			state.databasDict[dbName] = database
@@ -234,10 +234,9 @@ func (p *golang_parser) parseBehaviors(state *gen_state, filePath string, fileCo
 
 func (p *golang_parser) parseCollection(state *gen_state, database *Database, filePath string, fileContent []byte, collName string, fset *token.FileSet, s *ast.StructType) (*Collection, error) {
 	coll := &Collection{
-		MongoDriverStructName: database.MongoDriverStructName,
-		CollName:              collName,
-		StructName:            camelString(collName),
-		MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
+		CollName:           collName,
+		StructName:         camelString(collName),
+		MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
 	}
 	for _, f := range s.Fields.List {
 		if f.Names[0].Name == "Model" {

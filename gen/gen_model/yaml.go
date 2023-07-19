@@ -75,18 +75,18 @@ func (p *yaml_parser) parseFile(state *gen_state, filePath string) error {
 	fileName := path.Base(filePath)
 	dbName := strings.Replace(fileName, ".yaml", "", 1)
 	database := &Database{
-		Module:                proj.Config.Module,
-		CollectionArr:         make([]*Collection, 0),
-		GenBinFilePath:        path.Join(proj.Config.SrcGenModelDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-		GenBinDir:             path.Join(proj.Config.SrcGenModelDir, dbName, "bin"),
-		GenModelDir:           path.Join(proj.Config.SrcGenModelDir, dbName),
-		GenModelFilePath:      path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-		GenProtobufFilePath:   path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.gen.proto", dbName)),
-		DbName:                dbName,
-		DbStructName:          camelString(dbName),
-		MongoDriverStructName: fmt.Sprintf("%sMongoDriver", camelString(dbName)),
-		RedisDriverStructName: fmt.Sprintf("%sRedisDriver", camelString(dbName)),
-		DriverInterfaceName:   fmt.Sprintf("%sDriver", camelString(dbName)),
+		Module:              proj.Config.Module,
+		CollectionArr:       make([]*Collection, 0),
+		GenBinFilePath:      path.Join(proj.Config.SrcGenModelDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
+		GenBinDir:           path.Join(proj.Config.SrcGenModelDir, dbName, "bin"),
+		GenModelDir:         path.Join(proj.Config.SrcGenModelDir, dbName),
+		GenModelFilePath:    path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+		GenProtobufFilePath: path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.gen.proto", dbName)),
+		DbName:              dbName,
+		DbStructName:        camelString(dbName),
+		MongoDaoStructName:  fmt.Sprintf("%sMongoDao", camelString(dbName)),
+		RedisDaoStructName:  fmt.Sprintf("%sRedisDao", camelString(dbName)),
+		DaoInterfaceName:    fmt.Sprintf("%sDao", camelString(dbName)),
 	}
 	result := make(map[string]interface{})
 	if err := yaml.Unmarshal(data, result); err != nil {
@@ -102,14 +102,13 @@ func (p *yaml_parser) parseFile(state *gen_state, filePath string) error {
 		} else {
 			collName := k
 			coll := &Collection{
-				MongoDriverStructName: database.MongoDriverStructName,
-				CollName:              collName,
-				StructName:            camelString(collName),
-				PbStructName:          fmt.Sprintf("%sPb", camelString(collName)),
-				ArrStructName:         fmt.Sprintf("%sArr", camelString(collName)),
-				DataStructName:        fmt.Sprintf("%sData", camelString(collName)),
-				MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
-				RedisDaoStructName:    fmt.Sprintf("%sRedisDao", camelString(collName)),
+				CollName:           collName,
+				StructName:         camelString(collName),
+				PbStructName:       fmt.Sprintf("%sPb", camelString(collName)),
+				ArrStructName:      fmt.Sprintf("%sArr", camelString(collName)),
+				DataStructName:     fmt.Sprintf("%sData", camelString(collName)),
+				MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
+				RedisDaoStructName: fmt.Sprintf("%sRedisDao", camelString(collName)),
 			}
 			if err := p.Unmarshal(state, coll, v); err != nil {
 				return err

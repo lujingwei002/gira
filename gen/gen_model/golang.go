@@ -222,20 +222,20 @@ func (p *golang_parser) parseModelsStruct(state *gen_state, filePath string, fil
 		dbName := annotations.Models
 		if v, ok := state.databasDict[dbName]; !ok {
 			database = &Database{
-				Module:                proj.Config.Module,
-				CollectionArr:         make([]*Collection, 0),
-				GenBinFilePath:        path.Join(proj.Config.SrcGenModelDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-				GenBinDir:             path.Join(proj.Config.SrcGenModelDir, dbName, "bin"),
-				GenModelDir:           path.Join(proj.Config.SrcGenModelDir, dbName),
-				GenModelFilePath:      path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-				GenProtobufFilePath:   path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.gen.proto", dbName)),
-				DbName:                dbName,
-				DbStructName:          camelString(dbName),
-				MongoDriverStructName: fmt.Sprintf("%sMongoDriver", camelString(dbName)),
-				RedisDriverStructName: fmt.Sprintf("%sRedisDriver", camelString(dbName)),
-				DriverInterfaceName:   fmt.Sprintf("%sDriver", camelString(dbName)),
-				Driver:                annotations.Driver[0],
-				ImportArr:             annotations.Import,
+				Module:              proj.Config.Module,
+				CollectionArr:       make([]*Collection, 0),
+				GenBinFilePath:      path.Join(proj.Config.SrcGenModelDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
+				GenBinDir:           path.Join(proj.Config.SrcGenModelDir, dbName, "bin"),
+				GenModelDir:         path.Join(proj.Config.SrcGenModelDir, dbName),
+				GenModelFilePath:    path.Join(proj.Config.SrcGenModelDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+				GenProtobufFilePath: path.Join(proj.Config.GenModelDir, dbName, fmt.Sprintf("%s.gen.proto", dbName)),
+				DbName:              dbName,
+				DbStructName:        camelString(dbName),
+				MongoDaoStructName:  fmt.Sprintf("%sMongoDao", camelString(dbName)),
+				RedisDaoStructName:  fmt.Sprintf("%sRedisDao", camelString(dbName)),
+				DaoInterfaceName:    fmt.Sprintf("%sDao", camelString(dbName)),
+				Driver:              annotations.Driver[0],
+				ImportArr:           annotations.Import,
 			}
 			state.databaseArr = append(state.databaseArr, database)
 			state.databasDict[dbName] = database
@@ -310,14 +310,13 @@ func (p *golang_parser) parseModelsStruct(state *gen_state, filePath string, fil
 
 func (p *golang_parser) parseCollection(state *gen_state, database *Database, filePath string, fileContent []byte, collName string, fset *token.FileSet, s *ast.StructType) (*Collection, error) {
 	coll := &Collection{
-		MongoDriverStructName: database.MongoDriverStructName,
-		CollName:              collName,
-		StructName:            camelString(collName),
-		PbStructName:          fmt.Sprintf("%sPb", camelString(collName)),
-		ArrStructName:         fmt.Sprintf("%sArr", camelString(collName)),
-		DataStructName:        fmt.Sprintf("%sData", camelString(collName)),
-		MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
-		RedisDaoStructName:    fmt.Sprintf("%sRedisDao", camelString(collName)),
+		CollName:           collName,
+		StructName:         camelString(collName),
+		PbStructName:       fmt.Sprintf("%sPb", camelString(collName)),
+		ArrStructName:      fmt.Sprintf("%sArr", camelString(collName)),
+		DataStructName:     fmt.Sprintf("%sData", camelString(collName)),
+		MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
+		RedisDaoStructName: fmt.Sprintf("%sRedisDao", camelString(collName)),
 	}
 	for _, f := range s.Fields.List {
 		if f.Names[0].Name == "Model" {

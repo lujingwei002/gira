@@ -98,8 +98,6 @@ type Application struct {
 	grpcServer         *grpc.Server
 	serviceContainer   *service.ServiceContainer
 	cron               *cron.Cron
-	configFilePath     string
-	dotEnvFilePath     string
 }
 
 func newApplication(args gira.ApplicationArgs) *Application {
@@ -109,8 +107,6 @@ func newApplication(args gira.ApplicationArgs) *Application {
 		appVersion:        args.AppVersion,
 		buildTime:         args.BuildTime,
 		appId:             args.AppId,
-		configFilePath:    args.ConfigFilePath,
-		dotEnvFilePath:    args.DotEnvFilePath,
 		applicationFacade: args.Facade,
 		frameworks:        make([]gira.Framework, 0),
 		appType:           args.AppType,
@@ -158,7 +154,7 @@ func (application *Application) init() error {
 		application.frameworks = f.OnFrameworkInit()
 	}
 	// 读应用配置文件
-	if c, err := gira.LoadApplicationConfig(application.configFilePath, application.dotEnvFilePath, application.appType, application.appId); err != nil {
+	if c, err := proj.LoadApplicationConfig(application.appType, application.appId); err != nil {
 		return err
 	} else {
 		application.env = c.Env

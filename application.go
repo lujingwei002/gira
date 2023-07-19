@@ -79,8 +79,6 @@ type ApplicationArgs struct {
 	BuildTime           int64
 	AppVersion          string
 	RespositoryVersion1 string
-	ConfigFilePath      string
-	DotEnvFilePath      string
 	Facade              ApplicationFacade
 }
 

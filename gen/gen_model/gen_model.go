@@ -132,12 +132,12 @@ import (
 
 
 
-type <<.DriverInterfaceName>> interface {
+type <<.DaoInterfaceName>> interface {
 	Migrate(ctx context.Context, opts ...db.MigrateOption) error
 }
-var globalDriver <<.DriverInterfaceName>>
+var globalDao <<.DaoInterfaceName>>
 
-func Use(ctx context.Context, client gira.DbClient) (<<.DriverInterfaceName>>, error) {
+func Use(ctx context.Context, client gira.DbClient) (<<.DaoInterfaceName>>, error) {
 	switch c := client.(type) {
 	case gira.MongoClient:
 		return UseMongo(ctx, c)
@@ -146,8 +146,8 @@ func Use(ctx context.Context, client gira.DbClient) (<<.DriverInterfaceName>>, e
 	}
 }
 
-func NewMongo() *<<.MongoDriverStructName>> {
-	self := &<<.MongoDriverStructName>>{}
+func NewMongoDao() *<<.MongoDaoStructName>> {
+	self := &<<.MongoDaoStructName>>{}
 	<<- range .CollectionArr>> 
 	self.<<.StructName>> = &<<.MongoDaoStructName>>{
 		db: self,
@@ -156,16 +156,16 @@ func NewMongo() *<<.MongoDriverStructName>> {
 	return self
 }
 
-func UseMongo(ctx context.Context, client gira.MongoClient) (*<<.MongoDriverStructName>>, error) {
-	driver := NewMongo()
-	if err := driver.Use(client); err != nil {
+func UseMongo(ctx context.Context, client gira.MongoClient) (*<<.MongoDaoStructName>>, error) {
+	dao := NewMongoDao()
+	if err := dao.UseClient(client); err != nil {
 		return nil, err
 	}
-	return driver, nil
+	return dao, nil
 }
 
-func NewRedis() *<<.RedisDriverStructName>> {
-	self := &<<.RedisDriverStructName>>{}
+func NewRedisDao() *<<.RedisDaoStructName>> {
+	self := &<<.RedisDaoStructName>>{}
 	<<- range .CollectionArr>> 
 	self.<<.StructName>> = &<<.RedisDaoStructName>>{
 		db: self,
@@ -174,12 +174,12 @@ func NewRedis() *<<.RedisDriverStructName>> {
 	return self
 }
 
-func UseRedis(ctx context.Context, client gira.RedisClient) (*<<.RedisDriverStructName>>, error) {
-	driver := NewRedis()
-	if err := driver.Use(client); err != nil {
+func UseRedis(ctx context.Context, client gira.RedisClient) (*<<.RedisDaoStructName>>, error) {
+	dao := NewRedisDao()
+	if err := dao.UseClient(client); err != nil {
 		return nil, err
 	}
-	return driver, nil
+	return dao, nil
 }
 
 func Migrate(ctx context.Context, client  gira.DbClient, opts ...db.MigrateOption) error {
@@ -190,9 +190,9 @@ func Migrate(ctx context.Context, client  gira.DbClient, opts ...db.MigrateOptio
 	}
 	switch client2 := client.(type) {
 	case gira.MongoClient:
-		driver := NewMongo()
-		driver.Use(client2)
-		return driver.Migrate(ctx, opts...)
+		dao := NewMongoDao()
+		dao.UseClient(client2)
+		return dao.Migrate(ctx, opts...)
 	default:
 		return errors.ErrDbNotSupport
 	}
@@ -477,7 +477,7 @@ func (self *<<.ArrStructName>>) Get(<<.CapCamelSecondaryKey>> <<.SecondaryKeyFie
 
 
 // mongo 
-type <<.MongoDriverStructName>> struct {
+type <<.MongoDaoStructName>> struct {
 	client		*mongo.Client
 	database	*mongo.Database
 	<<- range .CollectionArr>> 
@@ -485,16 +485,18 @@ type <<.MongoDriverStructName>> struct {
 	<<- end>>
 }
 
-func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
-	if self.client != nil {
-		return errors.ErrTODO
+func (self *<<.MongoDaoStructName>>) UseClient(client gira.DbClient) error {
+	switch c := client.(type) {
+	case gira.MongoClient:
+		self.client = c.GetMongoClient()
+		self.database = c.GetMongoDatabase()
+		return nil
+	default:
+		return errors.ErrDbNotSupport
 	}
-	self.client = client.GetMongoClient()
-	self.database = client.GetMongoDatabase()
-	return nil
 }
 
-func (self *<<.MongoDriverStructName>>) Migrate(ctx context.Context, opts ...db.MigrateOption) error {
+func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.MigrateOption) error {
 <<- range .CollectionArr>>
 	if err := self.<<.StructName>>.Migrate(ctx, opts...); err != nil {
 		return err
@@ -503,10 +505,12 @@ func (self *<<.MongoDriverStructName>>) Migrate(ctx context.Context, opts ...db.
 	return nil
 }
 
+
+
 <<- range .CollectionArr>> 
 
 type <<.MongoDaoStructName>> struct {
-	db *<<$.MongoDriverStructName>>
+	db *<<$.MongoDaoStructName>>
 }
 
 func (self *<<.MongoDaoStructName>>) New() *<<.DataStructName>> {
@@ -833,7 +837,7 @@ func (self *<<.MongoDaoStructName>>) Load(ctx context.Context, <<.CapCamelPrimar
 
 
 <</* redis操作 */>>
-type <<.RedisDriverStructName>> struct {
+type <<.RedisDaoStructName>> struct {
 	client		*redis.Client
 	<<- range .CollectionArr>> 
 	<<.StructName>>  *<<.RedisDaoStructName>>
@@ -842,18 +846,23 @@ type <<.RedisDriverStructName>> struct {
 
 
 
-func (self *<<.RedisDriverStructName>>) Migrate(ctx context.Context, opts ...db.MigrateOption) error {
+func (self *<<.RedisDaoStructName>>) Migrate(ctx context.Context, opts ...db.MigrateOption) error {
 	return nil
 }
 
-func (self *<<.RedisDriverStructName>>) Use(client gira.RedisClient) error {
-	self.client = client.GetRedisClient()
-	return nil
+func (self *<<.RedisDaoStructName>>) UseClient(client gira.DbClient) error {
+	switch c := client.(type) {
+	case gira.RedisClient:
+		self.client = c.GetRedisClient()
+		return nil
+	default:
+		return errors.ErrDbNotSupport
+	}
 }
 <<- range .CollectionArr>> 
 
 type <<.RedisDaoStructName>> struct {
-	db *<<$.RedisDriverStructName>>
+	db *<<$.RedisDaoStructName>>
 }
 
 func (self *<<.RedisDaoStructName>>) New() *<<.DataStructName>> {
@@ -1052,47 +1061,46 @@ type Index struct {
 }
 
 type Collection struct {
-	CollName              string // 表名
-	StructName            string // 表名的驼峰格式
-	PbStructName          string
-	ArrStructName         string
-	MongoDaoStructName    string // mongo dao 结构的名称
-	RedisDaoStructName    string // redis dao 结构的名称
-	Derive                string
-	KeyArr                []string
-	DataStructName        string
-	FieldDict             map[string]*Field
-	FieldArr              []*Field
-	SecondaryKey          string
-	CamelSecondaryKey     string
-	CapCamelSecondaryKey  string
-	PrimaryKey            string
-	CamelPrimaryKey       string
-	CapCamelPrimaryKey    string
-	PrimaryKeyField       *Field
-	SecondaryKeyField     *Field
-	IndexDict             map[string]*Index
-	IndexArr              []*Index
-	MongoDriverStructName string
-	Capped                int64
-	CommentArr            []string
+	CollName             string // 表名
+	StructName           string // 表名的驼峰格式
+	PbStructName         string
+	ArrStructName        string
+	MongoDaoStructName   string // mongo dao 结构的名称
+	RedisDaoStructName   string // redis dao 结构的名称
+	Derive               string
+	KeyArr               []string
+	DataStructName       string
+	FieldDict            map[string]*Field
+	FieldArr             []*Field
+	SecondaryKey         string
+	CamelSecondaryKey    string
+	CapCamelSecondaryKey string
+	PrimaryKey           string
+	CamelPrimaryKey      string
+	CapCamelPrimaryKey   string
+	PrimaryKeyField      *Field
+	SecondaryKeyField    *Field
+	IndexDict            map[string]*Index
+	IndexArr             []*Index
+	Capped               int64
+	CommentArr           []string
 }
 
 type Database struct {
-	Module                string
-	Driver                string
-	ImportArr             []string
-	DbStructName          string // 数据库名的驼峰格式
-	MongoDriverStructName string // mongo 的 dao 结构名字
-	RedisDriverStructName string // redis 的 dao 结构名字
-	DbName                string
-	GenBinFilePath        string        // 生成的文件路径，在 gen/model/{{DbName}}/bin/{{DbName}}.gen.go
-	GenBinDir             string        // 生成的文件路径，在 gen/model/{{DbName}}/bin
-	GenModelDir           string        // 生成的文件路径，在 gen/model/{{DbName}}
-	GenModelFilePath      string        // 生成的文件路径，在 gen/model/{{DbName}}/{{DbName}}.gen.go
-	GenProtobufFilePath   string        // 生成的protobuf文件路径， 在gen/{{DbName}}/{{DbName}}.gen.proto
-	CollectionArr         []*Collection // 所有的模型
-	DriverInterfaceName   string
+	Module              string
+	Driver              string
+	ImportArr           []string
+	DbStructName        string // 数据库名的驼峰格式
+	MongoDaoStructName  string // mongo 的 dao 结构名字
+	RedisDaoStructName  string // redis 的 dao 结构名字
+	DbName              string
+	GenBinFilePath      string        // 生成的文件路径，在 gen/model/{{DbName}}/bin/{{DbName}}.gen.go
+	GenBinDir           string        // 生成的文件路径，在 gen/model/{{DbName}}/bin
+	GenModelDir         string        // 生成的文件路径，在 gen/model/{{DbName}}
+	GenModelFilePath    string        // 生成的文件路径，在 gen/model/{{DbName}}/{{DbName}}.gen.go
+	GenProtobufFilePath string        // 生成的protobuf文件路径， 在gen/{{DbName}}/{{DbName}}.gen.proto
+	CollectionArr       []*Collection // 所有的模型
+	DaoInterfaceName    string
 }
 
 // 生成协议的状态

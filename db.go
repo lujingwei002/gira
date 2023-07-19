@@ -55,3 +55,7 @@ type DbClientComponent interface {
 	GetBehaviorDbClient() DbClient
 	GetAdminCacheClient() DbClient
 }
+
+type DbDao interface {
+	UseClient(client DbClient) error
+}

@@ -17,6 +17,10 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+/*
+* 处理项目的目录结构
+*
+ */
 const (
 	project_config_file_name = "gira.yaml"
 )

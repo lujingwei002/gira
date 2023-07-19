@@ -131,7 +131,7 @@ type <<.StructName>> struct {
 }
 <<- end>> 
 
-type <<.DriverInterfaceName>> interface {
+type <<$.DaoInterfaceName>> interface {
 	Sync(ctx context.Context, opts ...behavior.SyncOption) (err error) 
 	Migrate(ctx context.Context, opts ...behavior.MigrateOption) error
 	<<- range .CollectionArr>> 
@@ -140,7 +140,7 @@ type <<.DriverInterfaceName>> interface {
 }
 
 // mongo 
-type <<.MongoDriverStructName>> struct {
+type <<.MongoDaoStructName>> struct {
 	client		*mongo.Client
 	database	*mongo.Database
 	<<range .CollectionArr>> 
@@ -151,10 +151,10 @@ type <<.MongoDriverStructName>> struct {
 	<<- end>>
 }
 
-var globalDriver <<.DriverInterfaceName>>
+var globalDao <<.DaoInterfaceName>>
 
-func NewMongo() *<<.MongoDriverStructName>> {
-	self := &<<.MongoDriverStructName>>{}
+func NewMongoDao() *<<.MongoDaoStructName>> {
+	self := &<<.MongoDaoStructName>>{}
 	<<- range .CollectionArr>> 
 	self.<<.StructName>> = &<<.MongoDaoStructName>>{
 		db: self,
@@ -172,9 +172,9 @@ func Migrate(ctx context.Context, client  gira.DbClient, opts ...behavior.Migrat
 	}
 	switch client2 := client.(type) {
 	case gira.MongoClient:
-		driver := NewMongo()
-		driver.Use(client2)
-		return driver.Migrate(ctx, opts...)
+		dao := NewMongoDao()
+		dao.UseClient(client2)
+		return dao.Migrate(ctx, opts...)
 	default:
 		return errors.ErrDbNotSupport
 	}
@@ -190,25 +190,25 @@ func Use(ctx context.Context, client gira.DbClient, config gira.BehaviorConfig) 
 }
 
 func UseMongo(ctx context.Context, client gira.MongoClient, config gira.BehaviorConfig) error {
-	if globalDriver != nil {
+	if globalDao != nil {
 		return errors.ErrTODO
 	}
-	driver := NewMongo()
-	if err := driver.Use(client); err != nil {
+	dao := NewMongoDao()
+	if err := dao.UseClient(client); err != nil {
 		return err
 	}
-	globalDriver = driver
+	globalDao = dao
 	facade.Go(func() error {
-		return driver.Serve(ctx, config)
+		return dao.Serve(ctx, config)
 	})
 	return nil
 }
 
 func Sync(ctx context.Context, opts ...behavior.SyncOption) error {
-	if globalDriver == nil {
+	if globalDao == nil {
 		return errors.ErrBehaviorNotInit
 	}
-	return globalDriver.Sync(ctx, opts...)
+	return globalDao.Sync(ctx, opts...)
 }
 
 <<- range .CollectionArr>>
@@ -216,20 +216,22 @@ func Sync(ctx context.Context, opts ...behavior.SyncOption) error {
 //<<.>>
 <<- end>>
 func Log<<.StructName>>(doc *<<.StructName>>) error {
-	return globalDriver.Log<<.StructName>>(doc)
+	return globalDao.Log<<.StructName>>(doc)
 }
 <<- end>> 
 
-func (self *<<.MongoDriverStructName>>) Use(client gira.MongoClient) error {
-	if self.client != nil {
-		return errors.ErrTODO
+func (self *<<.MongoDaoStructName>>) UseClient(client gira.MongoClient) error {
+	switch c := client.(type) {
+	case gira.MongoClient:
+		self.client = c.GetMongoClient()
+		self.database = c.GetMongoDatabase()
+		return nil
+	default:
+		return errors.ErrDbNotSupport
 	}
-	self.client = client.GetMongoClient()
-	self.database = client.GetMongoDatabase()
-	return nil
 }
 
-func (self *<<.MongoDriverStructName>>) Migrate(ctx context.Context, opts ...behavior.MigrateOption) error {
+func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...behavior.MigrateOption) error {
 <<- range .CollectionArr>>
 	if err := self.<<.StructName>>.Migrate(ctx, opts...); err != nil {
 		return err
@@ -238,7 +240,7 @@ func (self *<<.MongoDriverStructName>>) Migrate(ctx context.Context, opts ...beh
 	return nil
 }
 
-func (self *<<.MongoDriverStructName>>) Serve(ctx context.Context, config gira.BehaviorConfig) (err error) {
+func (self *<<.MongoDaoStructName>>) Serve(ctx context.Context, config gira.BehaviorConfig) (err error) {
 	ticker := time.NewTicker(time.Duration(config.SyncInterval)*time.Second)
 	defer func() {
 		ticker.Stop()
@@ -258,7 +260,7 @@ func (self *<<.MongoDriverStructName>>) Serve(ctx context.Context, config gira.B
 	}
 }
 
-func (self *<<.MongoDriverStructName>>) Sync(ctx context.Context, opts ...behavior.SyncOption) (err error) {
+func (self *<<.MongoDaoStructName>>) Sync(ctx context.Context, opts ...behavior.SyncOption) (err error) {
 <<- range .CollectionArr>>
 	if _, err = self.<<.StructName>>.Sync(ctx, opts...); err != nil {
 		log.Error(err)
@@ -273,7 +275,7 @@ func (self *<<.MongoDriverStructName>>) Sync(ctx context.Context, opts ...behavi
 <<- range .CommentArr>>
 //<<.>>
 <<- end>>
-func (self *<<.MongoDriverStructName>>) Log<<.StructName>>(doc *<<.StructName>>) error {
+func (self *<<$.MongoDaoStructName>>) Log<<.StructName>>(doc *<<.StructName>>) error {
 	return self.<<.StructName>>.Log(doc)
 }
 <<- end>> 
@@ -284,7 +286,7 @@ func (self *<<.MongoDriverStructName>>) Log<<.StructName>>(doc *<<.StructName>>)
 //<<.>>
 <<- end>>
 type <<.MongoDaoStructName>> struct {
-	db 		*<<$.MongoDriverStructName>>
+	db 		*<<$.MongoDaoStructName>>
 	models	[]mongo.WriteModel
 	mu		sync.Mutex
 }
@@ -609,34 +611,33 @@ type Index struct {
 }
 
 type Collection struct {
-	CollName              string // 表名
-	StructName            string // 表名的驼峰格式
-	MongoDaoStructName    string // mongo dao 结构的名称
-	Derive                string
-	CommentArr            []string
-	FieldDict             map[string]*Field
-	FieldArr              []*Field
-	IndexDict             map[string]*Index
-	IndexArr              []*Index
-	HasLogTimeField       bool
-	HasCreateTimeField    bool
-	MongoDriverStructName string
+	CollName           string // 表名
+	StructName         string // 表名的驼峰格式
+	MongoDaoStructName string // mongo dao 结构的名称
+	Derive             string
+	CommentArr         []string
+	FieldDict          map[string]*Field
+	FieldArr           []*Field
+	IndexDict          map[string]*Index
+	IndexArr           []*Index
+	HasLogTimeField    bool
+	HasCreateTimeField bool
 }
 
 type Database struct {
-	Module                string
-	Driver                string
-	DbStructName          string // 数据库名的驼峰格式
-	MongoDriverStructName string // mongo 的 dao 结构名字
-	DriverInterfaceName   string
-	DbName                string
-	GenXmlDir             string        // 生成的文件路径，在 gen/{{DbName}}
-	GenXmlFilePath        string        // 生成的文件路径，在 gen/{{DbName}}/{{DbName}}.gen.go
-	SrcGenModelDir        string        // 生成的文件路径，在 src/gen/{{DbName}}
-	SrcGenModelFilePath   string        // 生成的文件路径，在 src/gen/{{DbName}}/{{DbName}}.gen.go
-	SrcGenBinFilePath     string        // 生成的文件路径，在 src/gen/{{DbName}}/bin/{{DbName}}.gen.go
-	SrcGenBinDir          string        // 生成的文件路径，在 src/gen/{{DbName}}/bin
-	CollectionArr         []*Collection // 所有的模型
+	Module              string
+	Driver              string
+	DbStructName        string // 数据库名的驼峰格式
+	MongoDaoStructName  string // mongo 的 dao 结构名字
+	DaoInterfaceName    string
+	DbName              string
+	GenXmlDir           string        // 生成的文件路径，在 gen/{{DbName}}
+	GenXmlFilePath      string        // 生成的文件路径，在 gen/{{DbName}}/{{DbName}}.gen.go
+	SrcGenModelDir      string        // 生成的文件路径，在 src/gen/{{DbName}}
+	SrcGenModelFilePath string        // 生成的文件路径，在 src/gen/{{DbName}}/{{DbName}}.gen.go
+	SrcGenBinFilePath   string        // 生成的文件路径，在 src/gen/{{DbName}}/bin/{{DbName}}.gen.go
+	SrcGenBinDir        string        // 生成的文件路径，在 src/gen/{{DbName}}/bin
+	CollectionArr       []*Collection // 所有的模型
 }
 
 // 生成协议的状态

@@ -3,14 +3,12 @@ package logger
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/errors"
 	"github.com/lujingwei002/gira/facade"
-	"github.com/lujingwei002/gira/proj"
 	"github.com/natefinch/lumberjack"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -128,7 +126,7 @@ func (s *MongoSink) Write(data []byte) (n int, err error) {
 	}
 }
 
-func NewDefaultCliLogger() (*Logger, error) {
+func NewDefaultCliLogger(logDir string) (*Logger, error) {
 	// 配置日志输出
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        EncoderKey_time,
@@ -166,11 +164,11 @@ func NewDefaultCliLogger() (*Logger, error) {
 		zapcore.NewConsoleEncoder(rollingCfg), // 滚动日志输出格式
 		// zapcore.NewJSONEncoder(rollingCfg), // 滚动日志输出格式
 		zapcore.AddSync(&lumberjack.Logger{
-			Filename:   filepath.Join(proj.Config.LogDir, fmt.Sprintf("cli.log")), // 日志文件路径
-			MaxSize:    10 * 1024,                                                 // 每个日志文件的最大大小，单位为 MB
-			MaxBackups: 10,                                                        // 保留的旧日志文件的最大个数
-			MaxAge:     30,                                                        // 保留的旧日志文件的最大天数
-			Compress:   true,                                                      // 是否压缩旧日志文件
+			Filename:   filepath.Join(logDir, "cli.log"), // 日志文件路径
+			MaxSize:    10 * 1024,                        // 每个日志文件的最大大小，单位为 MB
+			MaxBackups: 10,                               // 保留的旧日志文件的最大个数
+			MaxAge:     30,                               // 保留的旧日志文件的最大天数
+			Compress:   true,                             // 是否压缩旧日志文件
 		}),
 		zap.NewAtomicLevelAt(zap.DebugLevel),
 	)

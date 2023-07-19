@@ -24,9 +24,9 @@ func Config(config gira.LogConfig) error {
 	}
 }
 
-func ConfigAsCli() error {
+func ConfigAsCli(logDir string) error {
 	var err error
-	if defaultLogger, err = logger.NewDefaultCliLogger(); err != nil {
+	if defaultLogger, err = logger.NewDefaultCliLogger(logDir); err != nil {
 		return err
 	} else {
 		return nil

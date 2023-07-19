@@ -71,16 +71,16 @@ func (p *yaml_parser) parseFile(state *gen_state, filePath string) error {
 	fileName := path.Base(filePath)
 	dbName := strings.Replace(fileName, ".yaml", "", 1)
 	database := &Database{
-		Module:                proj.Config.Module,
-		CollectionArr:         make([]*Collection, 0),
-		SrcGenModelDir:        path.Join(proj.Config.SrcGenBehaviorDir, dbName),
-		SrcGenModelFilePath:   path.Join(proj.Config.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
-		SrcGenBinFilePath:     path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
-		SrcGenBinDir:          path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin"),
-		DbName:                dbName,
-		DbStructName:          camelString(dbName),
-		MongoDriverStructName: fmt.Sprintf("%sMongoDriver", camelString(dbName)),
-		DriverInterfaceName:   fmt.Sprintf("%sDriver", camelString(dbName)),
+		Module:              proj.Config.Module,
+		CollectionArr:       make([]*Collection, 0),
+		SrcGenModelDir:      path.Join(proj.Config.SrcGenBehaviorDir, dbName),
+		SrcGenModelFilePath: path.Join(proj.Config.SrcGenBehaviorDir, dbName, fmt.Sprintf("%s.gen.go", dbName)),
+		SrcGenBinFilePath:   path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin", fmt.Sprintf("%s.gen.go", dbName)),
+		SrcGenBinDir:        path.Join(proj.Config.SrcGenBehaviorDir, dbName, "bin"),
+		DbName:              dbName,
+		DbStructName:        camelString(dbName),
+		MongoDaoStructName:  fmt.Sprintf("%sMongoDao", camelString(dbName)),
+		DaoInterfaceName:    fmt.Sprintf("%Dao", camelString(dbName)),
 	}
 	result := make(map[string]interface{})
 	if err := yaml.Unmarshal(data, result); err != nil {
@@ -92,10 +92,9 @@ func (p *yaml_parser) parseFile(state *gen_state, filePath string) error {
 		} else {
 			collName := k
 			coll := &Collection{
-				MongoDriverStructName: database.MongoDriverStructName,
-				CollName:              collName,
-				StructName:            camelString(collName),
-				MongoDaoStructName:    fmt.Sprintf("%sMongoDao", camelString(collName)),
+				CollName:           collName,
+				StructName:         camelString(collName),
+				MongoDaoStructName: fmt.Sprintf("%sMongoDao", camelString(collName)),
 			}
 			if err := p.collUnmarshal(state, coll, v); err != nil {
 				return err

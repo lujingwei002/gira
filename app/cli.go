@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"os"
-	"path"
 	"strconv"
 
 	"github.com/lujingwei002/gira/facade"
@@ -62,18 +61,6 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 						Usage:    "service id",
 						Required: true,
 					},
-					&cli.StringFlag{
-						Aliases:  []string{"f"},
-						Name:     "file",
-						Usage:    "config file",
-						Required: false,
-					},
-					&cli.StringFlag{
-						Aliases:  []string{"c"},
-						Name:     "env",
-						Usage:    "env config file",
-						Required: false,
-					},
 				},
 			},
 			{
@@ -86,18 +73,6 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 						Usage:    "service id",
 						Required: true,
 					},
-					&cli.StringFlag{
-						Aliases:  []string{"f"},
-						Name:     "file",
-						Usage:    "config file",
-						Required: false,
-					},
-					&cli.StringFlag{
-						Aliases:  []string{"c"},
-						Name:     "env",
-						Usage:    "env config file",
-						Required: false,
-					},
 				},
 			},
 			{
@@ -109,18 +84,6 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 						Name:     "id",
 						Usage:    "service id",
 						Required: true,
-					},
-					&cli.StringFlag{
-						Aliases:  []string{"f"},
-						Name:     "file",
-						Usage:    "config file",
-						Required: false,
-					},
-					&cli.StringFlag{
-						Aliases:  []string{"c"},
-						Name:     "env",
-						Usage:    "env config file",
-						Required: false,
 					},
 				},
 			},
@@ -144,18 +107,6 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 						Usage:    "service id",
 						Required: true,
 					},
-					&cli.StringFlag{
-						Aliases:  []string{"f"},
-						Name:     "file",
-						Usage:    "config file",
-						Required: false,
-					},
-					&cli.StringFlag{
-						Aliases:  []string{"c"},
-						Name:     "env",
-						Usage:    "env config file",
-						Required: false,
-					},
 				},
 			},
 			{
@@ -178,18 +129,6 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 						Usage:    "service id",
 						Required: true,
 					},
-					&cli.StringFlag{
-						Aliases:  []string{"f"},
-						Name:     "file",
-						Usage:    "config file",
-						Required: false,
-					},
-					&cli.StringFlag{
-						Aliases:  []string{"c"},
-						Name:     "env",
-						Usage:    "env config file",
-						Required: false,
-					},
 				},
 			},
 			{
@@ -202,18 +141,6 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 						Usage:    "service id",
 						Required: true,
 					},
-					&cli.StringFlag{
-						Aliases:  []string{"f"},
-						Name:     "file",
-						Usage:    "config file",
-						Required: false,
-					},
-					&cli.StringFlag{
-						Aliases:  []string{"c"},
-						Name:     "env",
-						Usage:    "env config file",
-						Required: false,
-					},
 				},
 			},
 		},
@@ -224,24 +151,20 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 	return nil
 }
 
-func StartAsClient(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
+func StartAsClient(applicationFacade gira.ApplicationFacade, appId int32, appType string) error {
 	application := newApplication(gira.ApplicationArgs{
-		AppType:        appType,
-		AppId:          appId,
-		ConfigFilePath: configFilePath,
-		DotEnvFilePath: dotEnvFilePath,
-		Facade:         applicationFacade,
+		AppType: appType,
+		AppId:   appId,
+		Facade:  applicationFacade,
 	})
 	return application.start()
 }
 
-func StartAsServer(applicationFacade gira.ApplicationFacade, appId int32, appType string, configFilePath string, dotEnvFilePath string) error {
+func StartAsServer(applicationFacade gira.ApplicationFacade, appId int32, appType string) error {
 	application := newApplication(gira.ApplicationArgs{
-		AppType:        appType,
-		AppId:          appId,
-		ConfigFilePath: configFilePath,
-		DotEnvFilePath: dotEnvFilePath,
-		Facade:         applicationFacade,
+		AppType: appType,
+		AppId:   appId,
+		Facade:  applicationFacade,
 	})
 	return application.start()
 }
@@ -249,8 +172,6 @@ func StartAsServer(applicationFacade gira.ApplicationFacade, appId int32, appTyp
 // 启动应用
 func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	configFilePath := args.String("file")
-	dotEnvFilePath := args.String("env")
 	applicationFacade, _ := args.App.Metadata["application"].(gira.ApplicationFacade)
 	appType, _ := args.App.Metadata["name"].(string)
 	appVersion, _ := args.App.Metadata["appVersion"].(string)
@@ -266,13 +187,11 @@ func startAction(args *cli.Context) error {
 	log.Println("build time:", buildTime)
 	log.Infof("%s %d starting...", appType, appId)
 	runtime := newApplication(gira.ApplicationArgs{
-		AppType:        appType,
-		AppId:          appId,
-		AppVersion:     appVersion,
-		BuildTime:      buildTime,
-		DotEnvFilePath: dotEnvFilePath,
-		ConfigFilePath: configFilePath,
-		Facade:         applicationFacade,
+		AppType:    appType,
+		AppId:      appId,
+		AppVersion: appVersion,
+		BuildTime:  buildTime,
+		Facade:     applicationFacade,
 	})
 
 	if err := runtime.start(); err != nil {
@@ -302,9 +221,7 @@ func timeAction(args *cli.Context) error {
 func envAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	appType, _ := args.App.Metadata["name"].(string)
-	configFilePath := args.String("file")
-	dotEnvFilePath := args.String("env")
-	if _, err := gira.LoadApplicationConfig(configFilePath, dotEnvFilePath, appType, appId); err != nil {
+	if _, err := proj.LoadApplicationConfig(appType, appId); err != nil {
 		return err
 	} else {
 		for _, k := range os.Environ() {
@@ -317,10 +234,8 @@ func envAction(args *cli.Context) error {
 // 打印应用配置
 func configAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	configFilePath := args.String("file")
-	dotEnvFilePath := args.String("env")
 	appType, _ := args.App.Metadata["name"].(string)
-	if c, err := gira.LoadApplicationConfig(configFilePath, dotEnvFilePath, appType, appId); err != nil {
+	if c, err := proj.LoadApplicationConfig(appType, appId); err != nil {
 		return err
 	} else {
 		c.Raw = nil
@@ -343,15 +258,8 @@ func restartAction(args *cli.Context) error {
 
 func statusAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	configFilePath := args.String("file")
-	dotEnvFilePath := args.String("env")
-	if len(configFilePath) <= 0 {
-		configFilePath = path.Join(proj.Config.ConfigDir, "cli.yaml")
-	}
-	if len(dotEnvFilePath) <= 0 {
-		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
-	}
-	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
+
+	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli"); err != nil {
 		return err
 	}
 	ctx := facade.Context()
@@ -369,16 +277,7 @@ func statusAction(args *cli.Context) error {
 func unregisterAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	appType, _ := args.App.Metadata["name"].(string)
-	configFilePath := args.String("file")
-	dotEnvFilePath := args.String("env")
-	if len(configFilePath) <= 0 {
-		configFilePath = path.Join(proj.Config.ConfigDir, "cli.yaml")
-	}
-
-	if len(dotEnvFilePath) <= 0 {
-		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
-	}
-	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
+	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli"); err != nil {
 		return err
 	}
 	appFullName := gira.FormatAppFullName(appType, appId, facade.GetZone(), facade.GetEnv())
@@ -393,15 +292,7 @@ func unregisterAction(args *cli.Context) error {
 
 func reloadAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	configFilePath := args.String("file")
-	dotEnvFilePath := args.String("env")
-	if len(configFilePath) <= 0 {
-		configFilePath = path.Join(proj.Config.ConfigDir, "cli.yaml")
-	}
-	if len(dotEnvFilePath) <= 0 {
-		dotEnvFilePath = path.Join(proj.Config.EnvDir, ".env")
-	}
-	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli", configFilePath, dotEnvFilePath); err != nil {
+	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli"); err != nil {
 		return err
 	}
 	ctx := facade.Context()
