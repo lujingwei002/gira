@@ -32,7 +32,7 @@ type ServiceContainer struct {
 	errGroup   *errgroup.Group
 }
 
-func New(ctx context.Context) *ServiceContainer {
+func NewContainer(ctx context.Context) *ServiceContainer {
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	errGroup, errCtx := errgroup.WithContext(cancelCtx)
 	return &ServiceContainer{

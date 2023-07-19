@@ -17,25 +17,24 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-type ClientApplicationFacade struct {
+type ClientApplication struct {
 }
 
-func (s *ClientApplicationFacade) OnConfigLoad(c *gira.Config) error {
+func (s *ClientApplication) OnConfigLoad(c *gira.Config) error {
 	return nil
 }
-func (s *ClientApplicationFacade) OnCreate() error {
+func (s *ClientApplication) OnCreate() error {
 	return nil
 }
-func (s *ClientApplicationFacade) OnStart() error {
+func (s *ClientApplication) OnStart() error {
 	return nil
 }
-func (s *ClientApplicationFacade) OnStop() error {
+func (s *ClientApplication) OnStop() error {
 	return nil
 }
 
 // 需要两个系参数 xx -id 1 start|stop|restart
-func Cli(name string, appVersion string, buildTime string, applicationFacade gira.ApplicationFacade) error {
-
+func Cli(name string, appVersion string, buildTime string, application gira.Application) error {
 	app := &cli.App{
 		Name: "gira service",
 		// Authors:     []*cli.Author{&cli.Author{Name: "lujingwei", Email: "lujingwei002@qq.com"}},
@@ -43,12 +42,11 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 		Flags:       []cli.Flag{},
 		Action:      runAction,
 		Metadata: map[string]interface{}{
-			"application": applicationFacade,
+			"application": application,
 			"name":        name,
 			"buildTime":   buildTime,
 			"appVersion":  appVersion,
 		},
-
 		Commands: []*cli.Command{
 			{
 				Name: "start",
@@ -151,28 +149,28 @@ func Cli(name string, appVersion string, buildTime string, applicationFacade gir
 	return nil
 }
 
-func StartAsClient(applicationFacade gira.ApplicationFacade, appId int32, appType string) error {
-	application := newApplication(gira.ApplicationArgs{
-		AppType: appType,
-		AppId:   appId,
-		Facade:  applicationFacade,
+func StartAsClient(application gira.Application, appId int32, appType string) error {
+	r := newRuntime(gira.ApplicationArgs{
+		AppType:     appType,
+		AppId:       appId,
+		Application: application,
 	})
-	return application.start()
+	return r.start()
 }
 
-func StartAsServer(applicationFacade gira.ApplicationFacade, appId int32, appType string) error {
-	application := newApplication(gira.ApplicationArgs{
-		AppType: appType,
-		AppId:   appId,
-		Facade:  applicationFacade,
+func StartAsServer(application gira.Application, appId int32, appType string) error {
+	r := newRuntime(gira.ApplicationArgs{
+		AppType:     appType,
+		AppId:       appId,
+		Application: application,
 	})
-	return application.start()
+	return r.start()
 }
 
 // 启动应用
 func startAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	applicationFacade, _ := args.App.Metadata["application"].(gira.ApplicationFacade)
+	application, _ := args.App.Metadata["application"].(gira.Application)
 	appType, _ := args.App.Metadata["name"].(string)
 	appVersion, _ := args.App.Metadata["appVersion"].(string)
 	var buildTime int64
@@ -186,12 +184,12 @@ func startAction(args *cli.Context) error {
 	log.Println("build version:", appVersion)
 	log.Println("build time:", buildTime)
 	log.Infof("%s %d starting...", appType, appId)
-	runtime := newApplication(gira.ApplicationArgs{
-		AppType:    appType,
-		AppId:      appId,
-		AppVersion: appVersion,
-		BuildTime:  buildTime,
-		Facade:     applicationFacade,
+	runtime := newRuntime(gira.ApplicationArgs{
+		AppType:     appType,
+		AppId:       appId,
+		AppVersion:  appVersion,
+		BuildTime:   buildTime,
+		Application: application,
 	})
 
 	if err := runtime.start(); err != nil {
@@ -259,7 +257,7 @@ func restartAction(args *cli.Context) error {
 func statusAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 
-	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli"); err != nil {
+	if err := StartAsClient(&ClientApplication{}, appId, "cli"); err != nil {
 		return err
 	}
 	ctx := facade.Context()
@@ -277,7 +275,7 @@ func statusAction(args *cli.Context) error {
 func unregisterAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
 	appType, _ := args.App.Metadata["name"].(string)
-	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli"); err != nil {
+	if err := StartAsClient(&ClientApplication{}, appId, "cli"); err != nil {
 		return err
 	}
 	appFullName := gira.FormatAppFullName(appType, appId, facade.GetZone(), facade.GetEnv())
@@ -292,7 +290,7 @@ func unregisterAction(args *cli.Context) error {
 
 func reloadAction(args *cli.Context) error {
 	appId := int32(args.Int("id"))
-	if err := StartAsClient(&ClientApplicationFacade{}, appId, "cli"); err != nil {
+	if err := StartAsClient(&ClientApplication{}, appId, "cli"); err != nil {
 		return err
 	}
 	ctx := facade.Context()

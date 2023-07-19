@@ -25,7 +25,7 @@ func (framework *Framework) OnFrameworkConfigLoad(c *gira.Config) error {
 	return framework.config.OnConfigLoad(c)
 }
 
-func (framework *Framework) OnFrameworkCreate(application gira.Application) error {
+func (framework *Framework) OnFrameworkCreate() error {
 	framework.server = server.NewServer(framework.proto)
 	if err := framework.server.OnCreate(); err != nil {
 		return err

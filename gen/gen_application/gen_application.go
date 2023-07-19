@@ -30,7 +30,7 @@ var respositoryVersion string
 var buildTime string
 
 // 检查是否满足接口
-var _ = (gira.ApplicationFacade)(&{{.ApplicationName}}.Application{})
+var _ = (gira.Application)(&{{.ApplicationName}}.Application{})
 var _ = (gira.ResourceSource)(&{{.ApplicationName}}.Application{})
 
 func main() {

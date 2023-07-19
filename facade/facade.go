@@ -2,7 +2,6 @@ package facade
 
 import (
 	"context"
-	"log"
 	"path"
 
 	"github.com/lujingwei002/gira"
@@ -12,27 +11,27 @@ import (
 
 // 返回app配置
 func GetConfig() *gira.Config {
-	return gira.App().GetConfig()
+	return gira.GetRuntime().GetConfig()
 }
 
 // 返回app context
 func Context() context.Context {
-	return gira.App().Context()
+	return gira.GetRuntime().Context()
 }
 
 // 返回app构建版本
 func GetAppVersion() string {
-	return gira.App().GetAppVersion()
+	return gira.GetRuntime().GetAppVersion()
 }
 
 // 返回app构建时间
 func GetBuildTime() int64 {
-	return gira.App().GetBuildTime()
+	return gira.GetRuntime().GetBuildTime()
 }
 
 // 返回resource版本
 func GetResVersion() string {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.ResourceSource); !ok {
 		return ""
 	} else if r := c.GetResourceLoader(); r == nil {
@@ -44,7 +43,7 @@ func GetResVersion() string {
 
 // 返回resource loader版本
 func GetLoaderVersion() string {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.ResourceSource); !ok {
 		return ""
 	} else if r := c.GetResourceLoader(); r == nil {
@@ -56,85 +55,84 @@ func GetLoaderVersion() string {
 
 // 返回启动时间
 func GetUpTime() int64 {
-	return gira.App().GetUpTime()
+	return gira.GetRuntime().GetUpTime()
 }
 
 // 返回app id
 func GetAppId() int32 {
-	return gira.App().GetAppId()
+	return gira.GetRuntime().GetAppId()
 }
 
 // 返回app全名
 func GetAppFullName() string {
-	return gira.App().GetAppFullName()
+	return gira.GetRuntime().GetAppFullName()
 }
 
 // 返回当前所在的区
 func GetZone() string {
-	return gira.App().GetZone()
+	return gira.GetRuntime().GetZone()
 }
 
 // 返回当前环境
 func GetEnv() string {
-	return gira.App().GetEnv()
+	return gira.GetRuntime().GetEnv()
 }
 
 // 是否开发环境
 func IsDevEnv() bool {
-	return gira.App().GetEnv() == gira.Env_DEV
+	return gira.GetRuntime().GetEnv() == gira.Env_DEV
 }
 
 // 是否测试环境
 func IsQaEnv() bool {
-	return gira.App().GetEnv() == gira.Env_QA
+	return gira.GetRuntime().GetEnv() == gira.Env_QA
 }
 
 // 是否生产环境
 func IsPrdEnv() bool {
-	return gira.App().GetEnv() == gira.Env_prd
+	return gira.GetRuntime().GetEnv() == gira.Env_prd
 }
 
 // 返回app类型
 func GetAppType() string {
-	return gira.App().GetAppType()
+	return gira.GetRuntime().GetAppType()
 }
 
 func Go(f func() error) {
-	gira.App().Go(f)
+	gira.GetRuntime().Go(f)
 }
 
 func Done() <-chan struct{} {
-	return gira.App().Done()
+	return gira.GetRuntime().Done()
 }
 
 func GetLogDir() string {
-	return gira.App().GetLogDir()
+	return gira.GetRuntime().GetLogDir()
 }
 
 func GetWorkDir() string {
-	return gira.App().GetWorkDir()
+	return gira.GetRuntime().GetWorkDir()
 }
 
 func Stop() error {
-	return gira.App().Stop()
+	return gira.GetRuntime().Stop()
 }
 
 func Wait() error {
-	return gira.App().Wait()
+	return gira.GetRuntime().Wait()
 }
 
 // ================= resource component =============================
 // 重载配置
 func ReloadResource() error {
-	application := gira.App()
-	if s := application.GetResourceSource(); s == nil {
-		log.Println("cccc1")
+	application := gira.GetApplication()
+	runtime := gira.GetRuntime()
+	if s, ok := application.(gira.ResourceSource); !ok {
 		return errors.ErrResourceManagerNotImplement
 	} else if r := s.GetResourceLoader(); r == nil {
-		log.Println("cccc2")
 		return errors.ErrResourceManagerNotImplement
 	} else {
-		if err := r.LoadResource(application.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress); err != nil {
+		if err := r.LoadResource(runtime.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress); err != nil {
 			return err
 		} else {
 			s.OnResourcePostLoad()
@@ -145,7 +143,7 @@ func ReloadResource() error {
 
 // 广播重载配置
 func BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if h, ok := application.(gira.AdminClient); !ok {
 		err = errors.ErrAdminClientNotImplement
 		return
@@ -158,7 +156,7 @@ func BroadcastReloadResource(ctx context.Context, name string) (result gira.Broa
 // ================= registry =============================
 // 解锁user
 func UnlockLocalUser(userId string) (*gira.Peer, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r == nil {
 		return nil, errors.ErrRegistryNOtImplement
 	} else {
@@ -168,7 +166,7 @@ func UnlockLocalUser(userId string) (*gira.Peer, error) {
 
 // 锁定user
 func LockLocalUser(userId string) (*gira.Peer, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r == nil {
 		return nil, errors.ErrRegistryNOtImplement
 	} else {
@@ -178,7 +176,7 @@ func LockLocalUser(userId string) (*gira.Peer, error) {
 
 // 查找user所在的节点
 func WhereIsUser(userId string) (*gira.Peer, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r != nil {
 		return r.WhereIsUser(userId)
 	} else if r := application.GetRegistryClient(); r != nil {
@@ -189,7 +187,7 @@ func WhereIsUser(userId string) (*gira.Peer, error) {
 }
 
 func ListLocalUser() []string {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r != nil {
 		return r.ListLocalUser()
 	} else {
@@ -198,7 +196,7 @@ func ListLocalUser() []string {
 }
 
 func SelfPeer(userId string) *gira.Peer {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r == nil {
 		return nil
 	} else {
@@ -208,7 +206,7 @@ func SelfPeer(userId string) *gira.Peer {
 
 // 查找节点位置
 func WhereIsPeer(appFullName string) (*gira.Peer, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r != nil {
 		return r.WhereIsPeer(appFullName)
 	} else if r := application.GetRegistryClient(); r != nil {
@@ -219,7 +217,7 @@ func WhereIsPeer(appFullName string) (*gira.Peer, error) {
 }
 
 func ListPeerKvs() (peers map[string]string, err error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistryClient(); r == nil {
 		err = errors.ErrRegistryNOtImplement
 		return
@@ -231,7 +229,7 @@ func ListPeerKvs() (peers map[string]string, err error) {
 
 // 遍历节点
 func RangePeers(f func(k any, v any) bool) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r == nil {
 		return
 	} else {
@@ -240,7 +238,7 @@ func RangePeers(f func(k any, v any) bool) {
 }
 
 func ListServiceKvs() (peers map[string][]string, err error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistryClient(); r == nil {
 		err = errors.ErrRegistryNOtImplement
 		return
@@ -252,7 +250,7 @@ func ListServiceKvs() (peers map[string][]string, err error) {
 
 // 构造服务名
 func NewServiceName(serviceName string, opt ...service_options.RegisterOption) string {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r != nil {
 		return r.NewServiceName(serviceName, opt...)
 	} else if r := application.GetRegistryClient(); r != nil {
@@ -264,7 +262,7 @@ func NewServiceName(serviceName string, opt ...service_options.RegisterOption) s
 
 // 注册服务名
 func RegisterServiceName(serviceName string, opt ...service_options.RegisterOption) (*gira.Peer, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r == nil {
 		return nil, errors.ErrRegistryNOtImplement
 	} else {
@@ -274,7 +272,7 @@ func RegisterServiceName(serviceName string, opt ...service_options.RegisterOpti
 
 // 反注册服务名
 func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r == nil {
 		return nil, errors.ErrRegistryNOtImplement
 	} else {
@@ -284,7 +282,7 @@ func UnregisterServiceName(serviceName string) (*gira.Peer, error) {
 
 // 查找服务
 func WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) ([]*gira.Peer, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistry(); r != nil {
 		return r.WhereIsService(serviceName, opt...)
 	} else if r := application.GetRegistryClient(); r != nil {
@@ -295,7 +293,7 @@ func WhereIsServiceName(serviceName string, opt ...service_options.WhereOption) 
 }
 
 func UnregisterPeer(appFullName string) error {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if r := application.GetRegistryClient(); r != nil {
 		return r.UnregisterPeer(appFullName)
 	} else {
@@ -306,7 +304,7 @@ func UnregisterPeer(appFullName string) error {
 // ================= db client component =============================
 // 返回预定义的admindb client
 func GetAdminDbClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetAdminDbClient()
 	} else {
@@ -316,7 +314,7 @@ func GetAdminDbClient() gira.DbClient {
 
 // 返回预定义的resourcedb client
 func GetResourceDbClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetResourceDbClient()
 	} else {
@@ -326,7 +324,7 @@ func GetResourceDbClient() gira.DbClient {
 
 // 返回预定义的statdb client
 func GetStatDbClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetStatDbClient()
 	} else {
@@ -336,7 +334,7 @@ func GetStatDbClient() gira.DbClient {
 
 // 返回预定义的accountdb client
 func GetAccountDbClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetAccountDbClient()
 	} else {
@@ -346,7 +344,7 @@ func GetAccountDbClient() gira.DbClient {
 
 // 返回预定义的logdb client
 func GetLogDbClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetLogDbClient()
 	} else {
@@ -356,7 +354,7 @@ func GetLogDbClient() gira.DbClient {
 
 // 返回预定义的behaviordb client
 func GetBehaviorDbClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetBehaviorDbClient()
 	} else {
@@ -366,7 +364,7 @@ func GetBehaviorDbClient() gira.DbClient {
 
 // 返回预定义的admincache client
 func GetAdminCacheClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetAdminCacheClient()
 	} else {
@@ -376,7 +374,7 @@ func GetAdminCacheClient() gira.DbClient {
 
 // 返回预定义的accountcache client
 func GetAccountCacheClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetAccountCacheClient()
 	} else {
@@ -386,7 +384,7 @@ func GetAccountCacheClient() gira.DbClient {
 
 // 返回预定义的gamedb client
 func GetGameDbClient() gira.DbClient {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if c, ok := application.(gira.DbClientComponent); ok {
 		return c.GetGameDbClient()
 	} else {
@@ -396,12 +394,12 @@ func GetGameDbClient() gira.DbClient {
 
 // ================= grpc server component =============================
 func GrpcServer() gira.GrpcServer {
-	application := gira.App()
+	application := gira.GetRuntime()
 	return application.GetGrpcServer()
 }
 
 func IsEnableResolver() bool {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if cfg := application.GetConfig().Module.Grpc; cfg != nil {
 		return cfg.Resolver
 	} else {
@@ -411,7 +409,7 @@ func IsEnableResolver() bool {
 
 // 查看grpc server
 func WhereIsServer(name string) (svr interface{}, ok bool) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if s := application.GetGrpcServer(); s == nil {
 		return nil, false
 	} else {
@@ -422,7 +420,7 @@ func WhereIsServer(name string) (svr interface{}, ok bool) {
 // ================= sdk =============================
 // 登录sdk
 func SdkLogin(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if s := application.GetPlatformSdk(); s == nil {
 		return nil, errors.ErrSdkComponentNotImplement
 	} else {
@@ -432,7 +430,7 @@ func SdkLogin(accountPlat string, openId string, token string, authUrl string, a
 
 // 验证sdk订单
 func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if s := application.GetPlatformSdk(); s == nil {
 		return nil, errors.ErrSdkComponentNotImplement
 	} else {
@@ -443,7 +441,7 @@ func SdkPayOrderCheck(accountPlat string, args map[string]interface{}, paySecret
 // ================= service =============================
 // 停止服务
 func StopService(service gira.Service) error {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if s := application.GetServiceContainer(); s == nil {
 		return errors.ErrServiceContainerNotImplement
 	} else {
@@ -453,7 +451,7 @@ func StopService(service gira.Service) error {
 
 // 启动服务
 func StartService(name string, service gira.Service) error {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if s := application.GetServiceContainer(); s == nil {
 		return errors.ErrServiceContainerNotImplement
 	} else {
@@ -465,7 +463,7 @@ func StartService(name string, service gira.Service) error {
 // 设置定时调度函数
 // 并发不安全, github.com/robfig/cron 中的AddFunc函数会对同一个切片进行修改
 func Cron(spec string, cmd func()) error {
-	application := gira.App()
+	application := gira.GetRuntime()
 	if s := application.GetCron(); s == nil {
 		return errors.ErrCronNotImplement
 	} else {

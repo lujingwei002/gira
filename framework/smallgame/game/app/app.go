@@ -27,7 +27,7 @@ func NewFramework(proto gira.Proto, hallHandler game.HallHandler, playerHandler 
 	}
 }
 
-func (framework *Framework) OnFrameworkCreate(application gira.Application) error {
+func (framework *Framework) OnFrameworkCreate() error {
 	// 注册大厅服务
 	if hallService, err := hall.NewService(
 		framework.proto,

@@ -653,6 +653,20 @@ func (self *<<.MongoDaoStructName>>) UpdateMany(ctx context.Context, filter inte
 	return result, err
 }
 
+func (self *<<.MongoDaoStructName>>) DeleteMany(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
+	database := self.db.database
+	coll := database.Collection("<<.CollName>>")
+	result, err := coll.DeleteMany(ctx, filter, opts...)
+	return result, err
+}
+
+func (self *<<.MongoDaoStructName>>) DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
+	database := self.db.database
+	coll := database.Collection("<<.CollName>>")
+	result, err := coll.DeleteOne(ctx, filter, opts...)
+	return result, err
+}
+
 func (self *<<.MongoDaoStructName>>) ReplaceOne(ctx context.Context, filter interface{}, replacement *<<.DataStructName>>, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
 	database := self.db.database
 	coll := database.Collection("<<.CollName>>")

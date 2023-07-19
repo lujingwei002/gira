@@ -15,7 +15,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
-	"runtime"
+	gruntime "runtime"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -54,7 +54,7 @@ const (
 )
 
 // / @Component
-type Application struct {
+type Runtime struct {
 	zone               string // 区名 wc|qq|hw|quick
 	env                string // dev|local|qa|prd
 	appId              int32
@@ -80,7 +80,7 @@ type Application struct {
 	workDir            string /// 工作目录
 	logDir             string /// 日志目录
 	runDir             string /// 运行目录
-	applicationFacade  gira.ApplicationFacade
+	application        gira.Application
 	frameworks         []gira.Framework
 	httpServer         *gins.HttpServer
 	registry           *registry.Registry
@@ -102,114 +102,114 @@ type Application struct {
 	cron               *cron.Cron
 }
 
-func newApplication(args gira.ApplicationArgs) *Application {
+func newRuntime(args gira.ApplicationArgs) *Runtime {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	errGroup, errCtx := errgroup.WithContext(ctx)
-	application := &Application{
-		appVersion:        args.AppVersion,
-		buildTime:         args.BuildTime,
-		appId:             args.AppId,
-		applicationFacade: args.Facade,
-		frameworks:        make([]gira.Framework, 0),
-		appType:           args.AppType,
-		appName:           fmt.Sprintf("%s_%d", args.AppType, args.AppId),
-		ctx:               ctx,
-		cancelFunc:        cancelFunc,
-		errCtx:            errCtx,
-		errGroup:          errGroup,
-		chQuit:            make(chan struct{}, 1),
-		serviceContainer:  service.New(ctx),
+	runtime := &Runtime{
+		appVersion:       args.AppVersion,
+		buildTime:        args.BuildTime,
+		appId:            args.AppId,
+		application:      args.Application,
+		frameworks:       make([]gira.Framework, 0),
+		appType:          args.AppType,
+		appName:          fmt.Sprintf("%s_%d", args.AppType, args.AppId),
+		ctx:              ctx,
+		cancelFunc:       cancelFunc,
+		errCtx:           errCtx,
+		errGroup:         errGroup,
+		chQuit:           make(chan struct{}, 1),
+		serviceContainer: service.NewContainer(ctx),
 	}
-	return application
+	return runtime
 }
 
-func (application *Application) init() error {
+func (runtime *Runtime) init() error {
 	var err error
-	applicationFacade := application.applicationFacade
+	application := runtime.application
 	// 初始化
 	rand.Seed(time.Now().UnixNano())
-	application.upTime = time.Now().Unix()
+	runtime.upTime = time.Now().Unix()
 	// 项目环境,目录初始化
-	application.workDir = proj.Dir.ProjectDir
-	if err := os.Chdir(application.workDir); err != nil {
+	runtime.workDir = proj.Dir.ProjectDir
+	if err := os.Chdir(runtime.workDir); err != nil {
 		return err
 	}
-	application.projectFilePath = proj.Dir.ProjectConfFilePath
-	if _, err := os.Stat(application.projectFilePath); err != nil {
+	runtime.projectFilePath = proj.Dir.ProjectConfFilePath
+	if _, err := os.Stat(runtime.projectFilePath); err != nil {
 		return err
 	}
-	application.envDir = proj.Dir.EnvDir
-	application.configDir = proj.Dir.ConfigDir
-	if _, err := os.Stat(application.configDir); err != nil {
+	runtime.envDir = proj.Dir.EnvDir
+	runtime.configDir = proj.Dir.ConfigDir
+	if _, err := os.Stat(runtime.configDir); err != nil {
 		return err
 	}
-	application.runDir = proj.Dir.RunDir
-	if _, err := os.Stat(application.runDir); err != nil {
-		if err := os.Mkdir(application.runDir, 0755); err != nil {
+	runtime.runDir = proj.Dir.RunDir
+	if _, err := os.Stat(runtime.runDir); err != nil {
+		if err := os.Mkdir(runtime.runDir, 0755); err != nil {
 			return err
 		}
 	}
-	application.runConfigFilePath = filepath.Join(application.runDir, fmt.Sprintf("%s", application.appFullName))
-	application.logDir = proj.Dir.LogDir
+	runtime.runConfigFilePath = filepath.Join(runtime.runDir, fmt.Sprintf("%s", runtime.appFullName))
+	runtime.logDir = proj.Dir.LogDir
 	// 初始化框架
-	if f, ok := applicationFacade.(gira.ApplicationFramework); ok {
-		application.frameworks = f.OnFrameworkInit()
+	if f, ok := application.(gira.ApplicationFramework); ok {
+		runtime.frameworks = f.OnFrameworkInit()
 	}
 	// 读应用配置文件
-	if c, err := proj.LoadApplicationConfig(application.appType, application.appId); err != nil {
+	if c, err := proj.LoadApplicationConfig(runtime.appType, runtime.appId); err != nil {
 		return err
 	} else {
-		application.env = c.Env
-		application.zone = c.Zone
-		application.appFullName = gira.FormatAppFullName(application.appType, application.appId, application.zone, application.env)
-		application.config = c
+		runtime.env = c.Env
+		runtime.zone = c.Zone
+		runtime.appFullName = gira.FormatAppFullName(runtime.appType, runtime.appId, runtime.zone, runtime.env)
+		runtime.config = c
 	}
 	// 加载配置回调
-	for _, fw := range application.frameworks {
-		if err := fw.OnFrameworkConfigLoad(application.config); err != nil {
+	for _, fw := range runtime.frameworks {
+		if err := fw.OnFrameworkConfigLoad(runtime.config); err != nil {
 			return err
 		}
 	}
-	if err := application.applicationFacade.OnConfigLoad(application.config); err != nil {
+	if err := runtime.application.OnConfigLoad(runtime.config); err != nil {
 		return err
 	}
 	// 初始化日志
-	if application.config.CoreLog != nil {
-		if err = corelog.Config(*application.config.CoreLog); err != nil {
+	if runtime.config.CoreLog != nil {
+		if err = corelog.Config(*runtime.config.CoreLog); err != nil {
 			return err
 		}
-		if application.config.CoreLog.TraceErrorStack {
+		if runtime.config.CoreLog.TraceErrorStack {
 			codes.SetLogger(corelog.GetDefaultLogger())
 		}
 	}
-	if application.config.BehaviorLog != nil {
-		if err = behaviorlog.Config(*application.config.BehaviorLog); err != nil {
+	if runtime.config.BehaviorLog != nil {
+		if err = behaviorlog.Config(*runtime.config.BehaviorLog); err != nil {
 			return err
 		}
 	}
-	if application.config.Log != nil {
-		if err = log.Config(*application.config.Log); err != nil {
+	if runtime.config.Log != nil {
+		if err = log.Config(*runtime.config.Log); err != nil {
 			return err
 		}
 	}
-	runtime.GOMAXPROCS(application.config.Thread)
+	gruntime.GOMAXPROCS(runtime.config.Thread)
 	return nil
 }
 
-func (application *Application) start() (err error) {
+func (runtime *Runtime) start() (err error) {
 	// 初始化
-	if err = application.init(); err != nil {
+	if err = runtime.init(); err != nil {
 		return
 	}
 	// 设置全局对象
-	gira.OnApplicationCreate(application)
-	if err = application.onCreate(); err != nil {
+	gira.OnApplicationCreate(runtime)
+	if err = runtime.onCreate(); err != nil {
 		return
 	}
-	if err = application.onStart(); err != nil {
+	if err = runtime.onStart(); err != nil {
 		return
 	}
-	application.Go(func() error {
+	runtime.Go(func() error {
 		quit := make(chan os.Signal, 1)
 		defer close(quit)
 		signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
@@ -217,76 +217,76 @@ func (application *Application) start() (err error) {
 			select {
 			// 被动中断
 			case s := <-quit:
-				corelog.Infow("application recv signal", "signal", s)
+				corelog.Infow("runtime recv signal", "signal", s)
 				switch s {
 				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 					corelog.Infow("+++++++++++++++++++++++++++++")
 					corelog.Infow("++    signal interrupt    +++", "signal", s)
 					corelog.Infow("+++++++++++++++++++++++++++++")
-					application.stop()
-					corelog.Info("application interrupt end")
+					runtime.stop()
+					corelog.Info("runtime interrupt end")
 					return errors.ErrInterrupt
 				case syscall.SIGUSR1:
 				case syscall.SIGUSR2:
 				default:
 				}
 			// 主动停止
-			case <-application.chQuit:
-				corelog.Info("application stop begin")
-				application.stop()
-				corelog.Info("application stop end")
+			case <-runtime.chQuit:
+				corelog.Info("runtime stop begin")
+				runtime.stop()
+				corelog.Info("runtime stop end")
 				return nil
 				// 有服务出错
-				// case <-application.errCtx.Done():
-				// 	corelog.Info("application errgroup", application.errCtx.Err())
-				// 	application.stop()
+				// case <-runtime.errCtx.Done():
+				// 	corelog.Info("runtime errgroup", runtime.errCtx.Err())
+				// 	runtime.stop()
 				// 	return nil
 			}
 
 		}
 	})
-	application.status = application_status_started
+	runtime.status = application_status_started
 	return nil
 }
 
 // 主动关闭, 启动成功后才可以调用
-func (application *Application) Stop() error {
-	if !atomic.CompareAndSwapInt64(&application.status, application_status_started, application_status_stopped) {
+func (runtime *Runtime) Stop() error {
+	if !atomic.CompareAndSwapInt64(&runtime.status, application_status_started, application_status_stopped) {
 		return nil
 	}
-	application.chQuit <- struct{}{}
+	runtime.chQuit <- struct{}{}
 	return nil
 }
 
-func (application *Application) stop() {
-	// application stop
-	application.applicationFacade.OnStop()
+func (runtime *Runtime) stop() {
+	// runtime stop
+	runtime.application.OnStop()
 	// framework stop
-	for _, fw := range application.frameworks {
+	for _, fw := range runtime.frameworks {
 		corelog.Info("framework on stop", "name")
 		if err := fw.OnFrameworkStop(); err != nil {
 			corelog.Warnw("framework on stop fail", "error", err)
 		}
 	}
 	// service stop
-	application.serviceContainer.Stop()
-	if application.registry != nil {
-		application.registry.Stop()
+	runtime.serviceContainer.Stop()
+	if runtime.registry != nil {
+		runtime.registry.Stop()
 	}
-	if application.grpcServer != nil {
-		application.grpcServer.Stop()
+	if runtime.grpcServer != nil {
+		runtime.grpcServer.Stop()
 	}
-	if application.httpServer != nil {
-		application.httpServer.Stop()
+	if runtime.httpServer != nil {
+		runtime.httpServer.Stop()
 	}
-	if application.gate != nil {
-		application.gate.Shutdown()
+	if runtime.gate != nil {
+		runtime.gate.Shutdown()
 	}
-	application.cancelFunc()
+	runtime.cancelFunc()
 }
 
-func (application *Application) onStart() (err error) {
-	applicationFacade := application.applicationFacade
+func (runtime *Runtime) onStart() (err error) {
+	application := runtime.application
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
@@ -295,93 +295,93 @@ func (application *Application) onStart() (err error) {
 			corelog.Errorw("+++++++++++++++++++++++++++++")
 			corelog.Errorw("++         启动异常       +++", "error", err)
 			corelog.Errorw("+++++++++++++++++++++++++++++")
-			application.stop()
-			application.errGroup.Wait()
+			runtime.stop()
+			runtime.errGroup.Wait()
 		}
 	}()
 	// ==== cron ================
-	application.cron.Start()
+	runtime.cron.Start()
 
 	// ==== registryClient ================
-	if application.registryClient != nil {
-		if err = application.registryClient.StartAsClient(); err != nil {
+	if runtime.registryClient != nil {
+		if err = runtime.registryClient.StartAsClient(); err != nil {
 			return
 		}
 	}
 	// ==== registry ================
-	if application.registry != nil {
-		if err = application.registry.StartAsMember(); err != nil {
+	if runtime.registry != nil {
+		if err = runtime.registry.StartAsMember(); err != nil {
 			return
 		}
 	}
 	// ==== grpc ================
-	if application.grpcServer != nil {
-		if err := application.grpcServer.Listen(); err != nil {
+	if runtime.grpcServer != nil {
+		if err := runtime.grpcServer.Listen(); err != nil {
 			return err
 		}
-		if application.registry != nil && application.config.Module.Grpc.Resolver {
-			if err := application.registry.StartReslover(); err != nil {
+		if runtime.registry != nil && runtime.config.Module.Grpc.Resolver {
+			if err := runtime.registry.StartReslover(); err != nil {
 				return err
 			}
 		}
 	}
-	// application.errGroup.Go(func() error {
-	// 	return application.registry.Serve(application.ctx)
+	// runtime.errGroup.Go(func() error {
+	// 	return runtime.registry.Serve(runtime.ctx)
 	// })
 	// }
 	// ==== http ================
-	if application.httpServer != nil {
-		application.errGroup.Go(func() error {
-			return application.httpServer.Serve()
+	if runtime.httpServer != nil {
+		runtime.errGroup.Go(func() error {
+			return runtime.httpServer.Serve()
 		})
 	}
 	// ==== service ================
-	if application.grpcServer != nil {
+	if runtime.grpcServer != nil {
 		// ==== admin service ================
 		{
 			service := admin_service.NewService()
-			if err = application.serviceContainer.StartService("admin", service); err != nil {
+			if err = runtime.serviceContainer.StartService("admin", service); err != nil {
 				return
 			}
 		}
 		// ==== peer service ================
 		{
 			service := peer_service.NewService()
-			if err = application.serviceContainer.StartService("peer", service); err != nil {
+			if err = runtime.serviceContainer.StartService("peer", service); err != nil {
 				return
 			}
 		}
-		if application.config.Module.Grpc.Admin {
+		if runtime.config.Module.Grpc.Admin {
 			service := channelz_service.NewService()
-			if err = application.serviceContainer.StartService("channelz", service); err != nil {
+			if err = runtime.serviceContainer.StartService("channelz", service); err != nil {
 				return
 			}
 		}
 	}
 	// ==== framework start ================
-	for _, fw := range application.frameworks {
+	for _, fw := range runtime.frameworks {
 		if err = fw.OnFrameworkStart(); err != nil {
 			return
 		}
 	}
-	// ==== application start ================
-	if err = application.applicationFacade.OnStart(); err != nil {
+	// ==== runtime start ================
+	if err = runtime.application.OnStart(); err != nil {
 		return
 	}
 	// ==== grpc ================
-	if application.grpcServer != nil {
-		application.errGroup.Go(func() error {
-			err := application.grpcServer.Serve(application.ctx)
+	if runtime.grpcServer != nil {
+		runtime.errGroup.Go(func() error {
+			err := runtime.grpcServer.Serve(runtime.ctx)
 			return err
 		})
 	}
 	// ==== registry ================
-	if application.registry != nil {
-		application.errGroup.Go(func() error {
+	if runtime.registry != nil {
+		runtime.errGroup.Go(func() error {
 			var peerWatchHandlers []gira.PeerWatchHandler
 			var localPlayerWatchHandlers []gira.LocalPlayerWatchHandler
 			var serviceWatchHandlers []gira.ServiceWatchHandler
-			for _, fw := range application.frameworks {
+			for _, fw := range runtime.frameworks {
 				if handler, ok := fw.(gira.PeerWatchHandler); ok {
 					peerWatchHandlers = append(peerWatchHandlers, handler)
 				}
@@ -392,25 +392,25 @@ func (application *Application) onStart() (err error) {
 					serviceWatchHandlers = append(serviceWatchHandlers, handler)
 				}
 			}
-			if handler, ok := application.applicationFacade.(gira.PeerWatchHandler); ok {
+			if handler, ok := runtime.application.(gira.PeerWatchHandler); ok {
 				peerWatchHandlers = append(peerWatchHandlers, handler)
 			}
-			if handler, ok := application.applicationFacade.(gira.LocalPlayerWatchHandler); ok {
+			if handler, ok := runtime.application.(gira.LocalPlayerWatchHandler); ok {
 				localPlayerWatchHandlers = append(localPlayerWatchHandlers, handler)
 			}
-			if handler, ok := application.applicationFacade.(gira.ServiceWatchHandler); ok {
+			if handler, ok := runtime.application.(gira.ServiceWatchHandler); ok {
 				serviceWatchHandlers = append(serviceWatchHandlers, handler)
 			}
-			return application.registry.Watch(peerWatchHandlers, localPlayerWatchHandlers, serviceWatchHandlers)
+			return runtime.registry.Watch(peerWatchHandlers, localPlayerWatchHandlers, serviceWatchHandlers)
 		})
 	}
-	if application.gate != nil {
-		application.errGroup.Go(func() error {
+	if runtime.gate != nil {
+		runtime.errGroup.Go(func() error {
 			var handler gira.GatewayHandler
-			if h, ok := applicationFacade.(gira.GatewayHandler); ok {
+			if h, ok := application.(gira.GatewayHandler); ok {
 				handler = h
 			} else {
-				for _, fw := range application.frameworks {
+				for _, fw := range runtime.frameworks {
 					if h, ok = fw.(gira.GatewayHandler); ok {
 						handler = h
 						break
@@ -420,87 +420,87 @@ func (application *Application) onStart() (err error) {
 			if handler == nil {
 				return errors.ErrGateHandlerNotImplement
 			}
-			err := application.gate.Serve(handler)
+			err := runtime.gate.Serve(handler)
 			return err
 		})
 	}
-	application.errGroup.Go(func() error {
-		return application.serviceContainer.Serve()
+	runtime.errGroup.Go(func() error {
+		return runtime.serviceContainer.Serve()
 	})
 	return nil
 }
 
-func (application *Application) onCreate() error {
-	// log.Info("applicationFacade", app.FullName, "start")
-	applicationFacade := application.applicationFacade
+func (runtime *Runtime) onCreate() error {
+	// log.Info("application", app.FullName, "start")
+	application := runtime.application
 
 	// ==== pprof ================
-	if application.config.Pprof.Port != 0 {
+	if runtime.config.Pprof.Port != 0 {
 		go func() {
-			corelog.Infof("pprof start at http://%s:%d/debug/pprof", application.config.Pprof.Bind, application.config.Pprof.Port)
-			if application.config.Pprof.EnabledTrace {
+			corelog.Infof("pprof start at http://%s:%d/debug/pprof", runtime.config.Pprof.Bind, runtime.config.Pprof.Port)
+			if runtime.config.Pprof.EnabledTrace {
 				trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
 					return true, true
 				}
 			}
-			http.ListenAndServe(fmt.Sprintf("%s:%d", application.config.Pprof.Bind, application.config.Pprof.Port), nil)
+			http.ListenAndServe(fmt.Sprintf("%s:%d", runtime.config.Pprof.Bind, runtime.config.Pprof.Port), nil)
 		}()
 	}
 	// ==== cron ================
-	application.cron = cron.New()
+	runtime.cron = cron.New()
 	// ==== registry ================
-	if application.config.Module.Etcd != nil {
-		if r, err := registry.NewConfigRegistry(application.ctx, application.config.Module.Etcd); err != nil {
+	if runtime.config.Module.Etcd != nil {
+		if r, err := registry.NewConfigRegistry(runtime.ctx, runtime.config.Module.Etcd); err != nil {
 			return err
 		} else {
-			application.registry = r
+			runtime.registry = r
 		}
 	}
 	// ==== registry client ================
-	if application.config.Module.EtcdClient != nil {
-		if r, err := registryclient.NewConfigRegistryClient(application.ctx, application.config.Module.EtcdClient, application.appId, application.appFullName); err != nil {
+	if runtime.config.Module.EtcdClient != nil {
+		if r, err := registryclient.NewConfigRegistryClient(runtime.ctx, runtime.config.Module.EtcdClient, runtime.appId, runtime.appFullName); err != nil {
 			return err
 		} else {
-			application.registryClient = r
+			runtime.registryClient = r
 		}
 	}
 
 	// ==== db ================
-	application.dbClients = make(map[string]gira.DbClient)
-	for name, c := range application.config.Db {
-		if client, err := db.NewConfigDbClient(application.ctx, name, *c); err != nil {
+	runtime.dbClients = make(map[string]gira.DbClient)
+	for name, c := range runtime.config.Db {
+		if client, err := db.NewConfigDbClient(runtime.ctx, name, *c); err != nil {
 			return err
 		} else {
-			application.dbClients[name] = client
+			runtime.dbClients[name] = client
 			if name == gira.GAMEDB_NAME {
-				application.gameDbClient = client
+				runtime.gameDbClient = client
 			} else if name == gira.RESOURCEDB_NAME {
-				application.resourceDbClient = client
+				runtime.resourceDbClient = client
 			} else if name == gira.STATDB_NAME {
-				application.statDbClient = client
+				runtime.statDbClient = client
 			} else if name == gira.ACCOUNTDB_NAME {
-				application.accountDbClient = client
+				runtime.accountDbClient = client
 			} else if name == gira.LOGDB_NAME {
-				application.logDbClient = client
+				runtime.logDbClient = client
 			} else if name == gira.BEHAVIORDB_NAME {
-				application.behaviorDbClient = client
+				runtime.behaviorDbClient = client
 			} else if name == gira.ACCOUNTCACHE_NAME {
-				application.accountCacheClient = client
+				runtime.accountCacheClient = client
 			} else if name == gira.ADMINCACHE_NAME {
-				application.adminCacheClient = client
+				runtime.adminCacheClient = client
 			} else if name == gira.ADMINDB_NAME {
-				application.adminDbClient = client
+				runtime.adminDbClient = client
 			}
 		}
 	}
 
 	// ==== 加载resource ================
-	if resourceComponent, ok := application.applicationFacade.(gira.ResourceSource); ok {
-		application.resourceSource = resourceComponent
+	if resourceComponent, ok := runtime.application.(gira.ResourceSource); ok {
+		runtime.resourceSource = resourceComponent
 		resourceLoader := resourceComponent.GetResourceLoader()
 		if resourceLoader != nil {
-			application.resourceLoader = resourceLoader
-			if err := application.resourceLoader.LoadResource(application.ctx, application.resourceDbClient, path.Join("resource", "conf"), application.config.Resource.Compress); err != nil {
+			runtime.resourceLoader = resourceLoader
+			if err := runtime.resourceLoader.LoadResource(runtime.ctx, runtime.resourceDbClient, path.Join("resource", "conf"), runtime.config.Resource.Compress); err != nil {
 				return err
 			} else {
 				resourceComponent.OnResourcePostLoad()
@@ -509,40 +509,40 @@ func (application *Application) onCreate() error {
 	}
 
 	// ==== grpc ================
-	if application.config.Module.Grpc != nil {
-		if s, err := grpc.NewConfigServer(*application.config.Module.Grpc); err != nil {
+	if runtime.config.Module.Grpc != nil {
+		if s, err := grpc.NewConfigServer(*runtime.config.Module.Grpc); err != nil {
 			return err
 		} else {
-			application.grpcServer = s
+			runtime.grpcServer = s
 		}
 	}
 
 	// ==== sdk================
-	if application.config.Module.Plat != nil {
-		application.platformSdk = platform.NewConfigSdk(*application.config.Module.Plat)
+	if runtime.config.Module.Plat != nil {
+		runtime.platformSdk = platform.NewConfigSdk(*runtime.config.Module.Plat)
 	}
 
 	// ==== http ================
-	if application.config.Module.Http != nil {
-		if handler, ok := applicationFacade.(gira.HttpHandler); !ok {
+	if runtime.config.Module.Http != nil {
+		if handler, ok := application.(gira.HttpHandler); !ok {
 			return errors.ErrHttpHandlerNotImplement
 		} else {
 			router := handler.HttpHandler()
-			if httpServer, err := gins.NewConfigHttpServer(application.ctx, *application.config.Module.Http, router); err != nil {
+			if httpServer, err := gins.NewConfigHttpServer(runtime.ctx, *runtime.config.Module.Http, router); err != nil {
 				return err
 			} else {
-				application.httpServer = httpServer
+				runtime.httpServer = httpServer
 			}
 		}
 	}
 
 	// ==== gateway ================
-	if application.config.Module.Gateway != nil {
+	if runtime.config.Module.Gateway != nil {
 		var handler gira.GatewayHandler
-		if h, ok := applicationFacade.(gira.GatewayHandler); ok {
+		if h, ok := application.(gira.GatewayHandler); ok {
 			handler = h
 		} else {
-			for _, fw := range application.frameworks {
+			for _, fw := range runtime.frameworks {
 				if h, ok = fw.(gira.GatewayHandler); ok {
 					handler = h
 					break
@@ -552,31 +552,31 @@ func (application *Application) onCreate() error {
 		if handler == nil {
 			return errors.ErrGateHandlerNotImplement
 		}
-		if gate, err := gate.NewConfigServer(application.ctx, *application.config.Module.Gateway); err != nil {
+		if gate, err := gate.NewConfigServer(runtime.ctx, *runtime.config.Module.Gateway); err != nil {
 			return err
 		} else {
-			application.gate = gate
+			runtime.gate = gate
 		}
 	}
 
 	// ==== framework create ================
-	for _, fw := range application.frameworks {
-		if err := fw.OnFrameworkCreate(application); err != nil {
+	for _, fw := range runtime.frameworks {
+		if err := fw.OnFrameworkCreate(); err != nil {
 			return err
 		}
 	}
 
-	// ==== application create ================
-	if err := applicationFacade.OnCreate(); err != nil {
+	// ==== runtime create ================
+	if err := application.OnCreate(); err != nil {
 		return err
 	}
 	return nil
 }
 
 // 等待中断
-func (application *Application) Wait() error {
-	err := application.errGroup.Wait()
-	corelog.Infow("application down", "full_name", application.appFullName, "error", err)
+func (runtime *Runtime) Wait() error {
+	err := runtime.errGroup.Wait()
+	corelog.Infow("runtime down", "full_name", runtime.appFullName, "error", err)
 	return err
 }
 
@@ -584,148 +584,145 @@ func (application *Application) Wait() error {
 
 // ================== implement gira.Application ==================
 // 返回配置
-func (application *Application) GetConfig() *gira.Config {
-	return application.config
+func (runtime *Runtime) GetConfig() *gira.Config {
+	return runtime.config
 }
 
 // 返回构建版本
-func (application *Application) GetAppVersion() string {
-	return application.appVersion
+func (runtime *Runtime) GetAppVersion() string {
+	return runtime.appVersion
 
 }
 
 // 返回构建时间
-func (application *Application) GetBuildTime() int64 {
-	return application.buildTime
+func (runtime *Runtime) GetBuildTime() int64 {
+	return runtime.buildTime
 }
-func (application *Application) GetUpTime() int64 {
-	return time.Now().Unix() - application.upTime
+func (runtime *Runtime) GetUpTime() int64 {
+	return time.Now().Unix() - runtime.upTime
 }
 
 // 返回应用id
-func (application *Application) GetAppId() int32 {
-	return application.appId
+func (runtime *Runtime) GetAppId() int32 {
+	return runtime.appId
 }
 
 // 返回应用类型
-func (application *Application) GetAppType() string {
-	return application.appType
+func (runtime *Runtime) GetAppType() string {
+	return runtime.appType
 }
 
 // 返回应用名
-func (application *Application) GetAppName() string {
-	return application.appName
+func (runtime *Runtime) GetAppName() string {
+	return runtime.appName
 }
 
 // 返回应用全名
-func (application *Application) GetAppFullName() string {
-	return application.appFullName
+func (runtime *Runtime) GetAppFullName() string {
+	return runtime.appFullName
 }
 
-func (application *Application) GetWorkDir() string {
-	return application.workDir
+func (runtime *Runtime) GetWorkDir() string {
+	return runtime.workDir
 }
 
-func (application *Application) GetLogDir() string {
-	return application.logDir
+func (runtime *Runtime) GetLogDir() string {
+	return runtime.logDir
 }
 
-func (application *Application) GetZone() string {
-	return application.zone
+func (runtime *Runtime) GetZone() string {
+	return runtime.zone
 }
 
-func (application *Application) GetEnv() string {
-	return application.env
+func (runtime *Runtime) GetEnv() string {
+	return runtime.env
 }
 
 // ================== context =========================
 
-func (application *Application) Context() context.Context {
-	return application.ctx
+func (runtime *Runtime) Context() context.Context {
+	return runtime.ctx
 }
 
-func (application *Application) Quit() {
-	application.cancelFunc()
+func (runtime *Runtime) Quit() {
+	runtime.cancelFunc()
 }
 
-func (application *Application) Done() <-chan struct{} {
-	return application.ctx.Done()
+func (runtime *Runtime) Done() <-chan struct{} {
+	return runtime.ctx.Done()
 }
 
-func (application *Application) Go(f func() error) {
-	application.errGroup.Go(f)
+func (runtime *Runtime) Go(f func() error) {
+	runtime.errGroup.Go(f)
 }
 
-func (application *Application) Err() error {
-	return application.errCtx.Err()
+func (runtime *Runtime) Err() error {
+	return runtime.errCtx.Err()
+}
+
+// ================== application =========================
+func (runtime *Runtime) Application() gira.Application {
+	return runtime.application
 }
 
 // ================== framework =========================
 // 返回框架列表
-func (application *Application) Frameworks() []gira.Framework {
-	return application.frameworks
+func (runtime *Runtime) Frameworks() []gira.Framework {
+	return runtime.frameworks
 }
 
 // ================== gira.SdkComponent ==================
-func (application *Application) GetPlatformSdk() gira.PlatformSdk {
-	if application.platformSdk == nil {
+func (runtime *Runtime) GetPlatformSdk() gira.PlatformSdk {
+	if runtime.platformSdk == nil {
 		return nil
 	} else {
-		return application.platformSdk
-	}
-}
-
-func (application *Application) GetResourceSource() gira.ResourceSource {
-	if application.resourceSource == nil {
-		return nil
-	} else {
-		return application.resourceSource
+		return runtime.platformSdk
 	}
 }
 
 // ================== gira.RegistryComponent ==================
-func (application *Application) GetRegistry() gira.Registry {
-	if application.registry == nil {
+func (runtime *Runtime) GetRegistry() gira.Registry {
+	if runtime.registry == nil {
 		return nil
 	} else {
-		return application.registry
+		return runtime.registry
 	}
 }
 
-func (application *Application) GetRegistryClient() gira.RegistryClient {
-	if application.registryClient == nil {
+func (runtime *Runtime) GetRegistryClient() gira.RegistryClient {
+	if runtime.registryClient == nil {
 		return nil
 	} else {
-		return application.registryClient
+		return runtime.registryClient
 	}
 }
 
 // ================== gira.ServiceContainer ==================
-func (application *Application) GetServiceContainer() gira.ServiceContainer {
-	if application.serviceContainer == nil {
+func (runtime *Runtime) GetServiceContainer() gira.ServiceContainer {
+	if runtime.serviceContainer == nil {
 		return nil
 	} else {
-		return application.serviceContainer
+		return runtime.serviceContainer
 	}
 }
 
 // ================== gira.GrpcServerComponent ==================
-func (application *Application) GetGrpcServer() gira.GrpcServer {
-	if application.grpcServer == nil {
+func (runtime *Runtime) GetGrpcServer() gira.GrpcServer {
+	if runtime.grpcServer == nil {
 		return nil
 	} else {
-		return application.grpcServer
+		return runtime.grpcServer
 	}
 }
 
 // ================== implement gira.ResourceComponent ==================
-func (application *Application) GetResourceLoader() gira.ResourceLoader {
-	return application.resourceLoader
+func (runtime *Runtime) GetResourceLoader() gira.ResourceLoader {
+	return runtime.resourceLoader
 }
 
 // ================== implement gira.AdminClient ==================
 // 重载配置
-func (application *Application) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
+func (runtime *Runtime) BroadcastReloadResource(ctx context.Context, name string) (result gira.BroadcastReloadResourceResult, err error) {
 	req := &adminpb.ReloadResourceRequest{
 		Name: name,
 	}
@@ -734,83 +731,83 @@ func (application *Application) BroadcastReloadResource(ctx context.Context, nam
 }
 
 // ================== implement gira.DbClientComponent ==================
-func (application *Application) GetAccountDbClient() gira.DbClient {
-	if application.accountDbClient == nil {
+func (runtime *Runtime) GetAccountDbClient() gira.DbClient {
+	if runtime.accountDbClient == nil {
 		return nil
 	} else {
-		return application.accountDbClient
+		return runtime.accountDbClient
 	}
 }
 
-func (application *Application) GetGameDbClient() gira.DbClient {
-	if application.gameDbClient == nil {
+func (runtime *Runtime) GetGameDbClient() gira.DbClient {
+	if runtime.gameDbClient == nil {
 		return nil
 	} else {
-		return application.gameDbClient
+		return runtime.gameDbClient
 	}
 }
 
-func (application *Application) GetLogDbClient() gira.DbClient {
-	if application.logDbClient == nil {
+func (runtime *Runtime) GetLogDbClient() gira.DbClient {
+	if runtime.logDbClient == nil {
 		return nil
 	} else {
-		return application.logDbClient
+		return runtime.logDbClient
 	}
 }
 
-func (application *Application) GetBehaviorDbClient() gira.DbClient {
-	if application.behaviorDbClient == nil {
+func (runtime *Runtime) GetBehaviorDbClient() gira.DbClient {
+	if runtime.behaviorDbClient == nil {
 		return nil
 	} else {
-		return application.behaviorDbClient
+		return runtime.behaviorDbClient
 	}
 }
 
-func (application *Application) GetStatDbClient() gira.DbClient {
-	if application.statDbClient == nil {
+func (runtime *Runtime) GetStatDbClient() gira.DbClient {
+	if runtime.statDbClient == nil {
 		return nil
 	} else {
-		return application.statDbClient
+		return runtime.statDbClient
 	}
 }
 
-func (application *Application) GetAccountCacheClient() gira.DbClient {
-	if application.accountCacheClient == nil {
+func (runtime *Runtime) GetAccountCacheClient() gira.DbClient {
+	if runtime.accountCacheClient == nil {
 		return nil
 	} else {
-		return application.accountCacheClient
+		return runtime.accountCacheClient
 	}
 }
 
-func (application *Application) GetAdminCacheClient() gira.DbClient {
-	if application.adminCacheClient == nil {
+func (runtime *Runtime) GetAdminCacheClient() gira.DbClient {
+	if runtime.adminCacheClient == nil {
 		return nil
 	} else {
-		return application.adminCacheClient
+		return runtime.adminCacheClient
 	}
 }
 
-func (application *Application) GetResourceDbClient() gira.DbClient {
-	if application.resourceDbClient == nil {
+func (runtime *Runtime) GetResourceDbClient() gira.DbClient {
+	if runtime.resourceDbClient == nil {
 		return nil
 	} else {
-		return application.resourceDbClient
+		return runtime.resourceDbClient
 	}
 }
 
-func (application *Application) GetAdminDbClient() gira.DbClient {
-	if application.adminDbClient == nil {
+func (runtime *Runtime) GetAdminDbClient() gira.DbClient {
+	if runtime.adminDbClient == nil {
 		return nil
 	} else {
-		return application.adminDbClient
+		return runtime.adminDbClient
 	}
 }
 
 // ================== gira.Cron ==================
-func (application *Application) GetCron() gira.Cron {
-	if application.cron == nil {
+func (runtime *Runtime) GetCron() gira.Cron {
+	if runtime.cron == nil {
 		return nil
 	} else {
-		return application.cron
+		return runtime.cron
 	}
 }

@@ -56,12 +56,12 @@ OnFrameworkStop
 
 type Framework interface {
 	OnFrameworkConfigLoad(c *Config) error
-	OnFrameworkCreate(application Application) error
+	OnFrameworkCreate() error
 	OnFrameworkStart() error
 	OnFrameworkStop() error
 }
 
-type ApplicationFacade interface {
+type Application interface {
 	// ======= 生命周期回调 ===========
 	// 配置加载完成后接收通知
 	OnConfigLoad(c *Config) error
@@ -79,11 +79,10 @@ type ApplicationArgs struct {
 	BuildTime           int64
 	AppVersion          string
 	RespositoryVersion1 string
-	Facade              ApplicationFacade
+	Application         Application
 }
 
-type Application interface {
-
+type Runtime interface {
 	// ======= 状态数据 ===========
 	GetConfig() *Config
 	GetAppType() string
@@ -106,6 +105,7 @@ type Application interface {
 	Done() <-chan struct{}
 
 	Frameworks() []Framework
+	Application() Application
 
 	// ======= 组件 ===========
 	GetServiceContainer() ServiceContainer
@@ -113,20 +113,22 @@ type Application interface {
 	GetCron() Cron
 	GetGrpcServer() GrpcServer
 	GetRegistry() Registry
-	GetResourceSource() ResourceSource
 	GetRegistryClient() RegistryClient
 }
 
 // 当前正在运行的应用
-var application Application
+var runtime Runtime
 
-func App() Application {
-	return application
+func GetRuntime() Runtime {
+	return runtime
+}
+func GetApplication() Application {
+	return runtime.Application()
 }
 
 // 创建完成时回调
-func OnApplicationCreate(app Application) {
-	application = app
+func OnApplicationCreate(r Runtime) {
+	runtime = r
 }
 
 func FormatAppFullName(appType string, appId int32, zone string, env string) string {

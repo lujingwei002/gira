@@ -43,8 +43,6 @@ type Registry struct {
 	client      *clientv3.Client
 	ctx         context.Context
 	cancelFunc  context.CancelFunc
-	// frameworks              []gira.Framework
-	// application             gira.ApplicationFacade
 
 	localPlayerWatchHandlers []gira.LocalPlayerWatchHandler
 	peerWatchHandlers        []gira.PeerWatchHandler

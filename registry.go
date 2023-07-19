@@ -36,10 +36,6 @@ type RegistryClient interface {
 	WhereIsPeer(appFullName string) (*Peer, error)
 }
 
-type RegistryComponent interface {
-	GetRegistry() Registry
-}
-
 // 伙伴节点
 type Peer struct {
 	Name     string // 服务类型
