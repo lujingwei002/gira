@@ -447,8 +447,8 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 		var txnResp *clientv3.TxnResponse
 		txn := kv.Txn(self.ctx)
 		key := fmt.Sprintf("%s%s", self.selfPrefix, name)
-		// tx := txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
-		tx := txn.If(clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
+		tx := txn.If(clientv3.Compare(clientv3.Value(key), "!=", value), clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
+			// tx := txn.If(clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
 			Then(clientv3.OpGet(key))
 		if leaseID != 0 {
 			tx.Else(clientv3.OpGet(key), clientv3.OpPut(key, value, clientv3.WithLease(leaseID)))
@@ -469,8 +469,11 @@ func (self *peer_registry) registerSelf(r *Registry) error {
 				}
 				log.Debugw("peer registry register peer", "key", key, "value", value)
 			} else {
-				log.Debugw("peer registry resume peer", "key", key, "value", value)
-				return errors.New("peer already regist", "key", key)
+				if name == GRPC_KEY {
+					self.selfRevision = txnResp.Responses[1].GetResponsePut().Header.Revision
+				}
+				log.Debugw("peer already register", "key", key, "value", value)
+				// return errors.New("peer already regist", "key", key)
 			}
 		}
 	}
