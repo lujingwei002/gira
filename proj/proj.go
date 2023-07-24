@@ -88,6 +88,7 @@ type DirConfigs struct {
 	SrcGenResourceDir    string // src/gen/resource/
 	SrcGenBehaviorDir    string // src/gen/behavior/
 	GenBehaviorDir       string // gen/behavior/
+	GenResourceDir       string // gen/resource/
 	ExcelDir             string // doc/resource/
 	ConstDocFilePath     string // doc/const.yaml
 	DocResourceFilePath  string // doc/resource.yaml
@@ -177,6 +178,7 @@ func (c *DirConfigs) init() error {
 	c.SrcGenProtocolDir = path.Join(c.SrcGenDir, "protocol")
 	c.SrcGenBehaviorDir = path.Join(c.SrcGenDir, "behavior")
 	c.GenBehaviorDir = path.Join(c.GenDir, "behavior")
+	c.GenResourceDir = path.Join(c.GenDir, "resource")
 	c.ExcelDir = path.Join(c.DocDir, "resource")
 	c.ConstDocFilePath = path.Join(c.DocDir, "const.yaml")
 	c.DocResourceFilePath = path.Join(c.DocDir, "resource.yaml")
