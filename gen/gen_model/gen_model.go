@@ -688,6 +688,12 @@ func (self *<<.MongoDaoStructName>>) InsertOne(ctx context.Context, doc *<<.Data
 	result, err := coll.InsertOne(ctx, doc, opts...)
 	return result, err
 }
+
+func (self *<<.MongoDaoStructName>>) GetCollection() *mongo.Collection {
+	database := self.db.database
+	coll := database.Collection("<<.CollName>>")
+	return coll
+}
 <<- if .IsDeriveUser>>
 
 func (self *<<.MongoDaoStructName>>) Save(ctx context.Context, doc *<<.StructName>>) error {
