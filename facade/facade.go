@@ -31,7 +31,7 @@ func GetBuildTime() int64 {
 
 // 返回resource版本
 func GetResVersion() string {
-	application := gira.GetRuntime()
+	application := gira.GetApplication()
 	if c, ok := application.(gira.ResourceSource); !ok {
 		return ""
 	} else if r := c.GetResourceLoader(); r == nil {
@@ -43,7 +43,7 @@ func GetResVersion() string {
 
 // 返回resource loader版本
 func GetLoaderVersion() string {
-	application := gira.GetRuntime()
+	application := gira.GetApplication()
 	if c, ok := application.(gira.ResourceSource); !ok {
 		return ""
 	} else if r := c.GetResourceLoader(); r == nil {
