@@ -320,16 +320,55 @@ func (self *<<.LoaderStructName>>) LoadResource(ctx context.Context, client gira
 	<<- end>>
 	<<- end>>
 	if self.handler != nil {
+		self.handler.OnResourcePreLoad(false)
 		if err := self.convert(self.handler); err != nil {
 			return err
 		}
+		self.handler.OnResourcePostLoad(false)
+	}
+	return nil
+}
+
+// 根据bundle的类型，从相应的源中加载资源
+func (self *<<.LoaderStructName>>) ReloadResource(ctx context.Context, client gira.DbClient, dir string, compress bool) error {
+	if err := self.LoadVersion(dir); err != nil {
+		return err
+	}
+	<<- range .BundleArr>>
+	<<- if eq .BundleType "db">>
+	if err := self.<<.BundleStructName>>.LoadFromDb(ctx, client); err != nil {
+		return err
+	}
+	<<- end>>
+	<<- if eq .BundleType "raw">>
+	if compress {
+		if err := self.<<.BundleStructName>>.LoadFromBin(dir); err != nil {
+			return err
+		}
+	} else {
+		if err := self.<<.BundleStructName>>.LoadFromYaml(dir); err != nil {
+			return err
+		}
+	}
+	<<- end>>
+	<<- if eq .BundleType "bin">>
+	if err := self.<<.BundleStructName>>.LoadFromBin(dir); err != nil {
+		return err
+	}
+	<<- end>>
+	<<- end>>
+	if self.handler != nil {
+		self.handler.OnResourcePreLoad(true)
+		if err := self.convert(self.handler); err != nil {
+			return err
+		}
+		self.handler.OnResourcePostLoad(true)
 	}
 	return nil
 }
 
 // 加载成功后，对配置进行处理
 func (self *<<.LoaderStructName>>) convert(handler gira.ResourceHandler) error {
-	handler.OnResourcePreLoad()
 	h := handler.(<<.HandlerStructName>>)
 	<<- range .BundleArr>>
 		<<- $bundleStructName := .BundleStructName>>
@@ -339,7 +378,7 @@ func (self *<<.LoaderStructName>>) convert(handler gira.ResourceHandler) error {
 	}
 		<<- end>>
 	<<- end>>
-	handler.OnResourcePostLoad()
+	
 	return nil
 }
 <<end>>

@@ -503,7 +503,7 @@ func (runtime *Runtime) onCreate() error {
 			if err := runtime.resourceLoader.LoadResource(runtime.ctx, runtime.resourceDbClient, path.Join("resource", "conf"), runtime.config.Resource.Compress); err != nil {
 				return err
 			} else {
-				resourceComponent.OnResourcePostLoad()
+				resourceComponent.OnResourcePostLoad(false)
 			}
 		}
 	}

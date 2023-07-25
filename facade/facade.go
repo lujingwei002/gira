@@ -132,10 +132,10 @@ func ReloadResource() error {
 	} else if r := s.GetResourceLoader(); r == nil {
 		return errors.ErrResourceManagerNotImplement
 	} else {
-		if err := r.LoadResource(runtime.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress); err != nil {
+		if err := r.ReloadResource(runtime.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress); err != nil {
 			return err
 		} else {
-			s.OnResourcePostLoad()
+			s.OnResourcePostLoad(true)
 			return nil
 		}
 	}

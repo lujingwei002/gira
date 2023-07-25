@@ -10,6 +10,8 @@ import (
 type ResourceLoader interface {
 	// 加载资源
 	LoadResource(ctx context.Context, client DbClient, dir string, compress bool) error
+	// 加载资源
+	ReloadResource(ctx context.Context, client DbClient, dir string, compress bool) error
 	// 配置版本
 	GetResVersion() string
 	// loader版本
@@ -18,8 +20,8 @@ type ResourceLoader interface {
 
 // loader加载完成后，由handler进行转换处理
 type ResourceHandler interface {
-	OnResourcePreLoad()
-	OnResourcePostLoad()
+	OnResourcePreLoad(reload bool)
+	OnResourcePostLoad(reload bool)
 }
 
 // application需要实现的接口，返回loader,和接收loader的事件回调
@@ -27,7 +29,7 @@ type ResourceSource interface {
 	// 返回资源加载器
 	GetResourceLoader() ResourceLoader
 	// 资源加载完成
-	OnResourcePostLoad()
+	OnResourcePostLoad(reload bool)
 }
 
 func Make1Key_int[T any](arr []*T, dict map[int]*T, key string) error {
