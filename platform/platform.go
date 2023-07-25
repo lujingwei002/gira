@@ -27,9 +27,6 @@ func NewConfigSdk(config gira.PlatformConfig) *PlatformSdk {
 		self.ultraSdk = NewConfigUltraSdk(*config.Ultra)
 		self.sdkDict["ultra"] = NewConfigUltraSdk(*config.Ultra)
 	}
-	if config.Ultra2 != nil {
-		self.sdkDict["ultra2"] = NewConfigUltraSdk(*config.Ultra2)
-	}
 	return self
 }
 

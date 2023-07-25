@@ -197,10 +197,9 @@ type UltraPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
 type PlatformConfig struct {
-	Test   *TestPlatformConfig  `yaml:"test"`
-	Pwd    *PwdPlatformConfig   `yaml:"pwd"`
-	Ultra  *UltraPlatformConfig `yaml:"ultra"`
-	Ultra2 *UltraPlatformConfig `yaml:"ultra2"`
+	Test  *TestPlatformConfig  `yaml:"test"`
+	Pwd   *PwdPlatformConfig   `yaml:"pwd"`
+	Ultra *UltraPlatformConfig `yaml:"ultra"`
 }
 
 type GrpcConfig struct {
