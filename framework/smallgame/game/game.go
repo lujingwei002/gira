@@ -16,7 +16,7 @@ type Player interface {
 	// 断开连接,登出
 	Logout(ctx context.Context) error
 	// 保存数据
-	Save(ctx context.Context) error
+	BgSave(ctx context.Context) error
 	Update()
 }
 

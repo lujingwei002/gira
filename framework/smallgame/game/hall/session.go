@@ -238,7 +238,7 @@ func (session *hall_sesssion) bgSave() {
 		}
 	}()
 	session.mu.Lock()
-	session.player.Save(session.ctx)
+	session.player.BgSave(session.ctx)
 }
 
 // 加载数据
