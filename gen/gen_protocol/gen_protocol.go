@@ -312,7 +312,7 @@ func (self *Client) readRoutine() error {
 				}
 			case gira.GatewayMessageType_PUSH:
 				name, _, resp, err := self.proto.PushDecode(data)
-				log.Infow("recv push message", "name", name, "data", resp)
+				log.Debugw("recv push message", "name", name, "data", resp)
 				handlerCount := 0
 				if dict, ok := self.onPushDict[name]; ok {
 					dict.Range(func(k any, v any) bool {
