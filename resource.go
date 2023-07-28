@@ -28,6 +28,7 @@ type ResourceHandler interface {
 type ResourceSource interface {
 	// 返回资源加载器
 	GetResourceLoader() ResourceLoader
+	OnResourcePreLoad(reload bool)
 	// 资源加载完成
 	OnResourcePostLoad(reload bool)
 }

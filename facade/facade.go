@@ -132,6 +132,7 @@ func ReloadResource() error {
 	} else if r := s.GetResourceLoader(); r == nil {
 		return errors.ErrResourceManagerNotImplement
 	} else {
+		s.OnResourcePreLoad(true)
 		if err := r.ReloadResource(runtime.Context(), GetResourceDbClient(), path.Join("resource", "conf"), GetConfig().Resource.Compress); err != nil {
 			return err
 		} else {

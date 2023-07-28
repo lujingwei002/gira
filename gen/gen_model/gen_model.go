@@ -116,6 +116,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"github.com/go-redis/redis/v8"
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/db"
@@ -505,7 +507,21 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 	return nil
 }
 
-
+func (self *<<.MongoDaoStructName>>) WithTransaction(ctx context.Context, transactionFn func(sessCtx mongo.SessionContext) (interface{}, error)) (interface{}, error) {
+	readConcern := readconcern.Majority()
+	writeConcern := writeconcern.New(writeconcern.WMajority())
+	session, err := self.client.StartSession(options.Session().SetDefaultReadConcern(readConcern).SetDefaultWriteConcern(writeConcern))
+	if err != nil {
+		return nil, err
+	}
+	defer session.EndSession(ctx)
+	// database := self.db.database
+	result, err := session.WithTransaction(ctx, transactionFn)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
 
 <<- range .CollectionArr>> 
 

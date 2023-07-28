@@ -24,6 +24,12 @@ type ResourceAnnotate struct {
 	Object []string
 }
 
+type resources_annotate struct {
+	Resources string
+	Version   string
+	Import    []string
+}
+
 func (p *golang_parser) extraResourceAnnotate(filePath string, fset *token.FileSet, name string, s *ast.StructType, comments []*ast.Comment) (*ResourceAnnotate, error) {
 	values := make(map[string]interface{})
 	lines := make([]string, 0)
@@ -122,11 +128,6 @@ func (p *golang_parser) extraLoadersAnnotate(fset *token.FileSet, filePath strin
 	return annotates, nil
 }
 
-type resources_annotate struct {
-	Resources string
-	Version   string
-}
-
 func (p *golang_parser) extraResourcesAnnotate(fset *token.FileSet, filePath string, s *ast.StructType, name string, comments []*ast.Comment) (*resources_annotate, error) {
 	values := make(map[string]interface{})
 	lines := make([]string, 0)
@@ -156,6 +157,15 @@ func (p *golang_parser) extraResourcesAnnotate(fset *token.FileSet, filePath str
 		return nil, p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s version annotate must string", name))
 	} else {
 		annotates.Version = str
+	}
+	if v, ok := values["import"]; ok {
+		if arr, ok := v.([]interface{}); !ok {
+			return nil, p.newAstError(fset, filePath, s.Pos(), fmt.Sprintf("%s import annotate must string array", name))
+		} else {
+			for _, str := range arr {
+				annotates.Import = append(annotates.Import, str.(string))
+			}
+		}
 	}
 	return annotates, nil
 }
@@ -468,6 +478,7 @@ func (p *golang_parser) parseResourcesStruct(state *gen_state, filePath string, 
 		return nil
 	} else {
 		state.ResVersion = annotations.Version
+		state.ImportArr = annotations.Import
 	}
 	for _, field := range s.Fields.List {
 		if err := p.parseResourceStruct(state, filePath, fileContent, fset, field.Names[0].Name, field.Doc, field.Type.(*ast.StructType)); err != nil {

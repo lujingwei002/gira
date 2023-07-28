@@ -718,6 +718,7 @@ const (
 	field_type_float_arr
 	field_type_struct
 	field_type_float
+	field_type_object_id
 )
 
 type resource_type int
@@ -741,6 +742,7 @@ var type_name_dict = map[string]field_type{
 	"string[]": field_type_string_arr,
 	"int[]":    field_type_int_arr,
 	"float[]":  field_type_float_arr,
+	"id":       field_type_object_id,
 }
 
 // 和go类型的对应关系
@@ -755,6 +757,7 @@ var go_type_name_dict = map[field_type]string{
 	field_type_string_arr: "[]string",
 	field_type_int_arr:    "[]int64",
 	field_type_float_arr:  "[]float64",
+	field_type_object_id:  "primitive.ObjectID",
 }
 
 var resource_type_name_dict = map[string]resource_type{
@@ -950,12 +953,16 @@ func (r *Resource) readExcel(filePath string) error {
 			// 字段类型
 			if realType, ok := type_name_dict[typeRow[index]]; ok {
 				field := &Field{
-					FieldName:       v,
-					StructFieldName: capUpperString(camelString(v)),
-					Type:            realType,
-					Tag:             index,
-					GoTypeName:      go_type_name_dict[realType],
-					Comment:         comment,
+					FieldName:  v,
+					Type:       realType,
+					Tag:        index,
+					GoTypeName: go_type_name_dict[realType],
+					Comment:    comment,
+				}
+				if v == "_id" {
+					field.StructFieldName = "Id"
+				} else {
+					field.StructFieldName = capUpperString(camelString(v))
 				}
 				r.FieldArr = append(r.FieldArr, field)
 				r.FieldDict[v] = field
