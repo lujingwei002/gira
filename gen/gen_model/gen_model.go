@@ -1,6 +1,7 @@
 package gen_model
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -582,7 +583,7 @@ func (self *<<.MongoDaoStructName>>) Migrate(ctx context.Context, opts ...db.Mig
 	if _, ok := own["<<.FullName>>"]; !ok {
 		keys := bson.D{
 			<<- range .KeyArr>> 
-			{Key: "<<.Key>>", Value: <<.Value>>},
+			{Key: "<<.Key>>", Value: <<.Val>>},
 			<<- end>>
 		}
 		corelog.Printf("[+]%s.<<.FullName>>", collName)
@@ -1085,6 +1086,15 @@ func camelString(s string) string {
 type Key struct {
 	Key   string
 	Value interface{}
+}
+
+func (k *Key) Val() interface{} {
+	switch v := k.Value.(type) {
+	case string:
+		return fmt.Sprintf("\"%s\"", v)
+	default:
+		return v
+	}
 }
 
 type Index struct {

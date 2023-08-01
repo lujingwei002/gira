@@ -509,10 +509,10 @@ func (p *golang_parser) parseIndexStruct(state *gen_state, coll *Collection, fil
 				}
 				v := f1.Tag.Value
 				v = strings.Replace(v, "`", "", 2)
-				if _, err = strconv.Atoi(v); err != nil {
-					return p.newAstError(fset, filePath, f.Pos(), fmt.Sprintf("%s %s %s tag invalid %s", structName, indexName, k, err))
-				}
 				indexKey := &Key{Key: k, Value: v}
+				if i, err := strconv.Atoi(v); err == nil {
+					indexKey.Value = i
+				}
 				index.KeyDict[k] = indexKey
 				index.KeyArr = append(index.KeyArr, indexKey)
 				if len(index.KeyDict) == 1 {
