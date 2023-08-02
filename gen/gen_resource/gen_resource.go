@@ -748,7 +748,7 @@ var type_name_dict = map[string]field_type{
 // 和go类型的对应关系
 var go_type_name_dict = map[field_type]string{
 	field_type_int:        "int64",
-	field_type_float:      "float32",
+	field_type_float:      "float64",
 	field_type_int64:      "int64",
 	field_type_int32:      "int32",
 	field_type_string:     "string",
