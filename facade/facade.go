@@ -383,6 +383,16 @@ func GetAccountCacheClient() gira.DbClient {
 	}
 }
 
+// 返回预定义的gamecache client
+func GetGameCacheClient() gira.DbClient {
+	application := gira.GetRuntime()
+	if c, ok := application.(gira.DbClientComponent); ok {
+		return c.GetGameCacheClient()
+	} else {
+		return nil
+	}
+}
+
 // 返回预定义的gamedb client
 func GetGameDbClient() gira.DbClient {
 	application := gira.GetRuntime()

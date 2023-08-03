@@ -93,6 +93,7 @@ type Runtime struct {
 	statDbClient       gira.DbClient
 	resourceDbClient   gira.DbClient
 	accountCacheClient gira.DbClient
+	gameCacheClient    gira.DbClient
 	adminCacheClient   gira.DbClient
 	adminDbClient      gira.DbClient
 	platformSdk        *platform.PlatformSdk
@@ -490,6 +491,8 @@ func (runtime *Runtime) onCreate() error {
 				runtime.adminCacheClient = client
 			} else if name == gira.ADMINDB_NAME {
 				runtime.adminDbClient = client
+			} else if name == gira.GAMECACHE_NAME {
+				runtime.gameCacheClient = client
 			}
 		}
 	}
@@ -776,6 +779,14 @@ func (runtime *Runtime) GetAccountCacheClient() gira.DbClient {
 		return nil
 	} else {
 		return runtime.accountCacheClient
+	}
+}
+
+func (runtime *Runtime) GetGameCacheClient() gira.DbClient {
+	if runtime.gameCacheClient == nil {
+		return nil
+	} else {
+		return runtime.gameCacheClient
 	}
 }
 

@@ -126,6 +126,7 @@ import (
 	"github.com/lujingwei002/gira/corelog"
 	"context"
 	"encoding/json"
+	"strconv"
 	"fmt"
 	"time"
 	<<- range .ImportArr>> 
@@ -250,6 +251,61 @@ func (self *<<.DataStructName>>) MarshalProtobuf(pb *<<.PbStructName>>) error {
 	<<- end>>
 	<<- end>>
 	return nil
+}
+
+func (self *<<.DataStructName>>) MarshalMap() map[string]interface{} {
+	return map[string]interface{} {
+		<<- range .FieldArr>> 
+		<<- if eq .TypeName "id" >>
+		"<<.Name>>": self.<<.CamelName>>.Hex(), 
+		<<- else if .IsStruct >>
+		<<- else>>
+		"<<.Name>>": self.<<.CamelName>>, 
+		<<- end>>
+		<<- end>>
+	}
+}
+
+func (self *<<.DataStructName>>) UnmarshalMap(values map[string]interface{}) {
+	<<- range .FieldArr>> 
+	<<- if eq .TypeName "id" >>
+	if v, ok := values["<<.Name>>"]; ok {
+		switch s := v.(type) {
+		case string:
+			self.<<.CamelName>>, _ = primitive.ObjectIDFromHex(s)
+		default:
+		}
+	}
+	<<- else if .IsStruct >>
+	<<- else if .IsString>>
+	if v, ok := values["<<.Name>>"]; ok {
+		switch s := v.(type) {
+		case string:
+			self.<<.CamelName>> = s
+		default:
+		}
+	}
+	<<- else if .IsBool>>
+	if v, ok := values["<<.Name>>"]; ok {
+		switch s := v.(type) {
+		case string:
+			self.<<.CamelName>>, _ = strconv.ParseBool(s)
+		default:
+		}
+	}
+	<<- else if .IsNumber>>
+	if v, ok := values["<<.Name>>"]; ok {
+		switch s := v.(type) {
+		case string:
+		if i, err := strconv.ParseInt(s, 10, 0); err == nil {
+				self.<<.CamelName>> = <<.GoTypeName>>(i)
+			}
+		default:
+		}
+	}
+	<<- else>>
+	<<- end>>
+	<<- end>>
 }
 
 func (self* <<.DataStructName>>)MarshalBinary() (data []byte, err error) {
@@ -908,7 +964,6 @@ func (self *<<.RedisDaoStructName>>) New() *<<.DataStructName>> {
 	return doc
 }
 
-
 func (self *<<.RedisDaoStructName>>) Set(ctx context.Context, key primitive.ObjectID, value *<<.DataStructName>>, expiration time.Duration) *redis.StatusCmd {
 	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
 	result := self.db.client.Set(ctx, rkey, value, expiration)
@@ -932,10 +987,22 @@ func (self *<<.RedisDaoStructName>>) Get(ctx context.Context, key primitive.Obje
 	}
 }
 
+func (self *<<.RedisDaoStructName>>) Del(ctx context.Context, key primitive.ObjectID) error {
+	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
+	result := self.db.client.Del(ctx, rkey)
+	if result.Err() != nil {
+		return result.Err()
+	}
+	return nil
+}
 
-
+func (self *<<.RedisDaoStructName>>) CollectionName() string {
+	return "<<.CollName>>"
+}
 
 <<- if .IsDeriveUserArr>>
+
+
 func (self *<<.RedisDaoStructName>>) HSet(ctx context.Context, key primitive.ObjectID, values ...interface{}) *redis.IntCmd {
 	rkey := fmt.Sprintf("%s@<<.CollName>>", key.Hex())
 	result := self.db.client.HSet(ctx, rkey, values...)
@@ -1050,6 +1117,18 @@ func (f *Field) IsComparable() bool {
 
 func (f *Field) IsStruct() bool {
 	return f.Type == field_type_struct
+}
+
+func (f *Field) IsString() bool {
+	return f.Type == field_type_string
+}
+
+func (f *Field) IsNumber() bool {
+	return f.Type == field_type_int || f.Type == field_type_int32 || f.Type == field_type_int64
+}
+
+func (f *Field) IsBool() bool {
+	return f.Type == field_type_bool
 }
 
 func capLowerString(s string) string {

@@ -15,6 +15,7 @@ const (
 	LOGDB_NAME        = "logdb"
 	BEHAVIORDB_NAME   = "behaviordb"
 	ACCOUNTCACHE_NAME = "accountcache"
+	GAMECACHE_NAME    = "gamecache"
 	ADMINCACHE_NAME   = "admincache"
 	ADMINDB_NAME      = "admindb"
 )
@@ -51,6 +52,7 @@ type DbClientComponent interface {
 	GetResourceDbClient() DbClient
 	GetAdminDbClient() DbClient
 	GetAccountCacheClient() DbClient
+	GetGameCacheClient() DbClient
 	GetLogDbClient() DbClient
 	GetBehaviorDbClient() DbClient
 	GetAdminCacheClient() DbClient
