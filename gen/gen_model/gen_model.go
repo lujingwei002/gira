@@ -135,6 +135,7 @@ import (
 )
 
 
+var parseInt = strconv.ParseInt
 
 type <<.DaoInterfaceName>> interface {
 	Migrate(ctx context.Context, opts ...db.MigrateOption) error
