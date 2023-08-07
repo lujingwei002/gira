@@ -44,3 +44,11 @@ func NewResourceDbClient(ctx context.Context) (gira.DbClient, error) {
 		return client, nil
 	}
 }
+
+func NewAdminCacheClient(ctx context.Context) (gira.DbClient, error) {
+	if client, err := db.NewConfigDbClient(ctx, gira.ADMINCACHE_NAME, *Config.Db[gira.ADMINCACHE_NAME]); err != nil {
+		return nil, err
+	} else {
+		return client, nil
+	}
+}
