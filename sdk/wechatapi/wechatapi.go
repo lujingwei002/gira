@@ -2,17 +2,18 @@ package wechatapi
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/lujingwei002/gira/errors"
+	"github.com/lujingwei002/gira/log"
 
 	sts "github.com/tencentyun/qcloud-cos-sts-sdk/go"
 
@@ -20,6 +21,12 @@ import (
 	terrors "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	sms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111" // 引入sms
+
+	// 微信支付
+	"github.com/wechatpay-apiv3/wechatpay-go/core"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/option"
+	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/jsapi"
+	"github.com/wechatpay-apiv3/wechatpay-go/utils"
 )
 
 type JsCode2SessionResponse struct {
@@ -428,4 +435,70 @@ func SmsSend(appId string, secretId string, secretKey string, region string, sig
 	 * 更多错误，可咨询[腾讯云助手](https://tccc.qcloud.com/web/im/index.html#/chat?webAppId=8fa15978f85cb41f7e2ea36920cb3ae1&title=Sms)
 	 */
 	return response, nil
+}
+
+type PayTransactionsJSAPIRequest struct {
+	AppId       string `json:"appid"`
+	MchId       string `json:"mchid"`
+	Description string `json:"description"`
+	OutTradeNo  string `json:"out_trade_no"`
+	NotifyUrl   string `json:"notify_url"`
+	Amount      struct {
+		Total int `json:"total"`
+		// CNY：人民币，境内商户号仅支持人民币。
+		Currency string `json:"currency"`
+	} `json:"amount"`
+	Payer struct {
+		OpenId string `json:"openid"`
+	} `json:"payer"`
+}
+
+type PayTransactionsJSAPIResponse struct {
+	ErrCode  int32  `json:"errcode"`
+	ErrMsg   string `json:"errmsg"`
+	PrepayId string `json:"prepay_id"`
+}
+
+// https://github.com/wechatpay-apiv3/wechatpay-go
+// https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_5_1.shtml
+// 小程序jsapi下单
+func PayTransactionsJSAPI(ctx context.Context, appId string, mchId string, mchAPIv3Key string, certificateSerialNumber string, apiclientKeyPath string, openId string, description string, cpOrderId string, notifyUrl string, amount int64) (*PayTransactionsJSAPIResponse, error) {
+	// 使用 utils 提供的函数从本地文件中加载商户私钥，商户私钥会用来生成请求的签名
+	mchPrivateKey, err := utils.LoadPrivateKeyWithPath(apiclientKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	// 使用商户私钥等初始化 client，并使它具有自动定时获取微信支付平台证书的能力
+	opts := []core.ClientOption{
+		option.WithWechatPayAutoAuthCipher(mchId, certificateSerialNumber, mchPrivateKey, mchAPIv3Key),
+	}
+	client, err := core.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	svc := jsapi.JsapiApiService{Client: client}
+	// 得到prepay_id，以及调起支付所需的参数和签名
+	result, _, err := svc.PrepayWithRequestPayment(ctx,
+		jsapi.PrepayRequest{
+			Appid:       core.String(appId),
+			Mchid:       core.String(mchId),
+			Description: core.String(description),
+			OutTradeNo:  core.String(cpOrderId),
+			NotifyUrl:   core.String(notifyUrl),
+			Amount: &jsapi.Amount{
+				Total: core.Int64(amount),
+			},
+			Payer: &jsapi.Payer{
+				Openid: core.String(openId),
+			},
+		},
+	)
+	if err != nil {
+		log.Warn(err)
+		return nil, err
+	}
+	resp := &PayTransactionsJSAPIResponse{
+		PrepayId: *result.PrepayId,
+	}
+	return resp, nil
 }
