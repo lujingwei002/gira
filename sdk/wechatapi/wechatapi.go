@@ -3,6 +3,7 @@ package wechatapi
 import (
 	"bytes"
 	"context"
+	"crypto/rsa"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -24,6 +25,9 @@ import (
 
 	// 微信支付
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/signers"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/validators"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/downloader"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/option"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/jsapi"
 	"github.com/wechatpay-apiv3/wechatpay-go/utils"
@@ -459,6 +463,37 @@ type PayTransactionsJSAPIResponse struct {
 	PrepayId string `json:"prepay_id"`
 }
 
+func WithWechatPayAutoAuthCipher(
+	mchID string, certificateSerialNo string, privateKey *rsa.PrivateKey, mchAPIv3Key string,
+) core.ClientOption {
+	mgr := downloader.MgrInstance()
+
+	if !mgr.HasDownloader(context.Background(), mchID) {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		c := &http.Client{Transport: tr}
+		settings := core.DialSettings{
+			HTTPClient: c,
+			Signer: &signers.SHA256WithRSASigner{
+				MchID:               mchID,
+				PrivateKey:          privateKey,
+				CertificateSerialNo: certificateSerialNo,
+			},
+			Validator: &validators.NullValidator{},
+		}
+		client, err := core.NewClientWithDialSettings(context.Background(), &settings)
+		if err != nil {
+			return core.ErrorOption{Error: fmt.Errorf("create downloader failed, create client err:%v", err)}
+		}
+		err = mgr.RegisterDownloaderWithClient(context.Background(), client, mchID, mchAPIv3Key)
+		if err != nil {
+			return core.ErrorOption{Error: err}
+		}
+	}
+	return option.WithWechatPayAutoAuthCipherUsingDownloaderMgr(mchID, certificateSerialNo, privateKey, mgr)
+}
+
 // https://github.com/wechatpay-apiv3/wechatpay-go
 // https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_5_1.shtml
 // 小程序jsapi下单
@@ -474,7 +509,7 @@ func PayTransactionsJSAPI(ctx context.Context, appId string, mchId string, mchAP
 	c := &http.Client{Transport: tr}
 	// 使用商户私钥等初始化 client，并使它具有自动定时获取微信支付平台证书的能力
 	opts := []core.ClientOption{
-		option.WithWechatPayAutoAuthCipher(mchId, certificateSerialNumber, mchPrivateKey, mchAPIv3Key),
+		WithWechatPayAutoAuthCipher(mchId, certificateSerialNumber, mchPrivateKey, mchAPIv3Key),
 		option.WithHTTPClient(c),
 	}
 	for _, v := range opts {
