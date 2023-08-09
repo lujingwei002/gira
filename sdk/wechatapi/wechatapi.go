@@ -468,12 +468,21 @@ func PayTransactionsJSAPI(ctx context.Context, appId string, mchId string, mchAP
 	if err != nil {
 		return nil, err
 	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c := &http.Client{Transport: tr}
 	// 使用商户私钥等初始化 client，并使它具有自动定时获取微信支付平台证书的能力
 	opts := []core.ClientOption{
 		option.WithWechatPayAutoAuthCipher(mchId, certificateSerialNumber, mchPrivateKey, mchAPIv3Key),
+		option.WithHTTPClient(c),
+	}
+	for _, v := range opts {
+		log.Println(v)
 	}
 	client, err := core.NewClient(ctx, opts...)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 	svc := jsapi.JsapiApiService{Client: client}
