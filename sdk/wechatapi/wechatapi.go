@@ -27,8 +27,11 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/signers"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/validators"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/verifiers"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/downloader"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/notify"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/option"
+	"github.com/wechatpay-apiv3/wechatpay-go/services/payments"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/jsapi"
 	"github.com/wechatpay-apiv3/wechatpay-go/utils"
 )
@@ -441,38 +444,16 @@ func SmsSend(appId string, secretId string, secretKey string, region string, sig
 	return response, nil
 }
 
-type PayTransactionsJSAPIRequest struct {
-	AppId       string `json:"appid"`
-	MchId       string `json:"mchid"`
-	Description string `json:"description"`
-	OutTradeNo  string `json:"out_trade_no"`
-	NotifyUrl   string `json:"notify_url"`
-	Amount      struct {
-		Total int `json:"total"`
-		// CNY：人民币，境内商户号仅支持人民币。
-		Currency string `json:"currency"`
-	} `json:"amount"`
-	Payer struct {
-		OpenId string `json:"openid"`
-	} `json:"payer"`
-}
-
 type PayTransactionsJSAPIResponse struct {
-	ErrCode  int32  `json:"errcode"`
-	ErrMsg   string `json:"errmsg"`
-	PrepayId string `json:"prepay_id"`
-	// 应用ID
-	Appid string `json:"app_d"`
-	// 时间戳
-	TimeStamp string `json:"time_stamp"`
-	// 随机字符串
-	NonceStr string `json:"nonce_str"`
-	// 订单详情扩展字符串
-	Package string `json:"package"`
-	// 签名方式
-	SignType string `json:"sign_type"`
-	// 签名
-	PaySign string `json:"pay_sign"`
+	ErrCode   int32
+	ErrMsg    string
+	PrepayId  *string
+	Appid     *string
+	TimeStamp *string
+	NonceStr  *string
+	Package   *string
+	SignType  *string
+	PaySign   *string
 }
 
 func WithWechatPayAutoAuthCipher(
@@ -554,13 +535,92 @@ func PayTransactionsJSAPI(ctx context.Context, appId string, mchId string, mchAP
 		return nil, err
 	}
 	resp := &PayTransactionsJSAPIResponse{
-		PrepayId:  *result.PrepayId,
-		Appid:     *result.Appid,
-		TimeStamp: *result.TimeStamp,
-		NonceStr:  *result.NonceStr,
-		Package:   *result.Package,
-		SignType:  *result.SignType,
-		PaySign:   *result.PaySign,
+		PrepayId:  result.PrepayId,
+		Appid:     result.Appid,
+		TimeStamp: result.TimeStamp,
+		NonceStr:  result.NonceStr,
+		Package:   result.Package,
+		SignType:  result.SignType,
+		PaySign:   result.PaySign,
+	}
+	return resp, nil
+}
+
+type PayTransactionsJSAPINotifyResponse struct {
+	ErrCode         int32
+	ErrMsg          string
+	Amount          *payments.TransactionAmount
+	Appid           *string
+	Attach          *string
+	BankType        *string
+	Mchid           *string
+	OutTradeNo      *string
+	Payer           *payments.TransactionPayer
+	PromotionDetail []payments.PromotionDetail
+	SuccessTime     *string
+	TradeState      *string
+	TradeStateDesc  *string
+	TradeType       *string
+	TransactionId   *string
+}
+
+func PayTransactionsJSAPINotify(ctx context.Context, appId string, mchId string, mchAPIv3Key string, certificateSerialNumber string, apiclientKeyPath string, request *http.Request) (*PayTransactionsJSAPINotifyResponse, error) {
+	mchPrivateKey, err := utils.LoadPrivateKeyWithPath(apiclientKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c := &http.Client{Transport: tr}
+	settings := core.DialSettings{
+		HTTPClient: c,
+		Signer: &signers.SHA256WithRSASigner{
+			MchID:               mchId,
+			PrivateKey:          mchPrivateKey,
+			CertificateSerialNo: certificateSerialNumber,
+		},
+		Validator: &validators.NullValidator{},
+	}
+	client, err := core.NewClientWithDialSettings(ctx, &settings)
+	if err != nil {
+		log.Warn(err)
+		return nil, err
+	}
+	err = downloader.MgrInstance().RegisterDownloaderWithClient(ctx, client, mchId, mchAPIv3Key)
+	if err != nil {
+		log.Warn(err)
+		return nil, err
+	}
+	// 2. 获取商户号对应的微信支付平台证书访问器
+	certificateVisitor := downloader.MgrInstance().GetCertificateVisitor(mchId)
+	// 3. 使用证书访问器初始化 `notify.Handler`
+	handler := notify.NewNotifyHandler(mchAPIv3Key, verifiers.NewSHA256WithRSAVerifier(certificateVisitor))
+
+	transaction := new(payments.Transaction)
+	notifyReq, err := handler.ParseNotifyRequest(context.Background(), request, transaction)
+	// 如果验签未通过，或者解密失败
+	if err != nil {
+		log.Warn(err)
+		return nil, err
+	}
+	// 处理通知内容
+	fmt.Println(notifyReq.Summary)
+	fmt.Println(transaction.TransactionId)
+	resp := &PayTransactionsJSAPINotifyResponse{
+		Amount:          transaction.Amount,
+		Appid:           transaction.Appid,
+		Attach:          transaction.Attach,
+		BankType:        transaction.BankType,
+		Mchid:           transaction.Mchid,
+		OutTradeNo:      transaction.OutTradeNo,
+		Payer:           transaction.Payer,
+		PromotionDetail: transaction.PromotionDetail,
+		SuccessTime:     transaction.SuccessTime,
+		TradeState:      transaction.TradeState,
+		TradeStateDesc:  transaction.TradeStateDesc,
+		TradeType:       transaction.TradeType,
+		TransactionId:   transaction.TransactionId,
 	}
 	return resp, nil
 }
