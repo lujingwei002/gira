@@ -461,6 +461,18 @@ type PayTransactionsJSAPIResponse struct {
 	ErrCode  int32  `json:"errcode"`
 	ErrMsg   string `json:"errmsg"`
 	PrepayId string `json:"prepay_id"`
+	// 应用ID
+	Appid string `json:"app_d"`
+	// 时间戳
+	TimeStamp string `json:"time_stamp"`
+	// 随机字符串
+	NonceStr string `json:"nonce_str"`
+	// 订单详情扩展字符串
+	Package string `json:"package"`
+	// 签名方式
+	SignType string `json:"sign_type"`
+	// 签名
+	PaySign string `json:"pay_sign"`
 }
 
 func WithWechatPayAutoAuthCipher(
@@ -542,7 +554,13 @@ func PayTransactionsJSAPI(ctx context.Context, appId string, mchId string, mchAP
 		return nil, err
 	}
 	resp := &PayTransactionsJSAPIResponse{
-		PrepayId: *result.PrepayId,
+		PrepayId:  *result.PrepayId,
+		Appid:     *result.Appid,
+		TimeStamp: *result.TimeStamp,
+		NonceStr:  *result.NonceStr,
+		Package:   *result.Package,
+		SignType:  *result.SignType,
+		PaySign:   *result.PaySign,
 	}
 	return resp, nil
 }
