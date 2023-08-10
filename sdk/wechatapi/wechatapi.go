@@ -605,8 +605,7 @@ func PayTransactionsJSAPINotify(ctx context.Context, appId string, mchId string,
 		return nil, err
 	}
 	// 处理通知内容
-	fmt.Println(notifyReq.Summary)
-	fmt.Println(transaction.TransactionId)
+	log.Println(notifyReq.Summary)
 	resp := &PayTransactionsJSAPINotifyResponse{
 		Amount:          transaction.Amount,
 		Appid:           transaction.Appid,
