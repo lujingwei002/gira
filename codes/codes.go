@@ -42,7 +42,7 @@ const (
 	msg_NullObject                     = "null object"
 	msg_InvalidSdkToken                = "无效的sdk token"
 	msg_InvalidArgs                    = "无效参数"
-	msg_InvalidJwt                     = "无效的token"
+	msg_InvalidJwt                     = "请重新登录"
 	msg_JwtExpire                      = "token已过期"
 	msg_TODO                           = "TODO"
 	msg_InvalidPassword                = "inivalid password"
