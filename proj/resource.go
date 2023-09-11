@@ -7,11 +7,11 @@ import (
 	"github.com/lujingwei002/gira"
 )
 
-func LoadResource(ctx context.Context, loader gira.ResourceLoader) error {
+func LoadResource(ctx context.Context, loader gira.ResourceLoader, compress bool) error {
 	// 连接resourcedb
 	if resourceDbClient, err := NewResourceDbClient(ctx); err != nil {
 		return err
-	} else if err := loader.LoadResource(ctx, resourceDbClient, path.Join(Dir.ResourceDir, "conf"), false); err != nil {
+	} else if err := loader.LoadResource(ctx, resourceDbClient, path.Join(Dir.ResourceDir, "conf"), compress); err != nil {
 		return err
 	} else {
 		return nil
