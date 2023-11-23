@@ -8,6 +8,7 @@ import (
 	"github.com/lujingwei002/gira/codes"
 	log "github.com/lujingwei002/gira/corelog"
 	"github.com/lujingwei002/gira/errors"
+	"github.com/lujingwei002/gira/platform/douyin"
 	"github.com/lujingwei002/gira/platform/ultra"
 )
 
@@ -26,6 +27,10 @@ func NewConfigSdk(config gira.PlatformConfig) *PlatformSdk {
 	if config.Ultra != nil {
 		self.ultraSdk = NewConfigUltraSdk(*config.Ultra)
 		self.sdkDict["ultra"] = NewConfigUltraSdk(*config.Ultra)
+	}
+	if config.Douyin != nil {
+		self.douyinSdk = NewConfigDouyinSdk(*config.Douyin)
+		self.sdkDict["douyin"] = NewConfigDouyinSdk(*config.Douyin)
 	}
 	return self
 }
@@ -51,6 +56,13 @@ func NewConfigUltraSdk(config gira.UltraPlatformConfig) *UltraSdk {
 	return self
 }
 
+func NewConfigDouyinSdk(config gira.DouyinPlatformConfig) *DouyinSdk {
+	self := &DouyinSdk{
+		config: config,
+	}
+	return self
+}
+
 // 服务端sdk接口
 type sdk_server interface {
 	Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error)
@@ -58,10 +70,11 @@ type sdk_server interface {
 }
 
 type PlatformSdk struct {
-	testSdk  *TestSdk
-	pwdSdk   *PwdSdk
-	ultraSdk *UltraSdk
-	sdkDict  map[string]sdk_server
+	testSdk   *TestSdk
+	pwdSdk    *PwdSdk
+	ultraSdk  *UltraSdk
+	douyinSdk *DouyinSdk
+	sdkDict   map[string]sdk_server
 }
 
 func (self *PlatformSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
@@ -192,4 +205,25 @@ func (self *UltraSdk) PayOrderCheck(accountPlat string, args map[string]interfac
 		}
 		return result, nil
 	}
+}
+
+type DouyinSdk struct {
+	config gira.DouyinPlatformConfig
+}
+
+func (self *DouyinSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
+	log.Infow("douyin sdk login", "open_id", openId, "token", token, "app_id", appId, "app_secret", appSecret, "auth_url", authUrl)
+	if resp, err := douyin.JsCode2Session(appId, appSecret, token, ""); err != nil {
+		return nil, err
+	} else {
+		result := &gira.SdkAccount{
+			OpenId:   resp.Data.OpenId,
+			NickName: "",
+		}
+		return result, nil
+	}
+}
+
+func (self *DouyinSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
+	return nil, errors.ErrTODO
 }

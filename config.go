@@ -189,6 +189,7 @@ type GatewayConfig struct {
 type TestPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
+
 type PwdPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
@@ -196,10 +197,16 @@ type PwdPlatformConfig struct {
 type UltraPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
+
+type DouyinPlatformConfig struct {
+	Secret string `yaml:"secret"`
+}
+
 type PlatformConfig struct {
-	Test  *TestPlatformConfig  `yaml:"test"`
-	Pwd   *PwdPlatformConfig   `yaml:"pwd"`
-	Ultra *UltraPlatformConfig `yaml:"ultra"`
+	Test   *TestPlatformConfig   `yaml:"test"`
+	Pwd    *PwdPlatformConfig    `yaml:"pwd"`
+	Ultra  *UltraPlatformConfig  `yaml:"ultra"`
+	Douyin *DouyinPlatformConfig `yaml:"douyin"`
 }
 
 type GrpcConfig struct {
