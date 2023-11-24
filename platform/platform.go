@@ -215,9 +215,11 @@ func (self *DouyinSdk) Login(accountPlat string, openId string, token string, au
 	log.Infow("douyin sdk login", "open_id", openId, "token", token, "app_id", appId, "app_secret", appSecret, "auth_url", authUrl)
 	if resp, err := douyin.JsCode2Session(appId, appSecret, token, ""); err != nil {
 		return nil, err
+	} else if resp.Error != 0 {
+		return nil, errors.New(resp.ErrMsg)
 	} else {
 		result := &gira.SdkAccount{
-			OpenId:   resp.Data.OpenId,
+			OpenId:   resp.OpenId,
 			NickName: "",
 		}
 		return result, nil

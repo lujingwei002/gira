@@ -1,13 +1,12 @@
 package douyin
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"net/url"
 )
 
 type JsCode2SessionRequest struct {
@@ -18,13 +17,13 @@ type JsCode2SessionRequest struct {
 }
 
 type JsCode2SessionResponse struct {
-	ErrCode int32  `json:"err_code"`
-	ErrMsg  string `json:"err_tips"`
-	Data    struct {
-		OpenId          string `json:"openid"`
-		AnonymousOpenId string `json:"anonymous_openid"`
-		SessionKey      string `json:"session_key"`
-	} `json:"data"`
+	Error           int32  `json:"error"`
+	ErrCode         int32  `json:"errcode"`
+	ErrMsg          string `json:"errmsg"`
+	Message         string `json:"message"`
+	OpenId          string `json:"openid"`
+	AnonymousOpenId string `json:"anonymous_openid"`
+	SessionKey      string `json:"session_key"`
 }
 
 // https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/guide/game-engine/rd-to-SCgame/server/log-in/code-2-session
@@ -34,23 +33,20 @@ func JsCode2Session(appId string, secret string, code string, anonymousCode stri
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	host := "https://minigame.zijieapi.com"
-	url := fmt.Sprintf("%s/mgplatform/api/apps/jscode2session", host)
-	req := &JsCode2SessionRequest{
-		AppId:         appId,
-		Secret:        secret,
-		Code:          code,
-		AnonymousCode: anonymousCode,
-	}
+	params := url.Values{}
+	params.Set("appid", appId)
+	params.Set("secret", secret)
+	params.Set("code", code)
+	// params.Set("anonymous_code", anonymousCode)
+
+	url := fmt.Sprintf("%s/mgplatform/api/apps/jscode2session?%s", host, params.Encode())
 	var httpReq *http.Request
 	var result *http.Response
-	var data []byte
 	var err error
-	data, err = json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
-	log.Println(string(data))
-	httpReq, err = http.NewRequest("POST", url, bytes.NewBuffer(data))
+	httpReq, err = http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
