@@ -202,11 +202,20 @@ type DouyinPlatformConfig struct {
 	Secret string `yaml:"secret"`
 }
 
+type WeixinPlatformConfig struct {
+	Secret string `yaml:"secret"`
+}
+
+type KuaishouPlatformConfig struct {
+	Secret string `yaml:"secret"`
+}
 type PlatformConfig struct {
-	Test   *TestPlatformConfig   `yaml:"test"`
-	Pwd    *PwdPlatformConfig    `yaml:"pwd"`
-	Ultra  *UltraPlatformConfig  `yaml:"ultra"`
-	Douyin *DouyinPlatformConfig `yaml:"douyin"`
+	Test     *TestPlatformConfig     `yaml:"test"`
+	Pwd      *PwdPlatformConfig      `yaml:"pwd"`
+	Ultra    *UltraPlatformConfig    `yaml:"ultra"`
+	Douyin   *DouyinPlatformConfig   `yaml:"douyin"`
+	Weixin   *WeixinPlatformConfig   `yaml:"weixin"`
+	Kuaishou *KuaishouPlatformConfig `yaml:"kuaishou"`
 }
 
 type GrpcConfig struct {

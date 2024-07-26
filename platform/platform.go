@@ -3,6 +3,8 @@ package platform
 import (
 	"context"
 	"fmt"
+	"github.com/lujingwei002/gira/platform/kuaishou"
+	"github.com/lujingwei002/gira/platform/weixin"
 
 	"github.com/lujingwei002/gira"
 	"github.com/lujingwei002/gira/codes"
@@ -31,6 +33,14 @@ func NewConfigSdk(config gira.PlatformConfig) *PlatformSdk {
 	if config.Douyin != nil {
 		self.douyinSdk = NewConfigDouyinSdk(*config.Douyin)
 		self.sdkDict["douyin"] = NewConfigDouyinSdk(*config.Douyin)
+	}
+	if config.Weixin != nil {
+		self.weixinSdk = NewConfigWeixinSdk(*config.Weixin)
+		self.sdkDict["weixin"] = NewConfigWeixinSdk(*config.Weixin)
+	}
+	if config.Kuaishou != nil {
+		self.kuaishouSdk = NewConfigKuaishouSdk(*config.Kuaishou)
+		self.sdkDict["kuaishou"] = NewConfigKuaishouSdk(*config.Kuaishou)
 	}
 	return self
 }
@@ -63,6 +73,19 @@ func NewConfigDouyinSdk(config gira.DouyinPlatformConfig) *DouyinSdk {
 	return self
 }
 
+func NewConfigWeixinSdk(config gira.WeixinPlatformConfig) *WeixinSdk {
+	self := &WeixinSdk{
+		config: config,
+	}
+	return self
+}
+func NewConfigKuaishouSdk(config gira.KuaishouPlatformConfig) *KuaishouSdk {
+	self := &KuaishouSdk{
+		config: config,
+	}
+	return self
+}
+
 // 服务端sdk接口
 type sdk_server interface {
 	Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error)
@@ -70,11 +93,13 @@ type sdk_server interface {
 }
 
 type PlatformSdk struct {
-	testSdk   *TestSdk
-	pwdSdk    *PwdSdk
-	ultraSdk  *UltraSdk
-	douyinSdk *DouyinSdk
-	sdkDict   map[string]sdk_server
+	testSdk     *TestSdk
+	pwdSdk      *PwdSdk
+	ultraSdk    *UltraSdk
+	douyinSdk   *DouyinSdk
+	weixinSdk   *WeixinSdk
+	kuaishouSdk *KuaishouSdk
+	sdkDict     map[string]sdk_server
 }
 
 func (self *PlatformSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
@@ -227,5 +252,51 @@ func (self *DouyinSdk) Login(accountPlat string, openId string, token string, au
 }
 
 func (self *DouyinSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
+	return nil, errors.ErrTODO
+}
+
+type WeixinSdk struct {
+	config gira.WeixinPlatformConfig
+}
+
+func (self *WeixinSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
+	log.Infow("weixin sdk login", "open_id", openId, "token", token, "app_id", appId, "app_secret", appSecret, "auth_url", authUrl)
+	if resp, err := weixin.JsCode2Session(appId, appSecret, token, ""); err != nil {
+		return nil, err
+	} else if resp.ErrCode != 0 {
+		return nil, errors.New(resp.ErrMsg)
+	} else {
+		result := &gira.SdkAccount{
+			OpenId:   resp.OpenId,
+			NickName: "",
+		}
+		return result, nil
+	}
+}
+
+func (self *WeixinSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
+	return nil, errors.ErrTODO
+}
+
+type KuaishouSdk struct {
+	config gira.KuaishouPlatformConfig
+}
+
+func (self *KuaishouSdk) Login(accountPlat string, openId string, token string, authUrl string, appId string, appSecret string) (*gira.SdkAccount, error) {
+	log.Infow("kuaishou sdk login", "open_id", openId, "token", token, "app_id", appId, "app_secret", appSecret, "auth_url", authUrl)
+	if resp, err := kuaishou.JsCode2Session(appId, appSecret, token, ""); err != nil {
+		return nil, err
+	} else if resp.Result != 0 {
+		return nil, errors.New(fmt.Sprintf("%d", resp.Result))
+	} else {
+		result := &gira.SdkAccount{
+			OpenId:   resp.OpenId,
+			NickName: "",
+		}
+		return result, nil
+	}
+}
+
+func (self *KuaishouSdk) PayOrderCheck(accountPlat string, args map[string]interface{}, paySecret string) (*gira.SdkPayOrder, error) {
 	return nil, errors.ErrTODO
 }
