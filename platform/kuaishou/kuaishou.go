@@ -23,7 +23,7 @@ type JsCode2SessionResponse struct {
 	SessionKey string `json:"session_key"`
 }
 
-// https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/guide/game-engine/rd-to-SCgame/server/log-in/code-2-session
+// https://mp.kuaishou.com/docs/develop/server/code2Session.html
 // 小程序登录
 func JsCode2Session(appId string, secret string, code string, anonymousCode string) (*JsCode2SessionResponse, error) {
 	tr := &http.Transport{
