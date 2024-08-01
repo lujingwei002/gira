@@ -19,7 +19,7 @@ type JsCode2SessionRequest struct {
 
 type JsCode2SessionResponse struct {
 	Result     int32  `json:"result"`
-	Message    string `json:"msg"`
+	Message    string `json:"error_msg"`
 	OpenId     string `json:"open_id"`
 	UnionId    string `json:"union_id"`
 	SessionKey string `json:"session_key"`
