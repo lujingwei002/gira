@@ -19,11 +19,13 @@ type JsCode2SessionRequest struct {
 
 type JsCode2SessionResponse struct {
 	Result     int32  `json:"result"`
+	Message    string `json:"msg"`
 	OpenId     string `json:"open_id"`
+	UnionId    string `json:"union_id"`
 	SessionKey string `json:"session_key"`
 }
 
-// https://mp.kuaishou.com/docs/develop/server/code2Session.html
+// https://ks-game-docs.kuaishou.com/minigame/api/open/login/auth.code2Session.html
 // 小程序登录
 func JsCode2Session(appId string, secret string, code string, anonymousCode string) (*JsCode2SessionResponse, error) {
 	tr := &http.Transport{
@@ -34,9 +36,10 @@ func JsCode2Session(appId string, secret string, code string, anonymousCode stri
 	params.Set("app_id", appId)
 	params.Set("app_secret", secret)
 	params.Set("js_code", code)
+	params.Set("grant_type", "authorization_code")
 	// params.Set("anonymous_code", anonymousCode)
 
-	url := fmt.Sprintf("%s/oauth2/mp/code2session?%s", host, params.Encode())
+	url := fmt.Sprintf("%s/game/minigame/jscode2session?%s", host, params.Encode())
 	log.Println(url)
 
 	var httpReq *http.Request
@@ -45,7 +48,7 @@ func JsCode2Session(appId string, secret string, code string, anonymousCode stri
 	if err != nil {
 		return nil, err
 	}
-	httpReq, err = http.NewRequest("POST", url, nil)
+	httpReq, err = http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
