@@ -286,7 +286,7 @@ func (self *KuaishouSdk) Login(accountPlat string, openId string, token string, 
 	log.Infow("kuaishou sdk login", "open_id", openId, "token", token, "app_id", appId, "app_secret", appSecret, "auth_url", authUrl)
 	if resp, err := kuaishou.JsCode2Session(appId, appSecret, token, ""); err != nil {
 		return nil, err
-	} else if resp.Result != 0 {
+	} else if resp.Result != 1 {
 		return nil, errors.New(fmt.Sprintf("%d %s", resp.Result, resp.Message))
 	} else {
 		result := &gira.SdkAccount{
